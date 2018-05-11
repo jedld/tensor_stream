@@ -133,16 +133,16 @@ module TensorStream
       op(:not_equal, self, operand)
     end
 
-    def <=(operand)
-      op(:less_equal, self, operand)
-    end
-
     def >(operand)
       op(:greater, self, operand)
     end
 
     def >=(operand)
       op(:greater_equal, self, operand)
+    end
+
+    def <=(operand)
+      op(:less_equal, self, operand)
     end
 
     def collect(&block)

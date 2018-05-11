@@ -67,6 +67,14 @@ module TensorStream
     def greater(a, b, name: nil)
       op(:greater, a, b, name: name)
     end
+
+    def greater_equal(a, b, name: nil)
+      op(:greater_equal, a, b, name: name)
+    end
+
+    def less_equal(a, b, name: nil)
+      op(:less_equal, a, b, name: name)
+    end
   
     def reduce_mean(input_tensor, axis = nil, keepdims: false, name: nil)
       op(:reduce_mean, input_tensor, nil, axis: axis, keepdims: keepdims, name: name)

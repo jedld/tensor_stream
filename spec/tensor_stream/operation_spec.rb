@@ -171,6 +171,34 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".greater_equal" do
+    it "returns true if a >= b elementwise" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([1.1, 2.1, 3.0])
+      e = tf.constant([1.1, 3.1, 1.1])
+      expect(tf.greater_equal(a,b).eval).to be
+      expect(a >= b).to be
+      expect(tf.greater_equal(b,c).eval).to be false
+      expect(tf.greater_equal(d,e).eval).to eq([true, false, true])
+    end
+  end
+
+  context ".less_equal" do
+    it "returns true if a >= b elementwise" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([1.1, 2.1, 3.0])
+      e = tf.constant([1.1, 3.1, 1.1])
+      expect(tf.less_equal(a,b).eval).to be
+      expect(a <= b).to be
+      expect(tf.less_equal(b,c).eval).to be true
+      expect(tf.less_equal(d,e).eval).to eq([true, true, false])
+    end
+  end
+
   # Outputs random values from a uniform distribution.
   # The generated values follow a uniform distribution in the range [minval, maxval). The lower bound minval is included in the range, while the upper bound maxval is excluded.
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.

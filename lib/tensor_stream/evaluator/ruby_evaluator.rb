@@ -262,6 +262,16 @@ module TensorStream
           b = complete_eval(b, child_context)
 
           call_vector_op(:greater, a, b, child_context, ->(t, u) { t > u })
+        when :greater_equal
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
+
+          call_vector_op(:greater_equal, a, b, child_context, ->(t, u) { t >= u })
+        when :less_equal
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
+
+          call_vector_op(:less_equal, a, b, child_context, ->(t, u) { t <= u })
         when :zeros, :ones, :zeros_like, :ones_like
 
           shape = if %i[zeros_like ones_like].include?(tensor.operation)
