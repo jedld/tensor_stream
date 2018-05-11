@@ -14,9 +14,9 @@ module TensorStream
                           aggregation_method: nil,
                           stop_gradients: nil
                           )
-     
+
       gs = xs.collect do |x|
-        fail "#{x} passed is not a tensor object" unless x.is_a?(Tensor)
+        raise "#{x} passed is not a tensor object" unless x.is_a?(Tensor)
 
         stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
         gradient_program_name = "grad_#{ys.name}_#{x.name}_#{stops}".to_sym
@@ -53,7 +53,7 @@ module TensorStream
     end
 
     def shape(input, name: nil, out_type: :int32)
-      op(:shape, input, nil, name: name)
+      op(:shape, input, nil, name: name, out_type: out_type)
     end
 
     def rank(input, name: nil)

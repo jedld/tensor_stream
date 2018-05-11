@@ -17,13 +17,13 @@ module TensorStream
       TensorStream.constant(value, options.merge(internal: true))
     end
 
-    def shape_eval(input)
-      return [] unless input.kind_of?(Array)
+    def shape_eval(input, output_type = :int32)
+      return [] unless input.is_a?(Array)
       arr = []
       arr_ptr = input
 
       Kernel.loop do
-        arr << arr_ptr.size
+        arr << (TensorStream::Ops::FLOATING_POINT_TYPES.include?(output_type) ? arr_ptr.size.to_f : arr_ptr.size )
         arr_ptr = arr_ptr[0]
 
         break unless arr_ptr.is_a?(Array)

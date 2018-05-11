@@ -104,7 +104,7 @@ module TensorStream
             elsif x > 0
               1
             else
-              fail 'assert: cannot be here'
+              raise 'assert: cannot be here'
             end
           }
 
@@ -128,7 +128,7 @@ module TensorStream
           input = complete_eval(a, child_context)
           start = complete_eval(b, child_context)
           size = complete_eval(tensor.options[:size], child_context)
-          fail "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
+          raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
           slice_tensor(input, start, size)
         when :negate
           call_vector_op(:negate, a, nil, child_context, ->(t, _u) { -t })
@@ -137,7 +137,7 @@ module TensorStream
         when :sub
           call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
         when :mul
-          call_vector_op(:mul, a, b, child_context, ->(t, u) { binding.pry if t.nil? || u.nil?; t * u })
+          call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
         when :pow
           call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
         when :concat
@@ -202,8 +202,8 @@ module TensorStream
           reduction(child_context, tensor, func)
         when :reduce_sum
           c = tensor.data_type == :float ? 0.0 : 0
-          func = ->(v) { 
-            if v.kind_of?(Array)
+          func = lambda { |v|
+            if v.is_a?(Array)
               v.empty? ? c : v.reduce(:+)
             else
               v
@@ -213,8 +213,8 @@ module TensorStream
           reduction(child_context, tensor, func)
         when :reduce_prod
           c = tensor.data_type == :float ? 1.0 : 1
-          func = ->(v) { 
-            if v.kind_of?(Array)
+          func = lambda { |v|
+            if v.is_a?(Array)
               v.empty? ? c : v.reduce(:*)
             else
               v
@@ -295,8 +295,7 @@ module TensorStream
           end
         when :shape
           input = complete_eval(a, child_context)
-
-          shape_eval(input)
+          shape_eval(input, tensor.options[:out_type])
         when :matmul
           matrix_a = complete_eval(a, child_context)
           matrix_b = complete_eval(b, child_context)
@@ -319,7 +318,7 @@ module TensorStream
 
           (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
         when :gradients
-          fail "not implemented in evaluator"
+          raise "not implemented in evaluator" # see TensorStream.gradients instead.
         when :identity
           complete_eval(a, child_context)
         when :print
@@ -331,13 +330,13 @@ module TensorStream
           a = complete_eval(a, child_context)
           get_rank(a)
         when :div
-          process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
+          process_vector_math_op(a, b, child_context, ->(a, b) { a / b })
         when :reshape
           arr = complete_eval(a, child_context)
           new_shape = complete_eval(b, child_context)
 
           flat_arr = arr.flatten
-          return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
+          return flat_arr[0] if new_shape.size.zero? && flat_arr.size == 1
 
           new_shape = fix_inferred_elements(new_shape, flat_arr.size)
 
@@ -353,7 +352,7 @@ module TensorStream
 
           call_vector_op(:max, a, b, child_context, ->(t, u) { [t, u].max })
         else
-          fail "unknown op #{tensor.operation}"
+          raise "unknown op #{tensor.operation}"
         end.tap do |result|
           if tensor.breakpoint
             a = complete_eval(a, child_context)
@@ -485,7 +484,7 @@ module TensorStream
       def matmul_const_transform(mat, mat_b, tensor)
         if !mat.is_a?(Array)
           compat_shape = shape_eval(mat_b).reverse
-          func = ->() { tensor.data_type == :int32 ? mat.to_i : mat.to_f }
+          func = -> { tensor.data_type == :int32 ? mat.to_i : mat.to_f }
 
           generate_vector(compat_shape, generator: func)
         else

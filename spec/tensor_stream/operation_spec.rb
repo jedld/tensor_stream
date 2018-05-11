@@ -563,19 +563,23 @@ end
 
   context ".shape" do
     it "returns a 1D tensor representing shape of target tensor" do
-      tf.program do |tf|
-        t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
-        shape = tf.shape(t)
-        expect(shape.eval).to eq([2, 2, 3])
+      t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      shape = tf.shape(t)
+      expect(shape.eval).to eq([2, 2, 3])
 
-        u = tf.constant(1)
-        shape = tf.shape(u)
-        expect(shape.eval).to eq([])
+      u = tf.constant(1)
+      shape = tf.shape(u)
+      expect(shape.eval).to eq([])
 
-        v = tf.constant([[1,2,3],[4,5,6]])
-        shape = tf.shape(v)
-        expect(shape.eval).to eq([2 ,3])
-      end
+      v = tf.constant([[1,2,3],[4,5,6]])
+      shape = tf.shape(v)
+      expect(shape.eval).to eq([2 ,3])
+    end
+
+    it "can set out_type to return a float" do
+      v = tf.constant([[1, 2, 3],[4, 5, 6]])
+      s = tf.shape(v, out_type: :float32)
+      expect(s.eval).to eql([2.0, 3.0])
     end
   end
 
