@@ -7,11 +7,10 @@ module TensorStream
       gradient_program_name = "_grad_#{tensor.name}_#{dx.name}"
       return options[:graph].get_node(gradient_program_name) if options[:graph] && options[:graph].node_added?(gradient_program_name)
 
-      target_shape = options[:target_shape]
       constant_options = { dtype: options[:dtype] }
-      constant_options_1 = { dtype: options[:dtype] || tensor.data_type, shape: target_shape }
+      constant_options_1 = { dtype: options[:dtype] || tensor.data_type }
 
-      return i_cons(1, constant_options_1) if tensor.equal?(dx)
+      return i_op(:ones_like, dx, constant_options_1) if tensor.equal?(dx)
       return i_cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
 
       if tensor.is_a?(Operation)
@@ -85,8 +84,8 @@ module TensorStream
           tensor_shape1 = tensor.items[1].shape ? tensor.items[1].shape.shape : nil
           tensor_shape0 = tensor.items[0].shape ? tensor.items[0].shape.shape : nil
 
-          derivative_a = derivative(tensor.items[0], dx, target_shape: target_shape)
-          derivative_b = derivative(tensor.items[1], dx, target_shape: target_shape)
+          derivative_a = derivative(tensor.items[0], dx)
+          derivative_b = derivative(tensor.items[1], dx)
 
           s0 =  i_op(:shape, tensor.items[0])
           s1 =  i_op(:shape, tensor.items[1])
@@ -101,7 +100,7 @@ module TensorStream
                                                      pad_zeros: true,
                                                      name:        'matrix_dy')       
 
-          zero_vect = i_op(:zeros, target_shape, nil, name: 'zero_vect')
+          zero_vect = i_op(:zeros_like, dx, nil, name: 'zero_vect')
 
           # matmul_db = op(:transpose, matmul_db, nil).first
 

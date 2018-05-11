@@ -8,14 +8,30 @@ module TensorStream
     end
 
     def gradients(ys, xs, grad_ys: nil,
-      name: 'gradients',
-      colocate_gradients_with_ops: false,
-      gate_gradients: false,
-      aggregation_method: nil,
-      stop_gradients: nil
-      )
-      options = { stop_gradients: stop_gradients}
-      op(:gradients, ys, xs, options)
+                          name: 'gradients',
+                          colocate_gradients_with_ops: false,
+                          gate_gradients: false,
+                          aggregation_method: nil,
+                          stop_gradients: nil
+                          )
+     
+      gs = xs.collect do |x|
+        fail "#{x} passed is not a tensor object" unless x.is_a?(Tensor)
+
+        stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
+        gradient_program_name = "grad_#{ys.name}_#{x.name}_#{stops}".to_sym
+
+        tensor_program = if ys.graph.node_added?(gradient_program_name)
+                           ys.graph.get_node(gradient_program_name)
+                         else
+                           derivative_ops = TensorStream::MathGradients.derivative(ys, x, graph: ys.graph,
+                                                  stop_gradients: stop_gradients)
+                           unit_matrix = op(:ones_like, x)
+                           ys.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+                         end
+        tensor_program
+      end
+      TensorStream.group(gs)
     end
 
     def random_uniform(shape, dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)

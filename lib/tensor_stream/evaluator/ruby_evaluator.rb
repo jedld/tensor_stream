@@ -319,24 +319,7 @@ module TensorStream
 
           (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
         when :gradients
-          b.collect do |xs|
-            fail "#{xs} passed is not a tensor object" unless xs.is_a?(Tensor)
-            xs_val = complete_eval(xs, child_context)
-            target_shape = shape_eval(xs_val)
-
-            stops = tensor.options[:stop_gradients] ? tensor.options[:stop_gradients].map(&:name).join('_') : ''
-            gradient_program_name = "grad_#{tensor.name}_#{xs.name}_#{stops}".to_sym
-
-            tensor_program = if tensor.graph.node_added?(gradient_program_name)
-                               tensor.graph.get_node(gradient_program_name)
-                             else
-                               derivative_ops = TensorStream::MathGradients.derivative(a, xs, graph: tensor.graph, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
-                               unit_matrix = op(:ones_like, xs)
-                               tensor.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
-                             end
-
-            complete_eval(tensor_program, child_context)
-          end
+          fail "not implemented in evaluator"
         when :identity
           complete_eval(a, child_context)
         when :print
