@@ -34,18 +34,20 @@ RSpec.describe "Performs a linear regression" do
     init = TensorStream.global_variables_initializer()
 
     TensorStream.Session do |sess|
-      sess.run(init)
-      (0..training_epochs).each do |epoch|
-        train_X.zip(train_Y).each do |x,y|
-          sess.run(optimizer, feed_dict: {X => x, Y => y})
-        end
+      expect {
+        sess.run(init)
+        (0..training_epochs).each do |epoch|
+          train_X.zip(train_Y).each do |x,y|
+            sess.run(optimizer, feed_dict: {X => x, Y => y})
+          end
 
-        if (epoch+1) % display_step == 0
-          c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
-          puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
-              "W=", sess.run(W), "b=", sess.run(b))
+          if (epoch+1) % display_step == 0
+            c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
+            puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
+                "W=", sess.run(W), "b=", sess.run(b))
+          end
         end
-      end
+      }.to_not change(cost.graph.nodes, :size)
 
       puts("Optimization Finished!")
       training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
