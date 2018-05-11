@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Joseph Emmanuel Dayo"]
   spec.email         = ["joseph.dayo@gmail.com"]
 
-  spec.summary       = %q{High Performance Machine Learning for Ruby}
-  spec.description   = %q{High Performance Machine Learning for Ruby}
+  spec.summary       = %q{A Pure ruby tensorflow implementation}
+  spec.description   = %q{A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default as well with support for an opencl evaluator.}
   spec.homepage      = "http://www.github.com/jedld/tensor_stream"
   spec.license       = "MIT"
 

@@ -4,7 +4,7 @@ A reimplementation of TensorFlow for ruby. This is a ground up implementation wi
 
 The goal of this gem is to have a high performance machine learning and compute solution for ruby with support for a wide range of hardware and software configuration.
 
-Features:
+## Features
 
 - Replicates most of the commonly used low-level tensorflow ops
 - Supports auto-differentiation via tf.gradients (mostly)
@@ -33,11 +33,11 @@ Or install it yourself as:
 
 ## Usage
 
-Usage is similar to TensorFlow with ruby style semantics
+Usage is similar to how you would use TensorFlow except with ruby syntax
 
-```ruby
 Linear regression sample:
 
+```ruby
 require 'tensor_stream'
 
 tf = TensorStream
@@ -92,6 +92,14 @@ tf.Session do |sess|
     puts("time elapsed ", Time.now.to_i - start_time.to_i)
 end
 ```
+
+## Roadmap
+
+- Docs
+- Complete low-level op support
+- SciRuby evaluator
+- Opencl evaluator
+- TensorFlow savemodel compatibility
 
 ## Issues
 
