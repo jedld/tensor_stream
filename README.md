@@ -94,6 +94,68 @@ tf.session do |sess|
 end
 ```
 
+## python to ruby guide
+
+Not all ops are available. Available ops are defined in lib/tensor_stream/ops.rb, corresponding gradients are found at lib/tensor_stream/math_gradients.
+
+There are also certain differences with regards to naming conventions, and named parameters:
+
+# Variables
+
+To make referencing python examples easier it is recommended to use "tf" as the TensorStream namespace
+
+At the beginning
+```ruby
+tf = TensorStream # recommended to use tf since most sample models on the net use this
+ts = TensorStream # use this if you plan to use TensorStream only features, so other devs will know about that
+```
+
+```python
+w = tf.Variable(0, name='weights')
+w = tf.Variable(0, 'weights')
+```
+
+```ruby
+w =tf.variable(0, name: 'weights')
+```
+
+# Shapes
+
+```python
+x = tf.placeholder(tf.float32, shape=(1024, 1024))
+x = tf.placeholder(tf.float32, shape=(None, 1024))
+```
+
+ruby supports symbols for specifying data types, nil can be used for None
+
+```ruby
+x = tf.placeholder(:float32, shape: [1024, 1024])
+x = tf.placeholder(:float32, shape: [nil, 1024])
+```
+
+For debugging, each operation or tensor supports the to_math method
+
+```ruby
+X = tf.placeholder("float")
+Y = tf.placeholder("float")
+W = tf.variable(rand, name: "weight")
+b = tf.variable(rand, name: "bias")
+pred = X * W + b
+cost = tf.reduce_sum(tf.pow(pred - Y, 2)) / ( 2 * 10)
+cost.to_math # "(reduce_sum(|((((Placeholder: * weight) + bias) - Placeholder_2:)^2)|) / 10.0)"
+```
+
+breakpoints can also be set, block will be evaluated during computation
+
+```ruby
+a = tf.constant([2,2])
+b = tf.constant([3,3])
+
+f = tf.matmul(a, b).breakpoint! { |tensor, a, b, result_value| binding.pry }
+
+tf.session.run(f)
+```
+
 ## Roadmap
 
 - Docs
