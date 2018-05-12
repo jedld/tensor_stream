@@ -86,12 +86,12 @@ RSpec.describe TensorStream::MathGradients do
   end
 
   context "handle broadcasted args" do
-    it "automatically reduces broadcasted args" do
+    it "automatically reduces broadcasted args (axis = 0)" do
       a = tf.constant([
-          [1, 2, 3, 4, 5],
-          [0.1, 2.0, 1.1, 4, 5],
-          [1, 2, 3, 4, 5],
-        ], dtype: :float)
+          [1.0, 2.0, 3.0, 4.0, 5.0],
+          [0.1, 2.0, 1.1, 4.0, 5.0],
+          [1.0, 2.0, 3.0, 4.0, 5.0],
+        ])
 
       b  = tf.constant([0.1, 0.2, 0.1, 0.5, 0.4])
 
@@ -104,6 +104,46 @@ RSpec.describe TensorStream::MathGradients do
 
       g = tf.gradients(f, [b])
       expect(g.eval.first).to eq([2.1, 6.0, 7.1, 12.0, 15.0])
+    end
+
+    it "automatically reduces broadcasted args (axis = 1)" do
+      a = tf.constant([
+        [1.0, 2.0],
+        [0.4, 4.1],
+        [0.2, 4.2],
+      ])
+
+      b = tf.constant([
+        [1.0],
+        [0.4],
+        [0.1],
+      ])
+
+      f = a * b
+
+      expect(tr(f.eval)).to eq(
+        [[1.0, 2.0], [0.16, 1.64], [0.02, 0.42]]
+      )
+    end
+
+    specify "when columns don't match" do
+      a = tf.constant([
+        [1.0, 2.0, 0.3],
+        [0.4, 4.1, 0.1],
+        [0.2, 4.2, 0.1],
+      ])
+
+      b = tf.constant([
+        [1.0, 0.8],
+        [0.4, 0.2],
+        [0.1, 0.1],
+      ])
+
+      f = a * b
+
+      expect {
+        f.eval
+      }.to raise_error TensorStream::Evaluator::EvaluatorExcecutionException
     end
   end
 
@@ -197,16 +237,6 @@ RSpec.describe TensorStream::MathGradients do
      xit "computes for open ended shapes" do
       x = tf.constant([
           [1.0, 0.5, 4.0],
-          # [1.0, 0.5, 4.0],
-          # [1.1, 0.5, 4.0],
-          # [1.2, 0.5, 4.0],
-          # [1.3, 0.5, 4.0],
-          # [1.4, 0.5, 4.0],
-          # [1.5, 0.5, 4.0],
-          # [1.6, 0.5, 4.0],
-          # [1.7, 0.5, 4.0],
-          # [1.8, 0.5, 4.0],
-          # [1.9, 0.5, 4.0],
         ])
 
       w = tf.constant([
@@ -235,8 +265,13 @@ RSpec.describe TensorStream::MathGradients do
 
       g = tf.gradients(a3, [w, b])
       expect(g.eval).to eq(
-        [[[20.924999999999997, 27.435], [7.424999999999999, 9.735], [59.39999999999999, 77.88]], [14.849999999999998, 19.47]]
-      )
+        [
+          [[-0.07124099, -0.10610479],
+           [-0.0356205 , -0.0530524 ],
+           [-0.28496397, -0.42441916]],
+
+           [-0.07124099, -0.10610479]
+        ])
      end
   end
 end

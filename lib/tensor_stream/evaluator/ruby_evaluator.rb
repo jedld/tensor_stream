@@ -135,7 +135,7 @@ module TensorStream
         when :sub
           call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
         when :mul
-          call_vector_op(:mul, a, b, child_context, ->(t, u) { binding.pry if t.nil? || u.nil? ;t * u })
+          call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
         when :pow
           call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
         when :concat
@@ -175,8 +175,7 @@ module TensorStream
 
           generate_vector(tensor.options[:shape], generator: generator)
         when :flow_group
-          threads = tensor.items.collect { |item| Concurrent::Future.execute(executor: @thread_pool) { run(item, child_context) } }
-          threads.collect(&:value)
+          tensor.items.collect { |item| run(item, child_context) }
         when :assign
           assign = tensor.items[0] || tensor
           assign.value = complete_eval(tensor.items[1], child_context)
@@ -634,7 +633,16 @@ module TensorStream
         raise FullEvalNotPossible.new, "full eval not possible for #{eval_vector.name}" if eval_vector.is_a?(Tensor) || constant.is_a?(Tensor)
 
         eval_vector.each_with_index.collect do |item, index|
-          c = constant.is_a?(Array) ? constant[index] : constant
+          c = if constant.is_a?(Array)
+              if index < constant.size
+                constant[index]
+              else
+                raise "incompatible tensor shapes used during op" if constant.size != 1
+                constant[0]
+              end
+            else
+              constant
+            end
           if item.is_a?(Array)
             constant_op(item, c, child_context, op, switch)
           elsif item.respond_to?(:value)
