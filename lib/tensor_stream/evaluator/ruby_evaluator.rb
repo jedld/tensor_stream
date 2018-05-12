@@ -135,7 +135,7 @@ module TensorStream
         when :sub
           call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
         when :mul
-          call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
+          call_vector_op(:mul, a, b, child_context, ->(t, u) { binding.pry if t.nil? || u.nil? ;t * u })
         when :pow
           call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
         when :concat

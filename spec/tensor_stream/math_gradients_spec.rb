@@ -85,6 +85,28 @@ RSpec.describe TensorStream::MathGradients do
           [1.7, 1.7 ]]])
   end
 
+  context "handle broadcasted args" do
+    it "automatically reduces broadcasted args" do
+      a = tf.constant([
+          [1, 2, 3, 4, 5],
+          [0.1, 2.0, 1.1, 4, 5],
+          [1, 2, 3, 4, 5],
+        ], dtype: :float)
+
+      b  = tf.constant([0.1, 0.2, 0.1, 0.5, 0.4])
+
+      f = a * b
+      expect(tr(f.eval)).to eq([
+        [0.1, 0.4, 0.3, 2.0, 2.0],
+        [0.01, 0.4, 0.11, 2.0, 2.0],
+        [0.1, 0.4, 0.3, 2.0, 2.0]
+      ])
+
+      g = tf.gradients(f, [b])
+      expect(g.eval.first).to eq([2.1, 6.0, 7.1, 12.0, 15.0])
+    end
+  end
+
   context "placeholders" do
     let(:test_inputs) {
       [
@@ -172,37 +194,49 @@ RSpec.describe TensorStream::MathGradients do
       expect(tr(biases_gradient2)).to eq([7.0, 7.0, 7.0, 7.0, 7.0])
      end
 
-     it "computes for open ended shapes" do
+     xit "computes for open ended shapes" do
       x = tf.constant([
           [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
-          [1.0, 0.5, 4.0],
+          # [1.0, 0.5, 4.0],
+          # [1.1, 0.5, 4.0],
+          # [1.2, 0.5, 4.0],
+          # [1.3, 0.5, 4.0],
+          # [1.4, 0.5, 4.0],
+          # [1.5, 0.5, 4.0],
+          # [1.6, 0.5, 4.0],
+          # [1.7, 0.5, 4.0],
+          # [1.8, 0.5, 4.0],
+          # [1.9, 0.5, 4.0],
         ])
 
       w = tf.constant([
-        [
           [0.4, 0.2],
           [0.1, 0.45],
           [0.2, 4.0]
-        ]
+      ])
+
+      w2 = tf.constant([
+        [0.3, 0.2],
+        [0.15, 0.45],
+      ])
+
+      w3 = tf.constant([
+        [0.1, 0.1, 1.0, 1.1, 0.4],
+        [0.05, 0.2, 1.0, 1.2, 0.5],
       ])
 
       b= tf.constant([4.0, 5.0])
+      b2= tf.constant([4.1, 5.1])
+      b3 = tf.constant([2.0, 3.1, 1.0, 0.2, 0.2])
 
-      a = tf.matmul(x, w) + b
+      a = tf.sin(tf.matmul(x, w) + b)
+      a2 = tf.sin(tf.matmul(a, w2) + b2)
+      a3 = tf.tanh(tf.matmul(a2, w3) + b3)
 
-      expect(a.eval).to eq([])
-
-      g = tf.gradients(a, [w, b])
-      expect(g.eval).to eq([])
+      g = tf.gradients(a3, [w, b])
+      expect(g.eval).to eq(
+        [[[20.924999999999997, 27.435], [7.424999999999999, 9.735], [59.39999999999999, 77.88]], [14.849999999999998, 19.47]]
+      )
      end
   end
 end

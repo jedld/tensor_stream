@@ -51,9 +51,9 @@ module TensorStream
         when :cos
           -i_op(:sin, tensor.items[0]) * grad
         when :add
-          grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_sum') }, options)
+          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_sum') }, options)
         when :sub
-          grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:sub, a, b, name: 'grad_sub') }, options)
+          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:sub, a, b, name: 'grad_sub') }, options)
         when :pow
           gx = _ds(tensor.items[1]) * (_ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
 
@@ -66,10 +66,10 @@ module TensorStream
           gx = i_op(:div, grad, _ds(tensor.items[1]))
           gy = grad2 * i_op(:div, i_op(:div, -_ds(tensor.items[0]), _ds(tensor.items[1])), _ds(tensor.items[1]))
 
-          gx + gy
+          _reduce_when_necessary(gx + gy, wrt_dx)
         when :mul
           # apply the product rule
-          grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * grad2
+          _reduce_when_necessary(grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * grad2, wrt_dx)
         when :reduce_mean
           input_size = i_op(:reduce_prod, i_op(:shape, tensor.items[0]))
           output_size = i_op(:reduce_prod, i_op(:shape, tensor))
@@ -115,6 +115,7 @@ module TensorStream
           # norm_b = i_op(:cond, norm_b[0], norm_b, pred: i_op(:rank, matmul_db) > i_op(:rank, derivative_b))
 
           i_op(:cond, norm_a, zero_vect, pred: i_op(:reduce_sum, norm_a) != 0) + i_op(:cond, norm_b, zero_vect, pred: i_op(:reduce_sum, norm_b) != 0)
+          #  m.breakpoint! { |t, a, b, v|  binding.pry }
         else
           raise "no derivative implementation found for op #{tensor.operation}"
         end
@@ -140,18 +141,25 @@ module TensorStream
       end
     end
 
-    def self.grad_with_broadcast(tensor, wrt_dx, func, options)
+    def self._grad_with_broadcast(tensor, wrt_dx, func, options)
       grad = derivative(tensor.items[0], wrt_dx, options)
       grad2 = derivative(tensor.items[1], wrt_dx, options)
       elements1 = i_op(:reduce_prod, i_op(:shape, tensor.items[0]), data_type: :float32)
       elements2 = i_op(:reduce_prod, i_op(:shape, tensor.items[1]), data_type: :float32)
       multiplier = elements1 / elements2
-      func.call(grad, grad2 * multiplier)
+      _reduce_when_necessary(func.call(grad, grad2 * multiplier), wrt_dx)
     end
 
     def self._include?(arr, obj)
       arr.each { |a| return true if a.equal?(obj) }
       false
+    end
+
+    def self._reduce_when_necessary(tensor, wrt_dx)
+      rank = op(:rank, tensor)
+      dx_rank = op(:rank, wrt_dx)
+      reduced = op(:reduce_sum, tensor, nil, axis: 0)
+      op(:cond, ->{ reduced }, tensor, pred: rank > dx_rank)
     end
   end
 end

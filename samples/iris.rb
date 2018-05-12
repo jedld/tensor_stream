@@ -83,7 +83,7 @@ biases = {
 # Create model
 def neural_net(x, weights, biases)
     # Hidden fully connected layer with 256 neurons
-    layer_1 =  TensorStream.add(TensorStream.matmul(x, weights[:h1]), biases[:b1] , name: 'layer1_add')
+    layer_1 =  TensorStream.add(TensorStream.matmul(x, weights[:h1]), biases[:b1], name: 'layer1_add')
     # Hidden fully connected layer with 256 neurons
     layer_2 = TensorStream.add(TensorStream.matmul(layer_1, weights[:h2]), biases[:b2], name: 'layer2_add')
     # Output fully connected layer with a neuron for each class
