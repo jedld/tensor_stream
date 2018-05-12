@@ -19,8 +19,8 @@ RSpec.describe "Performs a linear regression" do
     Y = TensorStream.placeholder("float")
 
     # Set model weights
-    W = TensorStream.Variable(rand, name: "weight")
-    b = TensorStream.Variable(rand, name: "bias")
+    W = TensorStream.variable(rand, name: "weight")
+    b = TensorStream.variable(rand, name: "bias")
 
     # Construct a linear model
     pred = X * W + b
@@ -31,9 +31,9 @@ RSpec.describe "Performs a linear regression" do
     optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
     # Initialize the variables (i.e. assign their default value)
-    init = TensorStream.global_variables_initializer()
+    init = TensorStream.global_variables_initializer
 
-    TensorStream.Session do |sess|
+    TensorStream.session do |sess|
       expect {
         sess.run(init)
         (0..training_epochs).each do |epoch|

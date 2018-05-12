@@ -21,15 +21,15 @@ Y = tf.placeholder("float", shape: [nil, num_classes])
 
 # Store layers weight & bias
 @weights = {
-    h1: tf.Variable(tf.random_normal([num_input, n_hidden_1])),
-    h2: tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
-    out: tf.Variable(tf.random_normal([n_hidden_2, num_classes]))
+    h1: tf.variable(tf.random_normal([num_input, n_hidden_1])),
+    h2: tf.variable(tf.random_normal([n_hidden_1, n_hidden_2])),
+    out: tf.variable(tf.random_normal([n_hidden_2, num_classes]))
 }
 
 @biases = {
-    b1: tf.Variable(tf.random_normal([n_hidden_1])),
-    b2: tf.Variable(tf.random_normal([n_hidden_2])),
-    out: tf.Variable(tf.random_normal([num_classes]))
+    b1: tf.variable(tf.random_normal([n_hidden_1])),
+    b2: tf.variable(tf.random_normal([n_hidden_2])),
+    out: tf.variable(tf.random_normal([num_classes]))
 }
 
 

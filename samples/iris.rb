@@ -68,15 +68,15 @@ y = tf.placeholder("float", shape: [nil, num_classes], name: 'y')
 
 # Store layers weight & bias
 weights = {
-    h1: tf.Variable(tf.random_normal([num_input, n_hidden_1]), name: 'h1'),
-    h2: tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2]), name: 'h2'),
-    out: tf.Variable(tf.random_normal([n_hidden_2, num_classes]), name: 'out')
+    h1: tf.variable(tf.random_normal([num_input, n_hidden_1]), name: 'h1'),
+    h2: tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), name: 'h2'),
+    out: tf.variable(tf.random_normal([n_hidden_2, num_classes]), name: 'out')
 }
 
 biases = {
-    b1: tf.Variable(tf.random_normal([n_hidden_1]), name: 'b1'),
-    b2: tf.Variable(tf.random_normal([n_hidden_2]), name: 'b2'),
-    out: tf.Variable(tf.random_normal([num_classes]), name: 'b_out')
+    b1: tf.variable(tf.random_normal([n_hidden_1]), name: 'b1'),
+    b2: tf.variable(tf.random_normal([n_hidden_2]), name: 'b2'),
+    out: tf.variable(tf.random_normal([num_classes]), name: 'b_out')
 }
 
 
@@ -100,7 +100,7 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 # Initialize the variables (i.e. assign their default value)
 init = TensorStream.global_variables_initializer()
 
-TensorStream.Session do |sess|
+TensorStream.session do |sess|
   puts "init vars"
   sess.run(init)
   puts "Testing the untrained network..."

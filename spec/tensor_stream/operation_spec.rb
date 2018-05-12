@@ -10,7 +10,7 @@ RSpec.describe TensorStream::Operation do
   end
 
   let(:tf) { TensorStream } # allow calls to look like tensorflow
-  let(:sess) { tf.Session }
+  let(:sess) { tf.session }
 
   context ".zeros_like" do
     it "Creates a tensor with all elements set to zero." do

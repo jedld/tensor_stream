@@ -1,4 +1,4 @@
-require "tensor_stream/evaluator/operation_helpers/random_gaussian"
+require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/math_gradients'
 
 module TensorStream
@@ -57,9 +57,7 @@ module TensorStream
           old_tensor = tensor
           tensor = run(tensor, context)
 
-          if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
-            tensor = tensor.map { |t| complete_eval(t, context) }
-          end
+          tensor = tensor.map { |t| complete_eval(t, context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
 
           return tensor if old_tensor.equal?(tensor)
           return tensor unless tensor.is_a?(Tensor)
@@ -156,13 +154,13 @@ module TensorStream
         when :cos
           call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
         when :log
-          call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t)} )
+          call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
         when :exp
-          call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) } )
+          call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) })
         when :sqrt
-          call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) } )
+          call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) })
         when :square
-          call_op(:square, a, child_context, ->(t, _b) { t * t } )
+          call_op(:square, a, child_context, ->(t, _b) { t * t })
         when :stop_gradient
           run(a, child_context)
         when :random_uniform
@@ -184,13 +182,13 @@ module TensorStream
           assign.value = complete_eval(tensor.items[1], child_context)
           assign.value
         when :assign_add
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a + b })
+          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t + u })
           tensor.items[0].value
         when :assign_sub
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a - b })
+          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t - u })
           tensor.items[0].value
         when :reduce_mean
-          c = tensor.data_type == :float ? 0.0 : 0
+          c = fp_type?(tensor.data_type) ? 0.0 : 0
           func = lambda { |v|
             if v.is_a?(Array)
               v.empty? ? c : (v.reduce(:+) / v.size)
@@ -201,7 +199,7 @@ module TensorStream
 
           reduction(child_context, tensor, func)
         when :reduce_sum
-          c = tensor.data_type == :float ? 0.0 : 0
+          c = fp_type?(tensor.data_type) ? 0.0 : 0
           func = lambda { |v|
             if v.is_a?(Array)
               v.empty? ? c : v.reduce(:+)
@@ -212,7 +210,7 @@ module TensorStream
 
           reduction(child_context, tensor, func)
         when :reduce_prod
-          c = tensor.data_type == :float ? 1.0 : 1
+          c = fp_type?(tensor.data_type) ? 1.0 : 1
           func = lambda { |v|
             if v.is_a?(Array)
               v.empty? ? c : v.reduce(:*)
@@ -231,7 +229,7 @@ module TensorStream
 
           Array.new(rows) do |i|
             Array.new(columns) do |col|
-              if tensor.data_type == :float32
+              if fp_type?(tensor.data_type)
                 i == col ? 1.0 : 0.0
               else
                 i == col ? 1 : 0
@@ -241,7 +239,7 @@ module TensorStream
         when :cond
           pred = complete_eval(tensor.options[:pred], child_context)
 
-          if is_all_true(pred)
+          if all_true?(pred)
             complete_eval(a, child_context)
           else
             complete_eval(b, child_context)
@@ -288,7 +286,7 @@ module TensorStream
                  end
 
           if shape.is_a?(Array) && shape.size.zero?
-            func.call()
+            func.call
           else
             shape = [shape.to_i] unless shape.is_a?(Array)
             generate_vector(shape, generator: func)
@@ -318,7 +316,7 @@ module TensorStream
 
           (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
         when :gradients
-          raise "not implemented in evaluator" # see TensorStream.gradients instead.
+          raise 'not implemented in evaluator' # see TensorStream.gradients instead.
         when :identity
           complete_eval(a, child_context)
         when :print
@@ -330,7 +328,7 @@ module TensorStream
           a = complete_eval(a, child_context)
           get_rank(a)
         when :div
-          process_vector_math_op(a, b, child_context, ->(a, b) { a / b })
+          process_vector_math_op(a, b, child_context, ->(t, u) { t / u })
         when :reshape
           arr = complete_eval(a, child_context)
           new_shape = complete_eval(b, child_context)
@@ -411,9 +409,9 @@ module TensorStream
           else
             max = nil
             max_index = 0
-            a.each_with_index do |a, index|
-              if max.nil? || a > max
-                max = a
+            a.each_with_index do |x, index|
+              if max.nil? || x > max
+                max = x
                 max_index = index
               end
             end
@@ -444,17 +442,17 @@ module TensorStream
       end
 
       def arr_pad(arr, paddings, data_type = :float32, rank = 0)
-        fail "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
+        raise "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
 
         before = paddings[rank][0]
         after = paddings[rank][1]
-
+        pad_value = fp_type?(data_type) ? 0.0 : 0
         if arr[0].is_a?(Array)
           next_dim_elem = arr.collect { |a| arr_pad(a, paddings, data_type, rank + 1) }
-          padding = deep_dup_array(next_dim_elem[0], data_type == :float32 ? 0.0 : 0)
-          before.times.map { padding } + next_dim_elem + after.times.map { padding }
+          padding = deep_dup_array(next_dim_elem[0], pad_value)
+          Array.new(before) { padding } + next_dim_elem + Array.new(after) { padding }
         else
-          before.times.map {  data_type == :float32 ? 0.0 : 0 } + arr + after.times.map {  data_type == :float32 ? 0.0 : 0 }
+          Array.new(before) { pad_value } + arr + Array.new(after) { pad_value }
         end
       end
 
@@ -495,7 +493,7 @@ module TensorStream
       def fix_inferred_elements(shape, total_size)
         return shape if shape.empty?
 
-        current_size = shape.inject(1) { |product, n|  n > 0 ? product * n : product }
+        current_size = shape.inject(1) { |product, n| n > 0 ? product * n : product }
         inferred_size = total_size / current_size
         shape.map { |s| s == -1 ? inferred_size : s }
       end
@@ -505,8 +503,8 @@ module TensorStream
 
         s = new_shape.shift
 
-        if new_shape.size == 0
-          fail "reshape dimen mismatch #{arr.size} != #{s}" if arr.size != s
+        if new_shape.size.zero?
+          raise "reshape dimen mismatch #{arr.size} != #{s}" if arr.size != s
           return arr
         end
 
@@ -524,7 +522,7 @@ module TensorStream
       end
 
       def call_vector_op(op, a, b, child_context, func)
-        process_vector_math_op(a, b,  child_context, func)
+        process_vector_math_op(a, b, child_context, func)
       rescue FullEvalNotPossible
         TensorStream.send(op.to_sym, a, b)
       end
@@ -533,12 +531,12 @@ module TensorStream
         eval_a = complete_eval(a, child_context) unless a.nil?
         eval_b = complete_eval(b, child_context) unless b.nil?
 
-        fail FullEvalNotPossible.new, "full eval not possible for #{a.name}" if eval_a.is_a?(Tensor) || eval_b.kind_of?(Tensor)
+        raise FullEvalNotPossible.new, "full eval not possible for #{a.name}" if eval_a.is_a?(Tensor) || eval_b.is_a?(Tensor)
 
         # ruby scalar
-        if get_rank(eval_a) == 0
-          if (get_rank(eval_b)) == 0
-            op.call(eval_a,eval_b)
+        if get_rank(eval_a).zero?
+          if get_rank(eval_b).zero?
+            op.call(eval_a, eval_b)
           else
             constant_op(eval_b, eval_a, child_context, op, true)
           end
@@ -546,14 +544,14 @@ module TensorStream
           if get_rank(eval_b) > 0
             vector_op(eval_a, eval_b, child_context, op)
           else
-          constant_op(eval_a, eval_b, child_context, op)
+            constant_op(eval_a, eval_b, child_context, op)
           end
         end
       end
 
       def get_rank(value, rank = 0)
         return rank unless value.is_a?(Array)
-        return rank + 1 if value.size == 0
+        return rank + 1 if value.empty?
 
         get_rank(value[0], rank + 1)
       end
@@ -569,7 +567,7 @@ module TensorStream
       end
 
       def concat(a, b, axis)
-        if axis == 0
+        if axis.zero?
           a + b
         else
           a.each_with_index.collect do |i, index|
@@ -580,80 +578,74 @@ module TensorStream
 
       def process_function_op(a, child_context, op)
         # ruby scalar
-        if (a.kind_of?(Tensor) && a.shape.rank > 0) || a.kind_of?(Array)
+        if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
           constant_op(a, 0, child_context, op)
-        elsif !a.kind_of?(Tensor) || a.shape.rank == 0
+        elsif !a.is_a?(Tensor) || a.shape.rank.zero?
           v = run(a, child_context)
-          fail FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
+          raise FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
 
           op.call(v, 0)
         else
-          fail 'cannot be here'
+          raise 'cannot be here'
         end
       end
 
-      def resolve_placeholder(placeholder, execution_context = {})
+      def resolve_placeholder(placeholder, _execution_context = {})
         return nil if placeholder.nil?
         return placeholder if retain.include?(placeholder)
 
-        var = if placeholder.kind_of?(Placeholder)
+        var = if placeholder.is_a?(Placeholder)
                 @context[placeholder.name.to_sym].tap do |c|
-                  if c.nil?
-                    raise "missing placeholder #{placeholder.name}"
-                  end
+                  raise "missing placeholder #{placeholder.name}" if c.nil?
                 end
               else
                 placeholder
               end
 
-        return var unless placeholder.kind_of?(Tensor)
+        return var unless placeholder.is_a?(Tensor)
         Tensor.cast_dtype(var, placeholder.data_type)
       end
 
-      def reduce_axis(axis, val, keep_dims, child_context, op = ->(v) { v.kind_of?(Array) ? v.reduce(:+) : v })
+      def reduce_axis(axis, val, keep_dims, child_context, op = ->(v) { v.is_a?(Array) ? v.reduce(:+) : v })
         val = run(val, child_context)
         return val.is_a?(Array) ? op.call(val.flatten) : val if axis.nil?
-        return val.transpose.collect { |v| keep_dims ? [op.call(v)] : op.call(v) } if axis == 0
+        return val.transpose.collect { |v| keep_dims ? [op.call(v)] : op.call(v) } if axis.zero?
         return val.collect { |v| keep_dims ? [op.call(v)] : op.call(v) } if axis == 1
 
-        fail "can't handle with axis > 1 :("
+        raise "can't handle with axis > 1 :("
       end
 
       def constant_add(vector, constant)
         run(vector).collect do |item|
           if item.is_a?(Array)
             constant_add(item, constant)
+          elsif item.respond_to?(:value)
+            item.value + constant
           else
-            if item.respond_to?(:value)
-              item.value + constant
-            else
-              item + constant
-            end
+            item + constant
           end
         end
       end
 
-      def constant_op(vector, constant, child_context, op = ->(a,b) { a + b }, switch = false)
+      def constant_op(vector, constant, child_context, op = ->(a, b) { a + b }, switch = false)
         eval_vector = complete_eval(vector, child_context)
         constant = complete_eval(constant, child_context)
 
-        fail FullEvalNotPossible.new, "full eval not possible for #{eval_vector.name}" if eval_vector.kind_of?(Tensor) || constant.kind_of?(Tensor)
+        raise FullEvalNotPossible.new, "full eval not possible for #{eval_vector.name}" if eval_vector.is_a?(Tensor) || constant.is_a?(Tensor)
 
         eval_vector.each_with_index.collect do |item, index|
           c = constant.is_a?(Array) ? constant[index] : constant
           if item.is_a?(Array)
             constant_op(item, c, child_context, op, switch)
+          elsif item.respond_to?(:value)
+            switch ? op.call(c, item.value) : op.call(item.value, c)
           else
-            if item.respond_to?(:value)
-              switch ? op.(c, item.value) : op.(item.value, c)
-            else
-              switch ? op.(c, item) : op.(item, c)
-            end
+            switch ? op.call(c, item) : op.call(item, c)
           end
         end
       end
 
-      def call_3way_vector_op(v_a, v_b, v_c, child_context, op = ->(a,b,c) { a + b + c})
+      def call_3way_vector_op(v_a, v_b, v_c, child_context, op = ->(a, b, c) { a + b + c })
         return op.call(v_a, v_b, v_c) unless v_a.is_a?(Array)
 
         v_a.each_with_index.collect do |v1, index|
@@ -667,12 +659,12 @@ module TensorStream
         end
       end
 
-      def vector_op(vector, vector2, child_context, op = ->(a,b) { a + b })
+      def vector_op(vector, vector2, child_context, op = ->(a, b) { a + b })
         v_a = run(vector, child_context)
         v_b = run(vector2, child_context)
 
         if get_rank(v_a) < get_rank(v_b) # upgrade rank of A
-          duplicated = v_b.size.times.collect do
+          duplicated = Array.new(v_b.size) do
             v_a
           end
           return vector_op(duplicated, v_b, child_context, op)
@@ -691,10 +683,10 @@ module TensorStream
         end
       end
 
-      def is_all_true(arr)
+      def all_true?(arr)
         if arr.is_a?(Array)
-          arr.each do |a| 
-            return false if !is_all_true(a)
+          arr.each do |a|
+            return false unless all_true?(a)
           end
           return true
         end
@@ -709,30 +701,28 @@ module TensorStream
         v_a.each_with_index.collect do |item, index|
           if item.is_a?(Array)
             constant_add(item, constant)
+          elsif item.respond_to?(:value)
+            item.value + v_b[index].value
           else
-            if item.respond_to?(:value) 
-              item.value + v_b[index].value
-            else
-              item + v_b[index]
-            end
+            item + v_b[index]
           end
         end
       end
 
-      def generate_vector(shape, dtype: :float32, generator: )
+      def generate_vector(shape, dtype: :float32, generator:)
         if shape.is_a?(Integer)
-          shape.times.collect do
+          Array.new(shape) do
             generator.call
           end
         elsif shape.size > 1
-          shape[0].times.collect do
+          Array.new(shape[0]) do
             generate_vector(shape[1..shape.size], generator: generator, dtype: dtype)
           end
         elsif shape.size == 1
-          shape[0].times.collect do
+          Array.new(shape[0]) do
             generator.call
           end
-        elsif shape.size == 0
+        elsif shape.size.zero?
           generator.call
         end
       end

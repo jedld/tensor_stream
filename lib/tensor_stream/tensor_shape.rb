@@ -1,7 +1,8 @@
 module TensorStream
+  # class that defines a shape for TensorFlow compatibility
   class TensorShape
     attr_accessor :rank, :shape
-    
+
     def initialize(shape, rank)
       @shape = shape
       @rank = rank
@@ -17,7 +18,7 @@ module TensorStream
     def [](index)
       @shape[index]
     end
-    
+
     def ndims
       shape.size
     end

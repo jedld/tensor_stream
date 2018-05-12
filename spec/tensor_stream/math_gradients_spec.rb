@@ -129,7 +129,7 @@ RSpec.describe TensorStream::MathGradients do
         [0.061, 0.9791, -2.1727, -0.9553, -1.434]], name: 'w2')
 
 
-      sess = tf.Session()
+      sess = tf.session
 
       layer_1 =  tf.matmul(inputs, weights) + biases
       neural_net = tf.matmul(layer_1, weights_layer2) + biases2

@@ -57,8 +57,8 @@ X = tf.placeholder("float")
 Y = tf.placeholder("float")
 
 # Set model weights
-W = tf.Variable(rand, name: "weight")
-b = tf.Variable(rand, name: "bias")
+W = tf.variable(rand, name: "weight")
+b = tf.variable(rand, name: "bias")
 
 # Construct a linear model
 pred = X * W + b
@@ -71,7 +71,7 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
 
-tf.Session do |sess|
+tf.session do |sess|
     start_time = Time.now
     sess.run(init)
     (0..training_epochs).each do |epoch|
@@ -105,6 +105,7 @@ end
 
 - This is an early preview release and many things still don't work
 - Performance is not great, at least until the opencl and/or sciruby backends are complete
+- However if you really need an op supported please feel free to file a pull request with the corresponding failing test (see spec/operation_spec.rb)
 
 ## Development
 

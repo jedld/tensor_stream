@@ -19,8 +19,8 @@ X = tf.placeholder("float")
 Y = tf.placeholder("float")
 
 # Set model weights
-W = tf.Variable(rand, name: "weight")
-b = tf.Variable(rand, name: "bias")
+W = tf.variable(rand, name: "weight")
+b = tf.variable(rand, name: "bias")
 
 # Construct a linear model
 pred = X * W + b
@@ -33,7 +33,7 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
 
-tf.Session do |sess|
+tf.session do |sess|
     start_time = Time.now
     sess.run(init)
     (0..training_epochs).each do |epoch|

@@ -1,6 +1,7 @@
 require 'ostruct'
 
 module TensorStream
+  # Convenience class for specifying valid data_types
   module Types
     def self.int16
       :int16
@@ -12,6 +13,18 @@ module TensorStream
 
     def self.int32
       :int32
+    end
+
+    def self.float64
+      :float64
+    end
+
+    def self.string
+      :string
+    end
+
+    def self.boolean
+      :boolean
     end
   end
 end

@@ -11,7 +11,7 @@ RSpec.describe "Illustrates basic tensorstream operations" do
     b = TensorStream.constant(3)
 
     # Launch the default graph.
-    TensorStream.Session do |sess|
+    TensorStream.session do |sess|
         puts("a=2, b=3")
         puts("Addition with constants: %i" % sess.run(a+b))
         expect(sess.run(a+b)).to eq(5.0)
@@ -30,7 +30,7 @@ RSpec.describe "Illustrates basic tensorstream operations" do
         mul = TensorStream.multiply(a, b)
 
          # Launch the default graph.
-        TensorStream.Session() do |sess|
+        TensorStream.session() do |sess|
           # Run every operation with variable input
           puts("Addition with variables: %i" % sess.run(add, feed_dict: {a => 2, b => 3}))
           puts("Multiplication with variables: %i" % sess.run(mul, feed_dict: {a => 2, b => 3}))
@@ -66,7 +66,7 @@ RSpec.describe "Illustrates basic tensorstream operations" do
           # graph: the two constants and matmul.
           #
           # The output of the op is returned in 'result' as a numpy `ndarray` object.
-          TensorStream.Session do |sess|
+          TensorStream.session do |sess|
             result = sess.run(product)
             expect(result).to eq([[12.0]])
           end

@@ -1,17 +1,18 @@
 module TensorStream
+  # Class that defines a TensorStream variable
   class Variable < Tensor
     attr_accessor :trainable
     def initialize(data_type, rank, shape, options = {})
+      @graph = options[:graph] || TensorStream.get_default_graph
+
       @data_type = data_type
       @rank = rank
       @shape = TensorShape.new(shape, rank)
       @value = nil
-      @source = set_source(caller_locations)
-      @graph = options[:graph] || TensorStream.get_default_graph
+      @source = format_source(caller_locations)
+
       @name = options[:name] || build_name
-      if options[:initializer]
-        @initalizer_tensor = options[:initializer]
-      end
+      @initalizer_tensor = options[:initializer] if options[:initializer]
       @trainable = options.fetch(:trainable, true)
       @graph.add_variable(self, options)
     end
@@ -33,7 +34,7 @@ module TensorStream
       Operation.new(:assign_add, self, value)
     end
 
-    def to_math(tensor, name_only = false, max_depth = 99)
+    def to_math(_tensor, _name_only = false, _max_depth = 99)
       @name
     end
 

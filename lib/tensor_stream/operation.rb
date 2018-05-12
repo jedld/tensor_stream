@@ -1,33 +1,30 @@
 module TensorStream
+  # TensorStream class that defines an operation
   class Operation < Tensor
     attr_accessor :name, :operation, :items, :rank, :options
 
-    def initialize(operation, a, b, options = {})
+    def initialize(operation, input_a, input_b, options = {})
+      @graph = options[:graph] || TensorStream.get_default_graph
+
       @operation = operation
       @rank = options[:rank] || 0
       @name = options[:name] || set_name
       @internal = options[:internal]
       @given_name = @name
-      @source = set_source(caller_locations)
+      @source = format_source(caller_locations)
 
-      @graph = options[:graph] || TensorStream.get_default_graph
       @options = options
 
-
-      @items = [a, b].map { |i| options[:preserve_params_type] ? i : auto_wrap(i) }
+      @items = [input_a, input_b].map { |i| options[:preserve_params_type] ? i : auto_wrap(i) }
       @data_type = set_data_type(options[:data_type])
 
-      if options[:shape]
-        @shape = TensorShape.new(options[:shape], options[:shape].size || 0)
-      end
+      @shape = TensorShape.new(options[:shape], options[:shape].size || 0) if options[:shape]
+
       @graph.add_node(self)
     end
+
     def to_s
       @name
-    end
-
-    def self.reset_counters
-      @@op_counter = 0
     end
 
     def to_h
@@ -38,18 +35,18 @@ module TensorStream
       }
     end
 
-    def self.empty_matrix?(m)
-      if m.kind_of?(Array)
-        m.each do |item|
-          if item.kind_of?(Array)
-            return false if !empty_matrix?(item)
-          else
-            return false if item!=0 || item!=0.0
+    def self.empty_matrix?(input)
+      if input.is_a?(Array)
+        input.each do |item|
+          if item.is_a?(Array)
+            return false unless empty_matrix?(item)
+          elsif item != 0 || item != 0.0
+            return false
           end
         end
       end
 
-      return true
+      true
     end
 
     def set_data_type(passed_data_type)
@@ -64,7 +61,7 @@ module TensorStream
     end
 
     def to_math(name_only = false, max_depth = 99)
-      return @name if max_depth == 0
+      return @name if max_depth.zero?
 
       sub_item = auto_math(items[0], name_only, max_depth - 1)
 
@@ -78,15 +75,15 @@ module TensorStream
       when :slice
         "#{sub_item}[#{auto_math(items[1], name_only, max_depth - 1)}]"
       when :assign_sub
-        "(#{items[0] ? items[0].name : "self"} -= #{auto_math(items[1], name_only)})"
+        "(#{items[0] ? items[0].name : 'self'} -= #{auto_math(items[1], name_only)})"
       when :assign_add
-        "(#{items[0] ? items[0].name : "self"} += #{auto_math(items[1], name_only)})"
+        "(#{items[0] ? items[0].name : 'self'} += #{auto_math(items[1], name_only)})"
       when :assign
-        "(#{items[0] ? items[0].name : "self"} = #{auto_math(items[1], name_only)})"
+        "(#{items[0] ? items[0].name : 'self'} = #{auto_math(items[1], name_only)})"
       when :sin, :cos, :tanh
         "#{operation}(#{sub_item})"
       when :add
-       "(#{sub_item} + #{auto_math(items[1], name_only, max_depth - 1)})"
+        "(#{sub_item} + #{auto_math(items[1], name_only, max_depth - 1)})"
       when :sub
         "(#{sub_item} - #{auto_math(items[1], name_only, max_depth - 1)})"
       when :pow
@@ -126,7 +123,7 @@ module TensorStream
       when :ones_like
         "ones_like(#{sub_item})"
       when :flow_group
-        "flow_group(#{items.collect { |i| auto_math(i)}.join(',')})"
+        "flow_group(#{items.collect { |i| auto_math(i) }.join(',')})"
       when :zeros
         "zeros(#{sub_item})"
       when :reshape
@@ -158,38 +155,24 @@ module TensorStream
       when :zeros_like
         "zeros_like(#{sub_item})"
       when :where
-        "where(#{auto_math(options[:pred] , name_only, max_depth - 1)},#{auto_math(items[0])},#{auto_math(items[1])})"
+        "where(#{auto_math(options[:pred], name_only, max_depth - 1)},#{auto_math(items[0])},#{auto_math(items[1])})"
       when :max
         "max(#{auto_math(sub_item)},#{auto_math(items[1])})"
       when :cast
         "cast(#{auto_math(sub_item)}, #{data_type})"
       else
-        fail "math form for #{operation}"
+        raise "math form for #{operation}"
       end
     end
 
     def run
-      self.eval
+      eval
     end
 
     private
 
-    def self.operation_counter
-      @@op_counter ||= 0
-
-      name = if @@op_counter == 0
-        ""
-      else
-        "_#{@@op_counter}"
-      end
-
-      @@op_counter += 1
-      
-      name
-    end
-
     def set_name
-      "#{@operation}#{Operation.operation_counter}:#{@rank}"
+      "#{@operation}#{graph.get_operation_counter}:#{@rank}"
     end
   end
 end

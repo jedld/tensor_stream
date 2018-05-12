@@ -3,19 +3,19 @@ module TensorStream
   class MathGradients
     extend TensorStream::OpHelper
 
-    def self.derivative(tensor, dx, options = {})
-      gradient_program_name = "_grad_#{tensor.name}_#{dx.name}"
+    def self.derivative(tensor, wrt_dx, options = {})
+      gradient_program_name = "_grad_#{tensor.name}_#{wrt_dx.name}"
       return options[:graph].get_node(gradient_program_name) if options[:graph] && options[:graph].node_added?(gradient_program_name)
 
       constant_options = { dtype: options[:dtype] }
       constant_options_1 = { dtype: options[:dtype] || tensor.data_type }
 
-      return i_op(:ones_like, dx, constant_options_1) if tensor.equal?(dx)
+      return i_op(:ones_like, wrt_dx, constant_options_1) if tensor.equal?(wrt_dx)
       return i_cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
 
       if tensor.is_a?(Operation)
-        grad = derivative(tensor.items[0], dx, options) if tensor.items[0]
-        grad2 = derivative(tensor.items[1], dx, options) if tensor.items[1]
+        grad = derivative(tensor.items[0], wrt_dx, options) if tensor.items[0]
+        grad2 = derivative(tensor.items[1], wrt_dx, options) if tensor.items[1]
 
         case tensor.operation
         when :max
@@ -51,11 +51,11 @@ module TensorStream
         when :cos
           -i_op(:sin, tensor.items[0]) * grad
         when :add
-          grad_with_broadcast(tensor, dx, ->(a,b) { i_op(:add, a, b, name: 'grad_sum') } , options)
+          grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_sum') }, options)
         when :sub
-          grad_with_broadcast(tensor, dx, ->(a,b) { i_op(:sub, a, b, name: 'grad_sub') } , options)
+          grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:sub, a, b, name: 'grad_sub') }, options)
         when :pow
-          gx = _ds(tensor.items[1])*( _ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
+          gx = _ds(tensor.items[1]) * (_ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
 
           log_x = i_op(:where, i_op(:log, tensor.items[0], nil, name: 'log_pow_grad'), i_op(:zeros_like, tensor.items[0]), pred: tensor.items[0] > 0)
           gy = _ds(tensor.items[0])**_ds(tensor.items[1]) * log_x * grad2
@@ -74,18 +74,15 @@ module TensorStream
           input_size = i_op(:reduce_prod, i_op(:shape, tensor.items[0]))
           output_size = i_op(:reduce_prod, i_op(:shape, tensor))
           factor = input_size / output_size
- 
+
           (grad / i_op(:cast, factor, data_type: grad.dtype))
         when :reduce_sum
           grad
         when :stop_gradient
           return i_cons(0, constant_options)
         when :matmul
-          tensor_shape1 = tensor.items[1].shape ? tensor.items[1].shape.shape : nil
-          tensor_shape0 = tensor.items[0].shape ? tensor.items[0].shape.shape : nil
-
-          derivative_a = derivative(tensor.items[0], dx)
-          derivative_b = derivative(tensor.items[1], dx)
+          derivative_a = derivative(tensor.items[0], wrt_dx)
+          derivative_b = derivative(tensor.items[1], wrt_dx)
 
           s0 =  i_op(:shape, tensor.items[0])
           s1 =  i_op(:shape, tensor.items[1])
@@ -94,13 +91,13 @@ module TensorStream
           identity_1 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[1].data_type)
 
           matmul_da = i_op(:matmul, identity_0, tensor.items[1], transpose_b: true,
-                                                     pad_zeros: true,
-                                                     name:        'matrix_dx')
+                                                                 pad_zeros: true,
+                                                                 name:        'matrix_dx')
           matmul_db = i_op(:matmul, tensor.items[0], identity_1, transpose_a: true,
-                                                     pad_zeros: true,
-                                                     name:        'matrix_dy')       
+                                                                 pad_zeros: true,
+                                                                 name:        'matrix_dy')
 
-          zero_vect = i_op(:zeros_like, dx, nil, name: 'zero_vect')
+          zero_vect = i_op(:zeros_like, wrt_dx, nil, name: 'zero_vect')
 
           # matmul_db = op(:transpose, matmul_db, nil).first
 
@@ -143,9 +140,9 @@ module TensorStream
       end
     end
 
-    def self.grad_with_broadcast(tensor, dx, func, options)
-      grad = derivative(tensor.items[0], dx, options)
-      grad2 = derivative(tensor.items[1], dx, options)
+    def self.grad_with_broadcast(tensor, wrt_dx, func, options)
+      grad = derivative(tensor.items[0], wrt_dx, options)
+      grad2 = derivative(tensor.items[1], wrt_dx, options)
       elements1 = i_op(:reduce_prod, i_op(:shape, tensor.items[0]), data_type: :float32)
       elements2 = i_op(:reduce_prod, i_op(:shape, tensor.items[1]), data_type: :float32)
       multiplier = elements1 / elements2

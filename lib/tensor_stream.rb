@@ -1,4 +1,4 @@
-require "tensor_stream/version"
+require 'tensor_stream/version'
 require 'deep_merge'
 require 'matrix'
 require 'concurrent'
@@ -17,9 +17,10 @@ require 'tensor_stream/trainer'
 require 'tensor_stream/nn/nn_ops'
 require 'tensor_stream/evaluator/evaluator'
 # require 'tensor_stream/libraries/layers'
-require "tensor_stream/monkey_patches/integer"
+require 'tensor_stream/monkey_patches/integer'
 require 'tensor_stream/ops'
 
+# module that exposes TensorStream top level functions
 module TensorStream
   extend TensorStream::OpHelper
   extend TensorStream::Ops
@@ -48,8 +49,8 @@ module TensorStream
     TensorStream::Graph.get_default_graph.executing_eagerly?
   end
 
-  def self.Variable(value, options = {})
-    common_options= {
+  def self.variable(value, options = {})
+    common_options = {
       initializer: Operation.new(:assign, nil, value),
       name: options[:name]
     }
@@ -64,16 +65,15 @@ module TensorStream
     end
   end
 
-  def self.Session(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
+  def self.session(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
     session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class)
-    if block_given?
-      yield session
-    end
+    yield session if block_given?
+
     session
   end
 
   def self.program(&block)
-    block.(self)
+    block.call(self)
   end
 
   def self.layers
@@ -94,10 +94,11 @@ module TensorStream
       dimensions = []
       value_ptr = value
 
-      begin
-        dtype, rank, value_ptr, d = dtype_eval(dtype, rank, value_ptr)
+      Kernel.loop do
+        dtype, rank, value_ptr, d = dtype_eval(rank, value_ptr)
         dimensions << d
-      end while dtype == :array
+        break if dtype != :array
+      end
 
       TensorStream::Tensor.new(dtype, rank, options[:shape] || dimensions, shared_options)
     end
@@ -127,12 +128,10 @@ module TensorStream
     TensorStream::Trainer
   end
 
-  private
+  def self.check_allowed_types(input, types)
+    return input unless input.is_a?(Tensor)
+    return input if input.data_type.nil?
 
-  def self.check_allowed_types(t, types)
-    return t unless t.is_a?(Tensor)
-    return t if t.data_type.nil?
-
-    fail "Parameter data type #{t.data_type} passed not in #{types.join(',')}" if !types.map(&:to_sym).include?(t.data_type)
+    raise "Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.map(&:to_sym).include?(input.data_type)
   end
 end

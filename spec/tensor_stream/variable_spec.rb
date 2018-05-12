@@ -11,24 +11,24 @@ RSpec.describe TensorStream::Variable do
   context "Variable" do
     it "define a variable" do
       # Set model weights
-      w = TensorStream.Variable(rand, name: "weight")
+      w = TensorStream.variable(rand, name: "weight")
       expect(TensorStream.get_collection(TensorStream::GraphKeys::GLOBAL_VARIABLES)).to include(w)
     end
 
     it "can specify initializer" do
-      mammal = TensorStream.Variable("Elephant", dtype: :string)
+      mammal = TensorStream.variable("Elephant", dtype: :string)
       expect { mammal.eval }.to raise_exception
     end
 
     it "can access after initialized" do
       session = TensorStream::Session.default_session
-      mammal = TensorStream.Variable("Elephant", dtype: :string)
+      mammal = TensorStream.variable("Elephant", dtype: :string)
       session.run(TensorStream.global_variables_initializer)
       expect(mammal.eval).to eq("Elephant")
     end
 
     specify "has a default data type" do
-      w = TensorStream.Variable(rand, name: "weight")
+      w = TensorStream.variable(rand, name: "weight")
       expect(w.dtype).to eq(:float32)
     end
   end

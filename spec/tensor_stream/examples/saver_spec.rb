@@ -12,14 +12,14 @@ RSpec.describe "TensorStream::Train::Saver" do
     dec_v2 = v2.assign(v2-1)
 
     # Add an op to initialize the variables.
-    init_op = tf.global_variables_initializer()
+    init_op = tf.global_variables_initializer
 
     # Add ops to save and restore all the variables.
     saver = tf::Train::Saver.new
 
     # Later, launch the model, initialize the variables, do some work, and save the
     # variables to disk.
-    tf.Session do |sess|
+    tf.session do |sess|
       sess.run(init_op)
       # Do some work with the model.
       inc_v1.run()
@@ -42,7 +42,7 @@ RSpec.describe "TensorStream::Train::Saver" do
 
     # Later, launch the model, use the saver to restore variables from disk, and
     # do some work with the model.
-    tf.Session do |sess|
+    tf.session do |sess|
       # Restore variables from disk.
       saver.restore(sess, "/tmp/model.ckpt")
       print("Model restored.")

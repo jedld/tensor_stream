@@ -1,7 +1,7 @@
 module TensorStream
   # High level machine learning functions
   class NN
-    def self.softmax(logits, options = {})
+    def self.softmax(logits, _options = {})
       TensorStream.exp(logits) / TensorStream.reduce_sum(TensorStream.exp(logits))
     end
 

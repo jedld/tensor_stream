@@ -1,0 +1,74 @@
+AllCops:
+  Exclude:
+    - samples/*
+    - bin/*
+    - spec/**/*
+    - tensor_stream.gemspec
+    - Rakefile
+
+Metrics/LineLength:
+  Max: 200
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Naming/AccessorMethodName:
+  Exclude:
+    - lib/tensor_stream.rb
+    - lib/tensor_stream/control_flow.rb
+    - lib/tensor_stream/graph.rb
+    - lib/tensor_stream/operation.rb
+
+Style/Documentation:
+  Exclude:
+    - lib/tensor_stream/version.rb
+    - lib/tensor_stream/trainer.rb
+    - lib/tensor_stream/nn/nn_ops.rb
+    - lib/tensor_stream/evaluator/evaluator.rb
+
+Lint/UnusedMethodArgument:
+  Exclude:
+    - lib/tensor_stream/train/saver.rb
+    - lib/tensor_stream/ops.rb
+
+Metrics/ParameterLists:
+  Max: 8
+
+Style/PerlBackrefs:
+  Enabled: false
+
+Style/RegexpLiteral:
+  Enabled: false
+
+Naming/MemoizedInstanceVariableName:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Max: 200
+
+Metrics/ClassLength:
+  Max: 250
+  Exclude:
+    - lib/tensor_stream/evaluator/ruby_evaluator.rb
+
+Naming/VariableNumber:
+  Enabled: false
+
+Style/DoubleNegation:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
+
+Naming/UncommunicativeMethodParamName:
+  Exclude:
+    - lib/tensor_stream/evaluator/ruby_evaluator.rb

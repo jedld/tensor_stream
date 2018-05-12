@@ -1,40 +1,11 @@
 require 'ostruct'
 
 module TensorStream
+  # Base class that defines a tensor like interface
   class Tensor
     include OpHelper
 
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :source, :given_name, :graph
-
-    def self.const_name
-      @const_counter ||= 0
-
-      name = if @const_counter == 0
-        ""
-      else
-        "_#{@const_counter}"
-      end
-
-      @const_counter += 1
-      
-      name
-    end
-
-    def self.var_name
-      @var_counter ||= 0
-      @var_counter += 1
-
-      return "" if @var_counter == 1
-      return "_#{@var_counter}"
-    end
-
-    def self.placeholder_name
-      @placeholder_counter ||= 0
-      @placeholder_counter += 1
-
-      return "" if @placeholder_counter == 1
-      return "_#{@placeholder_counter}"
-    end
 
     def initialize(data_type, rank, shape, options = {})
       @data_type = data_type
@@ -42,7 +13,7 @@ module TensorStream
       @breakpoint = false
       @shape = TensorShape.new(shape, rank)
       @value = nil
-      @source = set_source(caller_locations)
+      @source = format_source(caller_locations)
       @is_const = options[:const] || false
       @internal = options[:internal]
       @graph = options[:graph] || TensorStream.get_default_graph
@@ -50,16 +21,14 @@ module TensorStream
       @given_name = @name
 
       if options[:value]
-        if options[:value].kind_of?(Array)
+        if options[:value].is_a?(Array)
           # check if single dimenstion array is passed
-          if shape.size >= 2 && options[:value].size > 0 && !options[:value][0].kind_of?(Array)
-            options[:value] = reshape(options[:value], shape.reverse.dup)
-          end
+          options[:value] = reshape(options[:value], shape.reverse.dup) if shape.size >= 2 && !options[:value].empty? && !options[:value][0].is_a?(Array)
 
           @value = options[:value].collect do |v|
-            v.kind_of?(Tensor) ? Tensor.cast_dtype(v, data_type) : v
+            v.is_a?(Tensor) ? Tensor.cast_dtype(v, data_type) : v
           end
-        elsif shape.size > 0
+        elsif !shape.empty?
           @value = reshape(Tensor.cast_dtype(options[:value], @data_type), shape.dup)
         else
           @value = Tensor.cast_dtype(options[:value], @data_type)
@@ -83,66 +52,56 @@ module TensorStream
       @placeholder_counter = 0
     end
 
-    def build_buffer
-      @native_buffer = if @data_type == :float32 && @rank == 2
-        NArray.sfloat(@shape.cols * @shape.rows)
-      elsif @data_type == :float32 && @rank == 0
-        NArray.sfloat(1)
-      else
-        raise "Invalid data type #{@data_type}"
-      end
-    end
-
-    def +(operand)
-      TensorStream::Operation.new(:add, self, auto_wrap(operand))
+    def +(other)
+      TensorStream::Operation.new(:add, self, auto_wrap(other))
     end
 
     def [](index)
       TensorStream::Operation.new(:index, self, index)
     end
 
-    def *(operand)
-      TensorStream::Operation.new(:mul, self, auto_wrap(operand))
+    def *(other)
+      TensorStream::Operation.new(:mul, self, auto_wrap(other))
     end
 
-    def **(operand)
-      TensorStream::Operation.new(:pow, self, auto_wrap(operand))
+    def **(other)
+      TensorStream::Operation.new(:pow, self, auto_wrap(other))
     end
 
-    def /(operand)
-      TensorStream::Operation.new(:div, self, auto_wrap(operand))
+    def /(other)
+      TensorStream::Operation.new(:div, self, auto_wrap(other))
     end
 
-    def -(operand)
-      TensorStream::Operation.new(:sub, self, auto_wrap(operand))
+    def -(other)
+      TensorStream::Operation.new(:sub, self, auto_wrap(other))
     end
 
     def -@
       TensorStream::Operation.new(:negate, self, nil)
     end
 
-    def ==(operand)
-      op(:equal, self, operand)
+    def ==(other)
+      op(:equal, self, other)
     end
 
-    def <(operand)
-      op(:less, self, operand)
+    def <(other)
+      op(:less, self, other)
     end
 
-    def !=(operand)
-      op(:not_equal, self, operand)
+    def !=(other)
+      op(:not_equal, self, other)
     end
 
-    def >(operand)
-      op(:greater, self, operand)
+    def >(other)
+      op(:greater, self, other)
     end
 
-    def >=(operand)
-      op(:greater_equal, self, operand)
+    def >=(other)
+      op(:greater_equal, self, other)
     end
 
-    def <=(operand)
-      op(:less_equal, self, operand)
+    def <=(other)
+      op(:less_equal, self, other)
     end
 
     def collect(&block)
@@ -151,23 +110,6 @@ module TensorStream
 
     def to_s
       @name
-    end
-
-    # def to_ary
-    #   if rank == 2
-    #     @native_buffer.to_a.each_slice(shape.cols).collect { |slice| slice }
-    #   else
-    #     raise "Invalid rank"
-    #   end
-    # end
-
-    # open cl methods
-    def open_cl_buffer(context)
-      @cl_buffer ||= context.create_buffer(@native_buffer.size * @native_buffer.element_size, :flags => OpenCL::Mem::COPY_HOST_PTR, :host_ptr => @native_buffer)
-    end
-
-    def sync_cl_buffer(queue, events = [])
-      queue.enqueue_read_buffer(@cl_buffer, @native_buffer, :event_wait_list => events)
     end
 
     def eval(options = {})
@@ -201,21 +143,21 @@ module TensorStream
     end
 
     def to_math(name_only = false, max_depth = 99)
-      return @name if max_depth==0 || name_only || @value.nil?
-      
-      if @value.kind_of?(Array)
-        @value.collect { |v| v.kind_of?(Tensor) ? v.to_math(name_only, max_depth - 1) : v }
+      return @name if max_depth.zero? || name_only || @value.nil?
+
+      if @value.is_a?(Array)
+        @value.collect { |v| v.is_a?(Tensor) ? v.to_math(name_only, max_depth - 1) : v }
       else
         is_const ? @value : @name
       end
     end
 
     def auto_math(tensor, name_only = false, max_depth = 99)
-      tensor.kind_of?(Tensor) ? tensor.to_math(name_only, max_depth) : tensor
+      tensor.is_a?(Tensor) ? tensor.to_math(name_only, max_depth) : tensor
     end
 
     def self.detect_type(value)
-      dtype = if value.is_a?(String)
+      if value.is_a?(String)
         :string
       elsif value.is_a?(Float)
         :float32
@@ -257,7 +199,7 @@ module TensorStream
       when :unknown
         val
       else
-        fail "unknown data_type #{dtype} passed"
+        raise "unknown data_type #{dtype} passed"
       end
     end
 
@@ -268,15 +210,15 @@ module TensorStream
 
     protected
 
-    def set_source(trace)
-      trace.reject { |c| c.to_s.include?(File.join("lib","tensor_stream")) }.first
+    def format_source(trace)
+      trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
     end
 
     def hashify_tensor(tensor)
-      if tensor.kind_of?(Tensor) 
+      if tensor.is_a?(Tensor)
         tensor.to_h
-      elsif tensor.kind_of?(Array)
-        tensor.collect do |t| hashify_tensor(t) end
+      elsif tensor.is_a?(Array)
+        tensor.collect { |t| hashify_tensor(t) }
       else
         tensor
       end
@@ -290,11 +232,11 @@ module TensorStream
           reshape(s, shape)
         end
       else
-        return arr if shape.size < 1
+        return arr if shape.empty?
         slice = shape.shift
         return arr if slice.nil?
 
-        slice.times.collect do |s|
+        Array.new(slice) do
           reshape(arr, shape.dup)
         end
       end
@@ -311,7 +253,7 @@ module TensorStream
     end
 
     def build_name
-      "#{@is_const ? "Const#{Tensor.const_name}:#{@rank}" : "Variable#{Tensor.var_name}:#{@rank}"}"
+      @is_const ? "Const#{graph.get_const_counter}:#{@rank}" : "Variable#{graph.get_var_counter}:#{@rank}"
     end
   end
 end
