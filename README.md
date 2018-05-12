@@ -1,3 +1,5 @@
+[![Gem Version](https://badge.fury.io/rb/tensor_stream.svg)](https://badge.fury.io/rb/tensor_stream)
+
 # TensorStream
 
 A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default as well with support for an opencl evaluator.
@@ -94,7 +96,11 @@ tf.session do |sess|
 end
 ```
 
-## python to ruby guide
+You can take a look at spec/tensor_stream/operation_spec.rb for a list of supported ops and various examples and test cases used. Of course these contain only a
+sliver of what TensorFlow can do, so feel free to file a PR to add requested
+ops and test cases.
+
+## Python to Ruby guide
 
 Not all ops are available. Available ops are defined in lib/tensor_stream/ops.rb, corresponding gradients are found at lib/tensor_stream/math_gradients.
 
@@ -150,7 +156,7 @@ W = tf.variable(rand, name: "weight")
 b = tf.variable(rand, name: "bias")
 pred = X * W + b
 cost = tf.reduce_sum(tf.pow(pred - Y, 2)) / ( 2 * 10)
-cost.to_math # "(reduce_sum(|((((Placeholder: * weight) + bias) - Placeholder_2:)^2)|) / 10.0)"
+cost.to_math # "(reduce_sum(|((((Placeholder: * weight) + bias) - Placeholder_2:)^2)|) / 20.0)"
 ```
 
 breakpoints can also be set, block will be evaluated during computation
