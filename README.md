@@ -6,10 +6,11 @@ The goal of this gem is to have a high performance machine learning and compute 
 
 ## Features
 
-- Replicates most of the commonly used low-level tensorflow ops
+- Replicates most of the commonly used low-level tensorflow ops (tf.add, tf.constant, tf.placeholder, tf.matmul, tf.sin etc...)
 - Supports auto-differentiation via tf.gradients (mostly)
 - Provision to use your own opcode evaluator (opencl, sciruby and tensorflow backends planned)
 - Goal is to be as close to TensorFlow in behavior but with some freedom to add ruby specific enhancements (with lots of test cases)
+- eager execution (experimental)
 
 Since this is a pure ruby implementation for now, performance is not there yet. However it should be a good enough environment to learn about tensorflow and experiment with some models.
 
