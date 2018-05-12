@@ -171,5 +171,38 @@ RSpec.describe TensorStream::MathGradients do
 
       expect(tr(biases_gradient2)).to eq([7.0, 7.0, 7.0, 7.0, 7.0])
      end
+
+     it "computes for open ended shapes" do
+      x = tf.constant([
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+          [1.0, 0.5, 4.0],
+        ])
+
+      w = tf.constant([
+        [
+          [0.4, 0.2],
+          [0.1, 0.45],
+          [0.2, 4.0]
+        ]
+      ])
+
+      b= tf.constant([4.0, 5.0])
+
+      a = tf.matmul(x, w) + b
+
+      expect(a.eval).to eq([])
+
+      g = tf.gradients(a, [w, b])
+      expect(g.eval).to eq([])
+     end
   end
 end
