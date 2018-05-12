@@ -110,10 +110,16 @@ tf = TensorStream # recommended to use tf since most sample models on the net us
 ts = TensorStream # use this if you plan to use TensorStream only features, so other devs will know about that
 ```
 
+Note the difference in named and optional parameters
+
+Python
+
 ```python
 w = tf.Variable(0, name='weights')
 w = tf.Variable(0, 'weights')
 ```
+
+Ruby
 
 ```ruby
 w =tf.variable(0, name: 'weights')
@@ -121,6 +127,7 @@ w =tf.variable(0, name: 'weights')
 
 # Shapes
 
+Python
 ```python
 x = tf.placeholder(tf.float32, shape=(1024, 1024))
 x = tf.placeholder(tf.float32, shape=(None, 1024))
@@ -128,6 +135,7 @@ x = tf.placeholder(tf.float32, shape=(None, 1024))
 
 ruby supports symbols for specifying data types, nil can be used for None
 
+Ruby
 ```ruby
 x = tf.placeholder(:float32, shape: [1024, 1024])
 x = tf.placeholder(:float32, shape: [nil, 1024])
