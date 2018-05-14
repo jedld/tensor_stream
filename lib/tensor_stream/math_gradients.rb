@@ -51,7 +51,7 @@ module TensorStream
         when :cos
           -i_op(:sin, tensor.items[0]) * grad
         when :add
-          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_sum') }, options)
+          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_add') }, options)
         when :sub
           _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:sub, a, b, name: 'grad_sub') }, options)
         when :pow

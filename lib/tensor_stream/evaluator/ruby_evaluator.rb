@@ -1,4 +1,5 @@
 require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
+require 'tensor_stream/evaluator/operation_helpers/evaluator_helpers'
 require 'tensor_stream/math_gradients'
 
 module TensorStream
@@ -25,6 +26,7 @@ module TensorStream
       attr_accessor :retain
 
       include TensorStream::OpHelper
+      include TensorStream::EvaluatorHelpers
 
       def initialize(session, context, thread_pool: nil)
         @session = session
@@ -377,12 +379,13 @@ module TensorStream
       rescue EvaluatorExcecutionException => e
         raise e
       rescue StandardError => e
-        # a = complete_eval(a, child_context)
-        # b = complete_eval(b, child_context)
-        # puts "name: #{tensor.given_name}"
-        # puts "op: #{tensor.to_math(true, 1)}"
-        # puts "A: #{a}" if a
-        # puts "B: #{b}" if b
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
+        puts "name: #{tensor.given_name}"
+        puts "op: #{tensor.to_math(true, 1)}"
+        puts "A: #{a}" if a
+        puts "B: #{b}" if b
+
         puts e.backtrace.join("\n")
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math} defined at #{tensor.source}"
       end
@@ -682,39 +685,6 @@ module TensorStream
             call_3way_vector_op(v1, v2, v3, child_context, op)
           else
             op.call(v1, v2, v3)
-          end
-        end
-      end
-
-      # handle 2 tensor math operations
-      def vector_op(vector, vector2, op = ->(a, b) { a + b }, switch = false)
-        if get_rank(vector) < get_rank(vector2) # upgrade rank of A
-          duplicated = Array.new(vector2.size) do
-            vector
-          end
-          return vector_op(duplicated, vector2, op, switch)
-        end
-
-        return op.call(vector, vector2) unless vector.is_a?(Array)
-
-        vector.each_with_index.collect do |item, index|
-          next vector_op(item, vector2, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
-
-          z = if vector2.is_a?(Array)
-                if index < vector2.size
-                  vector2[index]
-                else
-                  raise 'incompatible tensor shapes used during op' if vector2.size != 1
-                  vector2[0]
-                end
-              else
-                vector2
-              end
-
-          if item.is_a?(Array)
-            vector_op(item, z, op, switch)
-          else
-            switch ? op.call(z, item) : op.call(item, z)
           end
         end
       end

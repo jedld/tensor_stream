@@ -198,7 +198,6 @@ RSpec.describe TensorStream::MathGradients do
 
       layer_1 =  tf.matmul(inputs, weights) + biases
       neural_net = tf.matmul(layer_1, weights_layer2) + biases2
-
       
       output = sess.run(neural_net, feed_dict: { inputs => test_inputs })
 
