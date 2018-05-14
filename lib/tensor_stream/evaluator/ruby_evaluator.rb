@@ -354,7 +354,10 @@ module TensorStream
 
           call_vector_op(:max, a, b, child_context, ->(t, u) { [t, u].max })
         when :broadcast_gradient_args
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
 
+          get_broadcast_gradient_args(a, b)
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|
@@ -551,22 +554,34 @@ module TensorStream
         end
       end
 
-      # def get_broadcast_gradient_args(input_a, input_b)
-      #   # ruby scalar
-      #   if get_rank(input_a).zero?
-      #     if get_rank(input_b).zero?
-      #       return nil
-      #     else
-      #       get_broadcast_gradient_args(input_b, input_a)
-      #     end
-      #   elsif get_rank(input_a) > 0
-      #     if get_rank(input_b) > 0
-      #       vector_op(eval_a, eval_b, child_context, op)
-      #     else
-      #       constant_op(eval_a, eval_b, child_context, op)
-      #     end
-      #   end
-      # end
+      # determine possible reduction axis to be used
+      def _broadcast_gradient_op(vector, vector2, level, switch = false)
+        va_rank = get_rank(vector)
+        vb_rank = get_rank(vector2)
+
+        return 0 if va_rank > vb_rank # upgrade rank of A
+        shape_v1 = shape_eval(vector)
+        shape_v2 = shape_eval(vector2)
+
+        return -1 if shape_eval(vector) == shape_eval(vector2)
+
+        vector.each_with_index do |item, index|
+          return level if vector2.is_a?(Array) && vector.size > vector2.size
+          return -1 unless item.is_a?(Array)
+          return _broadcast_gradient_op(item, vector2[index], level + 1, switch)
+        end
+      end
+      
+      def get_broadcast_gradient_args(input_a, input_b)
+        return -1 if get_rank(input_b).zero? && get_rank(input_a).zero?
+        return nil if get_rank(input_b).zero?
+        # ruby scalar
+        if get_rank(input_a).zero?
+          _broadcast_gradient_op(input_b, input_a, 0, true)
+        elsif get_rank(input_a) > 0
+          _broadcast_gradient_op(input_a, input_b, 0)
+        end
+      end
 
       def get_rank(value, rank = 0)
         return rank unless value.is_a?(Array)

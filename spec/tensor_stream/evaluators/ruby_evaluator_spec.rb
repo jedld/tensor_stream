@@ -17,10 +17,35 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   context "private ops" do
     context ".get_broadcasted_array_args" do
       it "returns axis to be used for reduction" do
+        a = tf.constant(1)
+        b = tf.constant(1)
+        sb = op(:broadcast_gradient_args, a, b)
+        expect(sb.eval).to eq(-1)
+
         a = tf.constant([1.0, 1.0])
         b = tf.constant(1)
         sb = op(:broadcast_gradient_args, a, b)
+        expect(sb.eval).to eq(nil)
+
+        a = tf.constant([[1.0, 1.0],[1.0,1.0]])
+        b = tf.constant(1)
+        sb = op(:broadcast_gradient_args, a, b)
+        expect(sb.eval).to eq(nil)
+
+        a = tf.constant([[1.0, 1.0],[1.0,1.0]])
+        b = tf.constant([1.0, 1.0])
+        sb = op(:broadcast_gradient_args, a, b)
+        expect(sb.eval).to eq(0)
+
+        a = tf.constant([[1.0, 1.0],[1.0,1.0]])
+        b = tf.constant([[1.0], [1.0]])
+        sb = op(:broadcast_gradient_args, a, b)
         expect(sb.eval).to eq(1)
+
+        a = tf.constant([[1.0, 1.0],[1.0,1.0]])
+        b = tf.constant([[1.0, 1.0]])
+        sb = op(:broadcast_gradient_args, a, b)
+        expect(sb.eval).to eq(0)
       end
     end
   end
