@@ -116,7 +116,6 @@ module TensorStream
           # norm_b = i_op(:cond, norm_b[0], norm_b, pred: i_op(:rank, matmul_db) > i_op(:rank, derivative_b))
 
           i_op(:cond, norm_a, zero_vect, pred: i_op(:reduce_sum, norm_a) != 0) + i_op(:cond, norm_b, zero_vect, pred: i_op(:reduce_sum, norm_b) != 0)
-          #  m.breakpoint! { |t, a, b, v|  binding.pry }
         else
           raise "no derivative implementation found for op #{tensor.operation}"
         end

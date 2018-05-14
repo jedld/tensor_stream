@@ -378,7 +378,6 @@ module TensorStream
         # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A: #{a}" if a
         # puts "B: #{b}" if b
-        # binding.pry
         puts e.backtrace.join("\n")
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math} defined at #{tensor.source}"
       end

@@ -178,7 +178,6 @@ module TensorStream
       super(consumer)
 
       @items.compact.each do |item|
-        binding.pry unless item.is_a?(Tensor)
         item.send(:propagate_consumer, consumer) if item.name!=self.name
       end
     end
