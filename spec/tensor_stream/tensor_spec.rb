@@ -3,6 +3,7 @@ require 'benchmark'
 
 RSpec.describe TensorStream::Tensor do
 
+  let(:tf) { TensorStream }
   before(:each) do
     described_class.reset_counters
     TensorStream::Operation.reset_counters
@@ -90,6 +91,19 @@ RSpec.describe TensorStream::Tensor do
     it "access indexes" do
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
       expect(b[0].to_s).to eq("index:0")
+    end
+  end
+
+  describe "#consumers" do
+    it "lists dependent nodes to this tensor" do
+      a = tf.constant([1,2,3,4,5])
+      b = tf.constant([1,2,3,4,5])
+      f = a * 2
+      g = f + b
+      expect(a.consumers).to eq(["mul:0", "add_1:0"])
+      expect(b.consumers).to eq(["add_1:0"])
+      expect(f.consumers).to eq(["add_1:0"])
+      expect(g.consumers).to eq([])
     end
   end
 

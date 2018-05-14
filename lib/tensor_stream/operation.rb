@@ -2,6 +2,7 @@ module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
     attr_accessor :name, :operation, :items, :rank, :options
+    attr_reader :outputs
 
     def initialize(operation, input_a, input_b, options = {})
       @graph = options[:graph] || TensorStream.get_default_graph
@@ -172,6 +173,15 @@ module TensorStream
     end
 
     private
+
+    def propagate_consumer(consumer)
+      super(consumer)
+
+      @items.compact.each do |item|
+        binding.pry unless item.is_a?(Tensor)
+        item.send(:propagate_consumer, consumer) if item.name!=self.name
+      end
+    end
 
     def set_name
       "#{@operation}#{graph.get_operation_counter}:#{@rank}"

@@ -306,6 +306,7 @@ RSpec.describe TensorStream::Operation do
       expect(tf.reduce_sum(x, 1).eval).to eq([3, 3])
       expect(tf.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
       expect(tf.reduce_sum(x, [0, 1]).eval).to eq(6)
+      expect(tf.reduce_sum(x, []).eval).to eq([[1, 1, 1], [1, 1, 1]]) # no reduction
     end
 
     specify "computes the gradients properly" do
@@ -527,6 +528,11 @@ end
       c = tf.matmul(a, b)
       expect(c.eval).to eq([[ 58,  64],
                             [139, 154]])
+
+      c = a.matmul(b)
+      expect(c.eval).to eq([[ 58,  64],
+      [139, 154]])
+
       d = tf.matmul(a, b, transpose_a: true, transpose_b: true)
       expect(d.eval).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
     end

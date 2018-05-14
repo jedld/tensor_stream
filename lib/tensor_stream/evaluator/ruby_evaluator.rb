@@ -435,10 +435,12 @@ module TensorStream
 
       def reduction(child_context, tensor, func)
         val = complete_eval(tensor.items[0], child_context)
-        axis = tensor.options[:axis]
+        axis = complete_eval(tensor.options[:axis], child_context)
         keep_dims = tensor.options[:keepdims]
 
         res = if axis.is_a?(Array)
+                return val if axis.empty?
+
                 axis.each do |x|
                   val = reduce_axis(x, val, keep_dims, child_context, func)
                 end
@@ -563,17 +565,17 @@ module TensorStream
         shape_v1 = shape_eval(vector)
         shape_v2 = shape_eval(vector2)
 
-        return -1 if shape_eval(vector) == shape_eval(vector2)
+        return [] if shape_eval(vector) == shape_eval(vector2)
 
         vector.each_with_index do |item, index|
           return level if vector2.is_a?(Array) && vector.size > vector2.size
-          return -1 unless item.is_a?(Array)
+          return [] unless item.is_a?(Array)
           return _broadcast_gradient_op(item, vector2[index], level + 1, switch)
         end
       end
       
       def get_broadcast_gradient_args(input_a, input_b)
-        return -1 if get_rank(input_b).zero? && get_rank(input_a).zero?
+        return [] if get_rank(input_b).zero? && get_rank(input_a).zero?
         return nil if get_rank(input_b).zero?
         # ruby scalar
         if get_rank(input_a).zero?
@@ -646,7 +648,7 @@ module TensorStream
         return val.transpose.collect { |v| keep_dims ? [op.call(v)] : op.call(v) } if axis.zero?
         return val.collect { |v| keep_dims ? [op.call(v)] : op.call(v) } if axis == 1
 
-        raise "can't handle with axis > 1 :("
+        raise "can't handle with axis > 1 :(, passed #{axis}"
       end
 
       # handle 3 tensor math operations

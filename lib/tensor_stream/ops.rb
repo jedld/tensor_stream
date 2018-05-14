@@ -49,7 +49,7 @@ module TensorStream
     end
 
     def eye(num_rows, num_columns: nil, dtype: :float32, name: nil)
-      op(:eye, num_rows, num_columns || num_rows, data_type: dtype, name: name, preserve_params_type: true)
+      op(:eye, num_rows, num_columns || num_rows, data_type: dtype, name: name)
     end
 
     def shape(input, name: nil, out_type: :int32)
