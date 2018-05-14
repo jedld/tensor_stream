@@ -80,6 +80,10 @@ module TensorStream
       op(:less, input_a, input_b, name: name)
     end
 
+    def logical_and(input_a, input_b, name: nil)
+      op(:logical_and, input_a, input_b, name: name)
+    end
+
     def greater(input_a, input_b, name: nil)
       op(:greater, input_a, input_b, name: name)
     end

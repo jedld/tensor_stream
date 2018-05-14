@@ -107,6 +107,11 @@ module TensorStream
           }
 
           call_op(:sign, a, child_context, func)
+        when :logical_and
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
+
+          call_vector_op(:greater, a, b, child_context, ->(t, u) { t && u })
         when :equal
           a = complete_eval(a, child_context)
           b = complete_eval(b, child_context)
@@ -348,6 +353,8 @@ module TensorStream
           b = complete_eval(b, child_context)
 
           call_vector_op(:max, a, b, child_context, ->(t, u) { [t, u].max })
+        when :broadcast_gradient_args
+
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|
@@ -537,16 +544,29 @@ module TensorStream
           if get_rank(eval_b).zero?
             op.call(eval_a, eval_b)
           else
-            constant_op(eval_b, eval_a, child_context, op, true)
+            vector_op(eval_b, eval_a, child_context, op, true)
           end
         elsif get_rank(eval_a) > 0
-          if get_rank(eval_b) > 0
-            vector_op(eval_a, eval_b, child_context, op)
-          else
-            constant_op(eval_a, eval_b, child_context, op)
-          end
+          vector_op(eval_a, eval_b, child_context, op)
         end
       end
+
+      # def get_broadcast_gradient_args(input_a, input_b)
+      #   # ruby scalar
+      #   if get_rank(input_a).zero?
+      #     if get_rank(input_b).zero?
+      #       return nil
+      #     else
+      #       get_broadcast_gradient_args(input_b, input_a)
+      #     end
+      #   elsif get_rank(input_a) > 0
+      #     if get_rank(input_b) > 0
+      #       vector_op(eval_a, eval_b, child_context, op)
+      #     else
+      #       constant_op(eval_a, eval_b, child_context, op)
+      #     end
+      #   end
+      # end
 
       def get_rank(value, rank = 0)
         return rank unless value.is_a?(Array)
@@ -578,7 +598,7 @@ module TensorStream
       def process_function_op(a, child_context, op)
         # ruby scalar
         if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
-          constant_op(a, 0, child_context, op)
+          vector_op(a, 0, child_context, op)
         elsif !a.is_a?(Tensor) || a.shape.rank.zero?
           v = run(a, child_context)
           raise FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
@@ -626,33 +646,6 @@ module TensorStream
         end
       end
 
-      def constant_op(vector, constant, child_context, op = ->(a, b) { a + b }, switch = false)
-        eval_vector = complete_eval(vector, child_context)
-        constant = complete_eval(constant, child_context)
-
-        raise FullEvalNotPossible.new, "full eval not possible for #{eval_vector.name}" if eval_vector.is_a?(Tensor) || constant.is_a?(Tensor)
-
-        eval_vector.each_with_index.collect do |item, index|
-          c = if constant.is_a?(Array)
-              if index < constant.size
-                constant[index]
-              else
-                raise "incompatible tensor shapes used during op" if constant.size != 1
-                constant[0]
-              end
-            else
-              constant
-            end
-          if item.is_a?(Array)
-            constant_op(item, c, child_context, op, switch)
-          elsif item.respond_to?(:value)
-            switch ? op.call(c, item.value) : op.call(item.value, c)
-          else
-            switch ? op.call(c, item) : op.call(item, c)
-          end
-        end
-      end
-
       def call_3way_vector_op(v_a, v_b, v_c, child_context, op = ->(a, b, c) { a + b + c })
         return op.call(v_a, v_b, v_c) unless v_a.is_a?(Array)
 
@@ -667,7 +660,7 @@ module TensorStream
         end
       end
 
-      def vector_op(vector, vector2, child_context, op = ->(a, b) { a + b })
+      def vector_op(vector, vector2, child_context, op = ->(a, b) { a + b }, switch = false)
         v_a = run(vector, child_context)
         v_b = run(vector2, child_context)
 
@@ -675,18 +668,27 @@ module TensorStream
           duplicated = Array.new(v_b.size) do
             v_a
           end
-          return vector_op(duplicated, v_b, child_context, op)
+          return vector_op(duplicated, v_b, child_context, op, switch)
         end
 
         v_a.each_with_index.collect do |item, index|
-          next vector_op(item, v_b, child_context, op) if item.is_a?(Array) && get_rank(v_a) > get_rank(v_b)
+          next vector_op(item, v_b, child_context, op, switch) if item.is_a?(Array) && get_rank(v_a) > get_rank(v_b)
 
-          z = index < v_b.size ? v_b[index] : v_b[0]
+          z = if v_b.is_a?(Array)
+                if index < v_b.size
+                  v_b[index]
+                else
+                  raise 'incompatible tensor shapes used during op' if v_b.size != 1
+                  v_b[0]
+                end
+              else
+                v_b
+              end
 
           if item.is_a?(Array)
-            constant_op(item, z, child_context, op)
+            vector_op(item, z, child_context, op, switch)
           else
-            item.respond_to?(:value) ? op.call(item.value, z.value) : op.call(item, z)
+            switch ? op.call(z, item) : op.call(item, z)
           end
         end
       end

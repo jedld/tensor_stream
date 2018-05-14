@@ -135,6 +135,18 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".logical_and" do
+    it "Returns the truth value of x AND y element-wise." do
+      a = tf.constant([[true, true], [false, true]])
+      b = tf.constant([[true, true], [true, true]])
+      f = tf.logical_and(a, b)
+      expect(f.eval).to eq([[true, true], [false, true]])
+
+      f = a.and(b)
+      expect(f.eval).to eq([[true, true], [false, true]])
+    end
+  end
+
   context ".equal" do
     it "returns the truth value of two tensors" do
       a = tf.constant(1.0)

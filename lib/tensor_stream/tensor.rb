@@ -104,6 +104,10 @@ module TensorStream
       op(:less_equal, self, other)
     end
 
+    def and(other)
+      op(:logical_and, self, other)
+    end
+
     def collect(&block)
       @value.collect(&block)
     end

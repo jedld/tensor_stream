@@ -150,6 +150,8 @@ module TensorStream
         "#{sub_item} == #{auto_math(items[1], name_only, max_depth - 1)}"
       when :not_equal
         "#{sub_item} != #{auto_math(items[1], name_only, max_depth - 1)}"
+      when :logical_and
+        "#{sub_item} && #{auto_math(items[1], name_only, max_depth - 1)}"
       when :sqrt
         "sqrt(#{sub_item})"
       when :zeros_like
@@ -161,7 +163,7 @@ module TensorStream
       when :cast
         "cast(#{auto_math(sub_item)}, #{data_type})"
       else
-        raise "math form for #{operation}"
+        raise "no math form for #{operation} defined"
       end
     end
 

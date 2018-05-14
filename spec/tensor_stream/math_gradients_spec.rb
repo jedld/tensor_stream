@@ -124,6 +124,9 @@ RSpec.describe TensorStream::MathGradients do
       expect(tr(f.eval)).to eq(
         [[1.0, 2.0], [0.16, 1.64], [0.02, 0.42]]
       )
+
+      g = tf.gradients(f, [b])
+      expect(g.eval).to eq([[[3.0], [1.80], [0.45]]])
     end
 
     specify "when columns don't match" do
