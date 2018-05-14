@@ -634,18 +634,7 @@ module TensorStream
         raise "can't handle with axis > 1 :("
       end
 
-      def constant_add(vector, constant)
-        run(vector).collect do |item|
-          if item.is_a?(Array)
-            constant_add(item, constant)
-          elsif item.respond_to?(:value)
-            item.value + constant
-          else
-            item + constant
-          end
-        end
-      end
-
+      # handle 3 tensor math operations
       def call_3way_vector_op(v_a, v_b, v_c, child_context, op = ->(a, b, c) { a + b + c })
         return op.call(v_a, v_b, v_c) unless v_a.is_a?(Array)
 
@@ -660,29 +649,27 @@ module TensorStream
         end
       end
 
+      # handle 2 tensor math operations
       def vector_op(vector, vector2, child_context, op = ->(a, b) { a + b }, switch = false)
-        v_a = run(vector, child_context)
-        v_b = run(vector2, child_context)
-
-        if get_rank(v_a) < get_rank(v_b) # upgrade rank of A
-          duplicated = Array.new(v_b.size) do
-            v_a
+        if get_rank(vector) < get_rank(vector2) # upgrade rank of A
+          duplicated = Array.new(vector2.size) do
+            vector
           end
-          return vector_op(duplicated, v_b, child_context, op, switch)
+          return vector_op(duplicated, vector2, child_context, op, switch)
         end
 
-        v_a.each_with_index.collect do |item, index|
-          next vector_op(item, v_b, child_context, op, switch) if item.is_a?(Array) && get_rank(v_a) > get_rank(v_b)
+        vector.each_with_index.collect do |item, index|
+          next vector_op(item, vector2, child_context, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
 
-          z = if v_b.is_a?(Array)
-                if index < v_b.size
-                  v_b[index]
+          z = if vector2.is_a?(Array)
+                if index < vector2.size
+                  vector2[index]
                 else
-                  raise 'incompatible tensor shapes used during op' if v_b.size != 1
-                  v_b[0]
+                  raise 'incompatible tensor shapes used during op' if vector2.size != 1
+                  vector2[0]
                 end
               else
-                v_b
+                vector2
               end
 
           if item.is_a?(Array)
@@ -702,21 +689,6 @@ module TensorStream
         end
 
         !!arr
-      end
-
-      def vector_add(vector, vector2, child_context)
-        v_a = run(vector, child_context)
-        v_b = run(vector2, child_context)
-
-        v_a.each_with_index.collect do |item, index|
-          if item.is_a?(Array)
-            constant_add(item, constant)
-          elsif item.respond_to?(:value)
-            item.value + v_b[index].value
-          else
-            item + v_b[index]
-          end
-        end
       end
 
       def generate_vector(shape, dtype: :float32, generator:)
