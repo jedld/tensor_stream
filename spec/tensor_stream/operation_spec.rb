@@ -306,7 +306,23 @@ RSpec.describe TensorStream::Operation do
       expect(tf.reduce_sum(x, 1).eval).to eq([3, 3])
       expect(tf.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
       expect(tf.reduce_sum(x, [0, 1]).eval).to eq(6)
+
       expect(tf.reduce_sum(x, []).eval).to eq([[1, 1, 1], [1, 1, 1]]) # no reduction
+
+    end
+
+    it "negative axis" do
+      x = tf.constant([[1, 1, 1], [1, 1, 1]])
+
+      expect(tf.reduce_sum(x, -1).eval).to eq([3, 3])
+      expect(tf.reduce_sum(x, -2).eval).to eq([2, 2, 2])
+    end
+
+    it "rank > 2 tensor" do
+      x = tf.constant([ [[1,1], [1,1]], [[1,1], [1,1]]])
+      expect(tf.reduce_sum(x).eval).to eq(8)
+      expect(tf.reduce_sum(x, [1, 0]).eval).to eq([4, 4])
+      expect(tf.reduce_sum(x, 0).eval).to eq([[2, 2],[2, 2]])
     end
 
     specify "computes the gradients properly" do
@@ -757,6 +773,11 @@ end
       expect(tf.reduce_mean(x).eval).to eq(1.5)
       expect(tf.reduce_mean(x, 0).eval).to eq([1.5, 1.5])
       expect(tf.reduce_mean(x, 1).eval).to eq([1.0, 2.0])
+
+      y = tf.constant([[1.0, 1.0, 1.0], [2.0, 2.0, 3.0], [1.5, -1.1, 1.1]])
+      expect(tr(tf.reduce_mean(y).eval)).to eq(1.2778)
+      expect(tr(tf.reduce_mean(y, 0).eval)).to eq([1.5, 0.6333, 1.7])
+      expect(tr(tf.reduce_mean(y, 1).eval)).to eq([1.0, 2.3333, 0.5])
     end
 
     it ".computes for the gradient" do

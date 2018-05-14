@@ -193,35 +193,40 @@ module TensorStream
           tensor.items[0].value
         when :reduce_mean
           c = fp_type?(tensor.data_type) ? 0.0 : 0
-          func = lambda { |v|
-            if v.is_a?(Array)
-              v.empty? ? c : (v.reduce(:+) / v.size)
-            else
-              v
+          func = lambda do |arr|
+            return c if arr.nil?
+
+            reduced_val = arr[0]
+            arr[1..arr.size].each do |v|
+              reduced_val = vector_op(reduced_val, v, ->(a, b) { a + b })
             end
-          }
+
+            vector_op(reduced_val, nil, ->(a, _b) { a / arr.size })
+          end
 
           reduction(child_context, tensor, func)
         when :reduce_sum
           c = fp_type?(tensor.data_type) ? 0.0 : 0
-          func = lambda { |v|
-            if v.is_a?(Array)
-              v.empty? ? c : v.reduce(:+)
-            else
-              v
+          func = lambda do |arr|
+            reduced_val = arr[0]
+            arr[1..arr.size].each do |v|
+              reduced_val = vector_op(reduced_val, v, ->(a, b) { a + b })
             end
-          }
+            reduced_val
+          end
 
           reduction(child_context, tensor, func)
         when :reduce_prod
           c = fp_type?(tensor.data_type) ? 1.0 : 1
-          func = lambda { |v|
-            if v.is_a?(Array)
-              v.empty? ? c : v.reduce(:*)
-            else
-              v
+          func = lambda do |arr|
+            return c if arr.nil?
+
+            reduced_val = arr[0]
+            arr[1..arr.size].each do |v|
+              reduced_val = vector_op(reduced_val, v, ->(a, b) { a * b })
             end
-          }
+            reduced_val
+          end
 
           reduction(child_context, tensor, func)
         when :transpose
@@ -436,19 +441,20 @@ module TensorStream
         val = complete_eval(tensor.items[0], child_context)
         axis = complete_eval(tensor.options[:axis], child_context)
         keep_dims = tensor.options[:keepdims]
+        rank = get_rank(val)
+        return val if axis && axis.is_a?(Array) && axis.empty?
 
-        res = if axis.is_a?(Array)
-                return val if axis.empty?
+        axis = if axis.nil?
+          nil
+        elsif axis.is_a?(Array)
+          return val if axis.empty?
 
-                axis.each do |x|
-                  val = reduce_axis(x, val, keep_dims, child_context, func)
-                end
+          axis.map { |a| a < 0 ? rank - a.abs : a }
+        else
+          axis < 0 ? rank - axis.abs : axis
+        end
 
-                func.call(val.flatten)
-              else
-                reduce_axis(axis, val, keep_dims, child_context, func)
-              end
-        res
+        reduce_axis(0, axis, val, keep_dims, func)
       end
 
       def arr_pad(arr, paddings, data_type = :float32, rank = 0)
@@ -548,10 +554,10 @@ module TensorStream
           if get_rank(eval_b).zero?
             op.call(eval_a, eval_b)
           else
-            vector_op(eval_b, eval_a, child_context, op, true)
+            vector_op(eval_b, eval_a, op, true)
           end
         elsif get_rank(eval_a) > 0
-          vector_op(eval_a, eval_b, child_context, op)
+          vector_op(eval_a, eval_b, op)
         end
       end
 
@@ -614,7 +620,7 @@ module TensorStream
       def process_function_op(a, child_context, op)
         # ruby scalar
         if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
-          vector_op(a, 0, child_context, op)
+          vector_op(a, 0, op)
         elsif !a.is_a?(Tensor) || a.shape.rank.zero?
           v = run(a, child_context)
           raise FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
@@ -641,13 +647,26 @@ module TensorStream
         Tensor.cast_dtype(var, placeholder.data_type)
       end
 
-      def reduce_axis(axis, val, keep_dims, child_context, op = ->(v) { v.is_a?(Array) ? v.reduce(:+) : v })
-        val = run(val, child_context)
-        return val.is_a?(Array) ? op.call(val.flatten) : val if axis.nil?
-        return val.transpose.collect { |v| keep_dims ? [op.call(v)] : op.call(v) } if axis.zero?
-        return val.collect { |v| keep_dims ? [op.call(v)] : op.call(v) } if axis == 1
+      def reduce_axis(current_axis, axis, val, keep_dims, f = ->(a, b) { a + b })
+        return val unless val.is_a?(Array)
 
-        raise "can't handle with axis > 1 :(, passed #{axis}"
+        r = val.collect do |v|
+          reduce_axis(current_axis + 1, axis, v, keep_dims, f)
+        end
+
+        should_reduce_axis = axis.nil? || (axis.is_a?(Array) && axis.include?(current_axis)) || (current_axis == axis)
+
+        if should_reduce_axis
+          reduced_val = r[0]
+          if r.size > 1
+            reduced_val = f.call(r[0..val.size])
+          elsif r.size == 0
+            reduced_val = f.call(nil)
+          end
+          keep_dims ? [ reduced_val ] : reduced_val
+        else
+          r
+        end
       end
 
       # handle 3 tensor math operations
@@ -666,16 +685,18 @@ module TensorStream
       end
 
       # handle 2 tensor math operations
-      def vector_op(vector, vector2, child_context, op = ->(a, b) { a + b }, switch = false)
+      def vector_op(vector, vector2, op = ->(a, b) { a + b }, switch = false)
         if get_rank(vector) < get_rank(vector2) # upgrade rank of A
           duplicated = Array.new(vector2.size) do
             vector
           end
-          return vector_op(duplicated, vector2, child_context, op, switch)
+          return vector_op(duplicated, vector2, op, switch)
         end
 
+        return op.call(vector, vector2) unless vector.is_a?(Array)
+
         vector.each_with_index.collect do |item, index|
-          next vector_op(item, vector2, child_context, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
+          next vector_op(item, vector2, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
 
           z = if vector2.is_a?(Array)
                 if index < vector2.size
@@ -689,7 +710,7 @@ module TensorStream
               end
 
           if item.is_a?(Array)
-            vector_op(item, z, child_context, op, switch)
+            vector_op(item, z, op, switch)
           else
             switch ? op.call(z, item) : op.call(item, z)
           end
