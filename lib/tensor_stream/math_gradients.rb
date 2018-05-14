@@ -69,8 +69,12 @@ module TensorStream
           _reduce_when_necessary(gx + gy, wrt_dx)
         when :mul
           # apply the product rule
-          sx, sy = _broadcast_gradient_args(tensor.items[0], wrt_dx)
-          op(:reduce_sum, grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * grad2, nil, axis: sy)
+          rx = op(:shape, tensor.items[0])
+          ry = op(:shape, tensor.items[1])
+
+          sx, sy = _broadcast_gradient_args(rx, ry)
+          op(:reduce_sum, grad * _ds(tensor.items[1]), nil, axis: sy) +
+          op(:reduce_sum, _ds(tensor.items[0]) * grad2, nil, axis: sx)
         when :reduce_mean
           input_size = i_op(:reduce_prod, i_op(:shape, tensor.items[0]))
           output_size = i_op(:reduce_prod, i_op(:shape, tensor))

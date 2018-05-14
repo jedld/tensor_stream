@@ -562,21 +562,23 @@ module TensorStream
       end
 
       # determine possible reduction axis to be used
-      def _broadcast_gradient_op(vector, vector2, level, switch = false)
-        va_rank = get_rank(vector)
-        vb_rank = get_rank(vector2)
+      def _broadcast_gradient_op(vector_shape1, vector_shape2, level)
+        va_rank = _rank_from_shape(vector_shape1)
+        vb_rank = _rank_from_shape(vector_shape2)
+        return [] if vector_shape1 == vector_shape2 # same shape so no reductions
 
-        return 0 if va_rank > vb_rank # upgrade rank of A
-        shape_v1 = shape_eval(vector)
-        shape_v2 = shape_eval(vector2)
+        shape2_r = vector_shape2.reverse
 
-        return [] if shape_eval(vector) == shape_eval(vector2)
+        vector_shape1.reverse.each_with_index.collect do |s, index|
+          next va_rank - index - 1 if index >= shape2_r.size
+          next nil if shape2_r[index] == s
+          next nil if shape2_r[index] > s
+          va_rank - index - 1
+        end.compact
+      end
 
-        vector.each_with_index do |item, index|
-          return level if vector2.is_a?(Array) && vector.size > vector2.size
-          return [] unless item.is_a?(Array)
-          return _broadcast_gradient_op(item, vector2[index], level + 1, switch)
-        end
+      def _rank_from_shape(shape)
+        shape.is_a?(Array) ? shape.size : 0
       end
       
       def get_broadcast_gradient_args(input_a, input_b)
