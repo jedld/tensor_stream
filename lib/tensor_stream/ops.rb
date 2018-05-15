@@ -49,7 +49,7 @@ module TensorStream
     end
 
     def eye(num_rows, num_columns: nil, dtype: :float32, name: nil)
-      op(:eye, num_rows, num_columns || num_rows, data_type: dtype, name: name, preserve_params_type: true)
+      op(:eye, num_rows, num_columns || num_rows, data_type: dtype, name: name)
     end
 
     def shape(input, name: nil, out_type: :int32)
@@ -78,6 +78,10 @@ module TensorStream
 
     def less(input_a, input_b, name: nil)
       op(:less, input_a, input_b, name: name)
+    end
+
+    def logical_and(input_a, input_b, name: nil)
+      op(:logical_and, input_a, input_b, name: name)
     end
 
     def greater(input_a, input_b, name: nil)

@@ -2,6 +2,7 @@ module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
     attr_accessor :name, :operation, :items, :rank, :options
+    attr_reader :outputs
 
     def initialize(operation, input_a, input_b, options = {})
       @graph = options[:graph] || TensorStream.get_default_graph
@@ -51,7 +52,7 @@ module TensorStream
 
     def set_data_type(passed_data_type)
       case operation
-      when :greater, :less, :equal
+      when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal
         :boolean
       when :shape, :rank
         :int32
@@ -150,6 +151,8 @@ module TensorStream
         "#{sub_item} == #{auto_math(items[1], name_only, max_depth - 1)}"
       when :not_equal
         "#{sub_item} != #{auto_math(items[1], name_only, max_depth - 1)}"
+      when :logical_and
+        "#{sub_item} && #{auto_math(items[1], name_only, max_depth - 1)}"
       when :sqrt
         "sqrt(#{sub_item})"
       when :zeros_like
@@ -161,7 +164,7 @@ module TensorStream
       when :cast
         "cast(#{auto_math(sub_item)}, #{data_type})"
       else
-        raise "math form for #{operation}"
+        raise "no math form for #{operation} defined"
       end
     end
 
@@ -170,6 +173,14 @@ module TensorStream
     end
 
     private
+
+    def propagate_consumer(consumer)
+      super(consumer)
+
+      @items.compact.each do |item|
+        item.send(:propagate_consumer, consumer) if item.name!=self.name
+      end
+    end
 
     def set_name
       "#{@operation}#{graph.get_operation_counter}:#{@rank}"

@@ -12,6 +12,11 @@ module TensorStream
     end
 
     def reset
+      @placeholder_counter = 0
+      @const_counter = 0
+      @var_counter = 0
+      @op_counter = 0
+      
       @nodes = {}
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => []
@@ -39,6 +44,7 @@ module TensorStream
       raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
       node.name = uniqunify(node.name) if @nodes[node.name]
       @nodes[node.name] = node
+      node.send(:propagate_consumer, node)
       node.value = node.eval if @eager_execution
     end
 

@@ -4,14 +4,18 @@ require 'benchmark'
 RSpec.describe TensorStream::MathGradients do
   let(:tf) { TensorStream }
 
+  before(:each) do
+    TensorStream::Graph.create_default.reset
+  end
+
   context "addition" do
     it "handles shape differences, rank 2 vs 1" do
       a = tf.constant([[1, 2],[3, 4],[5, 6]])
       b = tf.constant([1, 1])
       sum = a + b
-      g = tf.gradients(sum, [a, b])
+      g = tf.gradients(sum, [b])
 
-      expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], [3, 3]])
+      expect(g.eval).to eq([[3, 3]])
     end
 
     it "handles shape differences, rank 2 vs 0" do
@@ -124,6 +128,9 @@ RSpec.describe TensorStream::MathGradients do
       expect(tr(f.eval)).to eq(
         [[1.0, 2.0], [0.16, 1.64], [0.02, 0.42]]
       )
+
+      g = tf.gradients(f, [b])
+      expect(g.eval).to eq([[[3.0], [4.5], [4.4]]])
     end
 
     specify "when columns don't match" do
@@ -195,7 +202,6 @@ RSpec.describe TensorStream::MathGradients do
 
       layer_1 =  tf.matmul(inputs, weights) + biases
       neural_net = tf.matmul(layer_1, weights_layer2) + biases2
-
       
       output = sess.run(neural_net, feed_dict: { inputs => test_inputs })
 

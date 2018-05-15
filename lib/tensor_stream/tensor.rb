@@ -5,7 +5,9 @@ module TensorStream
   class Tensor
     include OpHelper
 
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :source, :given_name, :graph
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
+                  :value, :breakpoint, :internal, :source, :given_name, :graph,
+                  :consumers
 
     def initialize(data_type, rank, shape, options = {})
       @data_type = data_type
@@ -102,6 +104,14 @@ module TensorStream
 
     def <=(other)
       op(:less_equal, self, other)
+    end
+
+    def and(other)
+      op(:logical_and, self, other)
+    end
+
+    def matmul(other)
+      op(:matmul, self, other)
     end
 
     def collect(&block)
@@ -204,11 +214,23 @@ module TensorStream
     end
 
     def breakpoint!(&block)
-      @breakpoint = block
       self
     end
 
+    def print!(message)
+      op(:print, self, self, message: message)
+    end
+
     protected
+
+    def add_consumer(consumer)
+      @consumers ||= []
+      @consumers << consumer.name if !@consumers.include?(consumer.name) && consumer.name!=self.name
+    end
+
+    def propagate_consumer(consumer)
+      add_consumer(consumer)
+    end
 
     def format_source(trace)
       trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first

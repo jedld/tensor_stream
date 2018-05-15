@@ -135,6 +135,18 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".logical_and" do
+    it "Returns the truth value of x AND y element-wise." do
+      a = tf.constant([[true, true], [false, true]])
+      b = tf.constant([[true, true], [true, true]])
+      f = tf.logical_and(a, b)
+      expect(f.eval).to eq([[true, true], [false, true]])
+
+      f = a.and(b)
+      expect(f.eval).to eq([[true, true], [false, true]])
+    end
+  end
+
   context ".equal" do
     it "returns the truth value of two tensors" do
       a = tf.constant(1.0)
@@ -294,6 +306,26 @@ RSpec.describe TensorStream::Operation do
       expect(tf.reduce_sum(x, 1).eval).to eq([3, 3])
       expect(tf.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
       expect(tf.reduce_sum(x, [0, 1]).eval).to eq(6)
+
+      expect(tf.reduce_sum(x, []).eval).to eq([[1, 1, 1], [1, 1, 1]]) # no reduction
+      expect(tf.reduce_sum([[1, 1], [1, 1], [1, 1]])).to eq(6)
+    end
+
+    it "negative axis" do
+      x = tf.constant([[1, 1, 1], [1, 1, 1]])
+
+      expect(tf.reduce_sum(x, -1).eval).to eq([3, 3])
+      expect(tf.reduce_sum(x, -2).eval).to eq([2, 2, 2])
+    end
+
+    it "rank > 2 tensor" do
+      x = tf.constant([ [[1,1], [1,1]], [[1,1], [1,1]]])
+      expect(tf.reduce_sum(x).eval).to eq(8)
+      expect(tf.reduce_sum(x, [1, 0]).eval).to eq([4, 4])
+      expect(tf.reduce_sum(x, 0).eval).to eq([[2, 2],[2, 2]])
+
+      y = tf.constant([[1.0, 2.0], [0.4, 4.1], [0.2, 4.2]])
+      expect(tf.reduce_sum(y, [1], keepdims: true).eval).to eq([[3.0], [4.5], [4.4]])
     end
 
     specify "computes the gradients properly" do
@@ -515,6 +547,11 @@ end
       c = tf.matmul(a, b)
       expect(c.eval).to eq([[ 58,  64],
                             [139, 154]])
+
+      c = a.matmul(b)
+      expect(c.eval).to eq([[ 58,  64],
+      [139, 154]])
+
       d = tf.matmul(a, b, transpose_a: true, transpose_b: true)
       expect(d.eval).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
     end
@@ -739,6 +776,11 @@ end
       expect(tf.reduce_mean(x).eval).to eq(1.5)
       expect(tf.reduce_mean(x, 0).eval).to eq([1.5, 1.5])
       expect(tf.reduce_mean(x, 1).eval).to eq([1.0, 2.0])
+
+      y = tf.constant([[1.0, 1.0, 1.0], [2.0, 2.0, 3.0], [1.5, -1.1, 1.1]])
+      expect(tr(tf.reduce_mean(y).eval)).to eq(1.2778)
+      expect(tr(tf.reduce_mean(y, 0).eval)).to eq([1.5, 0.6333, 1.7])
+      expect(tr(tf.reduce_mean(y, 1).eval)).to eq([1.0, 2.3333, 0.5])
     end
 
     it ".computes for the gradient" do
