@@ -128,7 +128,7 @@ w = tf.Variable(0, 'weights')
 Ruby
 
 ```ruby
-w =tf.variable(0, name: 'weights')
+w = tf.variable(0, name: 'weights')
 ```
 
 # Shapes
