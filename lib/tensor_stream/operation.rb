@@ -172,6 +172,10 @@ module TensorStream
       eval
     end
 
+    def op
+      self
+    end
+
     private
 
     def propagate_consumer(consumer)

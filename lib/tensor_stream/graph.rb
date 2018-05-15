@@ -16,11 +16,29 @@ module TensorStream
       @const_counter = 0
       @var_counter = 0
       @op_counter = 0
-      
+
       @nodes = {}
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => []
       }
+    end
+
+    def as_default
+      Thread.current[:tensor_stream_current_graph] = self
+      yield(self) if block_given?
+      self
+    end
+
+    def name_scope(name)
+      Thread.current["ts_graph_#{object_id}"] ||= {}
+      Thread.current["ts_graph_#{object_id}"][:current_scope] ||= []
+      Thread.current["ts_graph_#{object_id}"][:current_scope] << name
+
+      begin
+        yield get_name_scope if block_given?
+      ensure
+        Thread.current["ts_graph_#{object_id}"][:current_scope].pop
+      end
     end
 
     def self.get_default_graph
@@ -42,7 +60,15 @@ module TensorStream
 
     def add_node(node)
       raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
-      node.name = uniqunify(node.name) if @nodes[node.name]
+
+      node_name = [get_name_scope, node.name].compact.join('/')
+
+      if @nodes[node_name]
+        node.name = uniqunify(node_name)
+      else
+        node.name = node_name
+      end
+
       @nodes[node.name] = node
       node.send(:propagate_consumer, node)
       node.value = node.eval if @eager_execution
@@ -118,6 +144,13 @@ module TensorStream
 
       @const_counter += 1
       name
+    end
+
+    def get_name_scope
+      graph_thread_storage = Thread.current["ts_graph_#{object_id}"]
+      return nil if graph_thread_storage.nil?
+
+      graph_thread_storage[:current_scope].join('/')
     end
 
     protected

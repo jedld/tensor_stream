@@ -83,35 +83,35 @@ module TensorStream
     end
 
     def ==(other)
-      op(:equal, self, other)
+      _op(:equal, self, other)
     end
 
     def <(other)
-      op(:less, self, other)
+      _op(:less, self, other)
     end
 
     def !=(other)
-      op(:not_equal, self, other)
+      _op(:not_equal, self, other)
     end
 
     def >(other)
-      op(:greater, self, other)
+      _op(:greater, self, other)
     end
 
     def >=(other)
-      op(:greater_equal, self, other)
+      _op(:greater_equal, self, other)
     end
 
     def <=(other)
-      op(:less_equal, self, other)
+      _op(:less_equal, self, other)
     end
 
     def and(other)
-      op(:logical_and, self, other)
+      _op(:logical_and, self, other)
     end
 
     def matmul(other)
-      op(:matmul, self, other)
+      _op(:matmul, self, other)
     end
 
     def collect(&block)
@@ -120,6 +120,10 @@ module TensorStream
 
     def to_s
       @name
+    end
+
+    def op
+      is_const ? _op(:const, self, nil, name: self.name) : _op(:variable, self, nil, name: self.name)
     end
 
     def eval(options = {})
@@ -149,7 +153,7 @@ module TensorStream
     end
 
     def first
-      op(:index, self, 0)
+      _op(:index, self, 0)
     end
 
     def to_math(name_only = false, max_depth = 99)
@@ -218,7 +222,7 @@ module TensorStream
     end
 
     def print!(message)
-      op(:print, self, self, message: message)
+      _op(:print, self, self, message: message)
     end
 
     protected

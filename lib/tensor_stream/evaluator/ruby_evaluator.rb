@@ -86,6 +86,8 @@ module TensorStream
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
         case tensor.operation
+        when :const
+          complete_eval(a, child_context)
         when :argmax
           a = complete_eval(a, child_context)
           axis = tensor.options[:axis] || 0

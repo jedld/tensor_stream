@@ -211,6 +211,7 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  
   # Outputs random values from a uniform distribution.
   # The generated values follow a uniform distribution in the range [minval, maxval). The lower bound minval is included in the range, while the upper bound maxval is excluded.
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.
@@ -229,6 +230,28 @@ RSpec.describe TensorStream::Operation do
         specify "with ranges" do
           expect(TensorStream.random_uniform(shape, minval: 0, maxval: 2).eval).to eq(range_expected)
         end
+      end
+    end
+
+    context "shape (3,)" do
+      it "Creates an operation to generate a random set of values of the given shape" do
+        srand(1234567)
+        vec = TensorStream.random_uniform([3])
+        expect(vec.eval).to eq([0.23702916849534994, 0.007648373861731117, 0.019830308342374425])
+
+        #evaluating again generates new values
+        expect(vec.eval).to eq([0.3130926186495132, 0.09945466414888471, 0.1951742921107925])
+      end
+    end
+
+    context "shape (2, 2)" do
+      it "Creates an operation to generate a random set of values of the given shape" do
+        srand(1234567)
+        vec = TensorStream.random_uniform([2,2])
+        expect(vec.eval).to eq([[0.23702916849534994, 0.007648373861731117], [0.019830308342374425, 0.3130926186495132]])
+
+        #evaluating again generates new values
+        expect(vec.eval).to eq([[0.09945466414888471, 0.1951742921107925], [0.20729802198472924, 0.16493119121125488]])
       end
     end
   end

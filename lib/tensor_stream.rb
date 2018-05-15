@@ -30,6 +30,10 @@ module TensorStream
     Types.float32
   end
 
+  def self.graph
+    TensorStream::Graph.new
+  end
+
   def self.get_default_graph
     TensorStream::Graph.get_default_graph
   end
@@ -50,19 +54,22 @@ module TensorStream
     TensorStream::Graph.get_default_graph.executing_eagerly?
   end
 
-  def self.variable(value, options = {})
+  def self.variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
     common_options = {
-      initializer: Operation.new(:assign, nil, value),
-      name: options[:name]
+      initializer: initializer || Operation.new(:assign, nil, value),
+      name: name,
+      graph: graph,
+      dtype: dtype,
+      trainable: trainable
     }
     if value.is_a?(String)
-      TensorStream::Variable.new(options[:dtype] || :string, 0, [], common_options)
+      TensorStream::Variable.new(dtype || :string, 0, [], common_options)
     elsif value.is_a?(Integer)
-      TensorStream::Variable.new(options[:dtype] || :int32, 0, [], common_options)
+      TensorStream::Variable.new(dtype || :int32, 0, [], common_options)
     elsif value.is_a?(Float)
-      TensorStream::Variable.new(options[:dtype] || :float32, 0, [], common_options)
+      TensorStream::Variable.new(dtype || :float32, 0, [], common_options)
     else
-      TensorStream::Variable.new(options[:dtype] || :float32, 0, nil, common_options)
+      TensorStream::Variable.new(dtype || :float32, 0, nil, common_options)
     end
   end
 
@@ -127,6 +134,10 @@ module TensorStream
 
   def self.train
     TensorStream::Trainer
+  end
+
+  def self.trainable_variables
+    TensorStream::get_default_graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
   end
 
   def self.check_allowed_types(input, types)

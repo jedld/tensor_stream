@@ -1,7 +1,7 @@
 module TensorStream
   # module that contains helper functions useful for ops
   module OpHelper
-    def op(code, t_a, t_b = nil, options = {})
+    def _op(code, t_a, t_b = nil, options = {})
       Operation.new(code.to_sym, t_a, t_b, options)
     end
 
