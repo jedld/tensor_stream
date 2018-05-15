@@ -51,6 +51,21 @@ RSpec.describe TensorStream::Session do
       expect(sess.run(z, feed_dict: { x => [1, 3], y=> [2, 4]})).to eq([3, 7])
     end
 
+    context "#close" do
+      it "closes session and releases resources" do
+        sess = TensorStream.session
+        sess.close
+        expect(sess.closed?).to be
+      end
+    end
+
+    context "#list_devices" do
+      let(:sess) { TensorStream.session }
+      it "list available device sin this session" do
+        expect(sess.list_devices.map(&:name)).to eq(["cpu"])
+      end
+    end
+
     xit "evaluate all while retaining some variables" do
       session = TensorStream::Session.default_session
       x = TensorStream.variable(1.0, :float32)

@@ -65,7 +65,7 @@ module TensorStream
       raise "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !options[:reuse]
 
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
-
+      add_to_collection(GraphKeys::TRAINABLE_VARIABLES, node) if node.trainable?
       add_node(node)
     end
 

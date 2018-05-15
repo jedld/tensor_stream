@@ -17,6 +17,10 @@ module TensorStream
       @graph.add_variable(self, options)
     end
 
+    def trainable?
+      @trainable
+    end
+
     def initializer
       @initalizer_tensor.shape = @shape
       assign(@initalizer_tensor)

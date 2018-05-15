@@ -1,10 +1,11 @@
 module TensorStream
   #  TensorStream class that defines a session
   class Session
-    attr_reader :last_session_context
+    attr_reader :last_session_context, :closed, :target
     def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
       @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
       @thread_pool = thread_pool_class.new
+      @closed = false
     end
 
     def self.default_session
@@ -32,6 +33,18 @@ module TensorStream
       result = args.collect { |e| evaluator.run(e, execution_context) }
       @last_session_context = context
       result.size == 1 ? result.first : result
+    end
+
+    def list_devices
+      [Device.new("cpu")]
+    end
+
+    def close
+      @closed = true
+    end
+
+    def closed?
+      @closed
     end
 
     def dump_internal_ops(tensor)
