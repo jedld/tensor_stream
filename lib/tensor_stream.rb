@@ -87,7 +87,7 @@ module TensorStream
   end
 
   def self.get_variable_scope
-    Thread.current[:tensor_stream_variable_scope] ||= []
+    return nil unless Thread.current[:tensor_stream_variable_scope]
     Thread.current[:tensor_stream_variable_scope].map(&:name).join('/')
   end
 
@@ -134,8 +134,8 @@ module TensorStream
     TensorStream::ControlFlow.new(:group, inputs)
   end
 
-  def self.get_variable(name, options = {})
-    TensorStream::Variable.new(options[:dtype] || :float32, nil, options[:shape], name: name, initializer: options[:initializer])
+  def self.get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil)
+    TensorStream::Variable.new(dtype || :float32, nil, shape, collections: collections, name: name, initializer: initializer, trainable: trainable)
   end
 
   def self.get_collection(name, options = {})

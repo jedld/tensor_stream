@@ -8,7 +8,7 @@ module TensorStream
 
       @operation = :"flow_#{flow_type}"
       @items = items
-      @name = set_name
+      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
       @ops = ops
       @source = format_source(caller_locations)
 

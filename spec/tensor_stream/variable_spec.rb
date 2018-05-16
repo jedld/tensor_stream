@@ -58,8 +58,14 @@ RSpec.describe TensorStream::Variable do
       w = tf.variable(rand, name: "weight")
       tf.variable_scope("foo", reuse: true) do |scope|
         e = tf.variable(rand, name: "weight")
+        expect(e.name).to eq("foo/weight")
         expect(e).to eq(w)
       end
+    end
+
+    it "adds to a collection" do
+      w = tf.get_variable("weight", dtype: :int32, collections: ['test'])
+      tf.get_default_graph.get_collection('test').include?(w)
     end
   end
 

@@ -19,7 +19,7 @@ module TensorStream
       @is_const = options[:const] || false
       @internal = options[:internal]
       @graph = options[:graph] || TensorStream.get_default_graph
-      @name = options[:name] || build_name
+      @name = [@graph.get_name_scope, options[:name] || build_name].compact.join('/')
       @given_name = @name
 
       if options[:value]

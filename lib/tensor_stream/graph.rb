@@ -61,12 +61,10 @@ module TensorStream
     def add_node(node)
       raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
 
-      node_name = [get_name_scope, node.name].compact.join('/')
-
-      if @nodes[node_name]
-        node.name = uniqunify(node_name)
+      if @nodes[node.name]
+        node.name = uniqunify(node.name)
       else
-        node.name = node_name
+        node.name = node.name
       end
 
       @nodes[node.name] = node
@@ -93,6 +91,11 @@ module TensorStream
       raise "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !scope.reuse
 
       return @nodes[node.name] if @nodes[node.name]
+
+      if !options[:collections].nil? && !options[:collections].empty?
+        options[:collections] = [options[:collections]] unless options[:collections].is_a?(Array)
+        options[:collections].each { |coll| add_to_collection(coll, node) } 
+      end
 
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
       add_to_collection(GraphKeys::TRAINABLE_VARIABLES, node) if node.trainable?
@@ -161,7 +164,6 @@ module TensorStream
 
     def _variable_scope
       return OpenStruct.new(name: '', reuse: false) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
-
       scope = Thread.current[:tensor_stream_variable_scope].last
       scope
     end

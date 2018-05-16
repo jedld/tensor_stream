@@ -9,7 +9,7 @@ module TensorStream
 
       @operation = operation
       @rank = options[:rank] || 0
-      @name = options[:name] || set_name
+      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
       @internal = options[:internal]
       @given_name = @name
       @source = format_source(caller_locations)
