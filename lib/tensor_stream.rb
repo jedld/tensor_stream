@@ -3,6 +3,7 @@ require 'deep_merge'
 require 'matrix'
 require 'concurrent'
 require 'tensor_stream/helpers/op_helper'
+require 'tensor_stream/initializer'
 require 'tensor_stream/graph_keys'
 require 'tensor_stream/types'
 require 'tensor_stream/graph'
@@ -73,13 +74,15 @@ module TensorStream
     end
   end
 
-  def self.variable_scope(scope, reuse: nil)
+  def self.variable_scope(scope = nil, reuse: nil, initializer: nil)
     Thread.current[:tensor_stream_variable_scope] ||= []
-    Thread.current[:tensor_stream_variable_scope] << OpenStruct.new(name: scope, reuse: reuse)
-    scope_name = Thread.current[:tensor_stream_variable_scope].map(&:name).join('/')
+    Thread.current[:tensor_stream_variable_scope] << OpenStruct.new(name: scope, reuse: reuse, initializer: initializer)
+    scope_name = __v_scope_name
     begin
       if block_given?
-        yield(scope_name)
+        TensorStream.get_default_graph.name_scope(scope) do
+          yield(scope_name)
+        end
       end
     ensure
       Thread.current[:tensor_stream_variable_scope].pop
@@ -88,7 +91,11 @@ module TensorStream
 
   def self.get_variable_scope
     return nil unless Thread.current[:tensor_stream_variable_scope]
-    Thread.current[:tensor_stream_variable_scope].map(&:name).join('/')
+    __v_scope_name
+  end
+
+  def self.__v_scope_name
+    Thread.current[:tensor_stream_variable_scope].map(&:name).compact.reject(&:empty?).join('/')
   end
 
   def self.session(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)

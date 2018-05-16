@@ -29,7 +29,7 @@ module TensorStream
       self
     end
 
-    def name_scope(name)
+    def name_scope(name = nil)
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:current_scope] ||= []
       Thread.current["ts_graph_#{object_id}"][:current_scope] << name
@@ -163,7 +163,7 @@ module TensorStream
     protected
 
     def _variable_scope
-      return OpenStruct.new(name: '', reuse: false) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
+      return OpenStruct.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
       scope = Thread.current[:tensor_stream_variable_scope].last
       scope
     end

@@ -212,7 +212,31 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  
+  context ".glorot_uniform_initializer" do
+    it "initializes variables using the Glorot uniform initializer" do
+      tf.set_random_seed(1234)
+      u = tf.get_variable('v', shape: [], dtype: :float32)
+      v = tf.get_variable('v1', shape: [5], dtype: :float32)
+      y = tf.get_variable('v2', shape: [3, 3], dtype: :float32)
+      sess.run(tf.global_variables_initializer)
+      expect(tr(sess.run(u))).to eq(-1.0686)
+      expect(tr(sess.run(v))).to eq([0.2442, -0.1245, 0.5707, 0.56, -0.4548])
+      expect(tr(sess.run(y))).to eq([
+        [-0.4471, 0.6037, 0.9163],
+        [0.7519, -0.2844, 0.002],
+        [0.3669, 0.4254, -0.2595]])
+    end
+  end
+
+  context ".random_uniform_initializer" do
+    it "initializes variables using the random uniform initializer" do
+      tf.set_random_seed(1234)
+      u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.random_uniform_initializer)
+      sess.run(tf.global_variables_initializer)
+      expect(tr(sess.run(u))).to eq(0.1915)
+    end
+  end
+
   # Outputs random values from a uniform distribution.
   # The generated values follow a uniform distribution in the range [minval, maxval). The lower bound minval is included in the range, while the upper bound maxval is excluded.
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.
@@ -268,9 +292,9 @@ RSpec.describe TensorStream::Operation do
 
     context ".random_normal" do
       [
-        [[], 0.1915194503788923],
-        [[1],   [0.1915194503788923] ],
-        [[2,3], [[0.1915194503788923, 0.6221087710398319, 0.4377277390071145], [0.7853585837137692, 0.7799758081188035, 0.2725926052826416]] ],
+        [[],    0.5011628459350929],
+        [[1],   [0.5011628459350929] ],
+        [[2,3], [[0.5011628459350929, 1.301972948852967, -1.621722019401658], [0.6690221526288901, 0.14937983113945622, -0.783723693080629]] ],
       ].each do |shape, expected|
         describe "shape #{shape}" do
           it "generates random normal values" do

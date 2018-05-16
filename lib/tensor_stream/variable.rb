@@ -10,8 +10,8 @@ module TensorStream
       @shape = TensorShape.new(shape, rank)
       @value = nil
       @source = format_source(caller_locations)
-      @name = [TensorStream.get_variable_scope, options[:name] || build_name].compact.join('/')
-      @initalizer_tensor = options[:initializer] if options[:initializer]
+      @name = [TensorStream.get_variable_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
+      @initalizer_tensor = options[:initializer] ? options[:initializer] : _variable_scope.initializer || TensorStream.glorot_uniform_initializer
       @trainable = options.fetch(:trainable, true)
       @graph.add_variable(self, options)
     end
@@ -21,8 +21,9 @@ module TensorStream
     end
 
     def initializer
-      @initalizer_tensor.shape = @shape
-      assign(@initalizer_tensor)
+      @initalizer_tensor.op.shape = @shape
+      @initalizer_tensor.op.data_type = @data_type
+      assign(@initalizer_tensor.op)
     end
 
     def assign(value)
@@ -51,6 +52,14 @@ module TensorStream
 
     def self.global_variables_initializer
       variables_initializer(TensorStream::GraphKeys::GLOBAL_VARIABLES)
+    end
+
+    private
+
+    def _variable_scope
+      return OpenStruct.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
+      scope = Thread.current[:tensor_stream_variable_scope].last
+      scope
     end
   end
 end

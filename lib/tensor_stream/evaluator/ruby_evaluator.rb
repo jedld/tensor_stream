@@ -39,7 +39,7 @@ module TensorStream
         return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array)
 
         return tensor if retain.include?(tensor) # if var is in retain don't eval to value
-        
+
         tensor = tensor.call() if tensor.is_a?(Proc)
 
         child_context = execution_context.dup
@@ -181,14 +181,34 @@ module TensorStream
 
           random = _get_randomizer(tensor, seed)
           generator = -> { random.rand * (maxval - minval) + minval }
-          generate_vector(tensor.options[:shape], generator: generator)
+          shape = tensor.options[:shape] || tensor.shape.shape
+          generate_vector(shape, generator: generator)
         when :random_normal
-          r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev))
-
           random = _get_randomizer(tensor, seed)
-          generator = -> { random.rand }
+          r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
+          random = _get_randomizer(tensor, seed)
+          generator = -> { r.rand }
+          shape = tensor.options[:shape] || tensor.shape.shape
+          generate_vector(shape, generator: generator)
+        when :glorot_uniform
+          random = _get_randomizer(tensor, seed)
 
-          generate_vector(tensor.options[:shape], generator: generator)
+          shape = tensor.options[:shape] || tensor.shape.shape
+          fan_in, fan_out = if shape.size == 0
+                              [1, 1]
+                            elsif shape.size == 1
+                              [1, shape[0]]
+                            else
+                              [shape[0], shape.last]
+                            end
+
+          limit = Math.sqrt(6.0 / (fan_in + fan_out))
+
+          minval = -limit
+          maxval = limit
+
+          generator = -> { random.rand * (maxval - minval) + minval }
+          generate_vector(shape, generator: generator)
         when :flow_group
           tensor.items.collect { |item| run(item, child_context) }
         when :assign
