@@ -21,9 +21,10 @@ module TensorStream
     end
 
     def initializer
-      @initalizer_tensor.op.shape = @shape
-      @initalizer_tensor.op.data_type = @data_type
-      assign(@initalizer_tensor.op)
+      init_op = @initalizer_tensor.op
+      init_op.shape = @shape
+      init_op.data_type = @data_type
+      assign(init_op)
     end
 
     def assign(value)

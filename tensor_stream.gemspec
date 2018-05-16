@@ -41,4 +41,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec_junit_formatter"
   spec.add_dependency "deep_merge"
   spec.add_dependency "concurrent-ruby"
+  spec.add_dependency "sciruby"
+  spec.add_dependency "distribution"
 end

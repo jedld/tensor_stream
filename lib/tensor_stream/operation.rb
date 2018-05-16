@@ -16,7 +16,7 @@ module TensorStream
 
       @options = options
 
-      @items = [input_a, input_b].map { |i| options[:preserve_params_type] ? i : auto_wrap(i) }
+      @items = [input_a, input_b].map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
       @data_type = set_data_type(options[:data_type])
 
       @shape = TensorShape.new(options[:shape], options[:shape].size || 0) if options[:shape]

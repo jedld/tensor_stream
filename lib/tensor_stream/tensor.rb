@@ -19,7 +19,7 @@ module TensorStream
       @is_const = options[:const] || false
       @internal = options[:internal]
       @graph = options[:graph] || TensorStream.get_default_graph
-      @name = [@graph.get_name_scope, options[:name] || build_name].compact.join('/')
+      @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @given_name = @name
 
       if options[:value]
@@ -55,7 +55,7 @@ module TensorStream
     end
 
     def +(other)
-      TensorStream::Operation.new(:add, self, auto_wrap(other))
+      TensorStream::Operation.new(:add, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def [](index)
@@ -63,19 +63,19 @@ module TensorStream
     end
 
     def *(other)
-      TensorStream::Operation.new(:mul, self, auto_wrap(other))
+      TensorStream::Operation.new(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def **(other)
-      TensorStream::Operation.new(:pow, self, auto_wrap(other))
+      TensorStream::Operation.new(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def /(other)
-      TensorStream::Operation.new(:div, self, auto_wrap(other))
+      TensorStream::Operation.new(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -(other)
-      TensorStream::Operation.new(:sub, self, auto_wrap(other))
+      TensorStream::Operation.new(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -@
@@ -265,16 +265,6 @@ module TensorStream
         Array.new(slice) do
           reshape(arr, shape.dup)
         end
-      end
-    end
-
-    def auto_wrap(operand)
-      return auto_wrap(operand.call) if operand.is_a?(Proc)
-
-      if !operand.is_a?(Tensor)
-        i_cons(operand, dtype: @data_type || Tensor.detect_type(operand))
-      else
-        operand
       end
     end
 

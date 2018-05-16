@@ -89,6 +89,17 @@ module TensorStream
     end
   end
 
+  def self.name_scope(name, default: nil, values: nil)
+    if values
+      graph_count = values.select { |v| v.is_a?(Tensor) }.map(&:graph).map(&:object_id).uniq.size
+      raise "values are not on the same graph" if graph_count > 1
+    end
+
+    get_default_graph.name_scope(name || default) do |scope|
+      yield scope if block_given?
+    end
+  end
+
   def self.get_variable_scope
     return nil unless Thread.current[:tensor_stream_variable_scope]
     __v_scope_name
@@ -167,6 +178,16 @@ module TensorStream
 
   def self.set_random_seed(seed)
     TensorStream.get_default_graph.random_seed = seed
+  end
+
+  def self.convert_to_tensor(value, dtype: nil, name: nil, preferred_dtype: nil)
+    return convert_to_tensor(value.call) if value.is_a?(Proc)
+
+    if !value.is_a?(Tensor)
+      i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
+    else
+      value
+    end
   end
 
   def self.check_allowed_types(input, types)

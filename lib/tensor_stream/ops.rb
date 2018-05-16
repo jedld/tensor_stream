@@ -65,11 +65,11 @@ module TensorStream
     end
 
     def glorot_uniform_initializer(seed: nil, dtype: :float32)
-      TensorStream::Initializer.new(_op(:glorot_uniform, nil, nil, seed: seed, data_type: dtype))
+      TensorStream::Initializer.new(-> { _op(:glorot_uniform, nil, nil, seed: seed, data_type: dtype) })
     end
 
     def random_uniform_initializer(minval: 0, maxval: 1, seed: nil, dtype: nil)
-      TensorStream::Initializer.new(_op(:random_uniform, nil, nil, minval: 0, maxval: 1, seed: seed, data_type: dtype))
+      TensorStream::Initializer.new(-> { _op(:random_uniform, nil, nil, minval: 0, maxval: 1, seed: seed, data_type: dtype) })
     end
 
     def slice(input, start, size, name: nil)
@@ -236,6 +236,12 @@ module TensorStream
       options[:data_type] ||= :float32
       check_allowed_types(input, FLOATING_POINT_TYPES)
       _op(:log, input, nil, options)
+    end
+      
+    def log1p(input, options = {})
+      options[:data_type] ||= :float32
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:log1p, input, nil, options)
     end
 
     def exp(input, options = {})
