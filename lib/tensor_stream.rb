@@ -194,6 +194,6 @@ module TensorStream
     return input unless input.is_a?(Tensor)
     return input if input.data_type.nil?
 
-    raise "Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.map(&:to_sym).include?(input.data_type)
+    raise "#{input.source}: Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.map(&:to_sym).include?(input.data_type)
   end
 end

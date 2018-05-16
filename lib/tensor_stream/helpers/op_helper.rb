@@ -58,5 +58,9 @@ module TensorStream
     def fp_type?(type)
       TensorStream::Ops::FLOATING_POINT_TYPES.include?(type)
     end
+
+    def format_source(trace)
+      trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
+    end
   end
 end

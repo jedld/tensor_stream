@@ -20,6 +20,10 @@ module TensorStream
           grad2 = derivative(tensor.items[1], wrt_dx, options) if tensor.items[1]
 
           case tensor.operation
+          when :zeros_like
+            i_cons(0, constant_options)
+          when :log1p
+            grad * _op(:reciprocal, i_cons(1, constant_options_1) + tensor.items[0])
           when :max
             x_mask = i_op(:where, i_op(:ones_like, tensor.items[0]), i_op(:zeros_like, tensor.items[1]), pred: tensor.items[0] > tensor.items[1])
             y_mask = i_op(:where, i_op(:zeros_like, tensor.items[0]), i_op(:ones_like, tensor.items[1]), pred: tensor.items[0] < tensor.items[1])
@@ -102,6 +106,8 @@ module TensorStream
             (grad / i_op(:cast, factor, data_type: grad.dtype))
           when :reduce_sum
             grad
+          when :reciprocal
+            -grad * (i_cons(1, constant_options_1) / _ds(tensor.items[0])**2)
           when :stop_gradient
             return i_cons(0, constant_options)
           when :matmul

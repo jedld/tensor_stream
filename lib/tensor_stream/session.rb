@@ -26,7 +26,9 @@ module TensorStream
       # scan for placeholders and assign value
       if options[:feed_dict]
         options[:feed_dict].keys.each do |k|
-          context[k.name.to_sym] = options[:feed_dict][k] if k.is_a?(Placeholder)
+          if k.is_a?(Placeholder)
+            context[k.name.to_sym] = options[:feed_dict][k]
+          end
         end
       end
 

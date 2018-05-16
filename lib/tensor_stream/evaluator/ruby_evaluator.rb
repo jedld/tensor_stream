@@ -72,7 +72,9 @@ module TensorStream
       protected
 
       def eval_variable(tensor, child_context)
-        raise "variable #{tensor.name} not initalized" if tensor.value.nil?
+        if tensor.value.nil?
+          raise "variable #{tensor.name} not initalized"
+        end
         eval_tensor(tensor.value, child_context).tap do |val|
           child_context[:returns] ||= {}
           child_context[:returns][:vars] ||= []
@@ -175,6 +177,8 @@ module TensorStream
           call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) })
         when :square
           call_op(:square, a, child_context, ->(t, _b) { t * t })
+        when :reciprocal
+          call_op(:square, a, child_context, ->(t, _b) { 1 / t })
         when :stop_gradient
           run(a, child_context)
         when :random_uniform
@@ -414,6 +418,8 @@ module TensorStream
       rescue EvaluatorExcecutionException => e
         raise e
       rescue StandardError => e
+        puts e.message
+        puts e.backtrace.join("\n")
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
         puts "name: #{tensor.given_name}"

@@ -38,8 +38,8 @@ normalized_y = map_norm(train_y)
 normalized_test_x = map_norm(test_x)
 normalized_test_y = map_norm(test_y)
 
-A = tf.variable(tf.random_normal(shape: [4, 1]))
-b = tf.variable(tf.random_normal(shape: [1, 1]))
+A = tf.variable(tf.random_normal([4, 1]))
+b = tf.variable(tf.random_normal([1, 1]))
 
 init = tf.global_variables_initializer
 sess = tf.session

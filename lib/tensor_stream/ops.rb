@@ -128,6 +128,10 @@ module TensorStream
       _op(:square, tensor, nil, name: name)
     end
 
+    def reciprocal(tensor, name: nil)
+      _op(:reciprocal, tensor, nil, name: name)
+    end
+
     def cond(pred, true_fn, false_fn, name: nil)
       _op(:cond, true_fn, false_fn, pred: pred, name: name)
     end

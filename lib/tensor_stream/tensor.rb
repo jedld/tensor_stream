@@ -236,10 +236,6 @@ module TensorStream
       add_consumer(consumer)
     end
 
-    def format_source(trace)
-      trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
-    end
-
     def hashify_tensor(tensor)
       if tensor.is_a?(Tensor)
         tensor.to_h
