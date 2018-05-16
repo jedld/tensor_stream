@@ -18,6 +18,7 @@ module TensorStream
         cond = (logits >= zeros)
         relu_logits = tf.where(cond, logits, zeros)
         neg_abs_logits = tf.where(cond, -logits, logits)
+
         return tf.add(
             relu_logits - logits * labels,
             tf.log1p(tf.exp(neg_abs_logits)),

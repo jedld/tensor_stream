@@ -45,8 +45,8 @@ init = tf.global_variables_initializer
 sess = tf.session
 sess.run(init)
 
-data = tf.placeholder(dtype: :float32, shape: [nil, 4])
-target = tf.placeholder(dtype: :float32, shape: [nil, 1])
+data = tf.placeholder(:float32, shape: [nil, 4])
+target = tf.placeholder(:float32, shape: [nil, 1])
 
 mod = tf.matmul(data, A) + b
 
