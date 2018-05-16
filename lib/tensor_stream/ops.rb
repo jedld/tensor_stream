@@ -254,6 +254,11 @@ module TensorStream
       _op(:exp, input, nil, options)
     end
 
+    def sigmoid(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:sigmoid, input, nil, name: name)
+    end
+
     def matmul(input_a, input_b, transpose_a: false,
                transpose_b: false,
                name: nil)
