@@ -2,6 +2,7 @@ require "spec_helper"
 require 'benchmark'
 
 RSpec.describe TensorStream::Session do
+  let(:tf) { TensorStream }
   before(:each) do
     TensorStream::Tensor.reset_counters
     TensorStream::Operation.reset_counters
@@ -21,20 +22,19 @@ RSpec.describe TensorStream::Session do
     end
 
     it "different values on multiple runs" do
-      srand(1234)
-      vec = TensorStream.random_uniform([3])
+      tf.set_random_seed(1234)
+      vec = tf.random_uniform([3])
       out1 = vec + 1
       out2 = vec + 2
 
-      sess = TensorStream.session
+      sess = tf.session
       expect(sess.run(out1)).to eq([1.1915194503788924, 1.6221087710398319, 1.4377277390071144])
       expect(sess.run(out2)).to eq([2.7853585837137693, 2.7799758081188033, 2.2725926052826417])
       expect(sess.run(vec)).to eq([0.2764642551430967, 0.8018721775350193, 0.9581393536837052])
     end
 
     it "uniform values on a single run" do
-      srand(1234)
-      vec = TensorStream.random_uniform([3])
+      vec = TensorStream.random_uniform([3], seed: 1234)
       out1 = vec + 1
       out2 = vec + 2
 

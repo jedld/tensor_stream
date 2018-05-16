@@ -2,15 +2,16 @@ require "spec_helper"
 require 'benchmark'
 
 RSpec.describe TensorStream::Operation do
-  before(:each) do
-    TensorStream::Tensor.reset_counters
-    TensorStream::Operation.reset_counters
-    TensorStream::Graph.create_default
-    srand(1234)
-  end
 
   let(:tf) { TensorStream } # allow calls to look like tensorflow
   let(:sess) { tf.session }
+
+  before(:each) do
+    TensorStream::Tensor.reset_counters
+    TensorStream::Operation.reset_counters
+    tf.reset_default_graph
+  end
+
 
   context ".zeros_like" do
     it "Creates a tensor with all elements set to zero." do
@@ -217,6 +218,11 @@ RSpec.describe TensorStream::Operation do
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.
   # In the integer case, the random integers are slightly biased unless maxval - minval is an exact power of two. The bias is small for values of maxval - minval significantly smaller than the range of the output (either 2**32 or 2**64).
   context ".random_uniform" do
+    before do
+      tf.set_random_seed(1234)
+      @sess = tf.session
+    end
+  
     [
       [[],     0.1915194503788923,       0.3830389007577846         ],
       [[1],   [0.1915194503788923],      [0.3830389007577846]         ],
@@ -224,49 +230,82 @@ RSpec.describe TensorStream::Operation do
     ].each do |shape, expected, range_expected|
       describe "shape #{shape}" do
         it "generates random uniform values" do
-          expect(TensorStream.random_uniform(shape).eval).to eq(expected)
+          expect(@sess.run(tf.random_uniform(shape))).to eq(expected)
         end
 
         specify "with ranges" do
-          expect(TensorStream.random_uniform(shape, minval: 0, maxval: 2).eval).to eq(range_expected)
+          expect(@sess.run(tf.random_uniform(shape, minval: 0, maxval: 2))).to eq(range_expected)
         end
       end
     end
 
     context "shape (3,)" do
       it "Creates an operation to generate a random set of values of the given shape" do
-        srand(1234567)
-        vec = TensorStream.random_uniform([3])
-        expect(vec.eval).to eq([0.23702916849534994, 0.007648373861731117, 0.019830308342374425])
+        vec = tf.random_uniform([3])
+        expect(@sess.run(vec)).to eq([0.1915194503788923, 0.6221087710398319, 0.4377277390071145])
 
         #evaluating again generates new values
-        expect(vec.eval).to eq([0.3130926186495132, 0.09945466414888471, 0.1951742921107925])
+        expect(@sess.run(vec)).to eq([0.7853585837137692, 0.7799758081188035, 0.2725926052826416])
       end
     end
 
     context "shape (2, 2)" do
       it "Creates an operation to generate a random set of values of the given shape" do
-        srand(1234567)
-        vec = TensorStream.random_uniform([2,2])
-        expect(vec.eval).to eq([[0.23702916849534994, 0.007648373861731117], [0.019830308342374425, 0.3130926186495132]])
+        vec = tf.random_uniform([2,2])
+        expect(@sess.run(vec)).to eq([[0.1915194503788923, 0.6221087710398319], [0.4377277390071145, 0.7853585837137692]])
 
         #evaluating again generates new values
-        expect(vec.eval).to eq([[0.09945466414888471, 0.1951742921107925], [0.20729802198472924, 0.16493119121125488]])
+        expect(@sess.run(vec)).to eq([[0.7799758081188035, 0.2725926052826416], [0.2764642551430967, 0.8018721775350193]])
       end
     end
   end
 
-  context ".random_normal" do
-    [
-      [[], 0.5011628459350929],
-      [[1],   [0.5011628459350929] ],
-      [[2,3], [[0.5011628459350929, 1.301972948852967, -1.621722019401658], [0.6690221526288901, 0.14937983113945622, -0.783723693080629]] ],
-    ].each do |shape, expected|
-      describe "shape #{shape}" do
-        it "generates random normal values" do
-          expect(TensorStream.random_normal(shape).eval).to eq(expected)
+  describe "randomization functions" do
+    before do
+      tf.set_random_seed(1234)
+      @sess = tf.session
+    end
+
+    context ".random_normal" do
+      [
+        [[], 0.1915194503788923],
+        [[1],   [0.1915194503788923] ],
+        [[2,3], [[0.1915194503788923, 0.6221087710398319, 0.4377277390071145], [0.7853585837137692, 0.7799758081188035, 0.2725926052826416]] ],
+      ].each do |shape, expected|
+        describe "shape #{shape}" do
+          it "generates random normal values" do
+            r = tf.random_normal(shape)
+            expect(sess.run(r)).to eq(expected)
+          end
         end
       end
+    end
+  end
+
+  context ".set_random_seed" do
+    it "sets the graph level seed" do
+      tf.set_random_seed(1000)
+      a = tf.random_uniform([1])
+      sess = tf.session
+      expect(sess.run(a)).to eq([0.6535895854646095])
+      expect(sess.run(a)).to eq([0.11500694312440574])
+
+      sess2 = tf.session
+      expect(sess2.run(a)).to eq([0.6535895854646095])
+      expect(sess2.run(a)).to eq([0.11500694312440574])
+    end
+  end
+
+  context "op level seed" do
+    it "is able to set an op level seed" do
+      a = tf.random_uniform([1], seed: 1)
+      sess = tf.session
+      expect(sess.run(a)).to eq([0.417022004702574])
+      expect(sess.run(a)).to eq([0.7203244934421581])
+
+      sess2 = tf.session
+      expect(sess2.run(a)).to eq([0.417022004702574])
+      expect(sess2.run(a)).to eq([0.7203244934421581])
     end
   end
 

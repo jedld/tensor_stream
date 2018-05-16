@@ -177,12 +177,16 @@ module TensorStream
         when :random_uniform
           maxval = tensor.options.fetch(:maxval, 1)
           minval = tensor.options.fetch(:minval, 0)
+          seed = tensor.options[:seed]
 
-          generator = -> { rand * (maxval - minval) + minval }
+          random = _get_randomizer(tensor, seed)
+          generator = -> { random.rand * (maxval - minval) + minval }
           generate_vector(tensor.options[:shape], generator: generator)
         when :random_normal
           r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev))
-          generator = -> { r.rand }
+
+          random = _get_randomizer(tensor, seed)
+          generator = -> { random.rand }
 
           generate_vector(tensor.options[:shape], generator: generator)
         when :flow_group
@@ -723,6 +727,20 @@ module TensorStream
           end
         elsif shape.size.zero?
           generator.call
+        end
+      end
+
+      def _get_randomizer(tensor, seed)
+        if tensor.graph.random_seed && seed
+          Random.new(tensor.graph.random_seed ^ seed)
+        elsif tensor.graph.random_seed
+          @session.randomizer[tensor.graph.object_id] ||= Random.new(tensor.graph.random_seed)
+          @session.randomizer[tensor.graph.object_id]
+        elsif seed
+          @session.randomizer[tensor.operation] ||= Random.new(seed)
+          @session.randomizer[tensor.operation]
+        else
+          Random.new
         end
       end
     end

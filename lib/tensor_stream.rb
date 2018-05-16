@@ -137,7 +137,11 @@ module TensorStream
   end
 
   def self.trainable_variables
-    TensorStream::get_default_graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
+    TensorStream.get_default_graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
+  end
+
+  def self.set_random_seed(seed)
+    TensorStream.get_default_graph.random_seed = seed
   end
 
   def self.check_allowed_types(input, types)

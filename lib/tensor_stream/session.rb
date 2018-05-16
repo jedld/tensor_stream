@@ -2,10 +2,13 @@ module TensorStream
   #  TensorStream class that defines a session
   class Session
     attr_reader :last_session_context, :closed, :target
+    attr_accessor :randomizer
+  
     def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
       @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
       @thread_pool = thread_pool_class.new
       @closed = false
+      @randomizer = {}
     end
 
     def self.default_session
