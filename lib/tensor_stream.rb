@@ -73,6 +73,24 @@ module TensorStream
     end
   end
 
+  def self.variable_scope(scope, reuse: nil)
+    Thread.current[:tensor_stream_variable_scope] ||= []
+    Thread.current[:tensor_stream_variable_scope] << OpenStruct.new(name: scope, reuse: reuse)
+    scope_name = Thread.current[:tensor_stream_variable_scope].map(&:name).join('/')
+    begin
+      if block_given?
+        yield(scope_name)
+      end
+    ensure
+      Thread.current[:tensor_stream_variable_scope].pop
+    end
+  end
+
+  def self.get_variable_scope
+    Thread.current[:tensor_stream_variable_scope] ||= []
+    Thread.current[:tensor_stream_variable_scope].map(&:name).join('/')
+  end
+
   def self.session(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
     session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class)
     yield session if block_given?

@@ -88,7 +88,11 @@ module TensorStream
     end
 
     def add_variable(node, options = {})
-      raise "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !options[:reuse]
+      scope = _variable_scope
+
+      raise "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !scope.reuse
+
+      return @nodes[node.name] if @nodes[node.name]
 
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
       add_to_collection(GraphKeys::TRAINABLE_VARIABLES, node) if node.trainable?
@@ -154,6 +158,13 @@ module TensorStream
     end
 
     protected
+
+    def _variable_scope
+      return OpenStruct.new(name: '', reuse: false) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
+
+      scope = Thread.current[:tensor_stream_variable_scope].last
+      scope
+    end
 
     def uniqunify(name)
       counter = 0

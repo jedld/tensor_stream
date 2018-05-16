@@ -10,7 +10,6 @@ module TensorStream
       @shape = TensorShape.new(shape, rank)
       @value = nil
       @source = format_source(caller_locations)
-
       @name = options[:name] || build_name
       @initalizer_tensor = options[:initializer] if options[:initializer]
       @trainable = options.fetch(:trainable, true)

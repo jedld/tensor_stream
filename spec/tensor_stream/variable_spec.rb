@@ -2,6 +2,7 @@ require "spec_helper"
 require 'benchmark'
 
 RSpec.describe TensorStream::Variable do
+  let(:tf) { TensorStream }
   before(:each) do
     described_class.reset_counters
     TensorStream::Operation.reset_counters
@@ -51,6 +52,14 @@ RSpec.describe TensorStream::Variable do
       session = TensorStream::Session.default_session
       session.run(TensorStream.global_variables_initializer)
       expect(variable.eval).to eq([23, 42])
+    end
+
+    it "retrievies an existing variable" do
+      w = tf.variable(rand, name: "weight")
+      tf.variable_scope("foo", reuse: true) do |scope|
+        e = tf.variable(rand, name: "weight")
+        expect(e).to eq(w)
+      end
     end
   end
 
