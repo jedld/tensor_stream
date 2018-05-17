@@ -390,9 +390,9 @@ module TensorStream
           flat_arr = arr.flatten
           return flat_arr[0] if new_shape.size.zero? && flat_arr.size == 1
 
-          new_shape = fix_inferred_elements(new_shape, flat_arr.size)
+          new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
 
-          reshape(flat_arr, new_shape)
+          TensorShape.reshape(flat_arr, new_shape)
         when :pad
           a = complete_eval(a, child_context)
           p = complete_eval(tensor.options[:paddings], child_context)
@@ -549,30 +549,6 @@ module TensorStream
           generate_vector(compat_shape, generator: func)
         else
           mat
-        end
-      end
-
-      def fix_inferred_elements(shape, total_size)
-        return shape if shape.empty?
-
-        current_size = shape.inject(1) { |product, n| n > 0 ? product * n : product }
-        inferred_size = total_size / current_size
-        shape.map { |s| s == -1 ? inferred_size : s }
-      end
-
-      def reshape(arr, new_shape)
-        return arr if new_shape.empty?
-
-        s = new_shape.shift
-
-        if new_shape.size.zero?
-          raise "reshape dimen mismatch #{arr.size} != #{s}" if arr.size != s
-          return arr
-        end
-
-        dim = (arr.size / s)
-        arr.each_slice(dim).collect do |slice|
-          reshape(slice, new_shape.dup)
         end
       end
 

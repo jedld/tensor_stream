@@ -192,10 +192,29 @@ module TensorStream
 
     def infer_shape
       case operation
+      when :reduce_mean, :reduce_prod, :reduce_sum
+        return [] if options[:axis].nil?
+        item_shape = items[0].shape.shape
+        return nil if item_shape.nil?
+        axis = options[:axis]
+
+        axis = [ axis ] unless axis.is_a?(Array)
+        return item_shape.each_with_index.map do |s, index|
+          next nil if axis.include?(index)
+          s
+        end.compact
+      when :reshape
+        new_shape = items[1] && items[1].value ? items[1].value : nil
+        return nil if new_shape.nil?
+
+        item_shape = items[0].shape.shape
+        return new_shape if item_shape.nil?
+
+        return TensorShape.fix_inferred_elements(new_shape, item_shape.reduce(:*))
       when :flow_group
-        []
+        return []
       when :zeros, :ones
-        items[0] ? items[0].value : options[:shape]
+        return items[0] ? items[0].value : options[:shape]
       when :shape
         return items[0].shape.shape ? [items[0].shape.shape.size] : nil
       when :matmul
