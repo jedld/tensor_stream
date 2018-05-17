@@ -190,6 +190,7 @@ module TensorStream
     end
 
     def self.cast_dtype(val, dtype)
+      return val if dtype.nil?
       return val if val.is_a?(Tensor)
 
       if val.is_a?(Array)

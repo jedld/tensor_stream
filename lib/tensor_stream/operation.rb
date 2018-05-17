@@ -56,7 +56,14 @@ module TensorStream
       when :shape, :rank
         :int32
       else
-        passed_data_type || (@items[0] ? @items[0].data_type : :unknown)
+        return passed_data_type if passed_data_type
+        if @items[0]
+          @items[0].data_type
+        elsif @items[1]
+          @items[1].data_type
+        else
+          :unknown
+        end
       end
     end
 
