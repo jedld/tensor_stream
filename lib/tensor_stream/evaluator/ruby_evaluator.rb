@@ -1,6 +1,7 @@
 require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/math_gradients'
+require 'distribution'
 
 module TensorStream
   module Evaluator
@@ -28,11 +29,14 @@ module TensorStream
       include TensorStream::OpHelper
       include TensorStream::ArrayOpsHelper
 
-      def initialize(session, context, thread_pool: nil)
+      def initialize(session, context, thread_pool: nil, log_intermediates: false)
         @session = session
         @context = context
+        @log_intermediates = log_intermediates
         @retain = context[:retain] || []
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
+
+        @context[:compute_history] = [] if log_intermediates
       end
 
       def run(tensor, execution_context)
@@ -40,7 +44,7 @@ module TensorStream
 
         return tensor if retain.include?(tensor) # if var is in retain don't eval to value
 
-        tensor = tensor.call() if tensor.is_a?(Proc)
+        tensor = tensor.call if tensor.is_a?(Proc)
 
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
@@ -71,7 +75,9 @@ module TensorStream
       protected
 
       def eval_variable(tensor, child_context)
-        raise "variable #{tensor.name} not initalized" if tensor.value.nil?
+        if tensor.value.nil?
+          raise "variable #{tensor.name} not initalized"
+        end
         eval_tensor(tensor.value, child_context).tap do |val|
           child_context[:returns] ||= {}
           child_context[:returns][:vars] ||= []
@@ -152,6 +158,8 @@ module TensorStream
         when :concat
           values = complete_eval(a, child_context)
           concat_array(values, tensor.options[:axis])
+        when :round
+          call_op(:round, a, child_context, ->(t, _b) { t.round })
         when :abs
           call_op(:abs, a, child_context, ->(t, _b) { t.abs })
         when :tanh
@@ -164,14 +172,20 @@ module TensorStream
           call_op(:sin, a, child_context, ->(t, _b) { Math.sin(t) })
         when :cos
           call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
+        when :log1p
+          call_op(:log1p, a, child_context, ->(t, _b) { Distribution::MathExtension::Log.log1p(t) })
         when :log
           call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
         when :exp
           call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) })
+        when :sigmoid
+          call_op(:sigmoid, a, child_context, ->(t, _b) { 1 / (1 + Math.exp(-t)) })
         when :sqrt
           call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) })
         when :square
           call_op(:square, a, child_context, ->(t, _b) { t * t })
+        when :reciprocal
+          call_op(:square, a, child_context, ->(t, _b) { 1 / t })
         when :stop_gradient
           run(a, child_context)
         when :random_uniform
@@ -340,8 +354,8 @@ module TensorStream
           rank_a = get_rank(matrix_a)
           rank_b = get_rank(matrix_b)
 
-          raise "#{a.name} rank must be greater than 1" if rank_a < 2
-          raise "#{b.name} rank must be greater than 1" if rank_b < 2
+          raise "#{tensor.items[0].name} rank must be greater than 1" if rank_a < 2
+          raise "#{tensor.items[1].name} rank must be greater than 1" if rank_b < 2
 
           matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
           matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
@@ -379,9 +393,9 @@ module TensorStream
           flat_arr = arr.flatten
           return flat_arr[0] if new_shape.size.zero? && flat_arr.size == 1
 
-          new_shape = fix_inferred_elements(new_shape, flat_arr.size)
+          new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
 
-          reshape(flat_arr, new_shape)
+          TensorShape.reshape(flat_arr, new_shape)
         when :pad
           a = complete_eval(a, child_context)
           p = complete_eval(tensor.options[:paddings], child_context)
@@ -406,19 +420,35 @@ module TensorStream
 
             tensor.breakpoint.call(tensor, a, b, complete_eval(result, child_context))
           end
+          if @log_intermediates
+            @context[:compute_history] << {
+              name: tensor.name,
+              type: tensor.data_type,
+              shape: shape_eval(result),
+              source: tensor.source,
+              description: tensor.to_math(true, 1),
+              value: result
+            }
+          end
           @context[tensor.name] = result
         end
       rescue EvaluatorExcecutionException => e
         raise e
       rescue StandardError => e
+        puts e.message
+        puts e.backtrace.join("\n")
+        shape_a = a.shape.shape if a
+        shape_b = b.shape.shape if b
+        dtype_a = a.data_type if a
+        dtype_b = b.data_type if b
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
         puts "name: #{tensor.given_name}"
         puts "op: #{tensor.to_math(true, 1)}"
-        puts "A: #{a}" if a
-        puts "B: #{b}" if b
+        puts "A #{shape_a} #{dtype_a}: #{a}" if a
+        puts "B #{shape_b} #{dtype_b}: #{b}" if b
+        dump_intermediates if @log_intermediates
 
-        puts e.backtrace.join("\n")
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
       end
 
@@ -538,30 +568,6 @@ module TensorStream
           generate_vector(compat_shape, generator: func)
         else
           mat
-        end
-      end
-
-      def fix_inferred_elements(shape, total_size)
-        return shape if shape.empty?
-
-        current_size = shape.inject(1) { |product, n| n > 0 ? product * n : product }
-        inferred_size = total_size / current_size
-        shape.map { |s| s == -1 ? inferred_size : s }
-      end
-
-      def reshape(arr, new_shape)
-        return arr if new_shape.empty?
-
-        s = new_shape.shift
-
-        if new_shape.size.zero?
-          raise "reshape dimen mismatch #{arr.size} != #{s}" if arr.size != s
-          return arr
-        end
-
-        dim = (arr.size / s)
-        arr.each_slice(dim).collect do |slice|
-          reshape(slice, new_shape.dup)
         end
       end
 
@@ -762,6 +768,24 @@ module TensorStream
         else
           Random.new
         end
+      end
+
+      def dump_intermediates
+        arr = []
+        arr << "============== start ==================="
+        @context[:compute_history].each_with_index do |history, index|
+          arr << "------------------------------------"
+          arr << history[:name]
+          arr << "#{history[:type]} #{history[:shape]}"
+          arr << history[:source]
+          arr << history[:description]
+          arr << ""
+          arr << history[:value].to_json
+          arr << "------------------------------------"
+        end
+        arr << "============== end ====================="
+        str = arr.join("\n")
+        File.write("/tmp/intermediates.txt", str)
       end
     end
   end

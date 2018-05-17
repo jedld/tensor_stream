@@ -5,6 +5,7 @@ module TensorStream
 
     def self.derivative(tensor, wrt_dx, options = {})
       gradient_program_name = "_grad_#{tensor.name}_#{wrt_dx.name}"
+      
       return options[:graph].get_node(gradient_program_name) if options[:graph] && options[:graph].node_added?(gradient_program_name)
 
       constant_options = { dtype: options[:dtype] }
@@ -18,6 +19,10 @@ module TensorStream
         grad2 = derivative(tensor.items[1], wrt_dx, options) if tensor.items[1]
 
         case tensor.operation
+        when :zeros_like
+          i_cons(0, constant_options)
+        when :log1p
+          grad * _op(:reciprocal, i_cons(1, constant_options_1) + tensor.items[0])
         when :max
           x_mask = i_op(:where, i_op(:ones_like, tensor.items[0]), i_op(:zeros_like, tensor.items[1]), pred: tensor.items[0] > tensor.items[1])
           y_mask = i_op(:where, i_op(:zeros_like, tensor.items[0]), i_op(:ones_like, tensor.items[1]), pred: tensor.items[0] < tensor.items[1])
@@ -100,6 +105,8 @@ module TensorStream
           (grad / i_op(:cast, factor, data_type: grad.dtype))
         when :reduce_sum
           grad
+        when :reciprocal
+          -grad * (i_cons(1, constant_options_1) / _ds(tensor.items[0])**2)
         when :stop_gradient
           return i_cons(0, constant_options)
         when :matmul
@@ -113,11 +120,11 @@ module TensorStream
           identity_1 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[1].data_type)
 
           matmul_da = i_op(:matmul, identity_0, tensor.items[1], transpose_b: true,
-                                                                 pad_zeros: true,
-                                                                 name:        'matrix_dx')
+                                                                pad_zeros: true,
+                                                                name:        'matrix_dx')
           matmul_db = i_op(:matmul, tensor.items[0], identity_1, transpose_a: true,
-                                                                 pad_zeros: true,
-                                                                 name:        'matrix_dy')
+                                                                pad_zeros: true,
+                                                                name:        'matrix_dy')
           # matmul_db = _op(:transpose, matmul_db, nil).first
 
           # begin_a = _op(:zeros, _op(:rank, matmul_db), nil, data_type: :int32, name: 'begin_a')

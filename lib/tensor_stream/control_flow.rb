@@ -11,7 +11,7 @@ module TensorStream
       @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
       @ops = ops
       @source = format_source(caller_locations)
-
+      @shape = TensorShape.new([items.size])
       @graph.add_node(self)
     end
 

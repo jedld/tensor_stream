@@ -7,11 +7,14 @@ module TensorStream
 
       @data_type = data_type
       @rank = rank
-      @shape = TensorShape.new(shape, rank)
       @value = nil
       @source = format_source(caller_locations)
       @name = [TensorStream.get_variable_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @initalizer_tensor = options[:initializer] ? options[:initializer] : _variable_scope.initializer || TensorStream.glorot_uniform_initializer
+      if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
+        shape = @initalizer_tensor.shape.shape
+      end
+      @shape = TensorShape.new(shape, rank)
       @trainable = options.fetch(:trainable, true)
       @graph.add_variable(self, options)
     end
@@ -21,9 +24,10 @@ module TensorStream
     end
 
     def initializer
-      @initalizer_tensor.op.shape = @shape
-      @initalizer_tensor.op.data_type = @data_type
-      assign(@initalizer_tensor.op)
+      init_op = @initalizer_tensor.op
+      init_op.shape = @shape || init_op.shape
+      init_op.data_type = @data_type || init_op.data_type
+      assign(init_op)
     end
 
     def assign(value)
@@ -38,7 +42,7 @@ module TensorStream
       Operation.new(:assign_add, self, value)
     end
 
-    def to_math(_tensor, _name_only = false, _max_depth = 99)
+    def to_math(_tensor, _name_only = false, _max_depth = 99, _unused = 0)
       @name
     end
 

@@ -24,10 +24,12 @@ module TensorStream
         tensor_program = if input.graph.node_added?(gradient_program_name)
                            input.graph.get_node(gradient_program_name)
                          else
-                           derivative_ops = TensorStream::MathGradients.derivative(input, x, graph: input.graph,
-                                                                                             stop_gradients: stop_gradients)
-                           unit_matrix = _op(:ones_like, x)
-                           input.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+                          input.graph.name_scope("gradient_wrt_#{x.name}") do
+                            derivative_ops = TensorStream::MathGradients.derivative(input, x, graph: input.graph,
+                                                                                              stop_gradients: stop_gradients)
+                            unit_matrix = _op(:ones_like, x)
+                            input.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+                           end
                          end
         tensor_program
       end
@@ -65,11 +67,11 @@ module TensorStream
     end
 
     def glorot_uniform_initializer(seed: nil, dtype: :float32)
-      TensorStream::Initializer.new(_op(:glorot_uniform, nil, nil, seed: seed, data_type: dtype))
+      TensorStream::Initializer.new(-> { _op(:glorot_uniform, nil, nil, seed: seed, data_type: dtype) })
     end
 
     def random_uniform_initializer(minval: 0, maxval: 1, seed: nil, dtype: nil)
-      TensorStream::Initializer.new(_op(:random_uniform, nil, nil, minval: 0, maxval: 1, seed: seed, data_type: dtype))
+      TensorStream::Initializer.new(-> { _op(:random_uniform, nil, nil, minval: 0, maxval: 1, seed: seed, data_type: dtype) })
     end
 
     def slice(input, start, size, name: nil)
@@ -128,6 +130,15 @@ module TensorStream
       _op(:square, tensor, nil, name: name)
     end
 
+    def round(tensor, name: nil)
+      check_allowed_types(tensor, FLOATING_POINT_TYPES)
+      _op(:round, tensor, nil, name: name)
+    end
+
+    def reciprocal(tensor, name: nil)
+      _op(:reciprocal, tensor, nil, name: name)
+    end
+
     def cond(pred, true_fn, false_fn, name: nil)
       _op(:cond, true_fn, false_fn, pred: pred, name: name)
     end
@@ -151,6 +162,10 @@ module TensorStream
       _op(:max, input_a, input_b, name: name)
     end
 
+    def maximum(input_a, input_b, name: nil)
+      max(input_a, input_b, name: name)
+    end
+  
     def cast(input, dtype, name: nil)
       _op(:cast, input, nil, data_type: dtype, name: name)
     end
@@ -237,11 +252,22 @@ module TensorStream
       check_allowed_types(input, FLOATING_POINT_TYPES)
       _op(:log, input, nil, options)
     end
+      
+    def log1p(input, options = {})
+      options[:data_type] ||= :float32
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:log1p, input, nil, options)
+    end
 
     def exp(input, options = {})
       options[:data_type] ||= :float32
       check_allowed_types(input, FLOATING_POINT_TYPES)
       _op(:exp, input, nil, options)
+    end
+
+    def sigmoid(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:sigmoid, input, nil, name: name)
     end
 
     def matmul(input_a, input_b, transpose_a: false,

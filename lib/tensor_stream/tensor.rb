@@ -19,7 +19,7 @@ module TensorStream
       @is_const = options[:const] || false
       @internal = options[:internal]
       @graph = options[:graph] || TensorStream.get_default_graph
-      @name = [@graph.get_name_scope, options[:name] || build_name].compact.join('/')
+      @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @given_name = @name
 
       if options[:value]
@@ -55,7 +55,7 @@ module TensorStream
     end
 
     def +(other)
-      TensorStream::Operation.new(:add, self, auto_wrap(other))
+      TensorStream::Operation.new(:add, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def [](index)
@@ -63,19 +63,19 @@ module TensorStream
     end
 
     def *(other)
-      TensorStream::Operation.new(:mul, self, auto_wrap(other))
+      TensorStream::Operation.new(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def **(other)
-      TensorStream::Operation.new(:pow, self, auto_wrap(other))
+      TensorStream::Operation.new(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def /(other)
-      TensorStream::Operation.new(:div, self, auto_wrap(other))
+      TensorStream::Operation.new(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -(other)
-      TensorStream::Operation.new(:sub, self, auto_wrap(other))
+      TensorStream::Operation.new(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -@
@@ -111,6 +111,11 @@ module TensorStream
     end
 
     def matmul(other)
+      _op(:matmul, self, other)
+    end
+    
+
+    def dot(other)
       _op(:matmul, self, other)
     end
 
@@ -156,7 +161,7 @@ module TensorStream
       _op(:index, self, 0)
     end
 
-    def to_math(name_only = false, max_depth = 99)
+    def to_math(name_only = false, max_depth = 99, _unused = 0)
       return @name if max_depth.zero? || name_only || @value.nil?
 
       if @value.is_a?(Array)
@@ -166,8 +171,8 @@ module TensorStream
       end
     end
 
-    def auto_math(tensor, name_only = false, max_depth = 99)
-      tensor.is_a?(Tensor) ? tensor.to_math(name_only, max_depth) : tensor
+    def auto_math(tensor, name_only = false, max_depth = 99, _cur_depth = 0)
+      tensor.is_a?(Tensor) ? tensor.to_math(name_only, max_depth, _cur_depth) : tensor
     end
 
     def self.detect_type(value)
@@ -185,6 +190,7 @@ module TensorStream
     end
 
     def self.cast_dtype(val, dtype)
+      return val if dtype.nil?
       return val if val.is_a?(Tensor)
 
       if val.is_a?(Array)
@@ -236,10 +242,6 @@ module TensorStream
       add_consumer(consumer)
     end
 
-    def format_source(trace)
-      trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
-    end
-
     def hashify_tensor(tensor)
       if tensor.is_a?(Tensor)
         tensor.to_h
@@ -265,16 +267,6 @@ module TensorStream
         Array.new(slice) do
           reshape(arr, shape.dup)
         end
-      end
-    end
-
-    def auto_wrap(operand)
-      return auto_wrap(operand.call) if operand.is_a?(Proc)
-
-      if !operand.is_a?(Tensor)
-        i_cons(operand, dtype: @data_type || Tensor.detect_type(operand))
-      else
-        operand
       end
     end
 

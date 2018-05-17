@@ -1,0 +1,167 @@
+node {
+  name: "Const:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        float_val: 1.0
+      }
+    }
+  }
+}
+node {
+  name: "/sin:0"
+  op: "sin"
+  input: "Const:0"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+}
+node {
+  name: "Const_1:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        float_val: 2.0
+      }
+    }
+  }
+}
+node {
+  name: "/sin_1:0"
+  op: "sin"
+  input: "Const_1:0"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+}
+node {
+  name: "/add_2:0"
+  op: "add"
+  input: "/sin:0"
+  input: "/sin_1:0"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+}
+node {
+  name: "Const_2:2"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        float_val: [[1.0, 1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 4.0]]
+      }
+    }
+  }
+}
+node {
+  name: "Const_3:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        float_val: 2
+      }
+    }
+  }
+}
+node {
+  name: "Const_4:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        float_val: 1.0
+      }
+    }
+  }
+}
+node {
+  name: "/assign_3:0"
+  op: "assign"
+  input: "Const_4:0"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+}
+node {
+  name: "v1"
+}
+node {
+  name: "/mul_4:0"
+  op: "mul"
+  input: "Const_2:2"
+  input: "Const_3:0"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+}
+node {
+  name: "/add_5:0"
+  op: "add"
+  input: "/mul_4:0"
+  input: "v1"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+}

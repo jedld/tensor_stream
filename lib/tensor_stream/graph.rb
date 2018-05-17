@@ -61,10 +61,10 @@ module TensorStream
     def add_node(node)
       raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
 
-      if @nodes[node.name]
-        node.name = uniqunify(node.name)
+      node.name = if @nodes[node.name]
+        uniqunify(node.name)
       else
-        node.name = node.name
+        node.name
       end
 
       @nodes[node.name] = node
@@ -91,6 +91,8 @@ module TensorStream
       raise "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !scope.reuse
 
       return @nodes[node.name] if @nodes[node.name]
+      
+      raise "shape is not declared for #{node.name}" if node.shape.nil?
 
       if !options[:collections].nil? && !options[:collections].empty?
         options[:collections] = [options[:collections]] unless options[:collections].is_a?(Array)

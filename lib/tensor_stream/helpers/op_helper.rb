@@ -58,5 +58,11 @@ module TensorStream
     def fp_type?(type)
       TensorStream::Ops::FLOATING_POINT_TYPES.include?(type)
     end
+
+    def format_source(trace)
+      grad_source = trace.select { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }.first
+      source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
+      [grad_source, source].compact.join("\n")
+    end
   end
 end

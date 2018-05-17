@@ -161,16 +161,51 @@ RSpec.describe TensorStream::Tensor do
 
   describe "naming operation" do
     it "can specify a name" do
-      c_0 = TensorStream.constant(0, name: "c")
+      c_0 = tf.constant(0, name: "c")
       expect(c_0.name).to eq("c")
 
-      c_1 = TensorStream.constant(2, name: "c")
+      c_1 = tf.constant(2, name: "c")
       expect(c_1.name).to eq("c_1")
     end
   end
 
-  describe "tensor reshaping" do
-    it "can reshape a tensor" do
+  describe "operation shape inference" do
+    it "operations can infer the possible shape of its outputs" do
+      a = tf.constant([1, 2, 3, 4])
+      b = tf.constant(1)
+      c = a * b
+      expect(c.shape.shape).to eq([4])
+
+      m = tf.constant([[1.0, 0.5], [0.4, 0.2], [1.1, 1.2], [0.2, 0.1]])
+      e = m * c
+      expect(e.shape.shape).to eq([4, 2])
+      s = tf.reshape(e, [2, -1])
+      expect(s.shape.shape).to eq([2, 4])
+    end
+
+    it "inferred size using reshape" do
+      m = tf.constant([[1.0, 0.5], [0.4, 0.2], [1.1, 1.2], [0.2, 0.1]])
+      s = tf.reshape(m, [2, -1])
+      expect(s.shape.shape).to eq([2, 4])
+    end
+
+    it "open shapes are also inferred" do
+      a = tf.placeholder(:float32, dtype: [nil, 4])
+      m = tf.constant([[1.0, 0.5], [0.4, 0.2], [1.1, 1.2], [0.2, 0.1]])
+      b = tf.constant(1)
+      f = m.dot(a) + b
+      expect(f.shape.shape).to eq([4, nil])
+    end
+
+    it "handles reduction functions" do
+      a = tf.constant([[1.0, 0.5], [0.4, 0.2], [1.1, 1.2], [0.2, 0.1]])
+      f = tf.reduce_sum(a)
+      expect(f.shape.shape).to eq([])
+      f = tf.reduce_sum(a, 0)
+      expect(f.shape.shape).to eq([2])
+      f = tf.reduce_sum(a, 1)
+      expect(f.shape.shape).to eq([4])
+      expect(a[0].shape.shape).to eq([2])
     end
   end
 end

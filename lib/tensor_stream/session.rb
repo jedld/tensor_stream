@@ -26,15 +26,17 @@ module TensorStream
       # scan for placeholders and assign value
       if options[:feed_dict]
         options[:feed_dict].keys.each do |k|
-          context[k.name.to_sym] = options[:feed_dict][k] if k.is_a?(Placeholder)
+          if k.is_a?(Placeholder)
+            context[k.name.to_sym] = options[:feed_dict][k]
+          end
         end
       end
 
-      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), thread_pool: @thread_pool)
+      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), thread_pool: @thread_pool, log_intermediates: options[:log_intermediates])
 
       execution_context = {}
-      result = args.collect { |e| evaluator.run(e, execution_context) }
       @last_session_context = context
+      result = args.collect { |e| evaluator.run(e, execution_context) }
       result.size == 1 ? result.first : result
     end
 
@@ -64,6 +66,10 @@ module TensorStream
         next unless @last_session_context[node.name]
         "#{k} #{node.to_math(true, 1)} = #{@last_session_context[node.name]}"
       end.compact
+    end
+
+    def graph_ml(tensor, filename)
+      TensorStream::Graphml.new(self).serialize(tensor, filename)
     end
 
     private

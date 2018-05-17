@@ -18,6 +18,8 @@ require 'tensor_stream/control_flow'
 require 'tensor_stream/trainer'
 require 'tensor_stream/nn/nn_ops'
 require 'tensor_stream/evaluator/evaluator'
+require 'tensor_stream/graph_serializers/pbtext'
+require 'tensor_stream/graph_serializers/graphml'
 # require 'tensor_stream/libraries/layers'
 require 'tensor_stream/monkey_patches/integer'
 require 'tensor_stream/ops'
@@ -86,6 +88,17 @@ module TensorStream
       end
     ensure
       Thread.current[:tensor_stream_variable_scope].pop
+    end
+  end
+
+  def self.name_scope(name, default: nil, values: nil)
+    if values
+      graph_count = values.select { |v| v.is_a?(Tensor) }.map(&:graph).map(&:object_id).uniq.size
+      raise "values are not on the same graph" if graph_count > 1
+    end
+
+    get_default_graph.name_scope(name || default) do |scope|
+      yield scope if block_given?
     end
   end
 
@@ -169,10 +182,20 @@ module TensorStream
     TensorStream.get_default_graph.random_seed = seed
   end
 
+  def self.convert_to_tensor(value, dtype: nil, name: nil, preferred_dtype: nil)
+    return convert_to_tensor(value.call) if value.is_a?(Proc)
+
+    if !value.is_a?(Tensor)
+      i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
+    else
+      value
+    end
+  end
+
   def self.check_allowed_types(input, types)
     return input unless input.is_a?(Tensor)
     return input if input.data_type.nil?
 
-    raise "Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.map(&:to_sym).include?(input.data_type)
+    raise "#{input.source}: Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.map(&:to_sym).include?(input.data_type)
   end
 end

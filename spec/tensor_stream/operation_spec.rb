@@ -117,11 +117,11 @@ RSpec.describe TensorStream::Operation do
       expect(tf.max(b,d).eval).to eq([3.0, 3.0])
     end
 
-    xit "computes for the gradient" do
+    it "computes for the gradient" do
       b = tf.constant([1.0, 3.0])
       d = tf.constant([3.0, 1.1])
       g = tf.gradients(tf.max(b,d), [b, d])
-      expect(g.eval).to eq([])
+      expect(g.eval).to eq([[0.0, 1.0], [0.0, 1.0]])
     end
   end
 
@@ -145,6 +145,15 @@ RSpec.describe TensorStream::Operation do
 
       f = a.and(b)
       expect(f.eval).to eq([[true, true], [false, true]])
+    end
+  end
+
+  context ".convert_to_tensor" do
+    it "converts native types and wraps them in a tensor" do
+      op = tf.convert_to_tensor([1,2,3,4])
+      expect(op.name).to eq("Const:1")
+      expect(op.data_type).to eq(:int32)
+      expect(sess.run(op)).to eq([1,2,3,4])
     end
   end
 
@@ -571,6 +580,7 @@ RSpec.describe TensorStream::Operation do
   [:identity, 0.1, [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
   [:abs, 0.1,      [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
   [:sqrt, 0.3162,  [[1.0488, 4.0125], [1.4491, 1.7321]],   1.5811, [[0.4767, 0.1246], [0.345, 0.2887]]                       ],
+  [:reciprocal, 10.0, [[0.9091, 0.0621], [0.4762, 0.3333]], -100,  [[-0.8264, -0.0039], [-0.2268, -0.1111]]                         ]
 ].each do |func, scalar, matrix, gradient, gradient2|
   context ".#{func}" do
     let(:x) { tf.constant(0.1) }
@@ -750,7 +760,7 @@ end
       b = tf.stop_gradient(a * 2)
       h = tf.gradients(a + b, [a, b])
       expect((a+b).eval).to eq(0)
-      expect((a+b).to_math).to eq("(0.0 + (0.0 * 2.0))")
+      expect((a+b).to_math).to eq("\n (\n  0.0 + \n  \n   (\n    0.0 * 2.0))")
       expect(h.eval).to eq([1.0, 1.0])
     end
 
