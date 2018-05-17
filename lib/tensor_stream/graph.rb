@@ -91,6 +91,8 @@ module TensorStream
       raise "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !scope.reuse
 
       return @nodes[node.name] if @nodes[node.name]
+      
+      raise "shape is not declared for #{node.name}" if node.shape.nil?
 
       if !options[:collections].nil? && !options[:collections].empty?
         options[:collections] = [options[:collections]] unless options[:collections].is_a?(Array)

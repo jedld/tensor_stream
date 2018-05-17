@@ -19,8 +19,7 @@ module TensorStream
       @items = [input_a, input_b].map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
       @data_type = set_data_type(options[:data_type])
 
-      @shape = TensorShape.new(options[:shape], options[:shape].size || 0) if options[:shape]
-
+      @shape = TensorShape.new(infer_shape)
       @graph.add_node(self)
     end
 
@@ -61,43 +60,44 @@ module TensorStream
       end
     end
 
-    def to_math(name_only = false, max_depth = 99)
+    def to_math(name_only = false, max_depth = 99, _cur_depth = 0)
       return @name if max_depth.zero?
 
-      sub_item = auto_math(items[0], name_only, max_depth - 1)
+      sub_item = auto_math(items[0], name_only, max_depth - 1, _cur_depth + 1)
+      sub_item2 = auto_math(items[1], name_only, max_depth - 1, _cur_depth + 1) if items[1]
 
-      case operation
+      out = case operation
       when :argmax
-        "argmax(#{auto_math(items[0])},#{options[:axis]})"
+        "argmax(#{sub_item},#{options[:axis]})"
       when :negate
         "-#{sub_item}"
       when :index
-        "#{sub_item}[#{auto_math(items[1], name_only, max_depth - 1)}]"
+        "#{sub_item}[#{sub_item2}]"
       when :slice
-        "#{sub_item}[#{auto_math(items[1], name_only, max_depth - 1)}]"
+        "#{sub_item}[#{sub_item2}]"
       when :assign_sub
-        "(#{items[0] ? items[0].name : 'self'} -= #{auto_math(items[1], name_only)})"
+        "(#{items[0] ? items[0].name : 'self'} -= #{auto_math(items[1], name_only, 1)})"
       when :assign_add
-        "(#{items[0] ? items[0].name : 'self'} += #{auto_math(items[1], name_only)})"
+        "(#{items[0] ? items[0].name : 'self'} += #{auto_math(items[1], name_only, 1)})"
       when :assign
-        "(#{items[0] ? items[0].name : 'self'} = #{auto_math(items[1], name_only)})"
+        "(#{items[0] ? items[0].name : 'self'} = #{auto_math(items[1], name_only, 1)})"
       when :sin, :cos, :tanh
         "#{operation}(#{sub_item})"
       when :add
-        "(#{sub_item} + #{auto_math(items[1], name_only, max_depth - 1)})"
+        "(#{sub_item} + #{sub_item2})"
       when :sub
-        "(#{sub_item} - #{auto_math(items[1], name_only, max_depth - 1)})"
+        "(#{sub_item} - #{sub_item2})"
       when :pow
-        "(#{sub_item}^#{auto_math(items[1], name_only, max_depth - 1)})"
+        "(#{sub_item}^#{sub_item2})"
       when :div
-        "(#{sub_item} / #{auto_math(items[1], name_only, max_depth - 1)})"
+        "(#{sub_item} / #{sub_item2})"
       when :mul
         if auto_math(items[0]) == 1
-          auto_math(items[1], name_only, max_depth - 1)
+          sub_item2
         elsif auto_math(items[1]) == 1
           sub_item
         else
-          "(#{sub_item} * #{auto_math(items[1], name_only, max_depth - 1)})"
+          "(#{sub_item} * #{sub_item2})"
         end
       when :reduce_sum
         "reduce_sum(|#{sub_item}|)"
@@ -110,7 +110,7 @@ module TensorStream
       when :stop_gradient
         sub_item
       when :matmul
-        "#{sub_item}.matmul(#{auto_math(items[1], name_only, max_depth - 1)})"
+        "#{sub_item}.matmul(#{sub_item2})"
       when :eye
         "eye(#{sub_item})"
       when :transpose
@@ -128,15 +128,19 @@ module TensorStream
       when :zeros
         "zeros(#{sub_item})"
       when :reshape
-        "reshape(#{sub_item},#{auto_math(items[1], name_only, max_depth - 1)})"
+        "reshape(#{sub_item},#{sub_item2})"
       when :rank
         "#{sub_item}.rank"
       when :cond
-        "(#{auto_math(options[:pred])} ? #{sub_item} : #{auto_math(items[1], name_only, max_depth - 1)})"
+        "(#{auto_math(options[:pred], name_only, max_depth - 1, _cur_depth)} ? #{sub_item} : #{sub_item2})"
       when :less
-        "#{sub_item} < #{auto_math(items[1], name_only, max_depth - 1)}"
+        "#{sub_item} < #{sub_item2}"
+      when :less_equal
+        "#{sub_item} <= #{sub_item2}"
       when :greater
-        "#{sub_item} > #{auto_math(items[1], name_only, max_depth - 1)}"
+        "#{sub_item} > #{sub_item2}"
+      when :greater_equal
+        "#{sub_item} >= #{sub_item2}"
       when :square
         "#{sub_item}\u00B2"
       when :log
@@ -148,24 +152,25 @@ module TensorStream
       when :pad
         "pad(#{sub_item},#{auto_math(options[:paddings])})"
       when :equal
-        "#{sub_item} == #{auto_math(items[1], name_only, max_depth - 1)}"
+        "#{sub_item} == #{sub_item2}"
       when :not_equal
-        "#{sub_item} != #{auto_math(items[1], name_only, max_depth - 1)}"
+        "#{sub_item} != #{sub_item2}"
       when :logical_and
-        "#{sub_item} && #{auto_math(items[1], name_only, max_depth - 1)}"
+        "#{sub_item} && #{sub_item2}"
       when :sqrt
         "sqrt(#{sub_item})"
       when :zeros_like
         "zeros_like(#{sub_item})"
       when :where
-        "where(#{auto_math(options[:pred], name_only, max_depth - 1)},#{auto_math(items[0])},#{auto_math(items[1])})"
+        "where(#{auto_math(options[:pred], name_only, max_depth - 1, _cur_depth)}, #{sub_item}, #{sub_item2})"
       when :max
-        "max(#{auto_math(sub_item)},#{auto_math(items[1])})"
+        "max(#{sub_item},#{sub_item2})"
       when :cast
-        "cast(#{auto_math(sub_item)}, #{data_type})"
+        "cast(#{sub_item}, #{data_type})"
       else
         raise "no math form for #{operation} defined"
       end
+      ["\n",(_cur_depth + 1).times.collect { ' ' }, out].flatten.join
     end
 
     def run
@@ -177,6 +182,28 @@ module TensorStream
     end
 
     private
+
+    def infer_shape
+      case operation
+      when :flow_group
+        []
+      when :zeros, :ones
+        items[0] ? items[0].value : options[:shape]
+      when :shape
+        return items[0].shape.shape ? [items[0].shape.shape.size] : nil
+      when :matmul
+        shape1 = items[0].shape.shape.nil? ? nil : items[0].shape.shape[0]
+        shape2 = items[1].shape.shape.nil? ? nil : items[1].shape.shape[1]
+        return [shape1, shape2]
+      else
+        return items[0].shape.shape if items.size == 1
+        if items.size == 2 && items[0] && items[1]
+          return TensorShape.infer_shape(items[0].shape.shape, items[1].shape.shape)
+        end
+      end
+
+      nil
+    end
 
     def propagate_consumer(consumer)
       super(consumer)

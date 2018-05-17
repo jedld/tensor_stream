@@ -36,7 +36,7 @@ RSpec.describe TensorStream::Variable do
 
   context ".get_variable" do  
     let!(:variable) {
-      TensorStream.get_variable("other_variable", dtype: TensorStream::Types.int32,
+      tf.get_variable("other_variable", dtype: TensorStream::Types.int32,
         initializer: TensorStream.constant([23, 42]))
     }
 
@@ -64,7 +64,7 @@ RSpec.describe TensorStream::Variable do
     end
 
     it "adds to a collection" do
-      w = tf.get_variable("weight", dtype: :int32, collections: ['test'])
+      w = tf.get_variable("weight", dtype: :int32, shape: [5, 5], collections: ['test'])
       tf.get_default_graph.get_collection('test').include?(w)
     end
   end

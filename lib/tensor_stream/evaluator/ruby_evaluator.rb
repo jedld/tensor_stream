@@ -41,7 +41,7 @@ module TensorStream
 
         return tensor if retain.include?(tensor) # if var is in retain don't eval to value
 
-        tensor = tensor.call() if tensor.is_a?(Proc)
+        tensor = tensor.call if tensor.is_a?(Proc)
 
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
@@ -155,6 +155,8 @@ module TensorStream
         when :concat
           values = complete_eval(a, child_context)
           concat_array(values, tensor.options[:axis])
+        when :round
+          call_op(:round, a, child_context, ->(t, _b) { t.round })
         when :abs
           call_op(:abs, a, child_context, ->(t, _b) { t.abs })
         when :tanh
@@ -173,6 +175,8 @@ module TensorStream
           call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
         when :exp
           call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) })
+        when :sigmoid
+          call_op(:sigmoid, a, child_context, ->(t, _b) { 1 / (1 + Math.exp(-t)) })
         when :sqrt
           call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) })
         when :square
@@ -347,8 +351,8 @@ module TensorStream
           rank_a = get_rank(matrix_a)
           rank_b = get_rank(matrix_b)
 
-          raise "#{a.name} rank must be greater than 1" if rank_a < 2
-          raise "#{b.name} rank must be greater than 1" if rank_b < 2
+          raise "#{tensor.items[0].name} rank must be greater than 1" if rank_a < 2
+          raise "#{tensor.items[1].name} rank must be greater than 1" if rank_b < 2
 
           matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
           matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
@@ -426,8 +430,6 @@ module TensorStream
         puts "op: #{tensor.to_math(true, 1)}"
         puts "A: #{a}" if a
         puts "B: #{b}" if b
-
-        puts e.backtrace.join("\n")
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
       end
 

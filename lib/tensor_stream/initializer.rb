@@ -8,5 +8,9 @@ module TensorStream
     def op
       @op.call
     end
+
+    def shape
+      nil
+    end
   end
 end

@@ -760,7 +760,7 @@ end
       b = tf.stop_gradient(a * 2)
       h = tf.gradients(a + b, [a, b])
       expect((a+b).eval).to eq(0)
-      expect((a+b).to_math).to eq("(0.0 + (0.0 * 2.0))")
+      expect((a+b).to_math).to eq("\n (\n  0.0 + \n  \n   (\n    0.0 * 2.0))")
       expect(h.eval).to eq([1.0, 1.0])
     end
 

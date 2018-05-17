@@ -113,6 +113,11 @@ module TensorStream
     def matmul(other)
       _op(:matmul, self, other)
     end
+    
+
+    def dot(other)
+      _op(:matmul, self, other)
+    end
 
     def collect(&block)
       @value.collect(&block)
@@ -156,7 +161,7 @@ module TensorStream
       _op(:index, self, 0)
     end
 
-    def to_math(name_only = false, max_depth = 99)
+    def to_math(name_only = false, max_depth = 99, _unused = 0)
       return @name if max_depth.zero? || name_only || @value.nil?
 
       if @value.is_a?(Array)
@@ -166,8 +171,8 @@ module TensorStream
       end
     end
 
-    def auto_math(tensor, name_only = false, max_depth = 99)
-      tensor.is_a?(Tensor) ? tensor.to_math(name_only, max_depth) : tensor
+    def auto_math(tensor, name_only = false, max_depth = 99, _cur_depth = 0)
+      tensor.is_a?(Tensor) ? tensor.to_math(name_only, max_depth, _cur_depth) : tensor
     end
 
     def self.detect_type(value)

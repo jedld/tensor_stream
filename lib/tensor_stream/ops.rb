@@ -24,10 +24,12 @@ module TensorStream
         tensor_program = if input.graph.node_added?(gradient_program_name)
                            input.graph.get_node(gradient_program_name)
                          else
-                           derivative_ops = TensorStream::MathGradients.derivative(input, x, graph: input.graph,
-                                                                                             stop_gradients: stop_gradients)
-                           unit_matrix = _op(:ones_like, x)
-                           input.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+                          input.graph.name_scope("gradient") do
+                            derivative_ops = TensorStream::MathGradients.derivative(input, x, graph: input.graph,
+                                                                                              stop_gradients: stop_gradients)
+                            unit_matrix = _op(:ones_like, x)
+                            input.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+                           end
                          end
         tensor_program
       end
@@ -126,6 +128,11 @@ module TensorStream
 
     def square(tensor, name: nil)
       _op(:square, tensor, nil, name: name)
+    end
+
+    def round(tensor, name: nil)
+      check_allowed_types(tensor, FLOATING_POINT_TYPES)
+      _op(:round, tensor, nil, name: name)
     end
 
     def reciprocal(tensor, name: nil)
