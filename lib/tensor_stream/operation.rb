@@ -106,11 +106,11 @@ module TensorStream
         else
           "(#{sub_item} * #{sub_item2})"
         end
-      when :reduce_sum
-        "reduce_sum(|#{sub_item}|)"
-      when :reduce_mean
+      when :sum
+        "sum(|#{sub_item}|)"
+      when :mean
         "reduce_mean(|#{sub_item}|)"
-      when :reduce_prod
+      when :prod
         "reduce_prod(|#{sub_item}|)"
       when :gradients
         "gradient(#{sub_item})"
@@ -198,11 +198,13 @@ module TensorStream
         item_shape = items[0].shape.shape
         return nil if item_shape.nil?
         return item_shape[1, item_shape.size]
-      when :reduce_mean, :reduce_prod, :reduce_sum
-        return [] if options[:axis].nil?
+      when :mean, :prod, :sum
+        return [] if items[1].nil?
         item_shape = items[0].shape.shape
         return nil if item_shape.nil?
-        axis = options[:axis]
+        return nil if items[1].is_a?(Tensor) && items[1].value.nil?
+
+        axis = items[1].is_a?(Tensor) ? items[1].value : items[1]
 
         axis = [ axis ] unless axis.is_a?(Array)
         return item_shape.each_with_index.map do |s, index|

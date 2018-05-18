@@ -1,6 +1,7 @@
 module TensorStream
   class Pbtext < TensorStream::Serializer
     include TensorStream::StringHelper
+    include TensorStream::OpHelper
 
     def get_string(tensor_or_graph, session = nil)
       graph = tensor_or_graph.is_a?(Tensor) ? tensor_or_graph.graph : tensor_or_graph
@@ -16,6 +17,14 @@ module TensorStream
           end
           # type
           pb_attr('T', sym_to_protobuf_type(node.data_type))
+          node.options.each do |k, v|
+            next if %w[name].include?(k.to_s)
+            @lines << "  attr {"
+            @lines << "    key: \"#{k}\""
+            @lines << "    value {"
+            @lines << "    }"
+            @lines << "  }"
+          end
         elsif node.is_a?(TensorStream::Tensor) && node.is_const
           @lines << "  op: \"Const\""
           # type
@@ -31,6 +40,10 @@ module TensorStream
 
     def pack_arr_float(float_arr)
       float_arr.flatten.pack('f*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
+    end
+
+    def pack_arr_int(int_arr)
+      int_arr.flatten.pack('l*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
     end
   
     def tensor_value(tensor)
@@ -50,16 +63,27 @@ module TensorStream
         if TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
           packed = pack_arr_float(tensor.value)
           arr << "  tensor_content: \"#{packed}\""
+        elsif TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
+          packed = pack_arr_int(tensor.value)
+          arr << "  tensor_content: \"#{packed}\""
+        elsif tensor.data_type == :string
+          tensor.value.each do |v|
+            arr << "  string_val: #{v.to_json}"
+          end
         else
           arr << "  tensor_content: #{tensor.value.flatten}"
         end
       else
-        val_type = if tensor.data_type == :int32
+        val_type = if TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
           "int_val"
-        else
+        elsif TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
           "float_val"
+        elsif tensor.data_type == :string
+          "string_val"
+        else
+          "val"
         end
-        arr << "  #{val_type}: #{tensor.value}"
+        arr << "  #{val_type}: #{tensor.value.to_json}"
       end
       arr << "}"
       arr
@@ -71,8 +95,10 @@ module TensorStream
         "DT_INT32"
       when :float, :float32
         "DT_FLOAT"
+      when :string
+        "DT_STRING"
       else
-        "DT_UNKNOWN"
+        "UKNOWN"
       end
     end
 

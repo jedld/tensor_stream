@@ -235,7 +235,7 @@ module TensorStream
         when :assign_sub
           tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t - u })
           tensor.items[0].value
-        when :reduce_mean
+        when :mean
           c = fp_type?(tensor.data_type) ? 0.0 : 0
           func = lambda do |arr|
             return c if arr.nil?
@@ -249,7 +249,7 @@ module TensorStream
           end
 
           reduction(child_context, tensor, func)
-        when :reduce_sum
+        when :sum
           c = fp_type?(tensor.data_type) ? 0.0 : 0
           func = lambda do |arr|
             reduced_val = arr[0]
@@ -260,7 +260,7 @@ module TensorStream
           end
 
           reduction(child_context, tensor, func)
-        when :reduce_prod
+        when :prod
           c = fp_type?(tensor.data_type) ? 1.0 : 1
           func = lambda do |arr|
             return c if arr.nil?
@@ -503,7 +503,7 @@ module TensorStream
 
       def reduction(child_context, tensor, func)
         val = complete_eval(tensor.items[0], child_context)
-        axis = complete_eval(tensor.options[:axis], child_context)
+        axis = complete_eval(tensor.items[1], child_context)
         keep_dims = complete_eval(tensor.options[:keepdims], child_context)
         rank = get_rank(val)
         return val if axis && axis.is_a?(Array) && axis.empty?

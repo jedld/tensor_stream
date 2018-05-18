@@ -1,8 +1,9 @@
 module TensorStream
   # Class that defines all available ops supported by TensorStream
   module Ops
-    FLOATING_POINT_TYPES = %w[float32 float64].map(&:to_sym)
-    NUMERIC_TYPES = %w[int32 int64 float32 float64].map(&:to_sym)
+    FLOATING_POINT_TYPES = %i[float32 float64 float].freeze
+    INTEGER_TYPES = %i[int32 int int64].freeze
+    NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
 
     def argmax(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
       _op(:argmax, input, nil, axis: axis, name: name, dimension: dimension, data_type: output_type)
@@ -107,15 +108,15 @@ module TensorStream
     end
 
     def reduce_mean(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:reduce_mean, input_tensor, nil, axis: axis, keepdims: keepdims, name: name)
+      _op(:mean, input_tensor, axis,  keepdims: keepdims, name: name)
     end
 
     def reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:reduce_sum, input_tensor, nil, axis: axis, keepdims: keepdims, name: name)
+      _op(:sum, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
     def reduce_prod(input, axis = nil, keepdims: false, name: nil)
-      _op(:reduce_prod, input, nil, axis: axis, keepdims: keepdims, name: name)
+      _op(:prod, input, axis, keepdims: keepdims, name: name)
     end
 
     def concat(values, axis, name: 'concat')

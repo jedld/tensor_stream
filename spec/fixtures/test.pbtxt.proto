@@ -1,5 +1,5 @@
 node {
-  name: "Const:0"
+  name: "Const:2"
   op: "Const"
   attr {
     key: "T"
@@ -12,85 +12,21 @@ node {
     value {
       tensor {
         dtype: DT_FLOAT
-        float_val: 1.0
+        tensor_shape {
+          dim {
+            size: 2
+          }
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\000\000\200?\315\314\214?\315\314\014@33S@\315\314\214?\315\314\014@33S@\000\000\200@"
       }
-    }
-  }
-}
-node {
-  name: "sin:0"
-  op: "Sin"
-  input: "Const:0"
-  attr {
-    key: "T"
-    value {
-      DT_FLOAT
     }
   }
 }
 node {
   name: "Const_1:0"
-  op: "Const"
-  attr {
-    key: "T"
-    value {
-      DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        float_val: 2.0
-      }
-    }
-  }
-}
-node {
-  name: "sin_1:0"
-  op: "Sin"
-  input: "Const_1:0"
-  attr {
-    key: "T"
-    value {
-      DT_FLOAT
-    }
-  }
-}
-node {
-  name: "add_2:0"
-  op: "Add"
-  input: "sin:0"
-  input: "sin_1:0"
-  attr {
-    key: "T"
-    value {
-      DT_FLOAT
-    }
-  }
-}
-node {
-  name: "Const_2:2"
-  op: "Const"
-  attr {
-    key: "T"
-    value {
-      DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        float_val: [[1.0, 1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 4.0]]
-      }
-    }
-  }
-}
-node {
-  name: "Const_3:0"
   op: "Const"
   attr {
     key: "T"
@@ -103,13 +39,15 @@ node {
     value {
       tensor {
         dtype: DT_INT32
-        float_val: 2
+        tensor_shape {
+        }
+        int_val: 2
       }
     }
   }
 }
 node {
-  name: "Const_4:0"
+  name: "Const_2:0"
   op: "Const"
   attr {
     key: "T"
@@ -122,15 +60,17 @@ node {
     value {
       tensor {
         dtype: DT_FLOAT
+        tensor_shape {
+        }
         float_val: 1.0
       }
     }
   }
 }
 node {
-  name: "assign_3:0"
+  name: "assign:0"
   op: "Assign"
-  input: "Const_4:0"
+  input: "Const_2:0"
   attr {
     key: "T"
     value {
@@ -142,10 +82,86 @@ node {
   name: "v1"
 }
 node {
-  name: "mul_4:0"
+  name: "Const_3:1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\002\000\000\000\003\000\000\000\004\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "Const_4:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_STRING
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_STRING
+        tensor_shape {
+        }
+        string_val: "Hello World"
+      }
+    }
+  }
+}
+node {
+  name: "Placeholder:"
+}
+node {
+  name: "Const_5:1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_STRING
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_STRING
+        tensor_shape {
+          dim {
+            size: 5
+          }
+        }
+        string_val: "h"
+        string_val: "e"
+        string_val: "l"
+        string_val: "l"
+        string_val: "o"
+      }
+    }
+  }
+}
+node {
+  name: "mul_1:0"
   op: "Mul"
-  input: "Const_2:2"
-  input: "Const_3:0"
+  input: "Const:2"
+  input: "Const_1:0"
   attr {
     key: "T"
     value {
@@ -154,14 +170,55 @@ node {
   }
 }
 node {
-  name: "add_5:0"
+  name: "add_2:0"
   op: "Add"
-  input: "mul_4:0"
+  input: "mul_1:0"
   input: "v1"
   attr {
     key: "T"
     value {
       DT_FLOAT
+    }
+  }
+}
+node {
+  name: "Const_6:1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        tensor_content: "\000\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "sum_3:0"
+  op: "Sum"
+  input: "Const:2"
+  input: "Const_6:1"
+  attr {
+    key: "T"
+    value {
+      DT_FLOAT
+    }
+  }
+  attr {
+    key: "keepdims"
+    value {
     }
   }
 }

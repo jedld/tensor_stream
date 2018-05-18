@@ -11,7 +11,7 @@ module TensorStream
       @is_const = false
       @source = format_source(caller_locations)
 
-      @name = [@graph.get_name_scope, options[:name] || build_name].compact.join('/')
+      @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @graph.add_node(self)
     end
 

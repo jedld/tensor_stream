@@ -67,8 +67,8 @@ module TensorStream
           # keep_dims_x = _op(:rank, inputs[0]) == _op(:rank, tensor.items[0])
           # keep_dims_y = _op(:rank, inputs[1]) == _op(:rank, tensor.items[1])
 
-          # add_x = _op(:reduce_sum, inputs[0], nil, axis: sy, keepdims: keep_dims_x)
-          # add_y = _op(:reduce_sum, inputs[1], nil, axis: sx, keepdims: keep_dims_y)
+          # add_x = _op(:sum, inputs[0], nil, axis: sy, keepdims: keep_dims_x)
+          # add_y = _op(:sum, inputs[1], nil, axis: sx, keepdims: keep_dims_y)
           # _filtered_sum(add_x, add_y, wrt_dx)
           _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_add') }, options)
         when :sub
@@ -95,15 +95,15 @@ module TensorStream
           keep_dims_x = _op(:rank, inputs[0]) == _op(:rank, tensor.items[0])
           keep_dims_y = _op(:rank, inputs[1]) == _op(:rank, tensor.items[1])
 
-          _filtered_sum(_op(:reduce_sum, grad * _ds(inputs[1]), nil, axis: sy, keepdims: keep_dims_x),
-                        _op(:reduce_sum, _ds(inputs[0]) * grad2, nil, axis: sx, keepdims: keep_dims_y), wrt_dx)
-        when :reduce_mean
-          input_size = i_op(:reduce_prod, i_op(:shape, tensor.items[0]))
-          output_size = i_op(:reduce_prod, i_op(:shape, tensor))
+          _filtered_sum(_op(:sum, grad * _ds(inputs[1]), sy, keepdims: keep_dims_x),
+                        _op(:sum, _ds(inputs[0]) * grad2, sx, keepdims: keep_dims_y), wrt_dx)
+        when :mean
+          input_size = i_op(:prod, i_op(:shape, tensor.items[0]))
+          output_size = i_op(:prod, i_op(:shape, tensor))
           factor = input_size / output_size
 
           (grad / i_op(:cast, factor, data_type: grad.dtype))
-        when :reduce_sum
+        when :sum
           grad
         when :reciprocal
           -grad * (i_cons(1, constant_options_1) / _ds(tensor.items[0])**2)
@@ -158,7 +158,7 @@ module TensorStream
       return tensor unless tensor.is_a?(Operation)
 
       case tensor.operation
-      when :reduce_sum
+      when :sum
         tensor.items[0]
       else
         tensor
@@ -168,8 +168,8 @@ module TensorStream
     def self._grad_with_broadcast(tensor, wrt_dx, func, options)
       grad = derivative(tensor.items[0], wrt_dx, options)
       grad2 = derivative(tensor.items[1], wrt_dx, options)
-      elements1 = i_op(:reduce_prod, i_op(:shape, tensor.items[0]), data_type: :float32)
-      elements2 = i_op(:reduce_prod, i_op(:shape, tensor.items[1]), data_type: :float32)
+      elements1 = i_op(:prod, i_op(:shape, tensor.items[0]), data_type: :float32)
+      elements2 = i_op(:prod, i_op(:shape, tensor.items[1]), data_type: :float32)
       multiplier = elements1 / elements2
       _reduce_when_necessary(func.call(grad, grad2 * multiplier), wrt_dx)
     end
@@ -182,7 +182,7 @@ module TensorStream
     def self._reduce_when_necessary(tensor, wrt_dx)
       rank = _op(:rank, tensor)
       dx_rank = _op(:rank, wrt_dx)
-      reduced = _op(:reduce_sum, tensor, nil, axis: 0)
+      reduced = _op(:sum, tensor, 0)
       _op(:cond, ->{ reduced }, tensor, pred: rank > dx_rank)
     end
 
@@ -197,7 +197,7 @@ module TensorStream
     # filter out zero arrays
     def self._filtered_sum(input_a, input_b, wrt_dx)
       zero_vect = _op(:zeros_like, wrt_dx)
-      (i_op(:cond, input_a, zero_vect, pred: i_op(:reduce_sum, input_a) != 0) + i_op(:cond, input_b, zero_vect, pred: i_op(:reduce_sum, input_b) != 0))
+      (i_op(:cond, input_a, zero_vect, pred: i_op(:sum, input_a) != 0) + i_op(:cond, input_b, zero_vect, pred: i_op(:sum, input_b) != 0))
     end
   end
 end
