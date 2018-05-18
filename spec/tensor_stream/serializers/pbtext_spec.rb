@@ -18,6 +18,7 @@ RSpec.describe TensorStream::Pbtext do
     b = tf.constant(2)
     c = tf.variable(1.0, name: "v1")
     f = a * b + c
-    expect(TensorStream::Pbtext.new.get_string(f.graph)).to eq(@fixture)
+    graph_def = f.graph.as_graph_def()
+    expect(graph_def).to eq(@fixture)
   end
 end

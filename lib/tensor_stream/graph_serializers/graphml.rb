@@ -1,9 +1,9 @@
 module TensorStream
-  class Graphml
+  class Graphml < Serializer
     def initialize
     end
 
-    def serialize(session, tensor, filename)
+    def get_string(tensor, session = nil)
       tensor = TensorStream.convert_to_tensor(tensor) unless tensor.is_a?(Tensor)
       @session = session
       @name = tensor.name

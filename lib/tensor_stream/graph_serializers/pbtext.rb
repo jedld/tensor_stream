@@ -1,14 +1,9 @@
 module TensorStream
-  class Pbtext
+  class Pbtext < TensorStream::Serializer
     include TensorStream::StringHelper
 
-    def initialize
-    end
-
-    def serialize(session, filename, tensor)
-    end
-
-    def get_string(graph)
+    def get_string(tensor_or_graph, session = nil)
+      graph = tensor_or_graph.is_a?(Tensor) ? tensor_or_graph.graph : tensor_or_graph
       @lines = []
       graph.nodes.each do |k, node|
         @lines << "node {"
@@ -34,18 +29,45 @@ module TensorStream
 
     private
 
+    def pack_arr_float(float_arr)
+      float_arr.flatten.pack('f*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
+    end
+  
     def tensor_value(tensor)
       arr = []
       arr << "tensor {"
       arr << "  dtype: #{sym_to_protobuf_type(tensor.data_type)}"
-      arr << "  float_val: #{tensor.value}"
+
+      arr << "  tensor_shape {"
+      tensor.shape.shape.each do |dim|
+        arr << "    dim {"
+        arr << "      size: #{dim}"
+        arr << "    }"
+      end if tensor.shape.shape
+      arr << "  }"
+
+      if tensor.rank > 0
+        if TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
+          packed = pack_arr_float(tensor.value)
+          arr << "  tensor_content: \"#{packed}\""
+        else
+          arr << "  tensor_content: #{tensor.value.flatten}"
+        end
+      else
+        val_type = if tensor.data_type == :int32
+          "int_val"
+        else
+          "float_val"
+        end
+        arr << "  #{val_type}: #{tensor.value}"
+      end
       arr << "}"
       arr
     end
 
     def sym_to_protobuf_type(type)
       case type
-      when :int32
+      when :int32, :int
         "DT_INT32"
       when :float, :float32
         "DT_FLOAT"

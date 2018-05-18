@@ -448,7 +448,6 @@ module TensorStream
         puts "A #{shape_a} #{dtype_a}: #{a}" if a
         puts "B #{shape_b} #{dtype_b}: #{b}" if b
         dump_intermediates if @log_intermediates
-
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
       end
 

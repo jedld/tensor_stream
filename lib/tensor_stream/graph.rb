@@ -162,6 +162,10 @@ module TensorStream
       graph_thread_storage[:current_scope].join('/')
     end
 
+    def as_graph_def
+      TensorStream::Pbtext.new.get_string(self)
+    end
+
     protected
 
     def _variable_scope
