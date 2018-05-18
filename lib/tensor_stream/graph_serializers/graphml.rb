@@ -4,83 +4,208 @@ module TensorStream
     end
 
     def serialize(session, tensor, filename)
+      tensor = TensorStream.convert_to_tensor(tensor) unless tensor.is_a?(Tensor)
       @session = session
-      @last_session_context = session.last_session_context
+      @name = tensor.name
+      @last_session_context = session ? session.last_session_context : {}
+      groups = {}
 
       arr_buf = []
       arr_buf << '<?xml version="1.0" encoding="UTF-8"?>'
-      arr_buf << '<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      arr_buf << '<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:y="http://www.yworks.com/xml/graphml"
       xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">'
       arr_buf << '<key id="d0" for="node" attr.name="label" attr.type="string"/>'
       arr_buf << '<key id="d1" for="node" attr.name="formula" attr.type="string"/>'
       arr_buf << '<key id="d2" for="node" attr.name="color" attr.type="string"/>'
       arr_buf << '<key id="d3" for="node" attr.name="value" attr.type="string"/>'
+      arr_buf << '<key attr.name="description" attr.type="string" for="edge" id="d12"/>'
+      arr_buf << '<key for="edge" id="d13" yfiles.type="edgegraphics"/>'
+      arr_buf << '<key for="node" id="d9" yfiles.type="nodegraphics"/>'
       arr_buf << "<graph id=\"g_#{_gml_string(tensor.name)}\" edgedefault=\"directed\">"
       arr_buf << "<node id=\"out\">"
       arr_buf << "<data key=\"d0\">out</data>"
       arr_buf << "<data key=\"d2\">red</data>"
+      arr_buf << "<data key=\"d9\">"
+      arr_buf << "<y:ShapeNode>"
+      arr_buf << "  <y:Fill color=\"#FF0000\" transparent=\"false\"/>"
+      arr_buf << "  <y:NodeLabel alignment=\"center\">out</y:NodeLabel>"
+      arr_buf << "</y:ShapeNode>"
+      arr_buf << "</data>"
       arr_buf << "</node>"
-      to_graph_ml(tensor, arr_buf)
+      to_graph_ml(tensor, arr_buf, {}, groups)
+      #dump groups
+      groups.each do |k, g|
+        arr_buf << create_group(k, k, g)
+      end
+
       arr_buf << "<edge source=\"#{_gml_string(tensor.name)}\" target=\"out\"/>"
       arr_buf << "</graph>"
       arr_buf << "</graphml>"
-      File.write(filename, arr_buf.join("\n"))
+      File.write(filename, arr_buf.flatten.join("\n"))
     end
 
     private
 
-    def _val(tensor)
-      JSON.pretty_generate(@last_session_context[tensor.name])
+    def add_to_group(groups, name, arr_buf)
+      name_parts = name.split('/')
+      return false if name_parts.size < 2
+
+      prefix = name_parts.shift
+
+      ptr = find_or_create_group(prefix, groups)
+
+      Kernel.loop do
+        break if name_parts.size <= 1
+        next_group = ptr[:group]
+        ptr = find_or_create_group(prefix, next_group)
+
+        prefix = name_parts.shift
+      end
+
+      ptr[:buf] << arr_buf
+      true
     end
 
-    def to_graph_ml(tensor, arr_buf = [], added = {}, _id = 0)
+    def find_or_create_group(prefix, groups)
+      if !groups[prefix]
+        groups[prefix] = { buf: [], group: {} }
+      end
+
+      return groups[prefix]
+    end
+
+    def create_group(id, title, group)
+      arr_buf = []
+      arr_buf << "<node id=\"#{id}\" yfiles.foldertype=\"group\">"
+      arr_buf << '<data key="d9">'
+      arr_buf << '<y:ProxyAutoBoundsNode>'
+      arr_buf << '<y:Realizers active="0">'
+      arr_buf << '<y:GroupNode>'
+      arr_buf << '<y:Fill color="#CAECFF84" transparent="false"/>'
+      arr_buf << '<y:BorderStyle color="#666699" type="dotted" width="1.0"/>'
+      arr_buf << '<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">'+ title + '</y:NodeLabel>'
+      arr_buf << '<y:Shape type="roundrectangle"/>'
+      arr_buf << '</y:GroupNode>'
+      arr_buf << '</y:Realizers>'
+      arr_buf << '</y:ProxyAutoBoundsNode>'
+      arr_buf << '</data>'
+      arr_buf << '<graph edgedefault="directed" id="n105:">'
+      arr_buf << group[:buf]
+      group[:group].each do |k, g|
+        arr_buf << create_group(k, k, g)
+      end
+      arr_buf << '</graph>'
+      arr_buf << '</node>'
+      arr_buf
+    end
+
+    def _val(tensor)
+      # JSON.pretty_generate(@last_session_context[tensor.name])
+      @last_session_context[tensor.name]
+    end
+
+    def to_graph_ml(tensor, arr_buf = [], added = {}, groups = {}, _id = 0)
       puts tensor.name
+      return unless tensor.is_a?(Operation)
+
       added[tensor.name] = true
-      arr_buf << "<node id=\"#{_gml_string(tensor.name)}\">"
-      arr_buf << "<data key=\"d0\">#{tensor.operation}</data>"
-      arr_buf << "<data key=\"d1\">#{tensor.to_math(true, 1)}</data>"
-      arr_buf << "<data key=\"d2\">blue</data>"
+      node_buf = []
+      node_buf << "<node id=\"#{_gml_string(tensor.name)}\">"
+      node_buf << "<data key=\"d0\">#{tensor.operation}</data>"
+      node_buf << "<data key=\"d1\">#{tensor.to_math(true, 1)}</data>"
+      node_buf << "<data key=\"d2\">blue</data>"
+
       if @last_session_context[tensor.name]
         arr_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
       end
-      arr_buf << "</node>"
+      node_buf << "<data key=\"d9\">"
+      node_buf << "<y:ShapeNode>"
+      if tensor.internal?
+        node_buf << "  <y:Fill color=\"#FFFF99\" transparent=\"false\"/>"
+      else
+        node_buf << "  <y:Fill color=\"#99CC00\" transparent=\"false\"/>"
+      end
+      node_buf << "  <y:NodeLabel alignment=\"center\">#{tensor.operation}</y:NodeLabel>"
+      node_buf << "</y:ShapeNode>"
+      node_buf << "</data>"
+      node_buf << "</node>"
 
-      tensor.items.each do |item|
-        next unless item
-        next if _added[item.name]
-
-        next to_graph_ml(item, arr_buf, added) if item.is_a?(Operation)
-        added[item.name] = true
-        if item.is_a?(Variable)
-          arr_buf << "<node id=\"#{_gml_string(item.name)}\">"
-          arr_buf << "<data key=\"d0\">#{item.name}</data>"
-          arr_buf << "<data key=\"d2\">green</data>"
-          if @last_session_context[item.name]
-            arr_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
-          end
-          arr_buf << "</node>"
-        elsif item.is_a?(Placeholder)
-          arr_buf << "<node id=\"#{_gml_string(item.name)}\">"
-          arr_buf << "<data key=\"d0\">#{item.name}</data>"
-          arr_buf << "<data key=\"d2\">yellow</data>"
-          if @last_session_context[item.name]
-            arr_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
-          end
-          arr_buf << "</node>"
-        else
-          arr_buf << "<node id=\"#{_gml_string(item.name)}\">"
-          arr_buf << "<data key=\"d0\">#{item.name}</data>"
-          arr_buf << "<data key=\"d2\">black</data>"
-          if @last_session_context[item.name]
-            arr_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
-          end
-          arr_buf << "</node>"
-        end
+      if !add_to_group(groups, tensor.name, node_buf)
+        !add_to_group(groups, "program_#{@name}", node_buf)
       end
 
       tensor.items.each do |item|
         next unless item
-        arr_buf << "<edge source=\"#{_gml_string(item.name)}\" target=\"#{_gml_string(tensor.name)}\"/>"
+        next if added[item.name]
+
+        next to_graph_ml(item, arr_buf, added, groups) if item.is_a?(Operation)
+
+        added[item.name] = true
+        item_buf = []
+        if item.is_a?(Variable)
+          item_buf << "<node id=\"#{_gml_string(item.name)}\">"
+          item_buf << "<data key=\"d0\">#{item.name}</data>"
+          item_buf << "<data key=\"d2\">green</data>"
+          if @last_session_context[item.name]
+            item_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
+          end
+          item_buf << "<data key=\"d9\">"
+          item_buf << "<y:ShapeNode>"
+          item_buf << "  <y:Fill color=\"#33CCCC\" transparent=\"false\"/>"
+          item_buf << "  <y:NodeLabel alignment=\"center\">#{item.name}</y:NodeLabel>"
+          item_buf << "</y:ShapeNode>"
+          item_buf << "</data>"
+          item_buf << "</node>"
+        elsif item.is_a?(Placeholder)
+          item_buf << "<node id=\"#{_gml_string(item.name)}\">"
+          item_buf << "<data key=\"d0\">#{item.name}</data>"
+          item_buf << "<data key=\"d2\">yellow</data>"
+          if @last_session_context[item.name]
+            item_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
+          end
+          item_buf << "</node>"
+        else
+          item_buf << "<node id=\"#{_gml_string(item.name)}\">"
+          item_buf << "<data key=\"d0\">#{item.name}</data>"
+          item_buf << "<data key=\"d2\">black</data>"
+          item_buf << "<data key=\"d9\">"
+          item_buf << "<y:ShapeNode>"
+
+          if item.internal?
+            item_buf << "  <y:Fill color=\"#C0C0C0\" transparent=\"false\"/>"
+          else
+            item_buf << "  <y:Fill color=\"#FFFFFF\" transparent=\"false\"/>"
+          end
+
+          item_buf << "  <y:NodeLabel alignment=\"center\">#{item.name}</y:NodeLabel>"
+          item_buf << "</y:ShapeNode>"
+          item_buf << "</data>"
+          item_buf << "</node>"
+        end
+
+        if !add_to_group(groups, item.name, item_buf)
+          !add_to_group(groups, "program_#{@name}", item_buf)
+        end
+      end
+
+      tensor.items.each_with_index do |item, index|
+        next unless item
+        arr_buf << "<edge source=\"#{_gml_string(item.name)}\" target=\"#{_gml_string(tensor.name)}\">"
+        arr_buf << "<data key=\"d13\">"
+
+        arr_buf << "<y:PolyLineEdge>"
+        arr_buf << "<y:EdgeLabel >"
+        arr_buf << "<![CDATA[[  #{_val(item)}  ]]]>"
+        arr_buf << "</y:EdgeLabel >"
+        arr_buf << "<y:Arrows source=\"none\" target=\"standard\"/>"
+        if index == 0
+          arr_buf << "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
+        else
+          arr_buf << "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
+        end
+        arr_buf << "</y:PolyLineEdge>"
+        arr_buf << "</data>"
+        arr_buf << "</edge>"
       end
     end
 

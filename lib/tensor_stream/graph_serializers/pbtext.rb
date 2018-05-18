@@ -1,5 +1,7 @@
 module TensorStream
   class Pbtext
+    include TensorStream::StringHelper
+
     def initialize
     end
 
@@ -12,7 +14,7 @@ module TensorStream
         @lines << "node {"
         @lines << "  name: #{node.name.to_json}"
         if node.is_a?(TensorStream::Operation)
-          @lines << "  op: #{node.operation.to_json}"
+          @lines << "  op: #{camelize(node.operation.to_s).to_json}"
           node.items.each do |input|
             next unless input
             @lines << "  input: #{input.name.to_json}"

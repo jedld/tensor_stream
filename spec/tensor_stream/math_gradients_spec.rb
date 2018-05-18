@@ -234,7 +234,7 @@ RSpec.describe TensorStream::MathGradients do
       expect(tr(biases_gradient2)).to eq([7.0, 7.0, 7.0, 7.0, 7.0])
      end
 
-     xit "computes for open ended shapes" do
+     it "computes for open ended shapes" do
       x = tf.constant([
           [1.0, 0.5, 4.0],
         ])
@@ -272,6 +272,7 @@ RSpec.describe TensorStream::MathGradients do
 
            [-0.07124099, -0.10610479]
         ])
+
      end
   end
 end

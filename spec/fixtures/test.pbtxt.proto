@@ -18,8 +18,8 @@ node {
   }
 }
 node {
-  name: "/sin:0"
-  op: "sin"
+  name: "sin:0"
+  op: "Sin"
   input: "Const:0"
   attr {
     key: "T"
@@ -48,8 +48,8 @@ node {
   }
 }
 node {
-  name: "/sin_1:0"
-  op: "sin"
+  name: "sin_1:0"
+  op: "Sin"
   input: "Const_1:0"
   attr {
     key: "T"
@@ -59,10 +59,10 @@ node {
   }
 }
 node {
-  name: "/add_2:0"
-  op: "add"
-  input: "/sin:0"
-  input: "/sin_1:0"
+  name: "add_2:0"
+  op: "Add"
+  input: "sin:0"
+  input: "sin_1:0"
   attr {
     key: "T"
     value {
@@ -128,8 +128,8 @@ node {
   }
 }
 node {
-  name: "/assign_3:0"
-  op: "assign"
+  name: "assign_3:0"
+  op: "Assign"
   input: "Const_4:0"
   attr {
     key: "T"
@@ -142,8 +142,8 @@ node {
   name: "v1"
 }
 node {
-  name: "/mul_4:0"
-  op: "mul"
+  name: "mul_4:0"
+  op: "Mul"
   input: "Const_2:2"
   input: "Const_3:0"
   attr {
@@ -154,9 +154,9 @@ node {
   }
 }
 node {
-  name: "/add_5:0"
-  op: "add"
-  input: "/mul_4:0"
+  name: "add_5:0"
+  op: "Add"
+  input: "mul_4:0"
   input: "v1"
   attr {
     key: "T"

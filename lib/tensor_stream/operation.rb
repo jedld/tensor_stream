@@ -9,7 +9,7 @@ module TensorStream
 
       @operation = operation
       @rank = options[:rank] || 0
-      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
+      @name = [@graph.get_name_scope, options[:name] || set_name].compact.reject(&:empty?).join('/')
       @internal = options[:internal]
       @given_name = @name
       @source = format_source(caller_locations)
@@ -166,6 +166,8 @@ module TensorStream
         "#{sub_item} && #{sub_item2}"
       when :sqrt
         "sqrt(#{sub_item})"
+      when :log1p
+        "log1p(#{sub_item})"
       when :zeros_like
         "zeros_like(#{sub_item})"
       when :where
