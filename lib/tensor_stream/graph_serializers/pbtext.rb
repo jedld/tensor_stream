@@ -17,26 +17,35 @@ module TensorStream
           end
           # type
           pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
-          node.options.each do |k, v|
-            next if %w[name].include?(k.to_s)
-            @lines << "  attr {"
-            @lines << "    key: \"#{k}\""
-            @lines << "    value {"
-            @lines << "    }"
-            @lines << "  }"
-          end
+          process_options(node)
         elsif node.is_a?(TensorStream::Tensor) && node.is_const
           @lines << "  op: \"Const\""
           # type
-          pb_attr('T', sym_to_protobuf_type(node.data_type))
+          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
           pb_attr('value', tensor_value(node))
+        elsif node.is_a?(TensorStream::Variable)
+          @lines << "  op: \"VariableV2\""
+          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
+          pb_attr('shape', shape_buf(node, 'shape'))
+          process_options(node)
         end
         @lines << "}"
       end
-      @lines.join("\n")
+      @lines.flatten.join("\n")
     end
 
     private
+
+    def process_options(node)
+      node.options.each do |k, v|
+        next if %w[name].include?(k.to_s)
+        @lines << "  attr {"
+        @lines << "    key: \"#{k}\""
+        @lines << "    value {"
+        @lines << "    }"
+        @lines << "  }"
+      end
+    end
 
     def pack_arr_float(float_arr)
       float_arr.flatten.pack('f*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
@@ -46,18 +55,23 @@ module TensorStream
       int_arr.flatten.pack('l*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
     end
   
-    def tensor_value(tensor)
+    def shape_buf(tensor, shape_type = 'tensor_shape')
       arr = []
-      arr << "tensor {"
-      arr << "  dtype: #{sym_to_protobuf_type(tensor.data_type)}"
-
-      arr << "  tensor_shape {"
+      arr << "  #{shape_type} {"
       tensor.shape.shape.each do |dim|
         arr << "    dim {"
         arr << "      size: #{dim}"
         arr << "    }"
       end if tensor.shape.shape
       arr << "  }"
+      arr
+    end
+    def tensor_value(tensor)
+      arr = []
+      arr << "tensor {"
+      arr << "  dtype: #{sym_to_protobuf_type(tensor.data_type)}"
+
+      arr += shape_buf(tensor)
 
       if tensor.rank > 0
         if TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)

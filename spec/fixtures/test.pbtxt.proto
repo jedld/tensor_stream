@@ -4,7 +4,7 @@ node {
   attr {
     key: "T"
     value {
-      DT_FLOAT
+      dtype: DT_FLOAT
     }
   }
   attr {
@@ -31,7 +31,7 @@ node {
   attr {
     key: "T"
     value {
-      DT_INT32
+      dtype: DT_INT32
     }
   }
   attr {
@@ -52,7 +52,7 @@ node {
   attr {
     key: "T"
     value {
-      DT_FLOAT
+      dtype: DT_FLOAT
     }
   }
   attr {
@@ -80,6 +80,20 @@ node {
 }
 node {
   name: "v1"
+  op: "VariableV2"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "shape"
+    value {
+        shape {
+        }
+    }
+  }
 }
 node {
   name: "Const_3:1"
@@ -87,7 +101,7 @@ node {
   attr {
     key: "T"
     value {
-      DT_INT32
+      dtype: DT_INT32
     }
   }
   attr {
@@ -111,7 +125,7 @@ node {
   attr {
     key: "T"
     value {
-      DT_STRING
+      dtype: DT_STRING
     }
   }
   attr {
@@ -135,7 +149,7 @@ node {
   attr {
     key: "T"
     value {
-      DT_STRING
+      dtype: DT_STRING
     }
   }
   attr {
@@ -187,7 +201,7 @@ node {
   attr {
     key: "T"
     value {
-      DT_INT32
+      dtype: DT_INT32
     }
   }
   attr {

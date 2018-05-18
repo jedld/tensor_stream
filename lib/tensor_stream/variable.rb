@@ -1,10 +1,12 @@
 module TensorStream
   # Class that defines a TensorStream variable
   class Variable < Tensor
-    attr_accessor :trainable
+    attr_accessor :trainable, :options
     def initialize(data_type, rank, shape, options = {})
       @graph = options[:graph] || TensorStream.get_default_graph
-
+      @options = {
+        
+      }
       @data_type = data_type
       @rank = rank
       @value = nil
