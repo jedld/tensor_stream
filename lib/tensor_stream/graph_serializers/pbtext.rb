@@ -16,7 +16,7 @@ module TensorStream
             @lines << "  input: #{input.name.to_json}"
           end
           # type
-          pb_attr('T', sym_to_protobuf_type(node.data_type))
+          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
           node.options.each do |k, v|
             next if %w[name].include?(k.to_s)
             @lines << "  attr {"
