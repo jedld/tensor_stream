@@ -58,6 +58,9 @@ RSpec.describe TensorStream::Operation do
     it "reshape to scalar" do
       t = [7]
       expect(tf.reshape(t, []).eval).to eq(7)
+
+      t = 7
+      expect(tf.reshape(t, []).eval).to eq(7)
     end
 
     it "flattens a tensor" do
@@ -908,6 +911,17 @@ end
       a = tf.constant([[1.1, 1.3], [1.3, 1.2]])
       c = a > 0
       expect(c.eval).to eq([[true, true], [true, true]])
+    end
+  end
+
+  context ".tile" do
+    it "Constructs a tensor by tiling a given tensor." do
+      a = tf.constant([[1, 2, 3, 4], [1, 2, 3, 4]])
+      expect(tf.tile(a,[1, 0]).eval).to eq([])
+      expect(tf.tile(a,[0, 1]).eval).to eq([])
+      expect(tf.tile(a,[1, 1]).eval).to eq([[1, 2, 3, 4], [1, 2, 3, 4]])
+      expect(tf.tile(a,[2, 1]).eval).to eq([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+      expect(tf.tile(a,[1, 2]).eval).to eq([[1, 2, 3, 4, 1, 2, 3, 4], [1, 2, 3, 4, 1, 2, 3, 4]])
     end
   end
 

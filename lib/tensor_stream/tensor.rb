@@ -7,18 +7,18 @@ module TensorStream
 
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
                   :value, :breakpoint, :internal, :source, :given_name, :graph,
-                  :consumers
+                  :consumers, :outputs
 
     def initialize(data_type, rank, shape, options = {})
+      setup_initial_state(options)
       @data_type = data_type
       @rank = rank
       @breakpoint = false
       @shape = TensorShape.new(shape, rank)
       @value = nil
-      @source = format_source(caller_locations)
+
       @is_const = options[:const] || false
       @internal = options[:internal]
-      @graph = options[:graph] || TensorStream.get_default_graph
       @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @given_name = @name
 
@@ -113,7 +113,6 @@ module TensorStream
     def matmul(other)
       _op(:matmul, self, other)
     end
-    
 
     def dot(other)
       _op(:matmul, self, other)
@@ -233,13 +232,27 @@ module TensorStream
 
     protected
 
+    def setup_initial_state(options)
+      @outputs = []
+      @graph = options[:graph] || TensorStream.get_default_graph
+      @source = format_source(caller_locations)
+    end
+
     def add_consumer(consumer)
       @consumers ||= []
-      @consumers << consumer.name if !@consumers.include?(consumer.name) && consumer.name!=self.name
+      @consumers << consumer.name if !@consumers.include?(consumer.name) && consumer.name != name
+    end
+
+    def setup_output(consumer)
+      @outputs << consumer.name unless @outputs.include?(consumer.name)
     end
 
     def propagate_consumer(consumer)
       add_consumer(consumer)
+    end
+
+    def propagate_outputs
+      # nop
     end
 
     def hashify_tensor(tensor)

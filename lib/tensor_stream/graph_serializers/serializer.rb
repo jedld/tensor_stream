@@ -3,7 +3,7 @@ module TensorStream
     def initialize
     end
 
-    def serialize(session, filename, tensor)
+    def serialize(filename, tensor, session = nil)
       File.write(filename, get_string(session, tensor.graph))
     end
 

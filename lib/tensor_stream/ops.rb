@@ -10,32 +10,57 @@ module TensorStream
     end
 
     def gradients(input, wrt_xs, grad_ys: nil,
-                  name: 'gradients',
-                  colocate_gradients_with_ops: false,
-                  gate_gradients: false,
-                  aggregation_method: nil,
-                  stop_gradients: nil)
+      name: 'gradients',
+      colocate_gradients_with_ops: false,
+      gate_gradients: false,
+      aggregation_method: nil,
+      stop_gradients: nil)
 
       gs = wrt_xs.collect do |x|
-        raise "#{x} passed is not a tensor object" unless x.is_a?(Tensor)
-
         stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
         gradient_program_name = "grad_#{input.name}_#{x.name}_#{stops}".to_sym
 
         tensor_program = if input.graph.node_added?(gradient_program_name)
-                           input.graph.get_node(gradient_program_name)
-                         else
+                          input.graph.get_node(gradient_program_name)
+                        else
                           input.graph.name_scope("gradient_wrt_#{x.name}") do
-                            derivative_ops = TensorStream::MathGradients.derivative(input, x, graph: input.graph,
-                                                                                              stop_gradients: stop_gradients)
-                            unit_matrix = _op(:ones_like, x)
-                            input.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
-                           end
-                         end
+                            derivative_ops = TensorStream::MathGradientsForward.derivative(input, x, graph: input.graph,
+                              stop_gradients: stop_gradients)
+                            input.graph.add_node!(gradient_program_name, derivative_ops)
+                          end
+                        end
         tensor_program
       end
       TensorStream.group(gs)
     end
+
+    # def gradients(input, wrt_xs, grad_ys: nil,
+    #               name: 'gradients',
+    #               colocate_gradients_with_ops: false,
+    #               gate_gradients: false,
+    #               aggregation_method: nil,
+    #               stop_gradients: nil)
+
+    #   gs = wrt_xs.collect do |x|
+    #     raise "#{x} passed is not a tensor object" unless x.is_a?(Tensor)
+
+    #     stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
+    #     gradient_program_name = "grad_#{input.name}_#{x.name}_#{stops}".to_sym
+
+    #     tensor_program = if input.graph.node_added?(gradient_program_name)
+    #                        input.graph.get_node(gradient_program_name)
+    #                      else
+    #                       input.graph.name_scope("gradient_wrt_#{x.name}") do
+    #                         derivative_ops = TensorStream::MathGradients.derivative(input, x, graph: input.graph,
+    #                                                                                           stop_gradients: stop_gradients)
+    #                         unit_matrix = _op(:ones_like, x)
+    #                         input.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+    #                        end
+    #                      end
+    #     tensor_program
+    #   end
+    #   TensorStream.group(gs)
+    # end
 
     def random_uniform(shape, dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
       options = { shape: shape, dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name }
@@ -57,6 +82,10 @@ module TensorStream
 
     def shape(input, name: nil, out_type: :int32)
       _op(:shape, input, nil, name: name, out_type: out_type)
+    end
+
+    def tile(input, multiples, name: nil)
+      _op(:tile, input, multiples, name: name)
     end
 
     def rank(input, name: nil)
@@ -201,6 +230,14 @@ module TensorStream
 
     def multiply(input_a, input_b, name: nil)
       _op(:mul, input_a, input_b, name: name)
+    end
+
+    def mul(input_a, input_b, name: nil)
+      _op(:mul, input_a, input_b, name: name)
+    end
+
+    def div(input_a, input_b, name: nil)
+      _op(:div, input_a, input_b, name: name)
     end
 
     def pow(input_a, input_e, name: nil)

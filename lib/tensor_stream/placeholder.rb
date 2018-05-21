@@ -2,14 +2,13 @@ module TensorStream
   # Class that defines a TensorStream placeholder
   class Placeholder < Tensor
     def initialize(data_type, rank, shape, options = {})
-      @graph = options[:graph] || TensorStream.get_default_graph
+      setup_initial_state(options)
 
       @data_type = data_type
       @rank = rank
       @shape = TensorShape.new(shape, rank)
       @value = nil
       @is_const = false
-      @source = format_source(caller_locations)
 
       @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @graph.add_node(self)

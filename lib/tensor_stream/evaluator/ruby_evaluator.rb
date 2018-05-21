@@ -260,6 +260,11 @@ module TensorStream
           end
 
           reduction(child_context, tensor, func)
+        when :tanh_grad
+          x = complete_eval(a, child_context)
+          grad = complete_eval(b, child_context)
+
+          call_vector_op(:add, x, grad, child_context, ->(t, u) { u * (1 - Math.tanh(t) * Math.tanh(t)) })
         when :prod
           c = fp_type?(tensor.data_type) ? 1.0 : 1
           func = lambda do |arr|
@@ -390,6 +395,8 @@ module TensorStream
           arr = complete_eval(a, child_context)
           new_shape = complete_eval(b, child_context)
 
+          arr = [arr] unless arr.is_a?(Array)
+
           flat_arr = arr.flatten
           return flat_arr[0] if new_shape.size.zero? && flat_arr.size == 1
 
@@ -411,6 +418,25 @@ module TensorStream
           b = complete_eval(b, child_context)
 
           get_broadcast_gradient_args(a, b)
+        when :reduced_shape
+          input_shape = complete_eval(a, child_context)
+          axes = complete_eval(b, child_context)
+
+          return [] if axes.nil? # reduce to scalar
+          return input_shape if axes.empty?
+
+          input_shape[axes] = 1
+          input_shape
+        when :tile
+          input = complete_eval(a, child_context)
+          multiples = complete_eval(b, child_context)
+
+          rank = get_rank(input)
+          raise '1D or higher tensor required' if rank.zero?
+          raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
+
+          tile = tile_arr(input, 0, multiples)
+          tile.nil? ? [] : tile
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|
@@ -437,17 +463,18 @@ module TensorStream
       rescue StandardError => e
         puts e.message
         puts e.backtrace.join("\n")
-        shape_a = a.shape.shape if a
-        shape_b = b.shape.shape if b
-        dtype_a = a.data_type if a
-        dtype_b = b.data_type if b
-        a = complete_eval(a, child_context)
-        b = complete_eval(b, child_context)
-        puts "name: #{tensor.given_name}"
-        puts "op: #{tensor.to_math(true, 1)}"
-        puts "A #{shape_a} #{dtype_a}: #{a}" if a
-        puts "B #{shape_b} #{dtype_b}: #{b}" if b
+        # shape_a = a.shape.shape if a
+        # shape_b = b.shape.shape if b
+        # dtype_a = a.data_type if a
+        # dtype_b = b.data_type if b
+        # a = complete_eval(a, child_context)
+        # b = complete_eval(b, child_context)
+        # puts "name: #{tensor.given_name}"
+        # puts "op: #{tensor.to_math(true, 1)}"
+        # puts "A #{shape_a} #{dtype_a}: #{a}" if a
+        # puts "B #{shape_b} #{dtype_b}: #{b}" if b
         dump_intermediates if @log_intermediates
+        # File.write('/home/jedld/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
       end
 

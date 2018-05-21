@@ -3,14 +3,13 @@ module TensorStream
   class Variable < Tensor
     attr_accessor :trainable, :options
     def initialize(data_type, rank, shape, options = {})
-      @graph = options[:graph] || TensorStream.get_default_graph
+      setup_initial_state(options)
+
       @options = {
-        
       }
       @data_type = data_type
       @rank = rank
       @value = nil
-      @source = format_source(caller_locations)
       @name = [TensorStream.get_variable_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @initalizer_tensor = options[:initializer] ? options[:initializer] : _variable_scope.initializer || TensorStream.glorot_uniform_initializer
       if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape

@@ -70,9 +70,9 @@ module TensorStream
           # add_x = _op(:sum, inputs[0], nil, axis: sy, keepdims: keep_dims_x)
           # add_y = _op(:sum, inputs[1], nil, axis: sx, keepdims: keep_dims_y)
           # _filtered_sum(add_x, add_y, wrt_dx)
-          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_add') }, options)
+          _grad_with_broadcast(grad, grad2, tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_add/add') }, name: 'grad_add/grad_with_broadcast')
         when :sub
-          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:sub, a, b, name: 'grad_sub') }, options)
+          _grad_with_broadcast(grad, grad2, tensor, wrt_dx, ->(a, b) { i_op(:sub, a, b, name: 'grad_add/sub') }, name: 'grad_sub/grad_with_broadcast')
         when :pow
           gx = _ds(tensor.items[1]) * (_ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
 
@@ -88,8 +88,8 @@ module TensorStream
           _reduce_when_necessary(gx + gy, wrt_dx)
         when :mul
           # apply the product rule
-          rx = _op(:shape, tensor.items[0])
-          ry = _op(:shape, tensor.items[1])
+          rx = _op(:shape, tensor.items[0], nil, name: 'mul/shape')
+          ry = _op(:shape, tensor.items[1], nil, name: 'mul/shape')
           sx, sy = _broadcast_gradient_args(rx, ry)
           inputs = _broadcast_transform(tensor.items[0], tensor.items[1])
           keep_dims_x = _op(:rank, inputs[0]) == _op(:rank, tensor.items[0])
@@ -110,36 +110,33 @@ module TensorStream
         when :stop_gradient
           return i_cons(0, constant_options)
         when :matmul
-          derivative_a = derivative(tensor.items[0], wrt_dx)
-          derivative_b = derivative(tensor.items[1], wrt_dx)
-
           s0 =  i_op(:shape, tensor.items[0])
           s1 =  i_op(:shape, tensor.items[1])
 
-          identity_0 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[0].data_type)
-          identity_1 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[1].data_type)
+          identity_0 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[0].data_type, name: 'matmul/identity0')
+          identity_1 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[1].data_type, name: 'matmul/identity1')
 
           matmul_da = i_op(:matmul, identity_0, tensor.items[1], transpose_b: true,
                                                                 pad_zeros: true,
-                                                                name:        'matrix_dx')
+                                                                name:        'matmul/matrix_dx')
           matmul_db = i_op(:matmul, tensor.items[0], identity_1, transpose_a: true,
                                                                 pad_zeros: true,
-                                                                name:        'matrix_dy')
+                                                                name:        'matmul/matrix_dy')
           # matmul_db = _op(:transpose, matmul_db, nil).first
 
           # begin_a = _op(:zeros, _op(:rank, matmul_db), nil, data_type: :int32, name: 'begin_a')
           # matmul_b_shape = _op(:shape, matmul_db)
           # end_a = [matmul_b_shape[0], 1]
 
-          matmul_da = i_op(:cond, matmul_da[0], matmul_da, pred: _op(:rank, derivative_a) > 0)
+          matmul_da = i_op(:cond, matmul_da[0], matmul_da, pred: _op(:rank, grad, nil, name: 'matmul/rank') > 0, name: 'matmul/cond')
 
           # matmul_da = _op(:cond, matmul_da[0], matmul_da, pred: _op(:rank, derivative_a) > 0)
-          norm_a = i_op(:mul, derivative_a, matmul_da, name: 'grad_a_norm_mul_da')
-          norm_b = i_op(:mul, derivative_b, matmul_db, name: 'grad_b_norm_mul_db')
+          norm_a = i_op(:mul, grad, matmul_da, name: 'matmul/grad_a_norm_mul_da')
+          norm_b = i_op(:mul, grad2, matmul_db, name: 'matmul/grad_b_norm_mul_db')
 
           # norm_a = i_op(:cond, norm_a[0], norm_a, pred: i_op(:rank, matmul_da) > i_op(:rank, derivative_a))
           # norm_b = i_op(:cond, norm_b[0], norm_b, pred: i_op(:rank, matmul_db) > i_op(:rank, derivative_b))
-          _filtered_sum(norm_a, norm_b, wrt_dx)
+          _filtered_sum(norm_a, norm_b, wrt_dx, name: 'matmul/filter_sum')
         else
           raise "no derivative implementation found for op #{tensor.operation}"
         end
@@ -165,13 +162,11 @@ module TensorStream
       end
     end
 
-    def self._grad_with_broadcast(tensor, wrt_dx, func, options)
-      grad = derivative(tensor.items[0], wrt_dx, options)
-      grad2 = derivative(tensor.items[1], wrt_dx, options)
-      elements1 = i_op(:prod, i_op(:shape, tensor.items[0]), data_type: :float32)
-      elements2 = i_op(:prod, i_op(:shape, tensor.items[1]), data_type: :float32)
-      multiplier = elements1 / elements2
-      _reduce_when_necessary(func.call(grad, grad2 * multiplier), wrt_dx)
+    def self._grad_with_broadcast(grad, grad2, tensor, wrt_dx, func, name: '_grad_with_broadcast')
+      elements1 = i_op(:prod, i_op(:shape, tensor.items[0]), data_type: :float32, name: "#{name}/prod")
+      elements2 = i_op(:prod, i_op(:shape, tensor.items[1]), data_type: :float32, name: "#{name}/prod")
+      multiplier = i_op(:div, elements1, elements2, name: "#{name}/div")
+      _reduce_when_necessary(func.call(grad, grad2 * multiplier), wrt_dx, name: "#{name}/reduce_when_necessary")
     end
 
     def self._include?(arr, obj)
@@ -179,11 +174,11 @@ module TensorStream
       false
     end
 
-    def self._reduce_when_necessary(tensor, wrt_dx)
-      rank = _op(:rank, tensor)
-      dx_rank = _op(:rank, wrt_dx)
-      reduced = _op(:sum, tensor, 0)
-      _op(:cond, ->{ reduced }, tensor, pred: rank > dx_rank)
+    def self._reduce_when_necessary(tensor, wrt_dx, name: 'reduce_when_necessary')
+      rank = _op(:rank, tensor, nil, name: "#{name}/rank")
+      dx_rank = _op(:rank, wrt_dx, nil, name: "#{name}/dx_rank")
+      reduced = _op(:sum, tensor, 0, name: "#{name}/sum")
+      _op(:cond, ->{ reduced }, tensor, pred: rank > dx_rank, name: "#{name}/cond")
     end
 
     def self._broadcast_gradient_args(input_a, input_b)
@@ -195,9 +190,9 @@ module TensorStream
     end
 
     # filter out zero arrays
-    def self._filtered_sum(input_a, input_b, wrt_dx)
-      zero_vect = _op(:zeros_like, wrt_dx)
-      (i_op(:cond, input_a, zero_vect, pred: i_op(:sum, input_a) != 0) + i_op(:cond, input_b, zero_vect, pred: i_op(:sum, input_b) != 0))
+    def self._filtered_sum(input_a, input_b, wrt_dx, name: nil)
+      zero_vect = _op(:zeros_like, wrt_dx, nil, name: name)
+      (i_op(:cond, input_a, zero_vect, pred: i_op(:sum, input_a) != 0, name: name) + i_op(:cond, input_b, zero_vect, name: name, pred: i_op(:sum, input_b) != 0))
     end
   end
 end

@@ -4,13 +4,12 @@ module TensorStream
     attr_accessor :ops
 
     def initialize(flow_type, items, ops = nil, options = {})
-      @graph = options[:graph] || TensorStream.get_default_graph
+      setup_initial_state(options)
 
       @operation = :"flow_#{flow_type}"
       @items = items
       @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
       @ops = ops
-      @source = format_source(caller_locations)
       @shape = TensorShape.new([items.size])
       @graph.add_node(self)
     end

@@ -32,16 +32,17 @@ module TensorStream
       arr_buf << "</y:ShapeNode>"
       arr_buf << "</data>"
       arr_buf << "</node>"
+
       to_graph_ml(tensor, arr_buf, {}, groups)
       #dump groups
       groups.each do |k, g|
         arr_buf << create_group(k, k, g)
       end
 
-      arr_buf << "<edge source=\"#{_gml_string(tensor.name)}\" target=\"out\"/>"
+      output_edge(tensor, "out", arr_buf)
       arr_buf << "</graph>"
       arr_buf << "</graphml>"
-      File.write(filename, arr_buf.flatten.join("\n"))
+      arr_buf.flatten.join("\n")
     end
 
     private
@@ -55,10 +56,9 @@ module TensorStream
       ptr = find_or_create_group(prefix, groups)
 
       Kernel.loop do
-        break if name_parts.size <= 1
         next_group = ptr[:group]
         ptr = find_or_create_group(prefix, next_group)
-
+        break if name_parts.size < 2
         prefix = name_parts.shift
       end
 
@@ -131,7 +131,7 @@ module TensorStream
       node_buf << "</node>"
 
       if !add_to_group(groups, tensor.name, node_buf)
-        !add_to_group(groups, "program_#{@name}", node_buf)
+        add_to_group(groups, "program/#{tensor.name}", node_buf)
       end
 
       tensor.items.each do |item|
@@ -158,13 +158,17 @@ module TensorStream
           item_buf << "</node>"
         elsif item.is_a?(Placeholder)
           item_buf << "<node id=\"#{_gml_string(item.name)}\">"
-          item_buf << "<data key=\"d0\">#{item.name}</data>"
-          item_buf << "<data key=\"d2\">yellow</data>"
+          item_buf << "<data key=\"d9\">"
+          item_buf << "<y:ShapeNode>"
+          item_buf << "  <y:Fill color=\"#FFCC00\" transparent=\"false\"/>"
+          item_buf << "  <y:NodeLabel alignment=\"center\">#{item.name}</y:NodeLabel>"
+          item_buf << "</y:ShapeNode>"
+          item_buf << "</data>"
           if @last_session_context[item.name]
             item_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
           end
           item_buf << "</node>"
-        else
+        elsif item.is_a?(Tensor)
           item_buf << "<node id=\"#{_gml_string(item.name)}\">"
           item_buf << "<data key=\"d0\">#{item.name}</data>"
           item_buf << "<data key=\"d2\">black</data>"
@@ -177,40 +181,59 @@ module TensorStream
             item_buf << "  <y:Fill color=\"#FFFFFF\" transparent=\"false\"/>"
           end
 
+
           item_buf << "  <y:NodeLabel alignment=\"center\">#{item.name}</y:NodeLabel>"
+
           item_buf << "</y:ShapeNode>"
           item_buf << "</data>"
           item_buf << "</node>"
         end
 
         if !add_to_group(groups, item.name, item_buf)
-          !add_to_group(groups, "program_#{@name}", item_buf)
+          if item.is_a?(Variable)
+            add_to_group(groups, "variable/#{item.name}", item_buf)
+          else
+            add_to_group(groups, "program/#{item.name}", item_buf)
+          end
         end
       end
 
       tensor.items.each_with_index do |item, index|
         next unless item
-        arr_buf << "<edge source=\"#{_gml_string(item.name)}\" target=\"#{_gml_string(tensor.name)}\">"
-        arr_buf << "<data key=\"d13\">"
-
-        arr_buf << "<y:PolyLineEdge>"
-        arr_buf << "<y:EdgeLabel >"
-        arr_buf << "<![CDATA[[  #{_val(item)}  ]]]>"
-        arr_buf << "</y:EdgeLabel >"
-        arr_buf << "<y:Arrows source=\"none\" target=\"standard\"/>"
-        if index == 0
-          arr_buf << "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
-        else
-          arr_buf << "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
-        end
-        arr_buf << "</y:PolyLineEdge>"
-        arr_buf << "</data>"
-        arr_buf << "</edge>"
+        output_edge(item, tensor, arr_buf, index)
       end
     end
 
     def _gml_string(str)
       str.gsub('/','-')
+    end
+
+    def output_edge(item, tensor, arr_buf, index = 0)
+      target_name = tensor.is_a?(Tensor) ? tensor.name : tensor
+      arr_buf << "<edge source=\"#{_gml_string(item.name)}\" target=\"#{_gml_string(target_name)}\">"
+      arr_buf << "<data key=\"d13\">"
+
+      arr_buf << "<y:PolyLineEdge>"
+      arr_buf << "<y:EdgeLabel >"
+      if !@last_session_context.empty?
+        arr_buf << "<![CDATA[  #{_val(item)}  ]]>"
+      else
+        if item.shape.shape.nil?
+          arr_buf << "<![CDATA[ #{item.data_type.to_s} ? ]]>"
+        else
+          arr_buf << "<![CDATA[ #{item.data_type.to_s} #{item.shape.shape.empty? ? 'scalar' : item.shape.shape.to_json}  ]]>"
+        end
+      end
+      arr_buf << "</y:EdgeLabel >"
+      arr_buf << "<y:Arrows source=\"none\" target=\"standard\"/>"
+      if index == 0
+        arr_buf << "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
+      else
+        arr_buf << "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
+      end
+      arr_buf << "</y:PolyLineEdge>"
+      arr_buf << "</data>"
+      arr_buf << "</edge>"
     end
   end
 end

@@ -19,6 +19,7 @@ require 'tensor_stream/control_flow'
 require 'tensor_stream/trainer'
 require 'tensor_stream/nn/nn_ops'
 require 'tensor_stream/evaluator/evaluator'
+require 'tensor_stream/math_gradients_forward'
 require 'tensor_stream/graph_serializers/serializer'
 require 'tensor_stream/graph_serializers/pbtext'
 require 'tensor_stream/graph_serializers/graphml'
@@ -153,8 +154,8 @@ module TensorStream
     end
   end
 
-  def self.group(inputs)
-    TensorStream::ControlFlow.new(:group, inputs)
+  def self.group(inputs, name: nil)
+    TensorStream::ControlFlow.new(:group, inputs, nil, name: name)
   end
 
   def self.get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil)
@@ -199,6 +200,6 @@ module TensorStream
     return input unless input.is_a?(Tensor)
     return input if input.data_type.nil?
 
-    raise "#{input.source}: Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.map(&:to_sym).include?(input.data_type)
+    raise "#{input.source}: Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.include?(input.data_type.to_sym)
   end
 end

@@ -60,6 +60,8 @@ module TensorStream
       end
 
       dim = (arr.size / s)
+      return arr if dim.zero?
+
       arr.each_slice(dim).collect do |slice|
         reshape(slice, new_shape.dup)
       end

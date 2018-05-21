@@ -76,7 +76,7 @@ RSpec.describe TensorStream::MathGradients do
     z_grad = tf.gradients(cz, [y, z])
     expect(tr(z_grad.eval)).to eq(
       [[[9.0 , 4.3, 8.1, 2.0 ],
-        [9.0 , 4.3, 8.1, 2.0 ]], 
+        [9.0 , 4.3, 8.1, 2.0 ]],
 
         [
           [4.0 , 4.0 ],
@@ -86,7 +86,7 @@ RSpec.describe TensorStream::MathGradients do
   end
 
   context "handle broadcasted args" do
-    it "automatically reduces broadcasted args (axis = 0)" do
+    xit "automatically reduces broadcasted args (axis = 0)" do
       a = tf.constant([
           [1.0, 2.0, 3.0, 4.0, 5.0],
           [0.1, 2.0, 1.1, 4.0, 5.0],
@@ -234,7 +234,7 @@ RSpec.describe TensorStream::MathGradients do
       expect(tr(biases_gradient2)).to eq([7.0, 7.0, 7.0, 7.0, 7.0])
      end
 
-     xit "computes for open ended shapes" do
+     it "computes for open ended shapes" do
       x = tf.constant([
           [1.0, 0.5, 4.0],
         ])

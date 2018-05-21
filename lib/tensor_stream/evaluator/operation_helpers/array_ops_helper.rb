@@ -96,5 +96,21 @@ module TensorStream
         s - reversed_b[index]
       end.reverse
     end
+
+    def tile_arr(input, dimen, multiples)
+      t = multiples[dimen]
+      if dimen == multiples.size - 1
+        return nil if t.zero?
+        input * t # ruby array dup
+      else
+        new_arr = input.collect do |sub|
+          tile_arr(sub, dimen + 1, multiples)
+        end.compact
+
+        return nil if new_arr.empty?
+
+        new_arr * t
+      end
+    end
   end
 end

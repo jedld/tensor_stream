@@ -62,12 +62,14 @@ module TensorStream
       raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
 
       node.name = if @nodes[node.name]
-        uniqunify(node.name)
-      else
-        node.name
-      end
+                    uniqunify(node.name)
+                  else
+                    node.name
+                  end
 
       @nodes[node.name] = node
+
+      node.send(:propagate_outputs)
       node.send(:propagate_consumer, node)
       node.value = node.eval if @eager_execution
     end
@@ -89,14 +91,12 @@ module TensorStream
       scope = _variable_scope
 
       raise "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !scope.reuse
-
       return @nodes[node.name] if @nodes[node.name]
-      
       raise "shape is not declared for #{node.name}" if node.shape.nil?
 
       if !options[:collections].nil? && !options[:collections].empty?
         options[:collections] = [options[:collections]] unless options[:collections].is_a?(Array)
-        options[:collections].each { |coll| add_to_collection(coll, node) } 
+        options[:collections].each { |coll| add_to_collection(coll, node) }
       end
 
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
