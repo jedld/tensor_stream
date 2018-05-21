@@ -14,7 +14,7 @@ RSpec.describe TensorStream::Graphml do
     tf.reset_default_graph
   end
 
-  it "saves a graph into graphml format" do
+  xit "saves a graph into graphml format" do
     # construct a graph
     a = tf.constant([[1.0, 1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 4.0]])
     b = tf.constant(2)

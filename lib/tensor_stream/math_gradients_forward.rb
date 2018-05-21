@@ -22,82 +22,31 @@ module TensorStream
     end
 
     def self._propagate(grad, tensor, stop_tensor, nodes_to_compute, stop_gradients = [])
-      return grad * i_op(:ones_like, grad) if stop_tensor.equal?(tensor)
-      return i_op(:zeros_like, grad) if stop_gradients && _include?(stop_gradients, tensor)
-      return i_op(:zeros_like, grad) unless tensor.is_a?(Operation)
+      return grad * i_op(:ones_like, stop_tensor) if stop_tensor.equal?(tensor)
+      return i_op(:zeros_like, stop_tensor) if stop_gradients && _include?(stop_gradients, tensor)
+      return i_op(:zeros_like, stop_tensor) unless tensor.is_a?(Operation)
 
-      computed_op = if tensor.operation == :matmul
-                      s0 =  i_op(:shape, tensor)
-                      s1 =  i_op(:shape, grad)
-                      identity_0 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.data_type, name: 'matmul/identity0')
-                      dx, dy = _compute_derivative(tensor, identity_0)
-                      [tf.mul(dx, grad), tf.mul(dy, grad)]
-                    elsif _op_supports_broadcast?(tensor)
+      computed_op = if _op_supports_broadcast?(tensor)
                       _compute_derivative(tensor, _broadcast_transform(tensor, grad)[1])
                     else
                       _compute_derivative(tensor, grad)
                     end
 
       if computed_op.is_a?(Array)
-        grad_sum = i_op(:zeros_like, grad)
+        grad_sum = i_op(:zeros_like, stop_tensor)
         computed_op.each_with_index do |op_grad, index|
           next if op_grad.nil?
 
           if nodes_to_compute.include?(tensor.items[index].name)
-            grad_sum += _propagate(op_grad, tensor.items[index], stop_tensor, nodes_to_compute, stop_gradients)
+            grad_sum = tf.add(grad_sum, _propagate(op_grad, tensor.items[index], stop_tensor, nodes_to_compute, stop_gradients), name: 'merge_gradients')
           end
         end
 
         grad_sum
       else
+        return tf.zeros_like(stop_tensor) if computed_op.nil?
         _propagate(computed_op, tensor.items[0], stop_tensor, nodes_to_compute, stop_gradients)
       end
-    end
-
-    def self._forward_propagate(grad, tensor, stop_tensor, nodes_to_compute)
-      grad_sum = i_op(:zeros_like, grad)
-
-      tensor.outputs.each do |output|
-        next unless nodes_to_compute.include?(output)
-
-        node = tensor.graph.nodes[output]
-
-        computed_op = if node.operation == :matmul
-          s0 =  i_op(:shape, node)
-          s1 =  i_op(:shape, grad)
-          identity_0 = i_op(:ones, [s0[0], s1[1]], nil, data_type: node.data_type, name: 'matmul/identity0')
-          dx, dy = _compute_derivative(node, identity_0)
-          [tf.mul(dx, grad), tf.mul(dy, grad)]
-        elsif _op_supports_broadcast?(node)
-          _compute_derivative(node, _broadcast_transform(node, grad)[1])
-        else
-          _compute_derivative(node, grad)
-        end
-
-        next_op = if computed_op.is_a?(Array)
-                    grads_input0, grads_input1 = computed_op
-
-                    if node.items[0] && node.items[1] && node.items[0].name == tensor.name &&
-                        node.items[1].name == tensor.name &&
-                          grads_input0 && grads_input1
-                      tf.add(grads_input0, grads_input1, name: 'grad_merge')
-                    elsif node.items[0].name == tensor.name
-                      grads_input0
-                    else
-                      grads_input1
-                    end
-                  else
-                    computed_op
-                  end
-
-        grad_sum +=if stop_tensor.equal?(node)
-          next_op
-        else
-          _forward_propagate(next_op, node, stop_tensor, nodes_to_compute)
-        end
-      end
-
-      grad_sum
     end
 
     def self._compute_derivative(node, grad)
@@ -111,45 +60,55 @@ module TensorStream
         sy = tf.shape(y, name: 'add/shape_y')
         rx, ry = _broadcast_gradient_args(sx, sy)
 
-        [tf.reshape(tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x'), sx, name: 'add/reshape_x'),
-         tf.reshape(tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y'), sy, name: 'add/reshape_y')]
+        [tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x'),
+         tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y')]
       when :sub
         sx = tf.shape(x, name: 'sub/shape_x')
         sy = tf.shape(y, name: 'sub/shape_y')
         rx, ry = _broadcast_gradient_args(sx, sy)
-        [tf.reshape(tf.reduce_sum(grad, rx), sx), -tf.reshape(tf.reduce_sum(grad, ry), sy)]
+        [tf.reduce_sum(grad, rx), -tf.reduce_sum(grad, ry)]
       when :mul
         sx = tf.shape(x)
         sy = tf.shape(y)
         rx, ry = _broadcast_gradient_args(sx, sy)
 
-        [ tf.reshape(tf.reduce_sum(tf.mul(grad, y), rx), sx),
-          tf.reshape(tf.reduce_sum(tf.mul(x, grad), ry), sy)]
+        [ tf.reduce_sum(tf.mul(grad, y), rx),
+          tf.reduce_sum(tf.mul(x, grad), ry)]
       when :div
         sx = i_op(:shape, x)
         sy = i_op(:shape, y)
         rx, ry = _broadcast_gradient_args(sx, sy)
 
-        [tf.reshape(tf.reduce_sum(tf.div(grad, y), rx), sx),
-         tf.reshape(tf.reduce_sum(grad * tf.div(tf.div(-x, y), y),
-                                ry), sy)]
+        [tf.reduce_sum(tf.div(grad, y), rx),
+         tf.reduce_sum(grad * tf.div(tf.div(-x, y), y),
+                                ry)]
       when :matmul
         t_a = node.options[:transpose_a]
         t_b = node.options[:transpose_b]
+
+        s0 =  tf.shape(x)
+        s1 =  tf.shape(y)
+
+        identity_0 = tf.ones([ s0[0], s1[1] ], dtype: x.data_type, name: 'matmul/identity0')
+        identity_1 = tf.ones([ s0[0], s1[1] ], dtype: y.data_type, name: 'matmul/identity1')
+
         grad_a, grad_b = nil
         if !t_a && !t_b
-          grad_a = tf.matmul(grad, y, transpose_b: true)
-          grad_b = tf.matmul(x, grad, transpose_a: true)
+          grad_a = tf.matmul(identity_0, y, transpose_b: true)
+          grad_b = tf.matmul(x, identity_1, transpose_a: true)
         elsif !ta && tb
-          grad_a = tf.matmul(grad, y)
-          grad_b = tf.matmul(grad, x, transpose_a: true)
+          grad_a = tf.matmul(identity_0, y)
+          grad_b = tf.matmul(identity_1, x, transpose_a: true)
         elsif t_a && !t_b
-          grad_a = tf.matmul(y, grad, transpose_b: true)
-          grad_b = tf.matmul(x, grad)
+          grad_a = tf.matmul(y, identity_0, transpose_b: true)
+          grad_b = tf.matmul(x, identity_1)
         elsif t_a && t_b
-          grad_a = tf.matmul(y, grad, transpose_a: true, transpose_b: true)
-          grad_b = tf.matmul(grad, x, transpose_a: true, transpose_b: true)
+          grad_a = tf.matmul(y, identity_0, transpose_a: true, transpose_b: true)
+          grad_b = tf.matmul(identity_1, x, transpose_a: true, transpose_b: true)
         end
+
+        grad_a = i_op(:mul, grad, grad_a, name: 'matmul/grad_a_norm_mul_da')
+        grad_b = i_op(:mul, grad, grad_b, name: 'matmul/grad_b_norm_mul_db')
 
         [grad_a, grad_b]
       when :sin
@@ -215,8 +174,13 @@ module TensorStream
         output_shape = tf.shape(node)
         factor = _safe_shape_div(tf.reduce_prod(input_shape), tf.reduce_prod(output_shape))
         tf.div(sum_grad, tf.cast(factor, sum_grad.data_type))
+      when :log1p
+        grad * tf.reciprocal(i_cons(1, data_type: grad.data_type) + x)
+      when :zeros_like
+        #non differentiable
+        nil
       else
-        raise "no derivative op for #{node}"
+        raise "no derivative op for #{node.operation}"
       end
     end
 
