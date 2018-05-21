@@ -52,7 +52,7 @@ module TensorStream
     end
 
     # handle 2 tensor math operations
-    def vector_op(vector, vector2, op = ->(a, b) { a + b }, switch = false)
+    def vector_op(vector, vector2, op = ->(a, b) { a + b }, switch = false, safe = true)
       if get_rank(vector) < get_rank(vector2) # upgrade rank of A
         duplicated = Array.new(vector2.size) do
           vector
@@ -64,6 +64,10 @@ module TensorStream
 
       vector.each_with_index.collect do |item, index|
         next vector_op(item, vector2, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
+
+        if safe && vector2.is_a?(Array)
+          break if vector2.size != 1 && index >= vector2.size
+        end
 
         z = if vector2.is_a?(Array)
               if index < vector2.size
