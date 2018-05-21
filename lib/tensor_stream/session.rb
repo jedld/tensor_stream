@@ -10,6 +10,7 @@ module TensorStream
       @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
       @thread_pool = thread_pool_class.new
       @closed = false
+      @session_cache = {}
       @randomizer = {}
     end
 
@@ -23,7 +24,9 @@ module TensorStream
                 else
                   {}
                 end
-      context = {}
+      context = {
+        _cache: @session_cache
+      }
 
       # scan for placeholders and assign value
       if options[:feed_dict]

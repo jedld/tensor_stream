@@ -347,7 +347,15 @@ module TensorStream
             func.call
           else
             shape = [shape.to_i] unless shape.is_a?(Array)
-            generate_vector(shape, generator: func)
+
+            cache_key = "#{tensor.operation}_#{shape.to_s}"
+            if @context[:_cache].key?(cache_key)
+              return @context[:_cache][cache_key]
+            else
+              generate_vector(shape, generator: func).tap do |v|
+                @context[:_cache][cache_key] = v
+              end
+            end
           end
         when :shape
           input = complete_eval(a, child_context)
