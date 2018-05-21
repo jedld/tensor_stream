@@ -126,7 +126,7 @@ RSpec.describe TensorStream::MathGradientsForward do
       end
     end
 
-    xit "computes for open ended shapes" do
+    it "computes for open ended shapes" do
       x = tf.constant([
           [1.0, 0.5, 4.0],
         ])

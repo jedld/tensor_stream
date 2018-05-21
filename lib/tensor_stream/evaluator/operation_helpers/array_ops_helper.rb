@@ -66,7 +66,7 @@ module TensorStream
         next vector_op(item, vector2, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
 
         if safe && vector2.is_a?(Array)
-          break if vector2.size != 1 && index >= vector2.size
+          next nil if vector2.size != 1 && index >= vector2.size
         end
 
         z = if vector2.is_a?(Array)
@@ -85,7 +85,7 @@ module TensorStream
         else
           switch ? op.call(z, item) : op.call(item, z)
         end
-      end
+      end.compact
     end
 
     def shape_diff(shape_a, shape_b)

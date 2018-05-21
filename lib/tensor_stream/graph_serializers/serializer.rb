@@ -4,7 +4,7 @@ module TensorStream
     end
 
     def serialize(filename, tensor, session = nil)
-      File.write(filename, get_string(session, tensor.graph))
+      File.write(filename, get_string(tensor, session))
     end
 
     def get_string(tensor, session = nil)

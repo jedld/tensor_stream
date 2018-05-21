@@ -86,7 +86,7 @@ RSpec.describe TensorStream::MathGradients do
   end
 
   context "handle broadcasted args" do
-    xit "automatically reduces broadcasted args (axis = 0)" do
+    it "automatically reduces broadcasted args (axis = 0)" do
       a = tf.constant([
           [1.0, 2.0, 3.0, 4.0, 5.0],
           [0.1, 2.0, 1.1, 4.0, 5.0],
@@ -126,7 +126,7 @@ RSpec.describe TensorStream::MathGradients do
       )
     end
 
-    specify "when columns don't match" do
+    xspecify "when columns don't match" do
       a = tf.constant([
         [1.0, 2.0, 0.3],
         [0.4, 4.1, 0.1],

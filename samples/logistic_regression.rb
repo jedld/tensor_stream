@@ -68,7 +68,7 @@ loss_trace = []
 train_acc = []
 test_acc = []
 
-TensorStream::Graphml.new.serialize(nil, loss, '/tmp/logistic_regression.graphml')
+TensorStream::Graphml.new.serialize('/tmp/logistic_regression.graphml', loss)
 
 (0..iter_num).each do |epoch|
   batch_train_X = train_x
