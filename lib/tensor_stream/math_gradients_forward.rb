@@ -132,7 +132,7 @@ module TensorStream
       when :log
         grad * tf.reciprocal(x)
       when :tanh
-        i_op(:tanh_grad, y, grad)
+        i_op(:tanh_grad, x) * grad
       when :cos
         -grad * tf.sin(x)
       when :max

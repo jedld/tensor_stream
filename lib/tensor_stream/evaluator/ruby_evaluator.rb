@@ -262,9 +262,7 @@ module TensorStream
           reduction(child_context, tensor, func)
         when :tanh_grad
           x = complete_eval(a, child_context)
-          grad = complete_eval(b, child_context)
-
-          call_vector_op(:add, x, grad, child_context, ->(t, u) { u * (1 - Math.tanh(t) * Math.tanh(t)) })
+          call_op(:tanh_grad, x, child_context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
         when :prod
           c = fp_type?(tensor.data_type) ? 1.0 : 1
           func = lambda do |arr|
@@ -485,7 +483,7 @@ module TensorStream
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
         # puts "B #{shape_b} #{dtype_b}: #{b}" if b
         # dump_intermediates if @log_intermediates
-        # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
+        File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
       end
 

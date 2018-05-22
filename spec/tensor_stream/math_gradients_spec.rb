@@ -264,7 +264,10 @@ RSpec.describe TensorStream::MathGradients do
       a3 = tf.tanh(tf.matmul(a2, w3) + b3)
 
       g = tf.gradients(a3, [w, b])
-      expect(sess.run(g, log_intermediates: true)).to eq(
+      s = sess.run(g, log_intermediates: true)
+      # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(g, @session))
+        
+      expect(s).to eq(
         [
           [[-0.07124099, -0.10610479],
            [-0.0356205 , -0.0530524 ],
