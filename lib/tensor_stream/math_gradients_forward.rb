@@ -114,7 +114,7 @@ module TensorStream
       when :sin
         grad * tf.cos(x)
       when :tanh
-        i_op(:tanh_grad, x, grad)
+        grad * i_op(:tanh_grad, x)
       when :pow
         z = node
         sx = tf.shape(x)
