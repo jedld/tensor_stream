@@ -250,45 +250,30 @@ RSpec.describe TensorStream::MathGradients do
         [0.15, 0.45],
       ])
 
-      w3 = tf.constant([
-        [0.1, 0.1, 1.0, 1.1, 0.4],
-        [0.05, 0.2, 1.0, 1.2, 0.5],
-      ])
-
       b= tf.constant([4.0, 5.0])
       b2= tf.constant([4.1, 5.1])
-      b3 = tf.constant([2.0, 3.1, 1.0, 0.2, 0.2])
 
       a = tf.sin(tf.matmul(x, w) + b)
       a2 = tf.sin(tf.matmul(a, w2) + b2)
-      a3 = tf.tanh(tf.matmul(a2, w3) + b3)
 
-      g1 = tf.gradients(a, [w, b])
-      g0 = tf.gradients(a2, [w, b])
-      g = tf.gradients(a3, [w, b])
-      s = sess.run(g, log_intermediates: true)
+      g0 = tf.gradients(a2, [ b])
       s2 = sess.run(g0)
-      s3 = sess.run(g1)
-      # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(g, @session))
-      expect(tr(s3)).to eq([[[0.5121, -0.844], [0.256, -0.422], [2.0483, -3.3759]], [0.5121, -0.844]])
 
-      expect(s2).to eq([
+      File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(g0, sess))
+ 
+      expect(s2).to eq(
         [
-          [-0.06387595, -0.07775851],
-          [-0.03193798, -0.03887925],
-          [-0.2555038 , -0.31103402]],
-        
           [-0.06387595, -0.07775851]
-      ])
-
-      expect(s).to eq(
-        [
-          [[-0.07124099, -0.10610479],
-           [-0.0356205 , -0.0530524 ],
-           [-0.28496397, -0.42441916]],
-
-           [-0.07124099, -0.10610479]
         ])
+
+      # expect(s).to eq(
+      #   [
+      #     [[-0.07124099, -0.10610479],
+      #      [-0.0356205 , -0.0530524 ],
+      #      [-0.28496397, -0.42441916]],
+
+      #      [-0.07124099, -0.10610479]
+      #   ])
 
      end
   end
