@@ -263,10 +263,24 @@ RSpec.describe TensorStream::MathGradients do
       a2 = tf.sin(tf.matmul(a, w2) + b2)
       a3 = tf.tanh(tf.matmul(a2, w3) + b3)
 
+      g1 = tf.gradients(a, [w, b])
+      g0 = tf.gradients(a2, [w, b])
       g = tf.gradients(a3, [w, b])
       s = sess.run(g, log_intermediates: true)
+      s2 = sess.run(g0)
+      s3 = sess.run(g1)
       # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(g, @session))
+      expect(tr(s3)).to eq([[[0.5121, -0.844], [0.256, -0.422], [2.0483, -3.3759]], [0.5121, -0.844]])
+
+      expect(s2).to eq([
+        [
+          [-0.06387595, -0.07775851],
+          [-0.03193798, -0.03887925],
+          [-0.2555038 , -0.31103402]],
         
+          [-0.06387595, -0.07775851]
+      ])
+
       expect(s).to eq(
         [
           [[-0.07124099, -0.10610479],
