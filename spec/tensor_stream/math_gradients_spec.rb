@@ -147,6 +147,17 @@ RSpec.describe TensorStream::MathGradients do
     end
   end
 
+  context "multivariate chain rule (scalar)" do
+    it "supports chains of functions" do
+      a = tf.constant(1.0)
+      b = tf.constant(2.1)
+      y = tf.pow(a, 2) + b
+      z = tf.sin(y)
+      g = tf.gradients(z, [a, b])
+      expect(tr(sess.run(g))).to eq([-1.9983, -0.9991])
+    end
+  end
+
   context "placeholders" do
     let(:test_inputs) {
       [
@@ -253,18 +264,26 @@ RSpec.describe TensorStream::MathGradients do
       b= tf.constant([4.0, 5.0])
       b2= tf.constant([4.1, 5.1])
 
-      a = tf.sin(tf.matmul(x, w) + b)
-      a2 = tf.sin(tf.matmul(a, w2) + b2)
+      matmul_layer_1 = tf.matmul(x, w)
+      a = tf.sin(matmul_layer_1 + b)
+      matmul_layer_2 = tf.matmul(a, w2)
+      matmul_layer_2_add = matmul_layer_2 + b2
 
-      g0 = tf.gradients(a2, [ b])
-      s2 = sess.run(g0)
+      a2 = tf.sin(matmul_layer_2_add)
 
-      File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(g0, sess))
- 
-      expect(s2).to eq(
-        [
-          [-0.06387595, -0.07775851]
-        ])
+      g_matmul_layer_1 = tf.gradients(matmul_layer_1, [x, w])
+      g_sin_a = tf.gradients(a, [b])
+      g_matmul_layer_2 = tf.gradients(matmul_layer_2, [b])
+      g_matmul_layer_2_add = tf.gradients(matmul_layer_2_add, [b])
+
+      g2 = tf.gradients(a2, [ b])
+
+      
+
+      # expect(tr(s4)).to eq([[0.5121, -0.844]])
+      # expect(tr(s1)).to eq([[0.256, -0.5064]])
+      # expect(tr(s2)).to eq([[0.256, -0.5064]])
+      expect(sess.run(g2)).to eq([[-0.06387595, -0.07775851]])
 
       # expect(s).to eq(
       #   [

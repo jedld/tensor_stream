@@ -55,6 +55,7 @@ module TensorStream
 
       case node.operation
       when :add
+        return [grad, grad] if _shapes_fully_specified_and_equal(x, y)
 
         sx = tf.shape(x, name: 'add/shape_x')
         sy = tf.shape(y, name: 'add/shape_y')
@@ -63,6 +64,8 @@ module TensorStream
         [tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x'),
          tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y')]
       when :sub
+        return [grad, -grad] if _shapes_fully_specified_and_equal(x, y)
+
         sx = tf.shape(x, name: 'sub/shape_x')
         sy = tf.shape(y, name: 'sub/shape_y')
         rx, ry = _broadcast_gradient_args(sx, sy)
@@ -215,6 +218,21 @@ module TensorStream
     def self._include?(arr, obj)
       arr.each { |a| return true if a.equal?(obj) }
       false
+    end
+
+    def self._shapes_fully_specified_and_equal(x, y)
+     return false if !_shape_full_specified(x) || !_shape_full_specified(y)
+     return false if x.shape.shape != y.shape.shape
+     
+     true
+    end
+
+    def self._shape_full_specified(tensor)
+      return false if tensor.shape.nil?
+      return false if tensor.shape.shape.nil?
+
+      tensor.shape.shape.each { |s| return false if s.nil? }
+      true
     end
   end
 end
