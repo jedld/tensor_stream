@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:y="http://www.yworks.com/xml/graphml"
+      xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+<key id="d0" for="node" attr.name="label" attr.type="string"/>
+<key id="d1" for="node" attr.name="formula" attr.type="string"/>
+<key id="d2" for="node" attr.name="color" attr.type="string"/>
+<key id="d3" for="node" attr.name="value" attr.type="string"/>
+<key attr.name="description" attr.type="string" for="edge" id="d12"/>
+<key for="edge" id="d13" yfiles.type="edgegraphics"/>
+<key for="node" id="d9" yfiles.type="nodegraphics"/>
+<graph id="g_reshape:0" edgedefault="directed">
+<node id="out">
+<data key="d0">out</data>
+<data key="d2">red</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FF0000" transparent="false"/>
+  <y:NodeLabel alignment="center">out</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<edge source="Const:3" target="reshape:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]], [[5, 5, 5], [6, 6, 6]]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="Const_1:1" target="reshape:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [3, 2, 2]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<node id="program" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">program</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="program" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">program</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="reshape:0">
+<data key="d0">reshape</data>
+<data key="d1">
+ reshape(Const:3,Const_1:1)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">reshape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="Const:3">
+<data key="d0">Const:3</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">Const:3</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="Const_1:1">
+<data key="d0">Const_1:1</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">Const_1:1</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+<edge source="reshape:0" target="out">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[    ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+</graph>
+</graphml>

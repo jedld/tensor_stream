@@ -1,6 +1,7 @@
+# Model based on https://www.kaggle.com/autuanliuyc/logistic-regression-with-tensorflow
+
 require "bundler/setup"
 require 'tensor_stream'
-require 'pry-byebug'
 
 tf = TensorStream
 
@@ -72,5 +73,11 @@ test_acc = []
   batch_train_X = train_x
   batch_train_y = [train_y].transpose
   sess.run(goal, feed_dict: { data => batch_train_X, target => batch_train_y })
-  temp_loss = sess.run(loss, feed_dict: {data => batch_train_X, target => batch_train_y})
+
+  if epoch % 50 == 0
+    temp_loss = sess.run(loss, feed_dict: {data => batch_train_X, target => batch_train_y})
+    temp_train_acc = sess.run(accuracy, feed_dict: { data => batch_train_X, target => batch_train_y})
+    temp_test_acc = sess.run(accuracy, feed_dict: {data => test_x, target => [test_y].transpose})
+    puts "epoch #{epoch}, loss #{temp_loss} train acc: #{temp_train_acc}, test acc: #{temp_test_acc}"
+  end
 end

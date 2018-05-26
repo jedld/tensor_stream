@@ -1,13 +1,16 @@
 module TensorStream
   #  TensorStream class that defines a session
   class Session
+    include StringHelper
+
     attr_reader :last_session_context, :closed, :target
     attr_accessor :randomizer
-  
+
     def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
       @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
       @thread_pool = thread_pool_class.new
       @closed = false
+      @session_cache = {}
       @randomizer = {}
     end
 
@@ -21,7 +24,9 @@ module TensorStream
                 else
                   {}
                 end
-      context = {}
+      context = {
+        _cache: @session_cache
+      }
 
       # scan for placeholders and assign value
       if options[:feed_dict]
@@ -70,17 +75,6 @@ module TensorStream
 
     def graph_ml(tensor, filename)
       TensorStream::Graphml.new(self).serialize(tensor, filename)
-    end
-
-    private
-
-    def camelize(string, uppercase_first_letter = true)
-      string = if uppercase_first_letter
-                 string.sub(/^[a-z\d]*/) { $&.capitalize }
-               else
-                 string.sub(/^(?:(?=\b|[A-Z_])|\w)/) { $&.downcase }
-               end
-      string.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }.gsub('/', '::')
     end
   end
 end

@@ -1,6 +1,27 @@
 module TensorStream
   # varoius utility functions for array processing
   module ArrayOpsHelper
+    def slice_tensor(input, start, size)
+      start_index = start.shift
+      dimen_size = start_index + size.shift
+
+      input[start_index...dimen_size].collect do |item|
+        if item.is_a?(Array)
+          slice_tensor(item, start.dup, size.dup)
+        else
+          item
+        end
+      end
+    end
+
+    def truncate(input, target_shape)
+      rank = get_rank(input)
+      return input if rank.zero?
+
+      start = Array.new(rank) { 0 }
+      slice_tensor(input, start, target_shape)
+    end
+
     def broadcast(input_a, input_b)
       sa = shape_eval(input_a)
       sb = shape_eval(input_b)
@@ -24,7 +45,7 @@ module TensorStream
         input_b = broadcast_dimensions(input_b, target_shape)
       else
         target_shape = shape_diff(sb, sa)
-        raise "Incompatible shapes for op #{shape_eval(input_a)} vs #{shape_eval(input_a)}" if target_shape.nil?
+        raise "Incompatible shapes for op #{shape_eval(input_a)} vs #{shape_eval(input_b)}" if target_shape.nil?
 
         input_a = broadcast_dimensions(input_a, target_shape)
       end
@@ -52,7 +73,7 @@ module TensorStream
     end
 
     # handle 2 tensor math operations
-    def vector_op(vector, vector2, op = ->(a, b) { a + b }, switch = false)
+    def vector_op(vector, vector2, op = ->(a, b) { a + b }, switch = false, safe = true)
       if get_rank(vector) < get_rank(vector2) # upgrade rank of A
         duplicated = Array.new(vector2.size) do
           vector
@@ -64,6 +85,10 @@ module TensorStream
 
       vector.each_with_index.collect do |item, index|
         next vector_op(item, vector2, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
+
+        if safe && vector2.is_a?(Array)
+          next nil if vector2.size != 1 && index >= vector2.size
+        end
 
         z = if vector2.is_a?(Array)
               if index < vector2.size
@@ -81,7 +106,7 @@ module TensorStream
         else
           switch ? op.call(z, item) : op.call(item, z)
         end
-      end
+      end.compact
     end
 
     def shape_diff(shape_a, shape_b)
@@ -95,6 +120,22 @@ module TensorStream
         return nil if reversed_b[index] > s
         s - reversed_b[index]
       end.reverse
+    end
+
+    def tile_arr(input, dimen, multiples)
+      t = multiples[dimen]
+      if dimen == multiples.size - 1
+        return nil if t.zero?
+        input * t # ruby array dup
+      else
+        new_arr = input.collect do |sub|
+          tile_arr(sub, dimen + 1, multiples)
+        end.compact
+
+        return nil if new_arr.empty?
+
+        new_arr * t
+      end
     end
   end
 end

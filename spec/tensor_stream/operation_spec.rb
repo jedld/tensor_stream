@@ -58,6 +58,9 @@ RSpec.describe TensorStream::Operation do
     it "reshape to scalar" do
       t = [7]
       expect(tf.reshape(t, []).eval).to eq(7)
+
+      t = 7
+      expect(tf.reshape(t, []).eval).to eq(7)
     end
 
     it "flattens a tensor" do
@@ -580,7 +583,8 @@ RSpec.describe TensorStream::Operation do
   [:identity, 0.1, [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
   [:abs, 0.1,      [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
   [:sqrt, 0.3162,  [[1.0488, 4.0125], [1.4491, 1.7321]],   1.5811, [[0.4767, 0.1246], [0.345, 0.2887]]                       ],
-  [:reciprocal, 10.0, [[0.9091, 0.0621], [0.4762, 0.3333]], -100,  [[-0.8264, -0.0039], [-0.2268, -0.1111]]                         ]
+  [:reciprocal, 10.0, [[0.9091, 0.0621], [0.4762, 0.3333]], -100,  [[-0.8264, -0.0039], [-0.2268, -0.1111]]                         ],
+  [:sigmoid, 0.525, [[0.7503, 1.0], [0.8909, 0.9526]], 0.2494, [[0.1874, 0.0], [0.0972, 0.0452]]]
 ].each do |func, scalar, matrix, gradient, gradient2|
   context ".#{func}" do
     let(:x) { tf.constant(0.1) }
@@ -655,7 +659,7 @@ end
     specify "gradients" do
       a = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
       b = tf.constant([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0], [10.0, 11.0, 12.0]])
-      
+
       y = tf.matmul(a, tf.sin(b))
 
       expect(tr(y.eval)).to eq([[-2.0631, -4.0106, -2.2707], [-3.3563, -7.0425, -4.2538]])
@@ -864,6 +868,15 @@ end
       c = a * b
       expect(c.eval).to eq([[14.0, 14.0, 14.0, 14.0, 14.0], [7.0, 7.0, 7.0, 7.0, 7.0]])
     end
+
+    specify "broadcasting" do
+      a = tf.constant([[1.0, 1.1], [2.0, 1.0], [1.0, 1.1]])
+      b = tf.constant([[1.2], [1.1], [0.2]])
+      f = a * b
+      expect(tr(f.eval)).to eq([[1.2, 1.32], [2.2, 1.1], [0.2, 0.22]])
+      f = b * a
+      expect(f.eval).to eq([[1.2, 1.32], [2.2, 1.1], [0.2, 0.22000000000000003]])
+    end
   end
 
   context ".reduce_mean" do
@@ -911,6 +924,17 @@ end
     end
   end
 
+  context ".tile" do
+    it "Constructs a tensor by tiling a given tensor." do
+      a = tf.constant([[1, 2, 3, 4], [1, 2, 3, 4]])
+      expect(tf.tile(a,[1, 0]).eval).to eq([])
+      expect(tf.tile(a,[0, 1]).eval).to eq([])
+      expect(tf.tile(a,[1, 1]).eval).to eq([[1, 2, 3, 4], [1, 2, 3, 4]])
+      expect(tf.tile(a,[2, 1]).eval).to eq([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+      expect(tf.tile(a,[1, 2]).eval).to eq([[1, 2, 3, 4, 1, 2, 3, 4], [1, 2, 3, 4, 1, 2, 3, 4]])
+    end
+  end
+
   context ".sub" do
     let(:a) { tf.constant([1.0, 2.0, 3.0])}
     let(:b) { tf.constant([0.1, 0.2, 0.3])}
@@ -927,6 +951,10 @@ end
 
     it "substracts a matrix and an array" do
       expect((m - a).eval).to eq([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [4.0, 4.0, 4.0], [7.0, 7.0, 7.0]])
+    end
+
+    specify "gradients" do
+      expect(tf.gradients(a - b, [a,b]).eval).to eq([[1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]])
     end
   end
 

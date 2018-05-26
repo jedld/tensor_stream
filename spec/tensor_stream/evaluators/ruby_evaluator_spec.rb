@@ -78,6 +78,13 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   end
 
   context "private ops" do
+    context ".reduced_shape" do
+      it "returns the output shape of a tensor after reduction assuing keepdims= true" do
+        input = tf.constant([[2,3],[3,4]])
+        expect(_op(:reduced_shape, tf.shape(input), 0).eval).to eq([1, 2])
+      end
+    end
+
     context ".get_broadcasted_array_args" do
       it "returns axis to be used for reduction a.rank > b.rank" do
         a = _op(:shape, tf.constant([[1,1],[1,1]]))

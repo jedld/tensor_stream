@@ -1,54 +1,121 @@
 module TensorStream
-  class Pbtext
-    def initialize
-    end
+  class Pbtext < TensorStream::Serializer
+    include TensorStream::StringHelper
+    include TensorStream::OpHelper
 
-    def serialize(session, filename, tensor)
-    end
-
-    def get_string(graph)
+    def get_string(tensor_or_graph, session = nil)
+      graph = tensor_or_graph.is_a?(Tensor) ? tensor_or_graph.graph : tensor_or_graph
       @lines = []
       graph.nodes.each do |k, node|
         @lines << "node {"
         @lines << "  name: #{node.name.to_json}"
         if node.is_a?(TensorStream::Operation)
-          @lines << "  op: #{node.operation.to_json}"
+          @lines << "  op: #{camelize(node.operation.to_s).to_json}"
           node.items.each do |input|
             next unless input
             @lines << "  input: #{input.name.to_json}"
           end
           # type
-          pb_attr('T', sym_to_protobuf_type(node.data_type))
+          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
+          process_options(node)
         elsif node.is_a?(TensorStream::Tensor) && node.is_const
           @lines << "  op: \"Const\""
           # type
-          pb_attr('T', sym_to_protobuf_type(node.data_type))
+          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
           pb_attr('value', tensor_value(node))
+        elsif node.is_a?(TensorStream::Variable)
+          @lines << "  op: \"VariableV2\""
+          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
+          pb_attr('shape', shape_buf(node, 'shape'))
+          process_options(node)
         end
         @lines << "}"
       end
-      @lines.join("\n")
+      @lines << "versions {"
+      @lines << "  producer: 26"
+      @lines << "}"
+      @lines.flatten.join("\n")
     end
 
     private
 
+    def process_options(node)
+      node.options.each do |k, v|
+        next if %w[name].include?(k.to_s)
+        @lines << "  attr {"
+        @lines << "    key: \"#{k}\""
+        @lines << "    value {"
+        @lines << "    }"
+        @lines << "  }"
+      end
+    end
+
+    def pack_arr_float(float_arr)
+      float_arr.flatten.pack('f*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
+    end
+
+    def pack_arr_int(int_arr)
+      int_arr.flatten.pack('l*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
+    end
+  
+    def shape_buf(tensor, shape_type = 'tensor_shape')
+      arr = []
+      arr << "  #{shape_type} {"
+      tensor.shape.shape.each do |dim|
+        arr << "    dim {"
+        arr << "      size: #{dim}"
+        arr << "    }"
+      end if tensor.shape.shape
+      arr << "  }"
+      arr
+    end
     def tensor_value(tensor)
       arr = []
       arr << "tensor {"
       arr << "  dtype: #{sym_to_protobuf_type(tensor.data_type)}"
-      arr << "  float_val: #{tensor.value}"
+
+      arr += shape_buf(tensor)
+
+      if tensor.rank > 0
+        if TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
+          packed = pack_arr_float(tensor.value)
+          arr << "  tensor_content: \"#{packed}\""
+        elsif TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
+          packed = pack_arr_int(tensor.value)
+          arr << "  tensor_content: \"#{packed}\""
+        elsif tensor.data_type == :string
+          tensor.value.each do |v|
+            arr << "  string_val: #{v.to_json}"
+          end
+        else
+          arr << "  tensor_content: #{tensor.value.flatten}"
+        end
+      else
+        val_type = if TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
+          "int_val"
+        elsif TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
+          "float_val"
+        elsif tensor.data_type == :string
+          "string_val"
+        else
+          "val"
+        end
+        arr << "  #{val_type}: #{tensor.value.to_json}"
+      end
       arr << "}"
       arr
     end
 
     def sym_to_protobuf_type(type)
       case type
-      when :int32
+      when :int32, :int
         "DT_INT32"
       when :float, :float32
         "DT_FLOAT"
+      when :string
+        "DT_STRING"
       else
-        "DT_UNKNOWN"
+        "UKNOWN"
       end
     end
 

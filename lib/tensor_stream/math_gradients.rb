@@ -3,175 +3,223 @@ module TensorStream
   class MathGradients
     extend TensorStream::OpHelper
 
+    def self.tf
+      TensorStream
+    end
+
     def self.derivative(tensor, wrt_dx, options = {})
-      gradient_program_name = "_grad_#{tensor.name}_#{wrt_dx.name}"
-      
-      return options[:graph].get_node(gradient_program_name) if options[:graph] && options[:graph].node_added?(gradient_program_name)
+      return i_op(:ones_like, tensor) if tensor.equal?(wrt_dx)
+      return i_op(:zeros_like, tensor) unless wrt_dx.consumers.include?(tensor.name)
 
-      constant_options = { dtype: options[:dtype] }
-      constant_options_1 = { dtype: options[:dtype] || tensor.data_type }
+      nodes_to_compute = wrt_dx.consumers.select do |t|
+        node = tensor.graph.nodes[t]
+        node.consumers.include?(tensor.name) || node.equal?(tensor)
+      end.compact + [wrt_dx.name]
 
-      return i_op(:ones_like, wrt_dx, constant_options_1) if tensor.equal?(wrt_dx)
-      return i_cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
+      grad = i_op(:ones_like, wrt_dx)
 
-      if tensor.is_a?(Operation)
-        grad = derivative(tensor.items[0], wrt_dx, options) if tensor.items[0]
-        grad2 = derivative(tensor.items[1], wrt_dx, options) if tensor.items[1]
+      result = _propagate(grad, tensor, wrt_dx, nodes_to_compute, options[:stop_gradients] || [])
+      i_op(:truncate, result, tf.shape(wrt_dx))
+    end
 
-        case tensor.operation
-        when :zeros_like
-          i_cons(0, constant_options)
-        when :log1p
-          grad * _op(:reciprocal, i_cons(1, constant_options_1) + tensor.items[0])
-        when :max
-          x_mask = i_op(:where, i_op(:ones_like, tensor.items[0]), i_op(:zeros_like, tensor.items[1]), pred: tensor.items[0] > tensor.items[1])
-          y_mask = i_op(:where, i_op(:zeros_like, tensor.items[0]), i_op(:ones_like, tensor.items[1]), pred: tensor.items[0] < tensor.items[1])
-          x_mask * grad + y_mask * grad2
-        when :where
-          x_mask = i_op(:where, i_op(:ones_like, tensor.items[0]), i_op(:zeros_like, tensor.items[1]), pred: tensor.options[:pred])
-          y_mask = i_op(:where, i_op(:zeros_like, tensor.items[0]), i_op(:ones_like, tensor.items[1]), pred: tensor.options[:pred])
-          x_mask * grad + y_mask * grad2
-        when :cond
-          i_op(:cond, grad, grad2, pred: tensor.options[:pred])
-        when :identity, :print, :pad
-          grad
-        when :negate
-          i_cons(-1, constant_options_1) * grad
-        when :abs
-          grad * i_op(:sign, _ds(tensor.items[0]))
-        when :square
-          i_cons(2, constant_options_1) * _ds(tensor.items[0]) * grad
-        when :exp
-          i_op(:exp, tensor.items[0]) * grad
-        when :log
-          (i_cons(1, constant_options_1) / _ds(tensor.items[0])) * grad
-        when :tanh
-          i_op(:mul, (i_cons(1, constant_options_1) - (i_op(:tanh, _ds(tensor.items[0]))**2)), grad, name: 'grad_tanh')
-        when :tan
-          (i_cons(1, constant_options_1) / (i_op(:cos, _ds(tensor.items[0]))**2)) * grad
-        when :sin
-          i_op(:mul, i_op(:cos, tensor.items[0]), grad, name: 'grad_sin')
-        when :sqrt
-          i_cons(1, constant_options_1) / (i_cons(2, constant_options_1) * i_op(:sqrt, _ds(tensor.items[0]))) * grad
-        when :cos
-          -i_op(:sin, tensor.items[0]) * grad
-        when :add
-          # rx = _op(:shape, tensor.items[0])
-          # ry = _op(:shape, tensor.items[1])
+    def self._propagate(grad, tensor, stop_tensor, nodes_to_compute, stop_gradients = [])
+      return grad * i_op(:ones_like, stop_tensor) if stop_tensor.equal?(tensor)
+      return i_op(:zeros_like, stop_tensor) if stop_gradients && _include?(stop_gradients, tensor)
+      return i_op(:zeros_like, stop_tensor) unless tensor.is_a?(Operation)
 
-          # ones_a = _op(:ones_like, tensor.items[0])
-          # ones_b = _op(:ones_like, tensor.items[1])
-          # inputs = _broadcast_transform(grad * ones_a, grad2 * ones_b)
-          # sx, sy = _broadcast_gradient_args(rx, ry)
+      computed_op = if _op_supports_broadcast?(tensor)
+                      _compute_derivative(tensor, _broadcast_transform(tensor, grad)[1])
+                    else
+                      _compute_derivative(tensor, grad)
+                    end
 
-          # keep_dims_x = _op(:rank, inputs[0]) == _op(:rank, tensor.items[0])
-          # keep_dims_y = _op(:rank, inputs[1]) == _op(:rank, tensor.items[1])
+      if computed_op.is_a?(Array)
+        partials = []
+        computed_op.each_with_index do |op_grad, index|
+          next if op_grad.nil?
 
-          # add_x = _op(:reduce_sum, inputs[0], nil, axis: sy, keepdims: keep_dims_x)
-          # add_y = _op(:reduce_sum, inputs[1], nil, axis: sx, keepdims: keep_dims_y)
-          # _filtered_sum(add_x, add_y, wrt_dx)
-          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:add, a, b, name: 'grad_add') }, options)
-        when :sub
-          _grad_with_broadcast(tensor, wrt_dx, ->(a, b) { i_op(:sub, a, b, name: 'grad_sub') }, options)
-        when :pow
-          gx = _ds(tensor.items[1]) * (_ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
-
-          log_x = i_op(:where, i_op(:log, tensor.items[0], nil, name: 'log_pow_grad'), i_op(:zeros_like, tensor.items[0]), pred: tensor.items[0] > 0)
-          gy = _ds(tensor.items[0])**_ds(tensor.items[1]) * log_x * grad2
-
-          gx + gy
-        when :div
-          # apply the quotient rule
-          gx = i_op(:div, grad, _ds(tensor.items[1]))
-          gy = grad2 * i_op(:div, i_op(:div, -_ds(tensor.items[0]), _ds(tensor.items[1])), _ds(tensor.items[1]))
-
-          _reduce_when_necessary(gx + gy, wrt_dx)
-        when :mul
-          # apply the product rule
-          rx = _op(:shape, tensor.items[0])
-          ry = _op(:shape, tensor.items[1])
-          sx, sy = _broadcast_gradient_args(rx, ry)
-          inputs = _broadcast_transform(tensor.items[0], tensor.items[1])
-          keep_dims_x = _op(:rank, inputs[0]) == _op(:rank, tensor.items[0])
-          keep_dims_y = _op(:rank, inputs[1]) == _op(:rank, tensor.items[1])
-
-          _filtered_sum(_op(:reduce_sum, grad * _ds(inputs[1]), nil, axis: sy, keepdims: keep_dims_x),
-                        _op(:reduce_sum, _ds(inputs[0]) * grad2, nil, axis: sx, keepdims: keep_dims_y), wrt_dx)
-        when :reduce_mean
-          input_size = i_op(:reduce_prod, i_op(:shape, tensor.items[0]))
-          output_size = i_op(:reduce_prod, i_op(:shape, tensor))
-          factor = input_size / output_size
-
-          (grad / i_op(:cast, factor, data_type: grad.dtype))
-        when :reduce_sum
-          grad
-        when :reciprocal
-          -grad * (i_cons(1, constant_options_1) / _ds(tensor.items[0])**2)
-        when :stop_gradient
-          return i_cons(0, constant_options)
-        when :matmul
-          derivative_a = derivative(tensor.items[0], wrt_dx)
-          derivative_b = derivative(tensor.items[1], wrt_dx)
-
-          s0 =  i_op(:shape, tensor.items[0])
-          s1 =  i_op(:shape, tensor.items[1])
-
-          identity_0 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[0].data_type)
-          identity_1 = i_op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[1].data_type)
-
-          matmul_da = i_op(:matmul, identity_0, tensor.items[1], transpose_b: true,
-                                                                pad_zeros: true,
-                                                                name:        'matrix_dx')
-          matmul_db = i_op(:matmul, tensor.items[0], identity_1, transpose_a: true,
-                                                                pad_zeros: true,
-                                                                name:        'matrix_dy')
-          # matmul_db = _op(:transpose, matmul_db, nil).first
-
-          # begin_a = _op(:zeros, _op(:rank, matmul_db), nil, data_type: :int32, name: 'begin_a')
-          # matmul_b_shape = _op(:shape, matmul_db)
-          # end_a = [matmul_b_shape[0], 1]
-
-          matmul_da = i_op(:cond, matmul_da[0], matmul_da, pred: _op(:rank, derivative_a) > 0)
-
-          # matmul_da = _op(:cond, matmul_da[0], matmul_da, pred: _op(:rank, derivative_a) > 0)
-          norm_a = i_op(:mul, derivative_a, matmul_da, name: 'grad_a_norm_mul_da')
-          norm_b = i_op(:mul, derivative_b, matmul_db, name: 'grad_b_norm_mul_db')
-
-          # norm_a = i_op(:cond, norm_a[0], norm_a, pred: i_op(:rank, matmul_da) > i_op(:rank, derivative_a))
-          # norm_b = i_op(:cond, norm_b[0], norm_b, pred: i_op(:rank, matmul_db) > i_op(:rank, derivative_b))
-          _filtered_sum(norm_a, norm_b, wrt_dx)
-        else
-          raise "no derivative implementation found for op #{tensor.operation}"
+          if nodes_to_compute.include?(tensor.items[index].name)
+            partials << _propagate(op_grad, tensor.items[index], stop_tensor, nodes_to_compute, stop_gradients)
+          end
         end
-      elsif tensor.is_a?(TensorStream::Variable)
-        i_cons(0, constant_options)
-      elsif tensor.is_a?(TensorStream::Placeholder)
-        i_cons(0, constant_options)
+
+        partials.reduce(:+)
       else
-        i_cons(0, constant_options)
-      end.tap do |ops|
-        options[:graph].add_node!(gradient_program_name, ops) if options[:graph]
+        return tf.zeros_like(stop_tensor) if computed_op.nil?
+        _propagate(computed_op, tensor.items[0], stop_tensor, nodes_to_compute, stop_gradients)
       end
     end
 
-    def self._ds(tensor)
-      return tensor unless tensor.is_a?(Operation)
+    def self._compute_derivative(node, grad)
+      node.graph.name_scope("#{node.name}_grad") do
+        x = node.items[0] if node.items[0]
+        y = node.items[1] if node.items[1]
 
-      case tensor.operation
-      when :reduce_sum
-        tensor.items[0]
-      else
-        tensor
+        case node.operation
+        when :add
+          return [grad, grad] if _shapes_fully_specified_and_equal(x, y)
+
+          sx = tf.shape(x, name: 'add/shape_x')
+          sy = tf.shape(y, name: 'add/shape_y')
+          rx, ry = _broadcast_gradient_args(sx, sy)
+          keep_dims_x = tf.rank(x) == tf.rank(grad)
+          keep_dims_y = tf.rank(y) == tf.rank(grad)
+
+          [tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x', keepdims: keep_dims_x),
+          tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y', keepdims: keep_dims_y)]
+        when :sub
+          return [grad, -grad] if _shapes_fully_specified_and_equal(x, y)
+
+          sx = tf.shape(x, name: 'sub/shape_x')
+          sy = tf.shape(y, name: 'sub/shape_y')
+          rx, ry = _broadcast_gradient_args(sx, sy)
+          [tf.reduce_sum(grad, rx), -tf.reduce_sum(grad, ry)]
+        when :mul
+          sx = tf.shape(x)
+          sy = tf.shape(y)
+          rx, ry = _broadcast_gradient_args(sx, sy)
+
+          [ tf.reduce_sum(tf.mul(grad, y), rx),
+            tf.reduce_sum(tf.mul(x, grad), ry)]
+        when :div
+          sx = i_op(:shape, x)
+          sy = i_op(:shape, y)
+          rx, ry = _broadcast_gradient_args(sx, sy)
+
+          [tf.reduce_sum(tf.div(grad, y), rx),
+          tf.reduce_sum(grad * tf.div(tf.div(-x, y), y),
+                                  ry)]
+        when :matmul
+          t_a = node.options[:transpose_a]
+          t_b = node.options[:transpose_b]
+
+          s0 =  tf.shape(x)
+          s1 =  tf.shape(y)
+
+          identity_0 = tf.ones([ s0[0], s1[1] ], dtype: x.data_type, name: 'matmul/identity0')
+          identity_1 = tf.ones([ s0[0], s1[1] ], dtype: y.data_type, name: 'matmul/identity1')
+
+          grad_a, grad_b = nil
+          if !t_a && !t_b
+            grad_a = tf.matmul(identity_0, y, transpose_b: true)
+            grad_b = tf.matmul(x, identity_1, transpose_a: true)
+          elsif !ta && tb
+            grad_a = tf.matmul(identity_0, y)
+            grad_b = tf.matmul(identity_1, x, transpose_a: true)
+          elsif t_a && !t_b
+            grad_a = tf.matmul(y, identity_0, transpose_b: true)
+            grad_b = tf.matmul(x, identity_1)
+          elsif t_a && t_b
+            grad_a = tf.matmul(y, identity_0, transpose_a: true, transpose_b: true)
+            grad_b = tf.matmul(identity_1, x, transpose_a: true, transpose_b: true)
+          end
+
+          grad_a = i_op(:mul, grad, grad_a, name: 'matmul/grad_a_norm_mul_da')
+          grad_b = i_op(:mul, grad, grad_b, name: 'matmul/grad_b_norm_mul_db')
+
+          [grad_a, grad_b]
+        when :sin
+          grad * tf.cos(x)
+        when :tanh
+          grad * i_op(:tanh_grad, x)
+        when :pow
+          z = node
+          sx = tf.shape(x)
+          sy = tf.shape(y)
+          rx, ry = _broadcast_gradient_args(sx, sy)
+          gx = tf.reshape(
+            tf.reduce_sum(grad * y * tf.pow(x, y - 1), rx), sx)
+
+          log_x = tf.where(x > 0, tf.log(x), tf.zeros_like(x))
+          gy = tf.reshape(tf.reduce_sum(grad * z * log_x, ry), sy)
+
+          [gx, gy]
+        when :abs
+          grad * tf.sign(x)
+        when :log
+          grad * tf.reciprocal(x)
+        when :tanh
+          i_op(:tanh_grad, x) * grad
+        when :cos
+          -grad * tf.sin(x)
+        when :max
+          x_mask = tf.where(x > y, tf.ones_like(x), tf.zeros_like(y))
+          y_mask = tf.where(x < y, tf.zeros_like(x), tf.ones_like(y))
+          [x_mask * grad, y_mask * grad]
+        when :tan
+          secx = tf.reciprocal(tf.cos(x))
+          secx2 = tf.square(secx)
+          grad * secx2
+        when :negate
+          -grad
+        when :exp
+          grad * node
+        when :identity
+          grad
+        when :sum
+          _sum_grad(x, y, grad)
+        when :reciprocal
+          -grad * (tf.constant(1, dtype: x.dtype) / x**2)
+        when :sqrt
+          tf.constant(1, dtype: x.dtype) / (tf.constant(2, dtype: x.dtype) * tf.sqrt(x)) * grad
+        when :stop_gradient
+          tf.zeros_like(grad)
+        when :square
+          y = tf.constant(2.0, dtype: x.dtype)
+          tf.multiply(grad, tf.multiply(x, y))
+        when :where
+          x_mask = i_op(:where, i_op(:ones_like, x), i_op(:zeros_like, y), pred: node.options[:pred])
+          y_mask = i_op(:where, i_op(:zeros_like, x), i_op(:ones_like, y), pred: node.options[:pred])
+          [x_mask * grad, y_mask * grad]
+        when :cond
+          x_cond = i_op(:cond, i_op(:ones_like, x), i_op(:zeros_like, y), pred: node.options[:pred])
+          y_cond = i_op(:cond, i_op(:zeros_like, x), i_op(:ones_like, x), pred: node.options[:pred])
+          [x_cond * grad, y_cond * grad]
+        when :mean
+          sum_grad = _sum_grad(x, y, grad)
+          input_shape = tf.shape(x)
+          output_shape = tf.shape(node)
+          factor = _safe_shape_div(tf.reduce_prod(input_shape), tf.reduce_prod(output_shape))
+          tf.div(sum_grad, tf.cast(factor, sum_grad.data_type))
+        when :log1p
+          grad * tf.reciprocal(i_cons(1, data_type: grad.data_type) + x)
+        when :sigmoid
+          i_op(:sigmoid_grad, x, grad)
+        when :zeros_like
+          # non differentiable
+          nil
+        else
+          raise "no derivative op for #{node.operation}"
+        end
       end
     end
 
-    def self._grad_with_broadcast(tensor, wrt_dx, func, options)
-      grad = derivative(tensor.items[0], wrt_dx, options)
-      grad2 = derivative(tensor.items[1], wrt_dx, options)
-      elements1 = i_op(:reduce_prod, i_op(:shape, tensor.items[0]), data_type: :float32)
-      elements2 = i_op(:reduce_prod, i_op(:shape, tensor.items[1]), data_type: :float32)
-      multiplier = elements1 / elements2
-      _reduce_when_necessary(func.call(grad, grad2 * multiplier), wrt_dx)
+    def self._broadcast_gradient_args(input_a, input_b)
+      [_op(:broadcast_gradient_args, input_b, input_a), _op(:broadcast_gradient_args, input_a, input_b)]
+    end
+
+    def self._broadcast_transform(input_a, input_b)
+      _op(:broadcast_transform, input_a, input_b)
+    end
+
+    def self._safe_shape_div(x, y)
+      x / tf.maximum(y, 1)
+    end
+
+    def self._sum_grad(x, y, grad)
+      tf.ones_like(x) * grad
+    end
+
+    def self._op_supports_broadcast?(node)
+      return true if %i[add sub div mul pow].include?(node.operation)
+      false
+    end
+
+    def self._min_or_max_grad(op, grad)
+      y = op
+      indicators = tf.cast(tf.equal(y, op.items[0]), grad.data_type)
+      num_selected = tf.reduce_sum(indicators, op.items[1])
+      _safe_shape_div(indicators, num_selected) * grad
     end
 
     def self._include?(arr, obj)
@@ -179,25 +227,19 @@ module TensorStream
       false
     end
 
-    def self._reduce_when_necessary(tensor, wrt_dx)
-      rank = _op(:rank, tensor)
-      dx_rank = _op(:rank, wrt_dx)
-      reduced = _op(:reduce_sum, tensor, nil, axis: 0)
-      _op(:cond, ->{ reduced }, tensor, pred: rank > dx_rank)
+    def self._shapes_fully_specified_and_equal(x, y)
+     return false if !_shape_full_specified(x) || !_shape_full_specified(y)
+     return false if x.shape.shape != y.shape.shape
+     
+     true
     end
 
-    def self._broadcast_gradient_args(input_a, input_b)
-      [_op(:broadcast_gradient_args, input_a, input_b), _op(:broadcast_gradient_args, input_b, input_a)]
-    end
+    def self._shape_full_specified(tensor)
+      return false if tensor.shape.nil?
+      return false if tensor.shape.shape.nil?
 
-    def self._broadcast_transform(input_a, input_b)
-      _op(:broadcast_transform, input_a, input_b)
-    end
-
-    # filter out zero arrays
-    def self._filtered_sum(input_a, input_b, wrt_dx)
-      zero_vect = _op(:zeros_like, wrt_dx)
-      (i_op(:cond, input_a, zero_vect, pred: i_op(:reduce_sum, input_a) != 0) + i_op(:cond, input_b, zero_vect, pred: i_op(:reduce_sum, input_b) != 0))
+      tensor.shape.shape.each { |s| return false if s.nil? }
+      true
     end
   end
 end

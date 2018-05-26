@@ -1,6 +1,6 @@
 require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
-require 'tensor_stream/math_gradients'
+require 'tensor_stream/evaluator/operation_helpers/math_helper'
 require 'distribution'
 
 module TensorStream
@@ -28,6 +28,7 @@ module TensorStream
 
       include TensorStream::OpHelper
       include TensorStream::ArrayOpsHelper
+      include TensorStream::MathHelper
 
       def initialize(session, context, thread_pool: nil, log_intermediates: false)
         @session = session
@@ -179,7 +180,9 @@ module TensorStream
         when :exp
           call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) })
         when :sigmoid
-          call_op(:sigmoid, a, child_context, ->(t, _b) { 1 / (1 + Math.exp(-t)) })
+          call_op(:sigmoid, a, child_context, ->(t, _b) { sigmoid(t) })
+        when :sigmoid_grad
+          call_vector_op(:sigmoid_grad, a, b, child_context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t)) })
         when :sqrt
           call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) })
         when :square
@@ -208,7 +211,7 @@ module TensorStream
           random = _get_randomizer(tensor, seed)
 
           shape = tensor.options[:shape] || tensor.shape.shape
-          fan_in, fan_out = if shape.size == 0
+          fan_in, fan_out = if shape.size.zero?
                               [1, 1]
                             elsif shape.size == 1
                               [1, shape[0]]
@@ -235,7 +238,7 @@ module TensorStream
         when :assign_sub
           tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t - u })
           tensor.items[0].value
-        when :reduce_mean
+        when :mean
           c = fp_type?(tensor.data_type) ? 0.0 : 0
           func = lambda do |arr|
             return c if arr.nil?
@@ -249,7 +252,7 @@ module TensorStream
           end
 
           reduction(child_context, tensor, func)
-        when :reduce_sum
+        when :sum
           c = fp_type?(tensor.data_type) ? 0.0 : 0
           func = lambda do |arr|
             reduced_val = arr[0]
@@ -260,7 +263,10 @@ module TensorStream
           end
 
           reduction(child_context, tensor, func)
-        when :reduce_prod
+        when :tanh_grad
+          x = complete_eval(a, child_context)
+          call_op(:tanh_grad, x, child_context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
+        when :prod
           c = fp_type?(tensor.data_type) ? 1.0 : 1
           func = lambda do |arr|
             return c if arr.nil?
@@ -342,7 +348,15 @@ module TensorStream
             func.call
           else
             shape = [shape.to_i] unless shape.is_a?(Array)
-            generate_vector(shape, generator: func)
+
+            cache_key = "#{tensor.operation}_#{shape.to_s}"
+            if @context[:_cache].key?(cache_key)
+              return @context[:_cache][cache_key]
+            else
+              generate_vector(shape, generator: func).tap do |v|
+                @context[:_cache][cache_key] = v
+              end
+            end
           end
         when :shape
           input = complete_eval(a, child_context)
@@ -374,6 +388,10 @@ module TensorStream
           a = complete_eval(a, child_context)
           b = complete_eval(b, child_context)
           broadcast(a, b)
+        when :truncate
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
+          truncate(a, b)
         when :identity
           complete_eval(a, child_context)
         when :print
@@ -389,6 +407,8 @@ module TensorStream
         when :reshape
           arr = complete_eval(a, child_context)
           new_shape = complete_eval(b, child_context)
+
+          arr = [arr] unless arr.is_a?(Array)
 
           flat_arr = arr.flatten
           return flat_arr[0] if new_shape.size.zero? && flat_arr.size == 1
@@ -411,6 +431,28 @@ module TensorStream
           b = complete_eval(b, child_context)
 
           get_broadcast_gradient_args(a, b)
+        when :reduced_shape
+          input_shape = complete_eval(a, child_context)
+          axes = complete_eval(b, child_context)
+
+          return [] if axes.nil? # reduce to scalar
+          axes = [ axes ] unless axes.is_a?(Array)
+          return input_shape if axes.empty?
+
+          axes.each do |dimen|
+            input_shape[dimen] = 1
+          end
+          input_shape
+        when :tile
+          input = complete_eval(a, child_context)
+          multiples = complete_eval(b, child_context)
+
+          rank = get_rank(input)
+          raise '1D or higher tensor required' if rank.zero?
+          raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
+
+          tile = tile_arr(input, 0, multiples)
+          tile.nil? ? [] : tile
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|
@@ -437,18 +479,21 @@ module TensorStream
       rescue StandardError => e
         puts e.message
         puts e.backtrace.join("\n")
+
         shape_a = a.shape.shape if a
         shape_b = b.shape.shape if b
         dtype_a = a.data_type if a
         dtype_b = b.data_type if b
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
-        puts "name: #{tensor.given_name}"
-        puts "op: #{tensor.to_math(true, 1)}"
-        puts "A #{shape_a} #{dtype_a}: #{a}" if a
-        puts "B #{shape_b} #{dtype_b}: #{b}" if b
-        dump_intermediates if @log_intermediates
+        # puts "name: #{tensor.given_name}"
+        # # puts "op: #{tensor.to_math(true, 1)}"
+        # puts "A #{shape_a} #{dtype_a}: #{a}" if a
+        # puts "B #{shape_b} #{dtype_b}: #{b}" if b
+        # dump_intermediates if @log_intermediates
+        # File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
 
+        # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
       end
 
@@ -504,7 +549,7 @@ module TensorStream
 
       def reduction(child_context, tensor, func)
         val = complete_eval(tensor.items[0], child_context)
-        axis = complete_eval(tensor.options[:axis], child_context)
+        axis = complete_eval(tensor.items[1], child_context)
         keep_dims = complete_eval(tensor.options[:keepdims], child_context)
         rank = get_rank(val)
         return val if axis && axis.is_a?(Array) && axis.empty?
@@ -547,19 +592,6 @@ module TensorStream
         end
       end
 
-      def slice_tensor(input, start, size)
-        start_index = start.shift
-        dimen_size = start_index + size.shift
-
-        input[start_index...dimen_size].collect do |item|
-          if item.is_a?(Array)
-            slice_tensor(item, start.dup, size.dup)
-          else
-            item
-          end
-        end
-      end
-
       def matmul_const_transform(mat, mat_b, tensor)
         if !mat.is_a?(Array)
           compat_shape = shape_eval(mat_b).reverse
@@ -591,15 +623,17 @@ module TensorStream
         raise FullEvalNotPossible.new, "full eval not possible for #{a.name}" if eval_a.is_a?(Tensor) || eval_b.is_a?(Tensor)
 
         # ruby scalar
-        if get_rank(eval_a).zero?
-          if get_rank(eval_b).zero?
-            op.call(eval_a, eval_b)
-          else
-            vector_op(eval_b, eval_a, op, true)
-          end
-        elsif get_rank(eval_a) > 0
-          vector_op(eval_a, eval_b, op)
-        end
+        eval_a, eval_b = broadcast(eval_a, eval_b)
+        vector_op(eval_a, eval_b, op)
+        # if get_rank(eval_a).zero?
+        #   if get_rank(eval_b).zero?
+        #     op.call(eval_a, eval_b)
+        #   else
+        #     vector_op(eval_b, eval_a, op, true)
+        #   end
+        # else
+        #   vector_op(eval_a, eval_b, op)
+        # end
       end
 
       # determine possible reduction axis to be used

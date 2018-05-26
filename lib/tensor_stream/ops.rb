@@ -1,36 +1,34 @@
 module TensorStream
   # Class that defines all available ops supported by TensorStream
   module Ops
-    FLOATING_POINT_TYPES = %w[float32 float64].map(&:to_sym)
-    NUMERIC_TYPES = %w[int32 int64 float32 float64].map(&:to_sym)
+    FLOATING_POINT_TYPES = %i[float32 float64 float].freeze
+    INTEGER_TYPES = %i[int32 int int64].freeze
+    NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
 
     def argmax(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
       _op(:argmax, input, nil, axis: axis, name: name, dimension: dimension, data_type: output_type)
     end
 
     def gradients(input, wrt_xs, grad_ys: nil,
-                  name: 'gradients',
-                  colocate_gradients_with_ops: false,
-                  gate_gradients: false,
-                  aggregation_method: nil,
-                  stop_gradients: nil)
+      name: 'gradients',
+      colocate_gradients_with_ops: false,
+      gate_gradients: false,
+      aggregation_method: nil,
+      stop_gradients: nil)
 
       gs = wrt_xs.collect do |x|
-        raise "#{x} passed is not a tensor object" unless x.is_a?(Tensor)
-
         stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
         gradient_program_name = "grad_#{input.name}_#{x.name}_#{stops}".to_sym
 
         tensor_program = if input.graph.node_added?(gradient_program_name)
-                           input.graph.get_node(gradient_program_name)
-                         else
+                          input.graph.get_node(gradient_program_name)
+                        else
                           input.graph.name_scope("gradient_wrt_#{x.name}") do
                             derivative_ops = TensorStream::MathGradients.derivative(input, x, graph: input.graph,
-                                                                                              stop_gradients: stop_gradients)
-                            unit_matrix = _op(:ones_like, x)
-                            input.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
-                           end
-                         end
+                              stop_gradients: stop_gradients)
+                            input.graph.add_node!(gradient_program_name, derivative_ops)
+                          end
+                        end
         tensor_program
       end
       TensorStream.group(gs)
@@ -56,6 +54,10 @@ module TensorStream
 
     def shape(input, name: nil, out_type: :int32)
       _op(:shape, input, nil, name: name, out_type: out_type)
+    end
+
+    def tile(input, multiples, name: nil)
+      _op(:tile, input, multiples, name: name)
     end
 
     def rank(input, name: nil)
@@ -107,15 +109,15 @@ module TensorStream
     end
 
     def reduce_mean(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:reduce_mean, input_tensor, nil, axis: axis, keepdims: keepdims, name: name)
+      _op(:mean, input_tensor, axis,  keepdims: keepdims, name: name)
     end
 
     def reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:reduce_sum, input_tensor, nil, axis: axis, keepdims: keepdims, name: name)
+      _op(:sum, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
     def reduce_prod(input, axis = nil, keepdims: false, name: nil)
-      _op(:reduce_prod, input, nil, axis: axis, keepdims: keepdims, name: name)
+      _op(:prod, input, axis, keepdims: keepdims, name: name)
     end
 
     def concat(values, axis, name: 'concat')
@@ -200,6 +202,14 @@ module TensorStream
 
     def multiply(input_a, input_b, name: nil)
       _op(:mul, input_a, input_b, name: name)
+    end
+
+    def mul(input_a, input_b, name: nil)
+      _op(:mul, input_a, input_b, name: name)
+    end
+
+    def div(input_a, input_b, name: nil)
+      _op(:div, input_a, input_b, name: name)
     end
 
     def pow(input_a, input_e, name: nil)

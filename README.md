@@ -102,6 +102,10 @@ You can take a look at spec/tensor_stream/operation_spec.rb for a list of suppor
 sliver of what TensorFlow can do, so feel free to file a PR to add requested
 ops and test cases.
 
+Other working samples can also be seen under tensor_stream/samples.
+
+Samples that are used for development and are still being made to work can be found under test_samples
+
 ## Python to Ruby guide
 
 Not all ops are available. Available ops are defined in lib/tensor_stream/ops.rb, corresponding gradients are found at lib/tensor_stream/math_gradients.
@@ -170,6 +174,36 @@ b = tf.constant([3,3])
 f = tf.matmul(a, b).breakpoint! { |tensor, a, b, result_value| binding.pry }
 
 tf.session.run(f)
+```
+
+# Visualization
+
+tensorstream does not support tensorboard yet, but a graphml generator is included:
+
+```ruby
+tf = TensorStream
+a = tf.constant(1.0)
+b = tf.constant(2.0)
+result = a + b
+sess = tf.session
+sess.run(result)
+
+File.write('gradients.graphml', TensorStream::Graphml.new.get_string(result)) # dump graph only
+File.write('gradients.graphml', TensorStream::Graphml.new.get_string(result, sess)) # dump with values from session
+```
+
+the resulting graphml is designed to work with yED, after loading the graph change layout to "Flowchart" for best results
+
+## Exporting to TensorFlow
+
+Still in alpha but tensorstream supports TensorFlows as_graph_def serialization method:
+
+```ruby
+tf = TensorStream
+a = tf.constant(1.0)
+b = tf.constant(2.0)
+result = a + b
+File.write("model.pbtext", result.graph.as_graph_def)
 ```
 
 ## Roadmap

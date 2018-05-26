@@ -5,14 +5,13 @@ module TensorStream
     attr_reader :outputs
 
     def initialize(operation, input_a, input_b, options = {})
-      @graph = options[:graph] || TensorStream.get_default_graph
+      setup_initial_state(options)
 
       @operation = operation
       @rank = options[:rank] || 0
-      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
+      @name = [@graph.get_name_scope, options[:name] || set_name].compact.reject(&:empty?).join('/')
       @internal = options[:internal]
       @given_name = @name
-      @source = format_source(caller_locations)
 
       @options = options
 
@@ -106,12 +105,12 @@ module TensorStream
         else
           "(#{sub_item} * #{sub_item2})"
         end
-      when :reduce_sum
-        "reduce_sum(|#{sub_item}|)"
-      when :reduce_mean
-        "reduce_mean(|#{sub_item}|)"
-      when :reduce_prod
-        "reduce_prod(|#{sub_item}|)"
+      when :sum
+        "sum(|#{sub_item}|,  axis=#{sub_item2})"
+      when :mean
+        "mean(|#{sub_item}|, axis=#{sub_item2})"
+      when :prod
+        "prod(|#{sub_item}|,  axis=#{sub_item2})"
       when :gradients
         "gradient(#{sub_item})"
       when :stop_gradient
@@ -131,7 +130,7 @@ module TensorStream
       when :ones_like
         "ones_like(#{sub_item})"
       when :flow_group
-        "flow_group(#{items.collect { |i| auto_math(i) }.join(',')})"
+        "flow_group(#{items.collect { |i| auto_math(i, name_only, max_depth - 1, _cur_depth) }.join(',')})"
       when :zeros
         "zeros(#{sub_item})"
       when :reshape
@@ -166,6 +165,8 @@ module TensorStream
         "#{sub_item} && #{sub_item2}"
       when :sqrt
         "sqrt(#{sub_item})"
+      when :log1p
+        "log1p(#{sub_item})"
       when :zeros_like
         "zeros_like(#{sub_item})"
       when :where
@@ -174,8 +175,13 @@ module TensorStream
         "max(#{sub_item},#{sub_item2})"
       when :cast
         "cast(#{sub_item}, #{data_type})"
+      when :broadcast_transform
+        "broadcast_transform(#{sub_item},#{sub_item2})"
+      when :broadcast_gradient_args
+        "broadcast_transform(#{sub_item},#{sub_item2})"
       else
-        raise "no math form for #{operation} defined"
+        "#{operation}(#{sub_item})" if sub_item
+        "#{operation}(#{sub_item}, #{sub_item2})" if sub_item && sub_item2
       end
       ["\n",(_cur_depth + 1).times.collect { ' ' }, out].flatten.join
     end
@@ -196,11 +202,14 @@ module TensorStream
         item_shape = items[0].shape.shape
         return nil if item_shape.nil?
         return item_shape[1, item_shape.size]
-      when :reduce_mean, :reduce_prod, :reduce_sum
-        return [] if options[:axis].nil?
+      when :mean, :prod, :sum
+        return [] if items[1].nil?
+        return nil if items[0].nil?
         item_shape = items[0].shape.shape
         return nil if item_shape.nil?
-        axis = options[:axis]
+        return nil if items[1].is_a?(Tensor) && items[1].value.nil?
+
+        axis = items[1].is_a?(Tensor) ? items[1].value : items[1]
 
         axis = [ axis ] unless axis.is_a?(Array)
         return item_shape.each_with_index.map do |s, index|
@@ -236,10 +245,15 @@ module TensorStream
     end
 
     def propagate_consumer(consumer)
-      super(consumer)
-
+      super
       @items.compact.each do |item|
-        item.send(:propagate_consumer, consumer) if item.name!=self.name
+        item.send(:propagate_consumer, consumer) if item.name != name
+      end
+    end
+
+    def propagate_outputs
+      @items.compact.each do |item|
+        item.send(:setup_output, self) if item.name != self.name
       end
     end
 
