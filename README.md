@@ -4,7 +4,7 @@
 
 # TensorStream
 
-A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default as well with support for an opencl evaluator.
+A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default as well with support for an opencl evaluator (soon).
 
 The goal of this gem is to have a high performance machine learning and compute solution for ruby with support for a wide range of hardware and software configuration.
 
