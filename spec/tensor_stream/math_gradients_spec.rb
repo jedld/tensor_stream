@@ -21,6 +21,10 @@ RSpec.describe TensorStream::MathGradients do
       g = tf.gradients(sum, [a, b])
 
       expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], 6])
+
+      sum2 = b + a
+      g2 = tf.gradients(sum2, [a, b])
+      expect(g2.eval).to eq([[[1, 1], [1, 1], [1, 1]], 6])
     end
   end
 
@@ -106,7 +110,7 @@ RSpec.describe TensorStream::MathGradients do
       expect(g.eval.first).to eq([2.1, 6.0, 7.1, 12.0, 15.0])
     end
 
-    it "automatically reduces broadcasted args (axis = 1)" do
+    it "sum automatically reduces broadcasted args (axis = 1)" do
       a = tf.constant([
         [1.0, 2.0],
         [0.4, 4.1],
@@ -124,6 +128,31 @@ RSpec.describe TensorStream::MathGradients do
       expect(tr(f.eval)).to eq(
         [[1.0, 2.0], [0.16, 1.64], [0.02, 0.42]]
       )
+
+      ab_sum = a + b
+
+      g = tf.gradients(ab_sum, [b])
+      result = sess.run(g)
+      expect(result).to eq([[[2.0],[2.0],[2.0]]])
+    end
+
+    it "chain rule automatically reduces broadcasted args (axis = 1)" do
+      a = tf.constant([
+        [1.0, 2.0],
+        [0.4, 4.1],
+        [0.2, 4.2],
+      ])
+
+      b = tf.constant([
+        [1.0],
+        [0.4],
+        [0.1],
+      ])
+
+      ab_sum_sin = tf.sin(a + b)
+      g2 = tf.gradients(ab_sum_sin, [b])
+      result = sess.run(g2)
+      expect(tr(result)).to eq([[[-1.4061], [0.4859], [0.5545]]])
     end
 
     xspecify "when columns don't match" do
@@ -225,7 +254,6 @@ RSpec.describe TensorStream::MathGradients do
 
       weight_gradient, biases_gradient = sess.run(g, feed_dict: { inputs => test_inputs })
       weight_gradient2, biases_gradient2 = sess.run(g2, feed_dict: { inputs => test_inputs })
-      
       expect(tr(weight_gradient)).to eq([
         [0.0942, -1.9924, -1.0031, 0.437, 3.075],
         [0.0957, -2.0234, -1.0187, 0.4438, 3.1229],
@@ -276,14 +304,15 @@ RSpec.describe TensorStream::MathGradients do
       g_matmul_layer_2 = tf.gradients(matmul_layer_2, [b])
       g_matmul_layer_2_add = tf.gradients(matmul_layer_2_add, [b])
 
-      g2 = tf.gradients(a2, [ b])
-
+      g2 = tf.gradients(a2, [ b], name: 'final')
+      final_result = sess.run(g2)
       
-
+      File.write('/home/jedld/workspace/tensor_stream/samples/gradient_sample.graphml', TensorStream::Graphml.new.get_string(g2, sess))
       # expect(tr(s4)).to eq([[0.5121, -0.844]])
       # expect(tr(s1)).to eq([[0.256, -0.5064]])
-      # expect(tr(s2)).to eq([[0.256, -0.5064]])
-      expect(sess.run(g2)).to eq([[-0.06387595, -0.07775851]])
+      # expect(tr(sess.run(g_matmul_layer_2_add))).to eq([[0.256, -0.5064]])
+      # expect(sess.run(tf.cos(matmul_layer_2_add) * g_matmul_layer_2_add)).to eq([])
+      expect(final_result).to eq([[-0.06387595, -0.07775851]])
 
       # expect(s).to eq(
       #   [

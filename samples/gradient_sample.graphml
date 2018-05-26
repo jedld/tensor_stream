@@ -1,0 +1,1491 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:y="http://www.yworks.com/xml/graphml"
+      xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+<key id="d0" for="node" attr.name="label" attr.type="string"/>
+<key id="d1" for="node" attr.name="formula" attr.type="string"/>
+<key id="d2" for="node" attr.name="color" attr.type="string"/>
+<key id="d3" for="node" attr.name="value" attr.type="string"/>
+<key attr.name="description" attr.type="string" for="edge" id="d12"/>
+<key for="edge" id="d13" yfiles.type="edgegraphics"/>
+<key for="node" id="d9" yfiles.type="nodegraphics"/>
+<graph id="g_-flow_group_1025:" edgedefault="directed">
+<node id="out">
+<data key="d0">out</data>
+<data key="d2">red</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FF0000" transparent="false"/>
+  <y:NodeLabel alignment="center">out</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<data key="d3">[[-0.18181076984697453, -0.2235356954437098]]</data>
+<data key="d3">[-0.18181076984697453, -0.2235356954437098]</data>
+<data key="d3">[-0.18181076984697453, -0.2235356954437098]</data>
+<data key="d3">[-0.18181076984697453, -0.2235356954437098]</data>
+<data key="d3">[-0.18181076984697453, -0.2235356954437098]</data>
+<data key="d3">[-0.18181076984697453, -0.2235356954437098]</data>
+<data key="d3">[-0.18181076984697453, -0.2235356954437098]</data>
+<data key="d3">[-0.18181076984697453, -0.2235356954437098]</data>
+<data key="d3">[[-0.18181076984697453, -0.2235356954437098]]</data>
+<data key="d3">[[[5.25, 21.425]], [[-0.18181076984697453, -0.2235356954437098]]]</data>
+<data key="d3">[[5.25, 21.425]]</data>
+<data key="d3">[[1.25, 16.425]]</data>
+<edge source="Const_186:2" target="matmul_852:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[1.0, 0.5, 4.0]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="Const_187:2" target="matmul_852:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[0.4, 0.2], [0.1, 0.45], [0.2, 4.0]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="matmul_852:0" target="add_853:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[1.25, 16.425]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="Const_189:1" target="add_853:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[[-0.18181076984697453, -0.2235356954437098]]</data>
+<data key="d3">[[-0.3550398867513898, 0.2648611682365375]]</data>
+<data key="d3">[[-0.7100797735027796, 0.44143528039422913]]</data>
+<data key="d3">[[-0.7100797735027796, 0.44143528039422913]]</data>
+<data key="d3">[[[3.9227774823857198, 5.169586592555774]], [[-0.7100797735027796, 0.44143528039422913]]]</data>
+<data key="d3">[[3.9227774823857198, 5.169586592555774]]</data>
+<data key="d3">[[-0.1772225176142799, 0.0695865925557746]]</data>
+<data key="d3">[[-0.858934493426592, 0.5363855360913178]]</data>
+<edge source="add_853:0" target="sin_854:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[5.25, 21.425]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="sin_854:0" target="matmul_855:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.858934493426592, 0.5363855360913178]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="Const_188:2" target="matmul_855:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[0.3, 0.2], [0.15, 0.45]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="matmul_855:0" target="add_856:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.1772225176142799, 0.0695865925557746]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="Const_190:1" target="add_856:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.1, 5.1]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[[-0.7100797735027796, 0.44143528039422913]]</data>
+<data key="d3">[1.0, 1.0]</data>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-ones_like_979:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[[-0.7100797735027796, 0.44143528039422913]]</data>
+<edge source="add_856:0" target="gradient_wrt_Const_189:1-sin_857:0_grad-cos_980:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[3.9227774823857198, 5.169586592555774]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-ones_like_979:0" target="gradient_wrt_Const_189:1-sin_857:0_grad-mul_981:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [1.0, 1.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-sin_857:0_grad-cos_980:0" target="gradient_wrt_Const_189:1-sin_857:0_grad-mul_981:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.7100797735027796, 0.44143528039422913]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="add_856:0" target="gradient_wrt_Const_189:1-broadcast_transform_982:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[3.9227774823857198, 5.169586592555774]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-sin_857:0_grad-mul_981:0" target="gradient_wrt_Const_189:1-broadcast_transform_982:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.7100797735027796, 0.44143528039422913]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-broadcast_transform_982:0" target="gradient_wrt_Const_189:1-index_983:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[[3.9227774823857198, 5.169586592555774]], [[-0.7100797735027796, 0.44143528039422913]]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-Const_221:0" target="gradient_wrt_Const_189:1-index_983:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  1  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[]</data>
+<data key="d3">[2]</data>
+<edge source="Const_190:1" target="gradient_wrt_Const_189:1-add_856:0_grad-add-shape_y_1">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.1, 5.1]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[1, 2]</data>
+<edge source="matmul_855:0" target="gradient_wrt_Const_189:1-add_856:0_grad-add-shape_x_1">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.1772225176142799, 0.0695865925557746]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_856:0_grad-add-shape_y_1" target="gradient_wrt_Const_189:1-add_856:0_grad-broadcast_gradient_args_984:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [2]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_856:0_grad-add-shape_x_1" target="gradient_wrt_Const_189:1-add_856:0_grad-broadcast_gradient_args_984:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [1, 2]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-index_983:0" target="gradient_wrt_Const_189:1-add_856:0_grad-add-reduce_sum_x_1">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.7100797735027796, 0.44143528039422913]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_856:0_grad-broadcast_gradient_args_984:0" target="gradient_wrt_Const_189:1-add_856:0_grad-add-reduce_sum_x_1">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  []  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[[0.5, 0.6]]</data>
+<data key="d3">[[1.0, 1.0]]</data>
+<edge source="gradient_wrt_Const_189:1-matmul_855:0_grad-Const_224:1" target="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul-identity0_2">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [1, 2]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul-identity0_2" target="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul_998:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[1.0, 1.0]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="Const_188:2" target="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul_998:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[0.3, 0.2], [0.15, 0.45]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_856:0_grad-add-reduce_sum_x_1" target="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul-grad_a_norm_mul_da_2">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.7100797735027796, 0.44143528039422913]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul_998:0" target="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul-grad_a_norm_mul_da_2">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[0.5, 0.6]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[[0.5120854772418407, -0.8439730781677989]]</data>
+<edge source="add_853:0" target="gradient_wrt_Const_189:1-sin_854:0_grad-cos_1000:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[5.25, 21.425]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul-grad_a_norm_mul_da_2" target="gradient_wrt_Const_189:1-sin_854:0_grad-mul_1001:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.3550398867513898, 0.2648611682365375]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-sin_854:0_grad-cos_1000:0" target="gradient_wrt_Const_189:1-sin_854:0_grad-mul_1001:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[0.5120854772418407, -0.8439730781677989]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="add_853:0" target="gradient_wrt_Const_189:1-broadcast_transform_1002:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[5.25, 21.425]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-sin_854:0_grad-mul_1001:0" target="gradient_wrt_Const_189:1-broadcast_transform_1002:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.18181076984697453, -0.2235356954437098]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-broadcast_transform_1002:0" target="gradient_wrt_Const_189:1-index_1004:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[[5.25, 21.425]], [[-0.18181076984697453, -0.2235356954437098]]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-Const_229:0" target="gradient_wrt_Const_189:1-index_1004:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  1  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[0]</data>
+<data key="d3">[1, 2]</data>
+<edge source="matmul_852:0" target="gradient_wrt_Const_189:1-add_853:0_grad-add-shape_x_3">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[1.25, 16.425]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[2]</data>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-add_853:0_grad-add-shape_y_3">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_853:0_grad-add-shape_x_3" target="gradient_wrt_Const_189:1-add_853:0_grad-broadcast_gradient_args_1006:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [1, 2]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_853:0_grad-add-shape_y_3" target="gradient_wrt_Const_189:1-add_853:0_grad-broadcast_gradient_args_1006:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [2]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-index_1004:0" target="gradient_wrt_Const_189:1-add_853:0_grad-add-reduce_sum_y_3">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.18181076984697453, -0.2235356954437098]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_853:0_grad-broadcast_gradient_args_1006:0" target="gradient_wrt_Const_189:1-add_853:0_grad-add-reduce_sum_y_3">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-ones_like_1013:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-add_853:0_grad-add-reduce_sum_y_3" target="gradient_wrt_Const_189:1-mul_1014:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [-0.18181076984697453, -0.2235356954437098]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-ones_like_1013:0" target="gradient_wrt_Const_189:1-mul_1014:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[    ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[]</data>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-shape_1015:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-mul_1014:0" target="gradient_wrt_Const_189:1-truncate_1016:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [-0.18181076984697453, -0.2235356954437098]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-shape_1015:0" target="gradient_wrt_Const_189:1-truncate_1016:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  []  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[]</data>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-shape_1017:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-truncate_1016:0" target="gradient_wrt_Const_189:1-truncate_1018:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [-0.18181076984697453, -0.2235356954437098]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-shape_1017:0" target="gradient_wrt_Const_189:1-truncate_1018:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  []  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[]</data>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-shape_1019:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-truncate_1018:0" target="gradient_wrt_Const_189:1-truncate_1020:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [-0.18181076984697453, -0.2235356954437098]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-shape_1019:0" target="gradient_wrt_Const_189:1-truncate_1020:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  []  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[]</data>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-shape_1021:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-truncate_1020:0" target="gradient_wrt_Const_189:1-truncate_1022:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [-0.18181076984697453, -0.2235356954437098]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-shape_1021:0" target="gradient_wrt_Const_189:1-truncate_1022:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  []  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<data key="d3">[]</data>
+<edge source="Const_189:1" target="gradient_wrt_Const_189:1-shape_1023:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [4.0, 5.0]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-truncate_1022:0" target="gradient_wrt_Const_189:1-truncate_1024:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [-0.18181076984697453, -0.2235356954437098]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-shape_1023:0" target="gradient_wrt_Const_189:1-truncate_1024:0">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  []  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#0000FF" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<edge source="gradient_wrt_Const_189:1-truncate_1024:0" target="-flow_group_1025:">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [-0.18181076984697453, -0.2235356954437098]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+<node id="" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0"></y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0"></y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="-flow_group_1025:">
+<data key="d0">flow_group</data>
+<data key="d1">
+ flow_group(gradient_wrt_Const_189:1/truncate_1024:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">flow_group</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+<node id="gradient_wrt_Const_189:1" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">gradient_wrt_Const_189:1</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">gradient_wrt_Const_189:1</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-truncate_1024:0">
+<data key="d0">truncate</data>
+<data key="d1">
+ truncate(gradient_wrt_Const_189:1/truncate_1022:0, gradient_wrt_Const_189:1/shape_1023:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">truncate</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-truncate_1022:0">
+<data key="d0">truncate</data>
+<data key="d1">
+ truncate(gradient_wrt_Const_189:1/truncate_1020:0, gradient_wrt_Const_189:1/shape_1021:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">truncate</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-truncate_1020:0">
+<data key="d0">truncate</data>
+<data key="d1">
+ truncate(gradient_wrt_Const_189:1/truncate_1018:0, gradient_wrt_Const_189:1/shape_1019:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">truncate</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-truncate_1018:0">
+<data key="d0">truncate</data>
+<data key="d1">
+ truncate(gradient_wrt_Const_189:1/truncate_1016:0, gradient_wrt_Const_189:1/shape_1017:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">truncate</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-truncate_1016:0">
+<data key="d0">truncate</data>
+<data key="d1">
+ truncate(gradient_wrt_Const_189:1/mul_1014:0, gradient_wrt_Const_189:1/shape_1015:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">truncate</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-mul_1014:0">
+<data key="d0">mul</data>
+<data key="d1">
+ (gradient_wrt_Const_189:1/add_853:0_grad/add/reduce_sum_y_3 * gradient_wrt_Const_189:1/ones_like_1013:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">mul</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-index_1004:0">
+<data key="d0">index</data>
+<data key="d1">
+ gradient_wrt_Const_189:1/broadcast_transform_1002:0[gradient_wrt_Const_189:1/Const_229:0]</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">index</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-broadcast_transform_1002:0">
+<data key="d0">broadcast_transform</data>
+<data key="d1">
+ broadcast_transform(add_853:0,gradient_wrt_Const_189:1/sin_854:0_grad/mul_1001:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">broadcast_transform</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-index_983:0">
+<data key="d0">index</data>
+<data key="d1">
+ gradient_wrt_Const_189:1/broadcast_transform_982:0[gradient_wrt_Const_189:1/Const_221:0]</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">index</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-broadcast_transform_982:0">
+<data key="d0">broadcast_transform</data>
+<data key="d1">
+ broadcast_transform(add_856:0,gradient_wrt_Const_189:1/sin_857:0_grad/mul_981:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">broadcast_transform</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-ones_like_979:0">
+<data key="d0">ones_like</data>
+<data key="d1">
+ ones_like(Const_189:1)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">ones_like</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-Const_221:0">
+<data key="d0">gradient_wrt_Const_189:1/Const_221:0</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">gradient_wrt_Const_189:1/Const_221:0</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-Const_229:0">
+<data key="d0">gradient_wrt_Const_189:1/Const_229:0</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">gradient_wrt_Const_189:1/Const_229:0</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-ones_like_1013:0">
+<data key="d0">ones_like</data>
+<data key="d1">
+ ones_like(Const_189:1)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">ones_like</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-shape_1015:0">
+<data key="d0">shape</data>
+<data key="d1">
+ Const_189:1.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-shape_1017:0">
+<data key="d0">shape</data>
+<data key="d1">
+ Const_189:1.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-shape_1019:0">
+<data key="d0">shape</data>
+<data key="d1">
+ Const_189:1.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-shape_1021:0">
+<data key="d0">shape</data>
+<data key="d1">
+ Const_189:1.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-shape_1023:0">
+<data key="d0">shape</data>
+<data key="d1">
+ Const_189:1.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="add_853:0_grad" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">add_853:0_grad</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-add_853:0_grad-broadcast_gradient_args_1006:0">
+<data key="d0">broadcast_gradient_args</data>
+<data key="d1">
+ broadcast_transform(gradient_wrt_Const_189:1/add_853:0_grad/add/shape_x_3,gradient_wrt_Const_189:1/add_853:0_grad/add/shape_y_3)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">broadcast_gradient_args</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="add" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">add</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-add_853:0_grad-add-reduce_sum_y_3">
+<data key="d0">sum</data>
+<data key="d1">
+ sum(|gradient_wrt_Const_189:1/index_1004:0|,  axis=gradient_wrt_Const_189:1/add_853:0_grad/broadcast_gradient_args_1006:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">sum</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-add_853:0_grad-add-shape_x_3">
+<data key="d0">shape</data>
+<data key="d1">
+ matmul_852:0.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-add_853:0_grad-add-shape_y_3">
+<data key="d0">shape</data>
+<data key="d1">
+ Const_189:1.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+<node id="sin_854:0_grad" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">sin_854:0_grad</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-sin_854:0_grad-mul_1001:0">
+<data key="d0">mul</data>
+<data key="d1">
+ (gradient_wrt_Const_189:1/matmul_855:0_grad/matmul/grad_a_norm_mul_da_2 * gradient_wrt_Const_189:1/sin_854:0_grad/cos_1000:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">mul</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-sin_854:0_grad-cos_1000:0">
+<data key="d0">cos</data>
+<data key="d1">
+ cos(add_853:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">cos</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+<node id="matmul_855:0_grad" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">matmul_855:0_grad</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul_998:0">
+<data key="d0">matmul</data>
+<data key="d1">
+ gradient_wrt_Const_189:1/matmul_855:0_grad/matmul/identity0_2.matmul(Const_188:2)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">matmul</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-matmul_855:0_grad-Const_224:1">
+<data key="d0">gradient_wrt_Const_189:1/matmul_855:0_grad/Const_224:1</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">gradient_wrt_Const_189:1/matmul_855:0_grad/Const_224:1</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="matmul" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">matmul</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul-grad_a_norm_mul_da_2">
+<data key="d0">mul</data>
+<data key="d1">
+ (gradient_wrt_Const_189:1/add_856:0_grad/add/reduce_sum_x_1 * gradient_wrt_Const_189:1/matmul_855:0_grad/matmul_998:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFF99" transparent="false"/>
+  <y:NodeLabel alignment="center">mul</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-matmul_855:0_grad-matmul-identity0_2">
+<data key="d0">ones</data>
+<data key="d1">
+ ones(gradient_wrt_Const_189:1/matmul_855:0_grad/Const_224:1)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">ones</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+<node id="add_856:0_grad" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">add_856:0_grad</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-add_856:0_grad-broadcast_gradient_args_984:0">
+<data key="d0">broadcast_gradient_args</data>
+<data key="d1">
+ broadcast_transform(gradient_wrt_Const_189:1/add_856:0_grad/add/shape_y_1,gradient_wrt_Const_189:1/add_856:0_grad/add/shape_x_1)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">broadcast_gradient_args</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="add" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">add</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-add_856:0_grad-add-reduce_sum_x_1">
+<data key="d0">sum</data>
+<data key="d1">
+ sum(|gradient_wrt_Const_189:1/index_983:0|,  axis=gradient_wrt_Const_189:1/add_856:0_grad/broadcast_gradient_args_984:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">sum</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-add_856:0_grad-add-shape_y_1">
+<data key="d0">shape</data>
+<data key="d1">
+ Const_190:1.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-add_856:0_grad-add-shape_x_1">
+<data key="d0">shape</data>
+<data key="d1">
+ matmul_855:0.shape</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">shape</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+<node id="sin_857:0_grad" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">sin_857:0_grad</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="gradient_wrt_Const_189:1-sin_857:0_grad-mul_981:0">
+<data key="d0">mul</data>
+<data key="d1">
+ (gradient_wrt_Const_189:1/ones_like_979:0 * gradient_wrt_Const_189:1/sin_857:0_grad/cos_980:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">mul</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="gradient_wrt_Const_189:1-sin_857:0_grad-cos_980:0">
+<data key="d0">cos</data>
+<data key="d1">
+ cos(add_856:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">cos</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+<node id="program" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">program</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="program" yfiles.foldertype="group">
+<data key="d9">
+<y:ProxyAutoBoundsNode>
+<y:Realizers active="0">
+<y:GroupNode>
+<y:Fill color="#CAECFF84" transparent="false"/>
+<y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">program</y:NodeLabel>
+<y:Shape type="roundrectangle"/>
+</y:GroupNode>
+</y:Realizers>
+</y:ProxyAutoBoundsNode>
+</data>
+<graph edgedefault="directed" id="n105:">
+<node id="add_853:0">
+<data key="d0">add</data>
+<data key="d1">
+ (matmul_852:0 + Const_189:1)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">add</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="matmul_852:0">
+<data key="d0">matmul</data>
+<data key="d1">
+ Const_186:2.matmul(Const_187:2)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">matmul</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="Const_186:2">
+<data key="d0">Const_186:2</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">Const_186:2</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="Const_187:2">
+<data key="d0">Const_187:2</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">Const_187:2</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="Const_189:1">
+<data key="d0">Const_189:1</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">Const_189:1</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="add_856:0">
+<data key="d0">add</data>
+<data key="d1">
+ (matmul_855:0 + Const_190:1)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">add</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="matmul_855:0">
+<data key="d0">matmul</data>
+<data key="d1">
+ sin_854:0.matmul(Const_188:2)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">matmul</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="sin_854:0">
+<data key="d0">sin</data>
+<data key="d1">
+ sin(add_853:0)</data>
+<data key="d2">blue</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#99CC00" transparent="false"/>
+  <y:NodeLabel alignment="center">sin</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="Const_188:2">
+<data key="d0">Const_188:2</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">Const_188:2</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+<node id="Const_190:1">
+<data key="d0">Const_190:1</data>
+<data key="d2">black</data>
+<data key="d9">
+<y:ShapeNode>
+  <y:Fill color="#FFFFFF" transparent="false"/>
+  <y:NodeLabel alignment="center">Const_190:1</y:NodeLabel>
+</y:ShapeNode>
+</data>
+</node>
+</graph>
+</node>
+</graph>
+</node>
+<edge source="-flow_group_1025:" target="out">
+<data key="d13">
+<y:PolyLineEdge>
+<y:EdgeLabel >
+<![CDATA[  [[-0.18181076984697453, -0.2235356954437098]]  ]]>
+</y:EdgeLabel >
+<y:Arrows source="none" target="standard"/>
+<y:LineStyle color="#FF0000" type="line" width="1.0"/>
+</y:PolyLineEdge>
+</data>
+</edge>
+</graph>
+</graphml>

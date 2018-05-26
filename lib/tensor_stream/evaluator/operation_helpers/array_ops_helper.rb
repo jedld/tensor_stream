@@ -1,6 +1,27 @@
 module TensorStream
   # varoius utility functions for array processing
   module ArrayOpsHelper
+    def slice_tensor(input, start, size)
+      start_index = start.shift
+      dimen_size = start_index + size.shift
+
+      input[start_index...dimen_size].collect do |item|
+        if item.is_a?(Array)
+          slice_tensor(item, start.dup, size.dup)
+        else
+          item
+        end
+      end
+    end
+
+    def truncate(input, target_shape)
+      rank = get_rank(input)
+      return input if rank.zero?
+
+      start = Array.new(rank) { 0 }
+      slice_tensor(input, start, target_shape)
+    end
+
     def broadcast(input_a, input_b)
       sa = shape_eval(input_a)
       sb = shape_eval(input_b)

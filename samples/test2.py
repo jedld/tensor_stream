@@ -15,7 +15,7 @@ matmul_layer_1 = tf.matmul(x, w)
 a = tf.sin(matmul_layer_1 + b)
 matmul_layer_2 = tf.matmul(a, w2)
 matmul_layer_2_add = matmul_layer_2 + b2
-a2 = matmul_layer_2_add
+a2 = tf.sin(matmul_layer_2_add)
 
 
 
@@ -35,7 +35,7 @@ print("g_sin_a %s", sess.run(g_sin_a))
 print("-- %s", sess.run(tf.cos(matmul_layer_2_add) * g_matmul_layer_2_add))
 print("%s", sess.run(g_a2))
 
-writer = tf.summary.FileWriter("test2/", sess.graph)
+writer = tf.summary.FileWriter("/home/jedld/graphs/", sess.graph)
 sess.run(g_a2)
 writer.close()
 

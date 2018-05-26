@@ -867,6 +867,15 @@ end
       c = a * b
       expect(c.eval).to eq([[14.0, 14.0, 14.0, 14.0, 14.0], [7.0, 7.0, 7.0, 7.0, 7.0]])
     end
+
+    specify "broadcasting" do
+      a = tf.constant([[1.0, 1.1], [2.0, 1.0], [1.0, 1.1]])
+      b = tf.constant([[1.2], [1.1], [0.2]])
+      f = a * b
+      expect(tr(f.eval)).to eq([[1.2, 1.32], [2.2, 1.1], [0.2, 0.22]])
+      f = b * a
+      expect(f.eval).to eq([[1.2, 1.32], [2.2, 1.1], [0.2, 0.22000000000000003]])
+    end
   end
 
   context ".reduce_mean" do
