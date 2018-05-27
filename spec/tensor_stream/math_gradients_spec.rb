@@ -307,7 +307,7 @@ RSpec.describe TensorStream::MathGradients do
       g2 = tf.gradients(a2, [ b], name: 'final')
       final_result = sess.run(g2)
       
-      File.write('/home/jedld/workspace/tensor_stream/samples/gradient_sample.graphml', TensorStream::Graphml.new.get_string(g2, sess))
+      # File.write('/home/jedld/workspace/tensor_stream/samples/gradient_sample.graphml', TensorStream::Graphml.new.get_string(g2, sess))
       # expect(tr(s4)).to eq([[0.5121, -0.844]])
       # expect(tr(s1)).to eq([[0.256, -0.5064]])
       # expect(tr(sess.run(g_matmul_layer_2_add))).to eq([[0.256, -0.5064]])
