@@ -9,6 +9,10 @@ module TensorStream
       _op(:argmax, input, nil, axis: axis, name: name, dimension: dimension, data_type: output_type)
     end
 
+    def argmin(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
+      _op(:argmin, input, nil, axis: axis, name: name, dimension: dimension, data_type: output_type)
+    end
+
     def gradients(input, wrt_xs, grad_ys: nil,
       name: 'gradients',
       colocate_gradients_with_ops: false,
@@ -157,6 +161,10 @@ module TensorStream
       _op(:sub, input_a, input_b, name: name)
     end
 
+    def subtract(input_a, input_b, name: nil)
+      sub(input_a, input_b, name: name)
+    end
+
     def max(input_a, input_b, name: nil)
       check_allowed_types(input_a, NUMERIC_TYPES)
       check_allowed_types(input_b, NUMERIC_TYPES)
@@ -176,8 +184,12 @@ module TensorStream
       _op(:print, input, data, message: message, name: name)
     end
 
-    def negate(input, options = {})
-      _op(:negate, input, nil, options)
+    def negate(input, name: nil)
+      _op(:negate, input, nil, name: name)
+    end
+
+    def negative(input, name: nil)
+      negate(input, name: name)
     end
 
     def equal(input_a, input_b, name: nil)

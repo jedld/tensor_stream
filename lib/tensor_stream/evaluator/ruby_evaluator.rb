@@ -99,7 +99,12 @@ module TensorStream
           a = complete_eval(a, child_context)
           axis = tensor.options[:axis] || 0
 
-          get_max_with_axis(a, axis, 0, tensor.data_type)
+          get_op_with_axis(a, axis, 0, tensor.data_type)
+        when :argmin
+          a = complete_eval(a, child_context)
+          axis = tensor.options[:axis] || 0
+
+          get_op_with_axis(a, axis, 0, tensor.data_type, ->(a, b) { a < b })
         when :cast
           a = complete_eval(a, child_context)
 
@@ -514,14 +519,14 @@ module TensorStream
 
       private
 
-      def get_max_with_axis(a, target_axis, current_axis, output_type)
+      def get_op_with_axis(a, target_axis, current_axis, output_type, op = ->(t, u) { t > u })
         if target_axis == current_axis
           if a[0].is_a?(Array)
             (0...a[0].size).each.collect do |column_index|
               max = nil
               max_index = 0
               a.each_with_index do |row, row_index|
-                if max.nil? || row[column_index] > max
+                if max.nil? || op.call(row[column_index], max)
                   max = row[column_index]
                   max_index = row_index
                 end
@@ -533,7 +538,7 @@ module TensorStream
             max = nil
             max_index = 0
             a.each_with_index do |x, index|
-              if max.nil? || x > max
+              if max.nil? || op.call(x, max)
                 max = x
                 max_index = index
               end
@@ -542,7 +547,7 @@ module TensorStream
           end
         else
           a.collect do |row|
-            get_max_with_axis(row, target_axis, current_axis + 1, output_type)
+            get_op_with_axis(row, target_axis, current_axis + 1, output_type, op)
           end
         end
       end

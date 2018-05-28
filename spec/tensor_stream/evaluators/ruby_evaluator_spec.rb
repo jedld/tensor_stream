@@ -3,11 +3,13 @@ require 'benchmark'
 
 RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   let(:tf) { TensorStream }
-  let(:session) { TensorStream.session }
+  let(:sess) { TensorStream.session(:ruby_evaluator) }
   let(:execution_context) { Hash.new }
-  let(:instance) { described_class.new(session, {})}
+  let(:instance) { described_class.new(sess, {})}
 
   include TensorStream::OpHelper
+
+  it_behaves_like "standard ops evaluator"
 
   it "can evaluate a tensor" do
     c = tf.constant(1.0)
