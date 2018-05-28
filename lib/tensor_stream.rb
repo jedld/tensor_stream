@@ -166,8 +166,8 @@ module TensorStream
     Graph.get_default_graph.get_collection(name, options)
   end
 
-  def self.placeholder(dtype, options = {})
-    TensorStream::Placeholder.new(dtype, nil, options[:shape])
+  def self.placeholder(dtype, shape: nil)
+    TensorStream::Placeholder.new(dtype, nil, shape)
   end
 
   def self.global_variables_initializer

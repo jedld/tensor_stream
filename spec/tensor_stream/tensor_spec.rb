@@ -190,11 +190,11 @@ RSpec.describe TensorStream::Tensor do
     end
 
     it "open shapes are also inferred" do
-      a = tf.placeholder(:float32, dtype: [nil, 4])
+      a = tf.placeholder(:float32, shape: [nil, 4])
       m = tf.constant([[1.0, 0.5], [0.4, 0.2], [1.1, 1.2], [0.2, 0.1]])
       b = tf.constant(1)
       f = m.dot(a) + b
-      expect(f.shape.shape).to eq([4, nil])
+      expect(f.shape.shape).to eq([4, 4])
     end
 
     it "handles reduction functions" do

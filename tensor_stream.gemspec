@@ -39,6 +39,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "byepry"
   spec.add_development_dependency "colorize"
   spec.add_development_dependency "rspec_junit_formatter"
+  spec.add_development_dependency "mnist-learn"
   spec.add_dependency "deep_merge"
   spec.add_dependency "concurrent-ruby"
   spec.add_dependency "sciruby"
