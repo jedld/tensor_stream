@@ -43,5 +43,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "concurrent-ruby"
   spec.add_dependency "sciruby"
   spec.add_dependency "distribution"
-  spec.add_dependency "nmatrix"
+  # spec.add_dependency "nmatrix"
 end
