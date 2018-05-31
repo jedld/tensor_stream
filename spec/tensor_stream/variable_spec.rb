@@ -68,22 +68,4 @@ RSpec.describe TensorStream::Variable do
       tf.get_default_graph.get_collection('test').include?(w)
     end
   end
-
-  context ".assign_add" do
-    [ [[],    1.0                      ],
-      [[1],   [1.0]                     ],
-      [[2],   [1.0, 1.0]                ],
-      [[2,2], [[1.0, 1.0], [1.0, 1.0]]  ]
-    ].each do |shape, expected|
-      context "shape #{shape}" do
-        it "adds a value to the current variable" do
-          session = TensorStream::Session.default_session
-          v = TensorStream.get_variable("v", shape: shape, initializer: TensorStream.zeros_initializer)
-          assignment = v.assign_add(1)
-          TensorStream.global_variables_initializer.run
-          expect(session.run(assignment)).to eq(expected)
-        end
-      end
-    end
-  end
 end

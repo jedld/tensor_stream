@@ -6,12 +6,6 @@ RSpec.describe TensorStream::Operation do
   let(:tf) { TensorStream } # allow calls to look like tensorflow
   let(:sess) { tf.session }
 
-  before(:each) do
-    TensorStream::Tensor.reset_counters
-    TensorStream::Operation.reset_counters
-    tf.reset_default_graph
-  end
-
   context ".zeros_like" do
     it "Creates a tensor with all elements set to zero." do
       tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
@@ -150,15 +144,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context ".convert_to_tensor" do
-    it "converts native types and wraps them in a tensor" do
-      op = tf.convert_to_tensor([1,2,3,4])
-      expect(op.name).to eq("Const:1")
-      expect(op.data_type).to eq(:int32)
-      expect(sess.run(op)).to eq([1,2,3,4])
-    end
-  end
-
   context ".equal" do
     it "returns the truth value of two tensors" do
       a = tf.constant(1.0)
@@ -239,15 +224,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context ".random_uniform_initializer" do
-    it "initializes variables using the random uniform initializer" do
-      tf.set_random_seed(1234)
-      u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.random_uniform_initializer)
-      sess.run(tf.global_variables_initializer)
-      expect(tr(sess.run(u))).to eq(0.1915)
-    end
-  end
-
   # Outputs random values from a uniform distribution.
   # The generated values follow a uniform distribution in the range [minval, maxval). The lower bound minval is included in the range, while the upper bound maxval is excluded.
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.
@@ -295,28 +271,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  describe "randomization functions" do
-    before do
-      tf.set_random_seed(1234)
-      @sess = tf.session
-    end
-
-    context ".random_normal" do
-      [
-        [[],    0.5011628459350929],
-        [[1],   [0.5011628459350929] ],
-        [[2,3], [[0.5011628459350929, 1.301972948852967, -1.621722019401658], [0.6690221526288901, 0.14937983113945622, -0.783723693080629]] ],
-      ].each do |shape, expected|
-        describe "shape #{shape}" do
-          it "generates random normal values" do
-            r = tf.random_normal(shape)
-            expect(sess.run(r)).to eq(expected)
-          end
-        end
-      end
-    end
-  end
-
   context ".set_random_seed" do
     it "sets the graph level seed" do
       tf.set_random_seed(1000)
@@ -331,41 +285,10 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context "op level seed" do
-    it "is able to set an op level seed" do
-      a = tf.random_uniform([1], seed: 1)
-      sess = tf.session
-      expect(sess.run(a)).to eq([0.417022004702574])
-      expect(sess.run(a)).to eq([0.7203244934421581])
-
-      sess2 = tf.session
-      expect(sess2.run(a)).to eq([0.417022004702574])
-      expect(sess2.run(a)).to eq([0.7203244934421581])
-    end
-  end
-
   context ".zeros" do
     it "generates a zero tensor" do
       a = tf.zeros([2,2])
       expect(a.eval).to eq([[0.0, 0.0], [0.0, 0.0]])
-    end
-  end
-    
-  context ".zeros_like" do
-    it "generates a zero tensor based on another tensor" do
-      a = tf.zeros_like([2,2,2,2,2])
-      b = tf.zeros_like([[2,2],[3,3]])
-      expect(a.eval).to eq([0, 0, 0, 0, 0])
-      expect(b.eval).to eq([[0, 0], [0, 0]])
-    end
-  end
-
-  context ".ones_like" do
-    it "generates a zero tensor based on another tensor" do
-      a = tf.ones_like([2, 2, 2, 2, 2])
-      b = tf.ones_like([[2, 2],[3, 3]])
-      expect(a.eval).to eq([1, 1, 1, 1, 1])
-      expect(b.eval).to eq([[1, 1], [1, 1]])
     end
   end
 
@@ -373,68 +296,6 @@ RSpec.describe TensorStream::Operation do
     it "generates a ones tensor" do
       ones = tf.ones([2,2])
       expect(ones.eval).to eq([[1.0, 1.0], [1.0, 1.0]])
-    end
-  end
-
-  context ".reduce_sum" do
-    it "computes the sum of elements across dimensions of a tensor." do
-      x = tf.constant([[1, 1, 1], [1, 1, 1]])
-      expect(tf.reduce_sum(x).eval).to eq(6)
-      expect(tf.reduce_sum(x, 0).eval).to eq([2, 2, 2])
-      expect(tf.reduce_sum(x, 1).eval).to eq([3, 3])
-      expect(tf.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
-      expect(tf.reduce_sum(x, [0, 1]).eval).to eq(6)
-
-      expect(tf.reduce_sum(x, []).eval).to eq([[1, 1, 1], [1, 1, 1]]) # no reduction
-      expect(tf.reduce_sum([[1, 1], [1, 1], [1, 1]])).to eq(6)
-    end
-
-    it "negative axis" do
-      x = tf.constant([[1, 1, 1], [1, 1, 1]])
-
-      expect(tf.reduce_sum(x, -1).eval).to eq([3, 3])
-      expect(tf.reduce_sum(x, -2).eval).to eq([2, 2, 2])
-    end
-
-    it "rank > 2 tensor" do
-      x = tf.constant([ [[1,1], [1,1]], [[1,1], [1,1]]])
-      expect(tf.reduce_sum(x).eval).to eq(8)
-      expect(tf.reduce_sum(x, [1, 0]).eval).to eq([4, 4])
-      expect(tf.reduce_sum(x, 0).eval).to eq([[2, 2],[2, 2]])
-
-      y = tf.constant([[1.0, 2.0], [0.4, 4.1], [0.2, 4.2]])
-      expect(tf.reduce_sum(y, [1], keepdims: true).eval).to eq([[3.0], [4.5], [4.4]])
-    end
-
-    specify "computes the gradients properly" do
-      a = tf.constant([[1,2,3],[4,5,6]])
-      op = tf.reduce_sum(a)
-      expect(tf.gradients(op,[a]).eval).to eq([[[1, 1, 1], [1, 1, 1]]])
-    end
-  end
-
-  context ".reduce_prod" do
-    it "computes the sum of elements across dimensions of a tensor." do
-      x = tf.constant([[2, 1, 2], [2, 1, 2]])
-      expect(tf.reduce_prod(x).eval).to eq(16)
-      expect(tf.reduce_prod(x, 0).eval).to eq([4, 1, 4])
-      expect(tf.reduce_prod(x, 1).eval).to eq([4, 4])
-      expect(tf.reduce_prod(x, 1, keepdims: true).eval).to eq([[4], [4]])
-      expect(tf.reduce_prod(x, [0, 1]).eval).to eq(16)
-    end
-
-    it "reduceing an empty array" do
-      x = tf.constant([])
-      y = tf.constant([[], []])
-      expect(tf.reduce_prod(x).eval).to eq(1.0)
-      expect(tf.reduce_prod(y, 0).eval).to eq([])
-      expect(tf.reduce_prod(y, 1).eval).to eq([1.0, 1.0])
-    end
-
-    xspecify "computes the gradients properly" do
-      a = tf.constant([[1,2,3],[4,5,6]])
-      op = tf.reduce_prod(a)
-      expect(tf.gradients(op,[a]).eval).to eq([[720, 360, 240],[180, 144, 120]])
     end
   end
 
@@ -550,45 +411,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  # tests for single parameter algebra functions
-[
-  [:sin, 0.0998,   [[0.8912, -0.3821], [0.8632, 0.1411]],  0.995, [[0.4536, -0.9241], [-0.5048, -0.99]]                      ],
-  [:cos, 0.995,    [[0.4536, -0.9241], [-0.5048, -0.99]], -0.0998, [[-0.8912, 0.3821], [-0.8632, -0.1411]]                   ],
-  [:tan, 0.1003,   [[1.9648, 0.4134], [-1.7098, -0.1425]], 1.0101,  [[4.8603, 1.1709], [3.9236, 1.0203]]                     ],
-  [:tanh, 0.0997,  [[0.8005, 1.0], [0.9705, 0.9951]],      0.9901, [[0.3592, 0.0], [0.0582, 0.0099]]                         ],
-  [:log, -2.3026,  [[0.0953, 2.7788], [0.7419, 1.0986]],   10.0, [[0.9091, 0.0621], [0.4762, 0.3333]]                        ],
-  [:exp, 1.1052,   [[3.0042, 9820670.9221], [8.1662, 20.0855]], 1.1052, [[3.0042, 9820670.9221], [8.1662, 20.0855]]          ],
-  [:square, 0.01,  [[1.21, 259.21], [4.41, 9.0]],          0.2, [[2.2, 32.2], [4.2, 6.0]]                                    ],
-  [:negate, -0.1,  [[-1.1, -16.1], [-2.1, -3.0]],         -1.0, [[-1.0, -1.0], [-1.0, -1.0]]                                 ],
-  [:identity, 0.1, [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
-  [:abs, 0.1,      [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
-  [:sqrt, 0.3162,  [[1.0488, 4.0125], [1.4491, 1.7321]],   1.5811, [[0.4767, 0.1246], [0.345, 0.2887]]                       ],
-  [:reciprocal, 10.0, [[0.9091, 0.0621], [0.4762, 0.3333]], -100,  [[-0.8264, -0.0039], [-0.2268, -0.1111]]                         ],
-  [:sigmoid, 0.525, [[0.7503, 1.0], [0.8909, 0.9526]], 0.2494, [[0.1874, 0.0], [0.0972, 0.0452]]]
-].each do |func, scalar, matrix, gradient, gradient2|
-  context ".#{func}" do
-    let(:x) { tf.constant(0.1) }
-    let(:y) {  tf.constant([[1.1, 16.1], [2.1, 3.0]]) }
-    let(:f_x) { tf.send(func,x) }
-    let(:f_y) { tf.send(func,y) }
-
-    specify "scalar #{func} value" do
-      expect(tr(sess.run(f_x))).to eq(scalar)
-    end
-
-    specify "matrix #{func} values" do
-      expect(tr(sess.run(f_y))).to eq(matrix)
-    end
-
-    specify "gradient #{func} values" do
-      grad = tf.gradients(f_x, [x]).first
-      grad_2 = tf.gradients(f_y, [y]).first
-      expect(tr(sess.run(grad))).to eq(gradient)
-      expect(tr(sess.run(grad_2))).to eq(gradient2)
-    end
-  end
-end
-
   context ".abs" do
     it "Computes the absolute value of a tensor" do
       tf = TensorStream
@@ -620,36 +442,6 @@ end
     end
   end
 
-  context ".matmul" do
-    it "performs matrix multiplication" do
-      a = tf.constant([1, 2, 3, 4, 5, 6], shape: [2, 3])
-      b = tf.constant([7, 8, 9, 10, 11, 12], shape: [3, 2])
-      c = tf.matmul(a, b)
-      expect(c.eval).to eq([[ 58,  64],
-                            [139, 154]])
-
-      c = a.matmul(b)
-      expect(c.eval).to eq([[ 58,  64],
-      [139, 154]])
-
-      d = tf.matmul(a, b, transpose_a: true, transpose_b: true)
-      expect(d.eval).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
-    end
-
-    specify "gradients" do
-      a = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
-      b = tf.constant([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0], [10.0, 11.0, 12.0]])
-
-      y = tf.matmul(a, tf.sin(b))
-
-      expect(tr(y.eval)).to eq([[-2.0631, -4.0106, -2.2707], [-3.3563, -7.0425, -4.2538]])
-
-      g = tf.gradients(y, [a, b])
-
-      expect(tr(g.eval)).to eq([[[2.0585, -2.0806, -2.0806], [2.0585, -2.0806, -2.0806]], [[3.7695, -0.7275, -4.5557], [-5.8735, 0.031, 5.907], [-7.5516, 0.0398, 7.5947]]])
-    end
-  end
-
   context ".transpose" do
     it "transposes matrices" do
       tf.program do |tf|
@@ -675,28 +467,6 @@ end
       y = tf.sin(x) ** 3
       derivative_function_y = TensorStream::MathGradients.derivative(y, x)
       expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
-    end
-  end
-
-  context ".shape" do
-    it "returns a 1D tensor representing shape of target tensor" do
-      t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
-      shape = tf.shape(t)
-      expect(shape.eval).to eq([2, 2, 3])
-
-      u = tf.constant(1)
-      shape = tf.shape(u)
-      expect(shape.eval).to eq([])
-
-      v = tf.constant([[1,2,3],[4,5,6]])
-      shape = tf.shape(v)
-      expect(shape.eval).to eq([2 ,3])
-    end
-
-    it "can set out_type to return a float" do
-      v = tf.constant([[1, 2, 3],[4, 5, 6]])
-      s = tf.shape(v, out_type: :float32)
-      expect(s.eval).to eql([2.0, 3.0])
     end
   end
 
@@ -805,60 +575,6 @@ end
     end
   end
 
-  context ".mul" do
-    it "performs elementwise multiplication" do
-      a = tf.constant([[1, 2, 3], [4, 5, 6]])
-      c = a * 6
-      expect(c.eval).to eq([[6, 12, 18], [24, 30, 36]])
-
-      b = tf.constant([1, 2, 3])
-      d = a * b
-      expect(d.eval).to eq([[1, 4, 9], [4, 10, 18]])
-    end
-
-    it "constant multiplication" do
-      a= tf.constant([[1, 2, 3], [4, 5, 6]])
-      c = tf.constant(6) * a
-      expect(a.eval).to eq([[1, 2, 3], [4, 5, 6]])
-
-      b= tf.constant([1,2,3,4,5,6])
-      d= tf.constant(6) * b
-      expect(d.eval).to eq([6, 12, 18, 24, 30, 36])
-    end
-
-    it "handles two rank 1 tensors" do
-      a = tf.constant([7.0, 7.0, 7.0, 7.0, 7.0])
-      b = tf.constant([-0.1079, 2.281999999999999, 1.1489, -0.5005000000000001, -3.5218999999999996])
-      c = a * b
-      expect(c.eval).to eq([-0.7553, 15.973999999999993, 8.042300000000001, -3.5035000000000003, -24.653299999999998])
-    end
-
-    it "handles different rows" do
-      a = tf.constant([[1.0, 1.0], [1.0, 1.0]])
-      b = tf.constant([[4.0, 4.0]])
-      c = a * b
-      expect(c.eval).to eq([[4.0, 4.0], [4.0, 4.0]])
-    end
-
-    it "different rank multiplication" do
-      a = tf.constant([7.0, 7.0, 7.0, 7.0, 7.0])
-      b = tf.constant([
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1]])
-      c = a * b
-      expect(c.eval).to eq([[14.0, 14.0, 14.0, 14.0, 14.0], [7.0, 7.0, 7.0, 7.0, 7.0]])
-    end
-
-    specify "broadcasting" do
-      a = tf.constant([[1.0, 1.1], [2.0, 1.0], [1.0, 1.1]])
-      b = tf.constant([[1.2], [1.1], [0.2]])
-      f = a * b
-      expect(tr(f.eval)).to eq([[1.2, 1.32], [2.2, 1.1], [0.2, 0.22]])
-      f = b * a
-      expect(f.eval).to eq([[1.2, 1.32], [2.2, 1.1], [0.2, 0.22000000000000003]])
-    end
-  end
-
   context ".reduce_mean" do
     it "Computes the mean of elements across dimensions of a tensor" do
       x = tf.constant([[1.0, 1.0], [2.0, 2.0]])
@@ -889,21 +605,6 @@ end
     end
   end
 
-  context ".greater" do
-    it "returns true if a > b" do
-      a = tf.constant(2.0)
-      b = tf.constant(3.0)
-      expect(tf.greater(a, b).eval).to eq(false)
-      expect(tf.greater(b, a).eval).to eq(true)
-    end
-
-    it "handles rank 1 or higher" do
-      a = tf.constant([[1.1, 1.3], [1.3, 1.2]])
-      c = a > 0
-      expect(c.eval).to eq([[true, true], [true, true]])
-    end
-  end
-
   context ".tile" do
     it "Constructs a tensor by tiling a given tensor." do
       a = tf.constant([[1, 2, 3, 4], [1, 2, 3, 4]])
@@ -912,74 +613,6 @@ end
       expect(tf.tile(a,[1, 1]).eval).to eq([[1, 2, 3, 4], [1, 2, 3, 4]])
       expect(tf.tile(a,[2, 1]).eval).to eq([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
       expect(tf.tile(a,[1, 2]).eval).to eq([[1, 2, 3, 4, 1, 2, 3, 4], [1, 2, 3, 4, 1, 2, 3, 4]])
-    end
-  end
-
-  context "multivariate functions" do
-    let(:a)   { tf.constant(1.0) }
-    let(:b)   { tf.constant(2.0) }
-    let(:a_1) { tf.constant([1.0, 1.5]) }
-    let(:b_1) { tf.constant([2.0, 0.1]) }
-    let(:a_2) { tf.constant([[1.0, 1.5],[0.8,  0.2]]) }
-    let(:b_2) { tf.constant([[2.0, 0.1],[3.0, 0.01]]) }
-
-    def func_test(op, x, y, e1, e2)
-      func = tf.send(op.to_sym, x, y)
-      expect(tr(func.eval)).to eq(e1)
-      grad = tf.gradients(func, [x, y])
-      expect(tr(grad.eval)).to eq(e2)
-    end
-
-    [ 
-      #op   rank 0   rank 1   rank 2   grad 0   grad 1  grad 2
-      [:add, 3.0,  [3.0, 1.6],  [[3.0, 1.6], [3.8, 0.21]],    [1.0,  1.0],  [[1.0, 1.0], [1.0,   1.0]],  [[[1.0, 1.0], [1.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]]] ],
-      [:sub, -1.0, [-1.0, 1.4], [[-1.0, 1.4], [-2.2, 0.19]],  [1.0, -1.0],  [[1.0, 1.0], [-1.0, -1.0]],   [[[1.0, 1.0], [1.0, 1.0]], [[-1.0, -1.0], [-1.0, -1.0]]] ],
-    ].each do |op, expected_0, expected_1, expected_2, expected_grad_0, expected_grad_1, expected_grad_2|
-      context ".#{op}" do
-
-
-        specify "basic scalar operation" do
-          func_test(op, a, b, expected_0, expected_grad_0)
-        end
-
-        specify "basic rank 1 operation" do
-          func_test(op, a_1, b_1, expected_1, expected_grad_1)
-        end
-
-        specify "basic rank 2 operation" do
-          func_test(op, a_2, b_2, expected_2, expected_grad_2)
-        end
-      end
-    end
-
-    [
-      [:add, [3.0, 3.5],   [[3.0, 3.5], [2.8, 2.2]], [[1.0, 1.0], 2.0],       [[[1.0, 1.0], [1.0, 1.0]], 4.0] ],
-      [:sub, [-1.0, -0.5], [[-1.0, -0.5], [-1.2, -1.8]], [[1.0, 1.0], -2.0],  [[[1.0, 1.0], [1.0, 1.0]], -4.0] ],
-    ].each do |op, expected_1_0, expected_2_0, grad_1_0, grad_2_0|
-      context ".#{op}" do
-        specify "mixed rank operation 1  vs 0" do
-          func_test(op, a_1, b, expected_1_0, grad_1_0)
-        end
-
-        specify "mixed rank operation 2  vs 0" do
-          func_test(op, a_2, b, expected_2_0, grad_2_0)
-        end
-      end
-    end
-  end
-
-  context ".div" do
-    let(:a) { tf.constant(2.5) }
-    let(:b) { tf.constant(3.1) }
-
-    it "divides to tensors" do
-      op = a / b
-      expect(tr(op.eval)).to eq(0.8065)
-    end
-
-    it "supports gradients" do
-      grad = tf.gradients(a/b, [a,b])
-      expect(tr(grad.eval)).to eq([0.3226, -0.2601])
     end
   end
 

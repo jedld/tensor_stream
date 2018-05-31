@@ -33,52 +33,6 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
     end
   end
 
-  context "#broadcast" do
-    context "gets compatible shapes for two tensors" do
-      specify "scalar vs scalar" do
-        expect(instance.broadcast(1.0, 1.0)).to eq([1.0, 1.0])
-      end
-
-      specify "1D vs constant" do
-        expect(instance.broadcast([1.0, 2.0], 1.0)).to eq([[1.0, 2.0], [1.0, 1.0]])
-        expect(instance.broadcast([1.0, 2.0, 1.0], 1.0)).to eq([[1.0, 2.0, 1.0], [1.0, 1.0, 1.0]])
-      end
-
-      specify "1D vs 1D" do
-        expect(instance.broadcast([1.0, 2.0], 1.0)).to eq([[1.0, 2.0], [1.0, 1.0]])
-        expect(instance.broadcast([1.0, 2.0, 3.0], [1.0])).to eq([[1.0, 2.0, 3.0], [1.0, 1.0, 1.0]])
-      end
-
-      specify "2D vs 1D" do
-        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], 1.0)).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
-        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [1.0])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
-        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [3.0, 3.1])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[3.0, 3.1], [3.0, 3.1]]])
-      end
-
-      specify "2D vs 2D" do
-        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [[1.0], [1.0]])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
-        expect(instance.broadcast([[1.0, 2.0, 1.1], [1.0, 2.0, 2.2]], [[1.0], [2.0]])).to eq( [[[1.0, 2.0, 1.1], [1.0, 2.0, 2.2]], [[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]]])
-      end
-    end
-  end
-
-  context "#broadcast_dimensions" do
-    it "can broadcast various tensors in various shapes" do
-      a = [1.0]
-      expect(instance.broadcast_dimensions(a, [5])).to eq([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-      expect(instance.broadcast_dimensions(a, [2, 1])).to eq([[1.0, 1.0], [1.0, 1.0]])
-      expect(instance.broadcast_dimensions(a, [3, 1])).to eq([[1.0, 1.0], [1.0, 1.0], [1.0, 1.0]])
-
-      a = [[1.0, 2.0]]
-      b = [[1.0],[2.0]]
-      expect(instance.broadcast_dimensions(a, [3, 0])).to eq([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0], [1.0, 2.0]])
-      expect(instance.broadcast_dimensions(b, [0, 1])).to eq([[1.0, 1.0], [2.0, 2.0]])
-      expect(instance.broadcast_dimensions(a, [])).to eq([[1.0, 2.0]])
-      expect(instance.broadcast_dimensions(b, [])).to eq([[1.0], [2.0]])
-      expect(instance.broadcast_dimensions([1.0], [2, 1])).to eq([[1.0, 1.0], [1.0, 1.0]])
-    end
-  end
-
   context "private ops" do
     context ".reduced_shape" do
       it "returns the output shape of a tensor after reduction assuing keepdims= true" do

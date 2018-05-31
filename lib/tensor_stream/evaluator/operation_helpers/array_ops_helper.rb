@@ -22,6 +22,17 @@ module TensorStream
       slice_tensor(input, start, target_shape)
     end
 
+    def reduced_shape(input_shape, axes)
+      return [] if axes.nil? # reduce to scalar
+      axes = [ axes ] unless axes.is_a?(Array)
+      return input_shape if axes.empty?
+
+      axes.each do |dimen|
+        input_shape[dimen] = 1
+      end
+      input_shape
+    end
+
     def broadcast(input_a, input_b)
       sa = shape_eval(input_a)
       sb = shape_eval(input_b)

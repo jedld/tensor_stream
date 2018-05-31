@@ -3,7 +3,7 @@ module TensorStream
   class Session
     include StringHelper
 
-    attr_reader :last_session_context, :closed, :target
+    attr_reader :last_session_context, :closed, :target, :session_cache
     attr_accessor :randomizer
 
     def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)

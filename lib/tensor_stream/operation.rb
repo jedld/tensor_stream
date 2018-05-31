@@ -54,8 +54,11 @@ module TensorStream
         :boolean
       when :shape, :rank
         :int32
+      when :random_normal, :random_uniform, :glorot_uniform
+        passed_data_type || :float32
       else
         return passed_data_type if passed_data_type
+
         if @items[0]
           @items[0].data_type
         elsif @items[1]
@@ -228,6 +231,8 @@ module TensorStream
         return []
       when :zeros, :ones
         return items[0] ? items[0].value : options[:shape]
+      when :zeros_like, :ones_like
+        items[0].shape.shape
       when :shape
         return items[0].shape.shape ? [items[0].shape.shape.size] : nil
       when :matmul
