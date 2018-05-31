@@ -2,6 +2,8 @@
 
 require "bundler/setup"
 require 'tensor_stream'
+require 'tensor_stream/evaluator/opencl_evaluator'
+require 'pry-byebug'
 
 tf = TensorStream
 
@@ -43,7 +45,7 @@ A = tf.variable(tf.random_normal([4, 1]))
 b = tf.variable(tf.random_normal([1, 1]))
 
 init = tf.global_variables_initializer
-sess = tf.session
+sess = tf.session(:opencl_evaluator)
 sess.run(init)
 
 data = tf.placeholder(:float32, shape: [nil, 4])

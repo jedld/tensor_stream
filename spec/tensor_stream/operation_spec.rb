@@ -103,35 +103,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context ".max" do
-    it "returns the maximum of two tensors" do
-      a = tf.constant(1.0)
-      b = tf.constant([1.0, 3.0])
-      d = tf.constant([3.0, 1.1])
-      c = tf.constant(2.1)
-      expect(tf.max(a,c).eval).to eq(2.1)
-      expect(tf.max(b,d).eval).to eq([3.0, 3.0])
-    end
-
-    it "computes for the gradient" do
-      b = tf.constant([1.0, 3.0])
-      d = tf.constant([3.0, 1.1])
-      g = tf.gradients(tf.max(b,d), [b, d])
-      expect(g.eval).to eq([[0.0, 1.0], [0.0, 1.0]])
-    end
-  end
-
-  context ".cast" do
-    it "converts from one datatype to another" do
-      a = tf.constant([1.0, 3.0])
-      b = tf.constant([true, true])
-      expect(tf.cast(a, :int32).eval).to eql([1, 3])
-      expect(tf.cast(a, :boolean).eval).to eql([true, true])
-      expect(tf.cast(b, :float32).eval).to eql([1.0, 1.0])
-      expect(tf.cast(b, :int32).eval).to eql([1, 1])
-    end
-  end
-
   context ".logical_and" do
     it "Returns the truth value of x AND y element-wise." do
       a = tf.constant([[true, true], [false, true]])
@@ -515,26 +486,6 @@ RSpec.describe TensorStream::Operation do
 
       expect(grad1.eval).to eq([4.0, 2.0])
       expect(grad2.eval).to eq([0.0, 6.0])
-    end
-  end
-
-  context ".where" do
-    it "does an elementwise comparison and picks the appropriate element from x or y" do
-      a = tf.constant([1,2,3,4,5])
-      b = tf.constant([6,6,6,6,6])
-      c = tf.constant([8,8,8,8,8])
-      
-      expect(tf.where(a > 3, b, c).eval).to eq([8, 8, 8, 6, 6])
-    end
-
-    it "supports gradients" do
-      a = tf.constant([1,2,3,4,5])
-      b = tf.constant([6,6,6,6,6])
-      c = tf.constant([8,8,8,8,8])
-
-      expr = tf.where(a > 3, b, c)
-      g = tf.gradients(expr, [b, c])
-      expect(g.eval).to eq([[0, 0, 0, 1, 1], [1, 1, 1, 0, 0]])
     end
   end
 

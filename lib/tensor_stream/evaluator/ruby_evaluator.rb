@@ -612,7 +612,7 @@ module TensorStream
 
       def call_op(op, a, child_context, func)
         a = complete_eval(a, child_context)
-        process_function_op(a, child_context, func)
+        process_function_op(a, func)
       rescue FullEvalNotPossible
         TensorStream.send(op.to_sym, a)
       end
@@ -674,13 +674,6 @@ module TensorStream
         end
       end
 
-      def get_rank(value, rank = 0)
-        return rank unless value.is_a?(Array)
-        return rank + 1 if value.empty?
-
-        get_rank(value[0], rank + 1)
-      end
-
       def concat_array(values, axis)
         combined_array = values.shift
         axis = get_rank(combined_array) - 1 if axis == -1
@@ -698,20 +691,6 @@ module TensorStream
           a.each_with_index.collect do |i, index|
             concat(i, b[index], axis - 1)
           end
-        end
-      end
-
-      def process_function_op(a, child_context, op)
-        # ruby scalar
-        if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
-          vector_op(a, 0, op)
-        elsif !a.is_a?(Tensor) || a.shape.rank.zero?
-          v = run(a, child_context)
-          raise FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
-
-          op.call(v, 0)
-        else
-          raise 'cannot be here'
         end
       end
 

@@ -167,6 +167,21 @@ module TensorStream
 
           value = execute_2_operand_func('add', tensor, a, b, child_context)
           assign_var(tensor, value, child_context)
+        when :assign_sub
+          a = _run(a, child_context)
+          b = _run(b, child_context)
+
+          value = execute_2_operand_func('sub', tensor, a, b, child_context)
+          assign_var(tensor, value, child_context)
+        when :greater
+          execute_2_operand_func('greater', tensor, a, b, child_context)
+        when :greater_equal
+          execute_2_operand_func('greater_equal', tensor, a, b, child_context)
+        when :where
+          pred = tensor.options[:pred]
+          execute_cond_func('where', tensor, pred, a, b, child_context)
+        when :max
+          execute_2_operand_func('max', tensor, a, b, child_context)
         when :add
           execute_2_operand_func('add', tensor, a, b, child_context)
         when :div
@@ -208,6 +223,21 @@ module TensorStream
           execute_2_operand_func('mul', tensor, a, b, child_context)
         when :pow
           execute_2_operand_func('pow', tensor, a, b, child_context)
+        when :cast
+          a = _run(a, child_context)
+
+          if a.data_type != tensor.data_type
+            buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+            s_dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(a.data_type) ? 'fp' : 'int'
+            t_dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+            work_group = a.shape
+            m, n = a.shape
+            cl_m = OpenCL::Int1.new(m || 1)
+            cl_n = OpenCL::Int1.new(n || 1)
+            _cl_program("cast").send(:"cast_#{s_dtype}_#{t_dtype}",_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
+          else
+            a
+          end
         when :sign
           execute_func('sign', tensor, a, child_context)
         when :exp
@@ -236,6 +266,8 @@ module TensorStream
           execute_func('tanh_grad', tensor, a, child_context)
         when :sigmoid
           execute_func('sigmoid', tensor, a, child_context)
+        when :log1p
+          execute_func('log1p', tensor, a, child_context)
         when :sigmoid_grad
           execute_2_operand_func('sigmoid_grad', tensor, a, b, child_context)
         when :truncate
@@ -442,7 +474,6 @@ module TensorStream
       def assign_var(tensor, b, child_context)
         assign = tensor.items[0] || tensor
         buffer = complete_eval(b, child_context)
-        # assign.value = read_final_result(buffer)
         if assign.buffer
           assign.buffer.op = _opencl_queue.enqueue_write_buffer(assign.buffer.cl_buffer, buffer.buffer)
         else
@@ -451,7 +482,7 @@ module TensorStream
         assign.buffer.dirty = true
         assign.buffer
       end
-    
+
       def execute_2_operand_func(op_name, tensor, input_a, input_b, child_context)
         a = _run(input_a, child_context)
         b = _run(input_b, child_context)
@@ -466,7 +497,7 @@ module TensorStream
         cl_m = OpenCL::Int1.new(m || 1)
         cl_n = OpenCL::Int1.new(n || 1)
         cl_switch = OpenCL::Int1.new(switch_operands) # no need to switch for addition
-        
+
         event_wait_list = [a.op, b.op].compact # add dependency wait list
 
         event = if prog == "#{op_name}_b"
@@ -482,6 +513,26 @@ module TensorStream
           _cl_program("#{op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         end
         output_buffer.op = event
+        output_buffer
+      end
+
+      def execute_cond_func(op_name, tensor, pred, input_a, input_b, child_context)
+        p = _run(pred, child_context)
+        a = _run(input_a, child_context)
+        b = _run(input_b, child_context)
+
+        a, b = type_cast(a, b)
+        dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+
+        output_buffer = _create_result_buffer(tensor.data_type, p.shape, tensor.name)
+
+        m, n = p.shape
+        work_group = [m || 1, n || 1]
+        cl_m = OpenCL::Int1.new(m || 1)
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event_wait_list = [a.op, b.op, p.op].compact # add dependency wait list
+        output_buffer.op = _cl_program("#{op_name}").send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, p.cl_buffer, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer
       end
 
@@ -600,7 +651,7 @@ module TensorStream
           size = shape.empty? ? 1 : shape.reduce(:*)
           buffer =  if TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type)
                       NArray.sfloat(size)
-                    elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type)
+                    elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type) || data_type == :boolean
                       NArray.int(size)
                     else
                       raise "unsupported type #{data_type}"
@@ -793,13 +844,6 @@ module TensorStream
         end
       end
 
-      def get_rank(value, rank = 0)
-        return rank unless value.is_a?(Array)
-        return rank + 1 if value.empty?
-
-        get_rank(value[0], rank + 1)
-      end
-
       def concat_array(values, axis)
         combined_array = values.shift
         axis = get_rank(combined_array) - 1 if axis == -1
@@ -817,20 +861,6 @@ module TensorStream
           a.each_with_index.collect do |i, index|
             concat(i, b[index], axis - 1)
           end
-        end
-      end
-
-      def process_function_op(a, child_context, op)
-        # ruby scalar
-        if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
-          vector_op(a, 0, op)
-        elsif !a.is_a?(Tensor) || a.shape.rank.zero?
-          v = _run(a, child_context)
-          raise FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
-
-          op.call(v, 0)
-        else
-          raise 'cannot be here'
         end
       end
 

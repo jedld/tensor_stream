@@ -1,5 +1,7 @@
 module TensorStream
   class OpenCLBuffer < Buffer
+    include ArrayOpsHelper
+
     attr_accessor :data_type, :shape, :buffer, :cl_buffer, :op
 
     def initialize(data_type: , shape:, buffer:, cl_buffer:, op: nil, name: nil)
@@ -12,9 +14,17 @@ module TensorStream
     end
 
     def to_ruby
-      return buffer[0] if shape.empty?
+      if shape.empty?
+        return buffer[0] != 0 if data_type == :boolean
+        return buffer[0]
+      end
       return [] if buffer.empty?
-      buffer.reshape(*shape.reverse).to_a
+
+      result = buffer.reshape(*shape.reverse).to_a
+      if data_type == :boolean
+        result = process_function_op(result, ->(a, _b) { a != 0 })
+      end
+      result
     end
   end
 end

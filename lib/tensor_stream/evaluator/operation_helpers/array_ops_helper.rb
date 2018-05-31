@@ -148,5 +148,23 @@ module TensorStream
         new_arr * t
       end
     end
+
+    def process_function_op(a, op)
+      # ruby scalar
+      if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
+        vector_op(a, 0, op)
+      elsif a.shape.rank.zero?
+        op.call(a, 0)
+      else
+        raise 'cannot be here'
+      end
+    end
+
+    def get_rank(value, rank = 0)
+      return rank unless value.is_a?(Array)
+      return rank + 1 if value.empty?
+
+      get_rank(value[0], rank + 1)
+    end
   end
 end

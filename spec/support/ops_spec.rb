@@ -5,6 +5,35 @@ RSpec.shared_examples "standard ops evaluator" do
     tf.reset_default_graph
   end
 
+  context ".max" do
+    it "returns the maximum of two tensors" do
+      a = tf.constant(1.0)
+      b = tf.constant([1.0, 3.0])
+      d = tf.constant([3.0, 1.1])
+      c = tf.constant(2.1)
+      expect(tr(sess.run(tf.max(a,c)))).to eq(2.1)
+      expect(sess.run(tf.max(b,d))).to eq([3.0, 3.0])
+    end
+
+    it "computes for the gradient" do
+      b = tf.constant([1.0, 3.0])
+      d = tf.constant([3.0, 1.1])
+      g = tf.gradients(tf.max(b,d), [b, d])
+      expect(sess.run(g)).to eq([[0.0, 1.0], [0.0, 1.0]])
+    end
+  end
+
+  context ".cast" do
+    it "converts from one datatype to another" do
+      a = tf.constant([1.0, 3.0])
+      b = tf.constant([true, true])
+      expect(sess.run(tf.cast(a, :int32))).to eql([1, 3])
+      expect(sess.run(tf.cast(a, :boolean))).to eql([true, true])
+      expect(sess.run(tf.cast(b, :float32))).to eql([1.0, 1.0])
+      expect(sess.run(tf.cast(b, :int32))).to eql([1, 1])
+    end
+  end
+
   context ".zeros" do
     it "generates a zero tensor" do
       a = tf.zeros([2,2])
@@ -16,6 +45,26 @@ RSpec.shared_examples "standard ops evaluator" do
     it "generates a ones tensor" do
       ones = tf.ones([2,2])
       expect(sess.run(ones)).to eq([[1.0, 1.0], [1.0, 1.0]])
+    end
+  end
+
+  context ".where" do
+    it "does an elementwise comparison and picks the appropriate element from x or y" do
+      a = tf.constant([1,2,3,4,5])
+      b = tf.constant([6,6,6,6,6])
+      c = tf.constant([8,8,8,8,8])
+      
+      expect(sess.run(tf.where(a > 3, b, c))).to eq([8, 8, 8, 6, 6])
+    end
+
+    it "supports gradients" do
+      a = tf.constant([1,2,3,4,5])
+      b = tf.constant([6,6,6,6,6])
+      c = tf.constant([8,8,8,8,8])
+
+      expr = tf.where(a > 3, b, c)
+      g = tf.gradients(expr, [b, c])
+      expect(sess.run(g)).to eq([[0, 0, 0, 1, 1], [1, 1, 1, 0, 0]])
     end
   end
 
