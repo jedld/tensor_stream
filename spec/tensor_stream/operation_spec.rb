@@ -285,43 +285,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context ".zeros" do
-    it "generates a zero tensor" do
-      a = tf.zeros([2,2])
-      expect(a.eval).to eq([[0.0, 0.0], [0.0, 0.0]])
-    end
-  end
-
-  context ".ones" do
-    it "generates a ones tensor" do
-      ones = tf.ones([2,2])
-      expect(ones.eval).to eq([[1.0, 1.0], [1.0, 1.0]])
-    end
-  end
-
-  context ".pow" do
-    it "Computes the power of tensor x to tensor y" do
-      x = tf.constant([[2, 2], [3, 3]])
-      y = tf.constant([[8, 16], [2, 3]])
-      p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
-      expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
-
-      p = tf.pow(x, 2)
-      expect(sess.run(p)).to eq([[4, 4], [9, 9]])
-    end
-
-    it "gradients of the power rule" do
-      x = tf.constant([[1.1, 1.3], [1.3, 1.2]])
-      y = tf.constant([[1.5, 2.0], [1.1, 2.0]])
-      p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
-      g = tf.gradients(p, [x, y])
-      expect(tr(sess.run(g))).to eq([
-        [[1.5732, 2.6], [1.1292, 2.4]],
-        [[0.11, 0.4434], [0.3501, 0.2625]]
-      ])
-    end
-  end
-
   context ".pad" do
     it "pads a tensor, rank 1" do
       t = tf.constant([1, 2, 3])

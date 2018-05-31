@@ -5,6 +5,20 @@ RSpec.shared_examples "standard ops evaluator" do
     tf.reset_default_graph
   end
 
+  context ".zeros" do
+    it "generates a zero tensor" do
+      a = tf.zeros([2,2])
+      expect(sess.run(a)).to eq([[0.0, 0.0], [0.0, 0.0]])
+    end
+  end
+
+  context ".ones" do
+    it "generates a ones tensor" do
+      ones = tf.ones([2,2])
+      expect(sess.run(ones)).to eq([[1.0, 1.0], [1.0, 1.0]])
+    end
+  end
+
   context "op level seed" do
     it "is able to set an op level seed" do
       a = tf.random_uniform([1], seed: 1)
@@ -26,7 +40,7 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(op)).to eq([1,2,3,4])
     end
   end
-  
+
   context ".random_uniform_initializer" do
     it "initializes variables using the random uniform initializer" do
       tf.set_random_seed(1234)
@@ -53,6 +67,15 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".assign" do
+    specify "assign should set value" do
+      w = TensorStream.variable(rand, name: "weight", initializer: TensorStream.zeros_initializer)
+      TensorStream.global_variables_initializer.run
+      sess.run(w.assign(2))
+      expect(w.read_value).to eq(2)
+    end
+  end
+
   context ".greater" do
     it "returns true if a > b" do
       a = tf.constant(2.0)
@@ -65,6 +88,29 @@ RSpec.shared_examples "standard ops evaluator" do
       a = tf.constant([[1.1, 1.3], [1.3, 1.2]])
       c = a > 0
       expect(sess.run(c)).to eq([[true, true], [true, true]])
+    end
+  end
+
+  context ".pow" do
+    it "Computes the power of tensor x to tensor y" do
+      x = tf.constant([[2, 2], [3, 3]])
+      y = tf.constant([[8, 16], [2, 3]])
+      p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
+      expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
+
+      p = tf.pow(x, 2)
+      expect(sess.run(p)).to eq([[4, 4], [9, 9]])
+    end
+
+    it "gradients of the power rule" do
+      x = tf.constant([[1.1, 1.3], [1.3, 1.2]])
+      y = tf.constant([[1.5, 2.0], [1.1, 2.0]])
+      p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
+      g = tf.gradients(p, [x, y])
+      expect(tr(sess.run(g))).to eq([
+        [[1.5732, 2.6], [1.1292, 2.4]],
+        [[0.11, 0.4434], [0.3501, 0.2625]]
+      ])
     end
   end
 
@@ -325,8 +371,8 @@ RSpec.shared_examples "standard ops evaluator" do
       grad = tf.gradients(f_x, [x]).first
       grad_2 = tf.gradients(f_y, [y]).first
 
-      expect(tr(sess.run(grad))).to eq(gradient)
-      expect(tr(sess.run(grad_2))).to eq(gradient2)
+      expect(tr(sess.run(grad))).to eq(tr(gradient))
+      expect(tr(sess.run(grad_2))).to eq(tr(gradient2))
     end
   end
 end

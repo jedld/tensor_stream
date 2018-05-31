@@ -1,7 +1,7 @@
 module TensorStream
   # Class that defines a TensorStream variable
   class Variable < Tensor
-    attr_accessor :trainable, :options
+    attr_accessor :trainable, :options, :buffer
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
 
@@ -36,6 +36,11 @@ module TensorStream
     end
 
     def read_value
+      if buffer && buffer.dirty
+        @value = buffer.to_ruby
+        buffer.dirty = false
+      end
+
       @value
     end
 

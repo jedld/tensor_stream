@@ -9,6 +9,8 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
+require 'tensor_stream/evaluator/opencl_evaluator'
+require 'pry-byebug'
 
 tf = TensorStream
 
@@ -35,7 +37,7 @@ accuracy = 0.0
 init = tf.global_variables_initializer()
 
 # Start training
-tf.session do |sess|
+tf.session(:opencl_evaluator) do |sess|
   # Run the initializer
   sess.run(init)
   Xte.size.times do |i|
