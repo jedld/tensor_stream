@@ -50,7 +50,7 @@ module TensorStream
 
     def set_data_type(passed_data_type)
       case operation
-      when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal
+      when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
         :boolean
       when :shape, :rank
         :int32

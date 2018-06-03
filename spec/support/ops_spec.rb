@@ -51,8 +51,8 @@ RSpec.shared_examples "standard ops evaluator" do
       c = tf.constant(2.1)
       d = tf.constant([1.1, 2.1, 3.0])
       e = tf.constant([1.1, 3.1, 1.1])
-      expect(ess.run(tf.greater_equal(a,b))).to be
-      expect(a >= b).to be
+      expect(sess.run(tf.greater_equal(a,b))).to be
+      expect(sess.run(a >= b)).to be
       expect(sess.run(tf.greater_equal(b,c))).to be false
       expect(sess.run(tf.greater_equal(d,e))).to eq([true, false, true])
     end
@@ -72,6 +72,149 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".equal" do
+    it "returns the truth value of two tensors" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([[1.0]])
+      e = tf.constant([[1.0]])
+      f = tf.constant([[2.0]])
+      expect(sess.run(tf.equal(a, b))).to eq(true)
+      expect(sess.run(tf.equal(a, c))).to eq(false)
+      expect(sess.run(tf.equal(d, e))).to eq([[true]])
+      expect(sess.run(tf.equal(e, f))).to eq([[false]])
+
+      expect(sess.run(a == b)).to eq(true)
+      expect(sess.run(a == c)).to eq(false)
+    end
+  end
+
+
+  context ".logical_and" do
+    it "Returns the truth value of x AND y element-wise." do
+      a = tf.constant([[true, true], [false, true]])
+      b = tf.constant([[true, true], [true, true]])
+      f = tf.logical_and(a, b)
+      expect(sess.run(f)).to eq([[true, true], [false, true]])
+
+      f = a.and(b)
+      expect(sess.run(f)).to eq([[true, true], [false, true]])
+    end
+  end
+
+  context ".not_equal" do
+    it "returns the truth value of two tensors" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([[1.0]])
+      e = tf.constant([[1.0]])
+      f = tf.constant([[2.0]])
+      expect(sess.run(tf.not_equal(a, b))).to eq(false)
+      expect(sess.run(tf.not_equal(a, c))).to eq(true)
+      expect(sess.run(tf.not_equal(d, e))).to eq([[false]])
+      expect(sess.run(tf.not_equal(e, f))).to eq([[true]])
+
+      expect(sess.run(a != b)).to eq(false)
+      expect(sess.run(a != c)).to eq(true)
+    end
+  end
+
+  context ".print" do
+    it "behaves like identity but prints a message to stdout" do
+      x = tf.constant([[2.0, 2.0], [3.0, 3.0]])
+      y = tf.print(x, x, message: "this is a prefix")
+      z = tf.sin(y)
+      expect(tr(sess.run(z))).to eq([[0.9093, 0.9093], [0.1411, 0.1411]])
+    end
+  end
+
+  context ".slice" do
+    it "slices a tensor" do
+      t = tf.constant([[[1, 1, 1], [2, 2, 2]],
+        [[3, 3, 3], [4, 4, 4]],
+        [[5, 5, 5], [6, 6, 6]]])
+      expect(sess.run(tf.slice(t, [1, 0, 0], [1, 1, 3]))).to eq([[[3, 3, 3]]])
+      expect(sess.run(tf.slice(t, [1, 0, 0], [1, 2, 3]))).to eq([[[3, 3, 3], [4, 4, 4]]])
+      expect(sess.run(tf.slice(t, [1, 0, 0], [2, 1, 3]))).to eq([[[3, 3, 3]], [[5, 5, 5]]])
+    end
+
+    it "1D tensor slicing" do
+      t  = tf.constant([1,2,3,4,5,6,7])
+      expect(sess.run(tf.slice(t, [2], [1]))).to eq([3])
+    end
+  end
+
+  context ".rank" do
+    it "returns the rank of a tensor" do
+      t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      t2 = tf.constant(1)
+      t3 = tf.constant([1,2])
+      rank1 = tf.rank(t1)
+      rank2 = tf.rank(t2)
+      rank3 = tf.rank(t3)
+      expect(sess.run(rank1)).to eq(3)
+      expect(sess.run(rank2)).to eq(0)
+      expect(sess.run(rank3)).to eq(1)
+    end
+  end
+
+  context ".negate" do
+    it "computes the negative of a tensor" do
+      x = tf.constant(0.1)
+      y = tf.constant([[1.1, 16.1], [2.1, 3.0]])
+      z = -tf.constant(4.1)
+      x_negate = tf.negate(x)
+      y_negate = tf.negate(y)
+
+      expect(tr(sess.run(x_negate))).to eq(-0.1)
+      expect(tr(sess.run(y_negate))).to eq([[-1.1, -16.1], [-2.1, -3.0]])
+      expect(tr(sess.run(z))).to eq(-4.1)
+    end
+  end
+
+  context ".abs" do
+    it "Computes the absolute value of a tensor" do
+      tf = TensorStream
+
+      a = [[1,2],[-1, 2], [3,-3]]
+      b = -1.123
+
+      expect(sess.run(tf.abs(a))).to eq([[1, 2], [1, 2], [3, 3]])
+      expect(tr(sess.run(tf.abs(b)))).to eq(1.123)
+    end
+
+    specify "should compute for the gradient" do
+      a = tf.constant([[1,2],[-1, 2], [3,-3]])
+      expect(sess.run(tf.gradients(tf.abs(a),[a]))).to eq([[[ 1,  1],
+        [-1,  1],
+        [ 1, -1]]])
+    end
+  end
+
+  context ".sign" do
+    it "Returns an element-wise indication of the sign of a number." do
+      tf = TensorStream
+
+      a = tf.constant([[1,2],[-1, 2], [3,-3]])
+      b = -1.123
+
+      expect(sess.run(tf.sign(a))).to eq([[1, 1], [-1, 1], [1, -1]])
+      expect(sess.run(tf.sign(b))).to eq(-1.0)
+    end
+  end
+
+  context ".transpose" do
+    it "transposes matrices" do
+      tf.program do |tf|
+        x = tf.constant([[1, 2, 3], [4, 5, 6]])
+        t = tf.transpose(x)
+
+        expect(sess.run(t)).to eq([[1, 4], [2, 5], [3, 6]])
+      end
+    end
+  end
   context ".zeros" do
     it "generates a zero tensor" do
       a = tf.zeros([2,2])

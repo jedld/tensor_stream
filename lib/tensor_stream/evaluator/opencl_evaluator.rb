@@ -181,13 +181,19 @@ module TensorStream
           value = execute_2_operand_func('sub', tensor, a, b, child_context)
           assign_var(tensor, value, child_context)
         when :less
-          execute_2_operand_func('less', tensor, a, b, child_context)
+          execute_2_operand_func('less', tensor, a, b, child_context, 'cond')
         when :less_equal
-          execute_2_operand_func('less_equal', tensor, a, b, child_context, 'less')
+          execute_2_operand_func('less_equal', tensor, a, b, child_context, 'cond')
         when :greater
-          execute_2_operand_func('greater', tensor, a, b, child_context)
+          execute_2_operand_func('greater', tensor, a, b, child_context, 'cond')
         when :greater_equal
-          execute_2_operand_func('greater_equal', tensor, a, b, child_context)
+          execute_2_operand_func('greater_equal', tensor, a, b, child_context, 'cond')
+        when :equal
+          execute_2_operand_func('equal', tensor, a, b, child_context, 'cond')
+        when :not_equal
+          execute_2_operand_func('not_equal', tensor, a, b, child_context, 'cond')
+        when :logical_and
+          execute_2_operand_func('logical_and', tensor, a, b, child_context, 'cond')
         when :where
           pred = tensor.options[:pred]
           execute_cond_func('where', tensor, pred, a, b, child_context)
@@ -350,6 +356,16 @@ module TensorStream
            [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
              wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
          end
+        when :print
+          a = _run(a, child_context)
+          b = _run(b, child_context)
+          input_b = complete_eval(b, child_context)
+          input_b = read_final_result(input_b)
+          puts "#{tensor.options.fetch(:message, '')} #{input_b}"
+          a
+        when :rank
+          a = _run(a, child_context)
+          wrap_opencl(a.shape.size, data_type: tensor.data_type, name: tensor.name)
         when :index
           a = complete_eval(a, child_context)
           input_a = read_final_result(a)
@@ -533,10 +549,11 @@ module TensorStream
           else
             raise "rank > 2 not supported!"
           end
-          _cl_program("#{porg_name || op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          _cl_program("#{prog_name || op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         else
           _cl_program("#{prog_name || op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         end
+
         output_buffer.op = event
         output_buffer
       end
@@ -610,7 +627,7 @@ module TensorStream
         elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym)
           NArray.int(size)
         elsif data_type.to_sym == :boolean
-          NArray.sint(size)
+          NArray.int(size)
         else
           raise "unsupported type #{data_type}"
         end
@@ -646,7 +663,7 @@ module TensorStream
                        elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym) || TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym)
                          NArray.int(narray_size)
                        elsif data_type.to_sym == :boolean
-                         NArray.sint(narray_size)
+                         NArray.int(narray_size)
                        else
                          raise "unsupported type #{data_type}"
                        end
