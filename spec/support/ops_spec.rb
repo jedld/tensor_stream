@@ -34,6 +34,44 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".less" do
+    it "returns true if a < b" do
+      a = tf.constant(2.0)
+      b = tf.constant(3.0)
+      expect(sess.run(tf.less(a, b))).to eq(true)
+      expect(sess.run(tf.less(b, a))).to eq(false)
+    end
+  end
+
+
+  context ".greater_equal" do
+    it "returns true if a >= b elementwise" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([1.1, 2.1, 3.0])
+      e = tf.constant([1.1, 3.1, 1.1])
+      expect(ess.run(tf.greater_equal(a,b))).to be
+      expect(a >= b).to be
+      expect(sess.run(tf.greater_equal(b,c))).to be false
+      expect(sess.run(tf.greater_equal(d,e))).to eq([true, false, true])
+    end
+  end
+
+  context ".less_equal" do
+    it "returns true if a >= b elementwise" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([1.1, 2.1, 3.0])
+      e = tf.constant([1.1, 3.1, 1.1])
+      expect(sess.run(tf.less_equal(a,b))).to be
+      expect(a <= b).to be
+      expect(sess.run(tf.less_equal(b,c))).to be true
+      expect(sess.run(tf.less_equal(d,e))).to eq([true, true, false])
+    end
+  end
+
   context ".zeros" do
     it "generates a zero tensor" do
       a = tf.zeros([2,2])

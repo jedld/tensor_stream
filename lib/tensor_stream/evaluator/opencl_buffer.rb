@@ -14,11 +14,11 @@ module TensorStream
     end
 
     def to_ruby
+      return [] if buffer.empty?
       if shape.empty?
         return buffer[0] != 0 if data_type == :boolean
         return buffer[0]
       end
-      return [] if buffer.empty?
 
       result = buffer.reshape(*shape.reverse).to_a
       if data_type == :boolean

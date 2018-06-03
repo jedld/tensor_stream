@@ -2,6 +2,7 @@ require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
 require 'tensor_stream/evaluator/opencl_buffer'
+require 'tensor_stream/evaluator/opencl_template_helper'
 require 'distribution'
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
@@ -105,9 +106,15 @@ module TensorStream
         @context[:_cache][:_opencl_queue]
       end
 
+      def cl_template_path(kernel, extension)
+        File.join(File.dirname(__FILE__), 'kernels', "#{kernel}.#{extension}")
+      end
+
       def _cl_program(kernel)
         @context[:_cache]["_opencl_kernel_#{kernel}"] ||= begin
-          source = File.read(File.join(File.dirname(__FILE__), 'kernels', "#{kernel}.cl"))
+          filename = ['cl.erb', 'cl'].map { |ext|  cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
+          source = File.read(filename)
+          source = OpenclTemplateHelper.new(source).generate
           program = _opencl_context.create_program_with_source(source)
           program.build
         rescue OpenCL::Error::BUILD_PROGRAM_FAILURE => e
@@ -173,6 +180,10 @@ module TensorStream
 
           value = execute_2_operand_func('sub', tensor, a, b, child_context)
           assign_var(tensor, value, child_context)
+        when :less
+          execute_2_operand_func('less', tensor, a, b, child_context)
+        when :less_equal
+          execute_2_operand_func('less_equal', tensor, a, b, child_context, 'less')
         when :greater
           execute_2_operand_func('greater', tensor, a, b, child_context)
         when :greater_equal
@@ -225,7 +236,6 @@ module TensorStream
           execute_2_operand_func('pow', tensor, a, b, child_context)
         when :cast
           a = _run(a, child_context)
-
           if a.data_type != tensor.data_type
             buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
             s_dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(a.data_type) ? 'fp' : 'int'
@@ -234,7 +244,8 @@ module TensorStream
             m, n = a.shape
             cl_m = OpenCL::Int1.new(m || 1)
             cl_n = OpenCL::Int1.new(n || 1)
-            _cl_program("cast").send(:"cast_#{s_dtype}_#{t_dtype}",_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
+            buffer.op = _cl_program("cast").send(:"cast_#{s_dtype}_#{t_dtype}",_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
+            buffer
           else
             a
           end
@@ -282,7 +293,16 @@ module TensorStream
               a
             else
               input_a = read_final_result(a)
-              wrap_opencl(i_cons(truncate(input_a, input_b), data_type: a.data_type), name: "#{tensor.name}")
+              if input_b == []
+                if a.buffer.size == 1
+                  a.shape = input_b
+                  a
+                else
+                  wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
+                end
+              else
+                wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
+              end
             end
           end
         when :zeros, :ones, :zeros_like, :ones_like
@@ -327,8 +347,8 @@ module TensorStream
            input_a = read_final_result(complete_eval(a, child_context))
            input_b = read_final_result(complete_eval(b, child_context))
            b_a, b_b = broadcast(input_a, input_b)
-           [ wrap_opencl(i_cons(b_a, data_type: a.data_type), name: "#{tensor.name}_a"),
-             wrap_opencl(i_cons(b_b, data_type: b.data_type), name: "#{tensor.name}_b")]
+           [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
+             wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
          end
         when :index
           a = complete_eval(a, child_context)
@@ -345,11 +365,11 @@ module TensorStream
           a = complete_eval(a, child_context)
           b = complete_eval(b, child_context)
 
-          wrap_opencl(i_cons(get_broadcast_gradient_args(a.buffer.to_a, b.buffer.to_a), data_type: :int32), name: tensor.name)
+          wrap_opencl(get_broadcast_gradient_args(a.buffer.to_a, b.buffer.to_a), data_type: a.data_type, name: tensor.name)
         when :shape
           a = _run(a, child_context)
 
-          wrap_opencl(i_cons(a.shape), name: tensor.name, data_type: tensor.options[:out_type] || :float32)
+          wrap_opencl(a.shape, name: tensor.name, data_type: tensor.options[:out_type] || :float32)
         when :reshape
           arr = complete_eval(a, child_context)
           new_shape = read_final_result(complete_eval(b, child_context))
@@ -404,7 +424,12 @@ module TensorStream
         when :sum
           reduction(child_context, tensor, a, b, :sum)
         when :prod
-          reduction(child_context, tensor, a, b, :prod)
+          input_a = complete_eval(a, child_context)
+          if input_a.buffer.empty?
+            convert_to_opencl([1.0], [], data_type: a.data_type, name: tensor.name)
+          else
+            reduction(child_context, tensor, a, b, :prod)
+          end
         when :argmin
           a = complete_eval(a, child_context)
           axis = tensor.options[:axis] || 0
@@ -483,7 +508,7 @@ module TensorStream
         assign.buffer
       end
 
-      def execute_2_operand_func(op_name, tensor, input_a, input_b, child_context)
+      def execute_2_operand_func(op_name, tensor, input_a, input_b, child_context, prog_name = nil)
         a = _run(input_a, child_context)
         b = _run(input_b, child_context)
         a, b = type_cast(a, b)
@@ -508,9 +533,9 @@ module TensorStream
           else
             raise "rank > 2 not supported!"
           end
-          _cl_program("#{op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          _cl_program("#{porg_name || op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         else
-          _cl_program("#{op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          _cl_program("#{prog_name || op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         end
         output_buffer.op = event
         output_buffer
@@ -594,29 +619,43 @@ module TensorStream
       end
 
       def wrap_opencl(tensor, data_type: nil, name: nil)
-        convert_to_opencl(tensor.value, tensor.shape.shape, data_type: data_type || tensor.data_type, name: name)
+        value, shape = if tensor.is_a?(Tensor)
+          [tensor.value, tensor.shape.shape]
+        else
+          [tensor , shape_eval(tensor)]
+        end
+
+        convert_to_opencl(value, shape, data_type: data_type || tensor.data_type, name: name)
       end
 
       def convert_to_opencl(value, shape, data_type: nil, name: nil)
+        if !value.is_a?(Array) && !value.is_a?(NArray)
+          value = [value]
+        end
+
         cache_key = "_cl_object_#{name}_#{shape.join('_')}"
         cl_object =  if name && @context[:_cache][cache_key]
                       @context[:_cache][cache_key]
                      else
-                       size = shape.empty? ? 1 : shape.reduce(:*)
+                       narray_size = shape.reduce(:*) || 1
+
                        buffer = if value.is_a?(NArray)
                           value
                        elsif TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym) || TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym)
-                         NArray.sfloat(size)
+                         NArray.sfloat(narray_size)
                        elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym) || TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym)
-                         NArray.int(size)
+                         NArray.int(narray_size)
                        elsif data_type.to_sym == :boolean
-                         NArray.sint(size)
+                         NArray.sint(narray_size)
                        else
                          raise "unsupported type #{data_type}"
                        end
 
-                       cl_buffer = if size > 0
-                        _opencl_context.create_buffer(buffer.size * buffer.element_size)
+                       cl_buffer_size = shape.empty? ? 1 : shape.reduce(:*)
+
+                       cl_buffer = if !value.flatten.empty?
+                        cl_buffer_size = 1 if cl_buffer_size.zero?
+                        _opencl_context.create_buffer(cl_buffer_size * buffer.element_size)
                        else
                         nil
                        end
@@ -638,7 +677,7 @@ module TensorStream
           cl_object.buffer[0] = Tensor.cast_dtype(value, data_type)
         end
 
-        write_op = if !value.nil? && (!value.is_a?(Array) || !value.empty?)
+        write_op = if cl_object.cl_buffer && !value.nil? && (!value.is_a?(Array) || !value.empty?)
           _opencl_queue.enqueue_write_buffer(cl_object.cl_buffer, cl_object.buffer)
         end
         cl_object.op = write_op

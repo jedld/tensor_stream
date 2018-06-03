@@ -151,34 +151,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context ".greater_equal" do
-    it "returns true if a >= b elementwise" do
-      a = tf.constant(1.0)
-      b = tf.constant(1.0)
-      c = tf.constant(2.1)
-      d = tf.constant([1.1, 2.1, 3.0])
-      e = tf.constant([1.1, 3.1, 1.1])
-      expect(tf.greater_equal(a,b).eval).to be
-      expect(a >= b).to be
-      expect(tf.greater_equal(b,c).eval).to be false
-      expect(tf.greater_equal(d,e).eval).to eq([true, false, true])
-    end
-  end
-
-  context ".less_equal" do
-    it "returns true if a >= b elementwise" do
-      a = tf.constant(1.0)
-      b = tf.constant(1.0)
-      c = tf.constant(2.1)
-      d = tf.constant([1.1, 2.1, 3.0])
-      e = tf.constant([1.1, 3.1, 1.1])
-      expect(tf.less_equal(a,b).eval).to be
-      expect(a <= b).to be
-      expect(tf.less_equal(b,c).eval).to be true
-      expect(tf.less_equal(d,e).eval).to eq([true, true, false])
-    end
-  end
-
   context ".glorot_uniform_initializer" do
     it "initializes variables using the Glorot uniform initializer" do
       tf.set_random_seed(1234)
@@ -507,15 +479,6 @@ RSpec.describe TensorStream::Operation do
       f = tf.reduce_mean(x)
       g = tf.gradients(f, [x])
       expect(g.eval).to eq([[[0.25, 0.25], [0.25, 0.25]]])
-    end
-  end
-
-  context ".less" do
-    it "returns true if a < b" do
-      a = tf.constant(2.0)
-      b = tf.constant(3.0)
-      expect(tf.less(a, b).eval).to eq(true)
-      expect(tf.less(b, a).eval).to eq(false)
     end
   end
 
