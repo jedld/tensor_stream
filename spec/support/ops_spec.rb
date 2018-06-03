@@ -148,20 +148,20 @@ RSpec.shared_examples "standard ops evaluator" do
     context "shape (3,)" do
       it "Creates an operation to generate a random set of values of the given shape" do
         vec = tf.random_uniform([3])
-        expect(@sess.run(vec)).to eq([0.1915194503788923, 0.6221087710398319, 0.4377277390071145])
+        expect(tr(@sess.run(vec))).to eq([0.1915, 0.6221, 0.4377])
 
         #evaluating again generates new values
-        expect(@sess.run(vec)).to eq([0.7853585837137692, 0.7799758081188035, 0.2725926052826416])
+        expect(tr(@sess.run(vec))).to eq([0.7854, 0.78, 0.2726])
       end
     end
 
     context "shape (2, 2)" do
       it "Creates an operation to generate a random set of values of the given shape" do
         vec = tf.random_uniform([2,2])
-        expect(@sess.run(vec)).to eq([[0.1915194503788923, 0.6221087710398319], [0.4377277390071145, 0.7853585837137692]])
+        expect(tr(@sess.run(vec))).to eq([[0.1915, 0.6221], [0.4377, 0.7854]])
 
         #evaluating again generates new values
-        expect(@sess.run(vec)).to eq([[0.7799758081188035, 0.2725926052826416], [0.2764642551430967, 0.8018721775350193]])
+        expect(tr(@sess.run(vec))).to eq([[0.78, 0.2726], [0.2765, 0.8019]])
       end
     end
   end
@@ -251,13 +251,13 @@ RSpec.shared_examples "standard ops evaluator" do
       a = tf.constant([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]])
       b = tf.constant([[0.1, 0.1], [0.1, 0.1], [0.2, 0.2]])
       m = tf.matmul(a, b)
-      expect(sess.run(m)).to eq([[0.9000000000000001, 0.9000000000000001], [0.9000000000000001, 0.9000000000000001]])
+      expect(tr(sess.run(m))).to eq([[0.9, 0.9], [0.9, 0.9]])
 
       g = tf.gradients(m, [a])
-      expect(sess.run(g)).to eq([[[0.2, 0.2, 0.4], [0.2, 0.2, 0.4]]])
+      expect(tr(sess.run(g))).to eq([[[0.2, 0.2, 0.4], [0.2, 0.2, 0.4]]])
 
       d_wra = tf.matmul(tf.eye(a.shape[0]), b, transpose_b: true)
-      expect(sess.run(d_wra)).to eq([[0.1, 0.1, 0.2], [0.1, 0.1, 0.2]])
+      expect(tr(sess.run(d_wra))).to eq([[0.1, 0.1, 0.2], [0.1, 0.1, 0.2]])
     end
   end
 
@@ -286,7 +286,7 @@ RSpec.shared_examples "standard ops evaluator" do
       loss = tf.sin(var) # some_function_of() returns a `Tensor`.
       var_grad = tf.gradients(loss, [var])[0]
 
-      expect(sess.run(var_grad)).to eq(0.5403023058681398)
+      expect(tr(sess.run(var_grad))).to eq(0.5403)
     end
   end
 
