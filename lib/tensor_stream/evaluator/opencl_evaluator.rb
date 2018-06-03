@@ -678,15 +678,8 @@ module TensorStream
       def buffer_for(shape, data_type)
         size = shape.empty? ? 1 : shape.reduce(:*)
 
-        buffer = if TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym)
-          NArray.sfloat(size)
-        elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym)
-          NArray.int(size)
-        elsif data_type.to_sym == :boolean
-          NArray.int(size)
-        else
-          raise "unsupported type #{data_type}"
-        end
+        buffer = allocate_narray_for_type(data_type, size)
+
         cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
         OpenCLBuffer.new(data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)
       end
@@ -713,16 +706,10 @@ module TensorStream
                        narray_size = shape.reduce(:*) || 1
 
                        buffer = if value.is_a?(NArray)
-                          value
-                       elsif TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym) || TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym)
-                         NArray.sfloat(narray_size)
-                       elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym) || TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym)
-                         NArray.int(narray_size)
-                       elsif data_type.to_sym == :boolean
-                         NArray.int(narray_size)
-                       else
-                         raise "unsupported type #{data_type}"
-                       end
+                                  value
+                                else
+                                  allocate_narray_for_type(data_type, narray_size)
+                                end
 
                        cl_buffer_size = shape.empty? ? 1 : shape.reduce(:*)
 
@@ -757,6 +744,17 @@ module TensorStream
         cl_object
       end
 
+      def allocate_narray_for_type(data_type, narray_size)
+        if TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym) || TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym)
+          NArray.sfloat(narray_size)
+        elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym) || TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym)
+          NArray.int(narray_size)
+        elsif data_type.to_sym == :boolean
+          NArray.int(narray_size)
+        else
+          raise "unsupported type #{data_type}"
+        end
+      end
 
       def _create_result_buffer(data_type, shape, name)
         @context[:_cache]["_result_#{name}_#{shape.join('_')}"] ||= begin
