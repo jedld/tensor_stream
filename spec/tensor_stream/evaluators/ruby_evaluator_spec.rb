@@ -41,7 +41,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
     context ".reduced_shape" do
       it "returns the output shape of a tensor after reduction assuing keepdims= true" do
         input = tf.constant([[2,3],[3,4]])
-        expect(_op(:reduced_shape, tf.shape(input), 0).eval).to eq([1, 2])
+        expect(sess.run(_op(:reduced_shape, tf.shape(input), 0))).to eq([1, 2])
       end
     end
 
@@ -50,49 +50,49 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         a = _op(:shape, tf.constant([[1,1],[1,1]]))
         b = _op(:shape, tf.constant([[1,1],[1,1]]))
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([])
+        expect(sess.run(sb)).to eq([])
 
         a = _op(:shape, tf.constant(1))
         b = _op(:shape, tf.constant(1))
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([])
+        expect(sess.run(sb)).to eq([])
 
         a = _op(:shape, tf.constant([1.0, 1.0]))
         b = _op(:shape, tf.constant(1))
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([0])
+        expect(sess.run(sb)).to eq([0])
 
         a = _op(:shape, tf.constant([[1.0, 1.0],[1.0,1.0]]))
         b = _op(:shape, tf.constant(1))
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([1,0])
+        expect(sess.run(sb)).to eq([1,0])
 
         a = _op(:shape, tf.constant([[1.0, 1.0],[1.0,1.0]]))
         b = _op(:shape, tf.constant([1.0, 1.0]))
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([0])
+        expect(sess.run(sb)).to eq([0])
 
         a = _op(:shape, tf.constant([[1.0, 1.0],[1.0,1.0]]))
         b = _op(:shape, tf.constant([[1.0], [1.0]]))
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([1])
+        expect(sess.run(sb)).to eq([1])
 
         a = tf.constant([[1.0, 1.0],[1.0,1.0]])
         b = tf.constant([[1.0, 1.0]])
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([0])
+        expect(sess.run(sb)).to eq([0])
       end
 
       it "does nothing if a.rank < b.rank" do
         b = tf.constant([[1.0, 1.0],[1.0,1.0]])
         a = tf.constant([[1.0, 1.0]])
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([])
+        expect(sess.run(sb)).to eq([])
 
         b = _op(:shape, tf.constant([[1.0, 1.0], [1.0, 1.0]]))
         a = _op(:shape, tf.constant([[1.0], [1.0]]))
         sb = _op(:broadcast_gradient_args, a, b)
-        expect(sb.eval).to eq([])
+        expect(sess.run(sb)).to eq([])
       end
     end
   end

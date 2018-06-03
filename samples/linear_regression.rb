@@ -1,8 +1,6 @@
 require "bundler/setup"
 require 'tensor_stream'
-require 'tensor_stream/evaluator/opencl_evaluator'
 require 'benchmark'
-require 'pry-byebug'
 
 tf = TensorStream
 
@@ -35,7 +33,7 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
 
-tf.session(:opencl_evaluator) do |sess|
+tf.session do |sess|
     start_time = Time.now
     sess.run(init)
     (0..training_epochs).each do |epoch|

@@ -17,7 +17,7 @@ module TensorStream
 
       @items = [input_a, input_b].map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
       @data_type = set_data_type(options[:data_type])
-
+      @is_const = infer_const
       @shape = TensorShape.new(infer_shape)
       @graph.add_node(self)
     end
@@ -48,6 +48,17 @@ module TensorStream
       true
     end
 
+    def infer_const
+      return false if breakpoint
+      case operation
+      when :random_normal, :random_uniform, :glorot_uniform, :print
+        false
+      else
+        non_const = @items.compact.find { |item| !item.is_const }
+        non_const ? false : true
+      end
+    end
+
     def set_data_type(passed_data_type)
       case operation
       when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
@@ -56,6 +67,17 @@ module TensorStream
         :int32
       when :random_normal, :random_uniform, :glorot_uniform
         passed_data_type || :float32
+      when :index
+        if @items[0].is_a?(ControlFlow)
+
+          if @items[1].is_const
+            @items[0].items[@items[1].value].data_type
+          else
+            :unknown
+          end
+        else
+          @items[0].data_type
+        end
       else
         return passed_data_type if passed_data_type
 

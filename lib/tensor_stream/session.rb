@@ -14,6 +14,10 @@ module TensorStream
       @randomizer = {}
     end
 
+    def clear_session_cache
+      @session_cache = {}
+    end
+
     def self.default_session
       @session ||= Session.new
     end

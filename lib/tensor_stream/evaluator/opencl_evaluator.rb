@@ -28,8 +28,6 @@ module TensorStream
 
     ## PURE ruby evaluator used for testing and development
     class OpenclEvaluator
-      KERNELS = %w[add sub mul cast sin].freeze
-
       attr_accessor :retain
 
       include TensorStream::OpHelper
@@ -158,6 +156,10 @@ module TensorStream
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
         case tensor.operation
+        when :concat
+          input_a = read_final_result(complete_eval(a, child_context))
+          arr = concat_array(input_a, tensor.options[:axis])
+          convert_to_opencl(arr.flatten, shape_eval(arr), data_type: tensor.data_type, name: tensor.name)
         when :cond
           pred = complete_eval(tensor.options[:pred], child_context)
           a = _run(a, child_context)
@@ -322,6 +324,8 @@ module TensorStream
           execute_func('sigmoid', tensor, a, child_context)
         when :log1p
           execute_func('log1p', tensor, a, child_context)
+        when :round
+          execute_func('round', tensor, a, child_context)
         when :sigmoid_grad
           execute_2_operand_func('sigmoid_grad', tensor, a, b, child_context)
         when :truncate
@@ -424,6 +428,7 @@ module TensorStream
           a = complete_eval(a, child_context)
           input_a = read_final_result(a)
           index = read_final_result(complete_eval(b, child_context))
+
           if a.is_a?(Array)
             a[index]
           else
@@ -587,6 +592,7 @@ module TensorStream
         dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
 
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
+        binding.pry if tensor.data_type.nil?
         output_buffer = _create_result_buffer(tensor.data_type, result_shape, tensor.name)
         a, b, prog, switch_operands = select_program(a, b, op_name)
         m, n = result_shape

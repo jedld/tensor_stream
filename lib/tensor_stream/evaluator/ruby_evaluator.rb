@@ -76,10 +76,11 @@ module TensorStream
       protected
 
       def eval_variable(tensor, child_context)
-        if tensor.value.nil?
+        value = tensor.read_value
+        if value.nil?
           raise "variable #{tensor.name} not initalized"
         end
-        eval_tensor(tensor.value, child_context).tap do |val|
+        eval_tensor(value, child_context).tap do |val|
           child_context[:returns] ||= {}
           child_context[:returns][:vars] ||= []
           child_context[:returns][:vars] << { name: tensor.name, val: val }
@@ -505,7 +506,7 @@ module TensorStream
       def eval_tensor(tensor, child_context)
         return tensor unless tensor.is_a?(Tensor)
         return @context[tensor.name] if @context.key?(tensor.name)
-        # return @context[:_cache][tensor.name] if @context[:_cache] && @context[:_cache].key?(tensor.name)
+        return @context[:_cache][tensor.name] if @context[:_cache] && @context[:_cache].key?(tensor.name)
 
         if tensor.value.is_a?(Array)
           tensor.value.collect do |item|
@@ -515,7 +516,7 @@ module TensorStream
           tensor.value.is_a?(Tensor) ? run(tensor.value, child_context) : tensor.value
         end.tap do |result|
           @context[tensor.name] = result
-          # @context[:_cache][tensor.name] = result if @context[:_cache] && tensor.is_const
+          @context[:_cache][tensor.name] = result if @context[:_cache] && tensor.is_const
         end
       end
 

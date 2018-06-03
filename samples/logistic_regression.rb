@@ -2,7 +2,6 @@
 
 require "bundler/setup"
 require 'tensor_stream'
-require 'tensor_stream/evaluator/opencl_evaluator'
 require 'pry-byebug'
 
 tf = TensorStream
@@ -45,7 +44,7 @@ A = tf.variable(tf.random_normal([4, 1]))
 b = tf.variable(tf.random_normal([1, 1]))
 
 init = tf.global_variables_initializer
-sess = tf.session(:opencl_evaluator)
+sess = tf.session
 sess.run(init)
 
 data = tf.placeholder(:float32, shape: [nil, 4])
@@ -63,7 +62,7 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate)
 goal = optimizer.minimize(loss)
 prediction = tf.round(tf.sigmoid(mod))
 # Bool into float32 type
-correct = tf.cast(tf.equal(prediction, target), dtype: :float32)
+correct = tf.cast(tf.equal(prediction, target), :float32)
 # Average
 accuracy = tf.reduce_mean(correct)
 

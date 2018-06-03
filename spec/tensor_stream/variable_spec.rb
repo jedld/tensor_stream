@@ -6,7 +6,8 @@ RSpec.describe TensorStream::Variable do
   before(:each) do
     described_class.reset_counters
     TensorStream::Operation.reset_counters
-    TensorStream::Graph.create_default
+    tf.reset_default_graph
+    TensorStream::Session.default_session.clear_session_cache
   end
 
   context "Variable" do

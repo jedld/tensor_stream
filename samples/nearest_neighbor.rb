@@ -10,7 +10,6 @@ require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
 require 'tensor_stream/evaluator/opencl_evaluator'
-require 'pry-byebug'
 
 tf = TensorStream
 

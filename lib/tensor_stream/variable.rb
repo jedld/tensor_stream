@@ -10,6 +10,7 @@ module TensorStream
       @data_type = data_type
       @rank = rank
       @value = nil
+      @is_const = false
       @name = [TensorStream.get_variable_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @initalizer_tensor = options[:initializer] ? options[:initializer] : _variable_scope.initializer || TensorStream.glorot_uniform_initializer
       if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
