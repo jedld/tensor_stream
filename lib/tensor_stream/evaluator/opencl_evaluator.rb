@@ -256,10 +256,11 @@ module TensorStream
             buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
             s_dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(a.data_type) ? 'fp' : 'int'
             t_dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
-            work_group = a.shape
             m, n = a.shape
             cl_m = OpenCL::Int1.new(m || 1)
             cl_n = OpenCL::Int1.new(n || 1)
+            work_group = [m || 1, n || 1]
+
             buffer.op = _cl_program("cast").send(:"cast_#{s_dtype}_#{t_dtype}",_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
             buffer
           else
@@ -383,9 +384,7 @@ module TensorStream
           input_b = read_final_result(complete_eval(b, child_context))
           size = tensor.options[:size]
 
-          slice_param = input_b.zip(size).collect do |x, y|
-            x..x+y-1
-          end.reverse
+          slice_param = input_b.zip(size).collect { |x, y| x..x + y - 1 }.reverse
 
           new_buf = input_a.buffer.reshape(*input_a.shape.reverse)
           sliced = new_buf.slice[*slice_param]
@@ -435,7 +434,7 @@ module TensorStream
           random = _get_randomizer(tensor, seed)
           generator = -> { random.rand * (maxval - minval) + minval }
           shape = tensor.options[:shape] || tensor.shape.shape
-          
+
           convert_to_opencl(generate_vector(shape, generator: generator), shape, data_type: tensor.data_type, name: tensor.name)
         when :random_normal
           random = _get_randomizer(tensor, seed)
@@ -468,6 +467,8 @@ module TensorStream
           tensor.items.collect { |item| _run(item, child_context) }
         when :sum
           reduction(child_context, tensor, a, b, :sum)
+        when :mean
+          reduction(child_context, tensor, a, b, :mean)
         when :prod
           input_a = complete_eval(a, child_context)
           if input_a.buffer.empty?

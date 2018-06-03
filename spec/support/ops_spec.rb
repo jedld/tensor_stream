@@ -130,17 +130,17 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   
     [
-      [[],     0.1915194503788923,       0.3830389007577846         ],
-      [[1],   [0.1915194503788923],      [0.3830389007577846]         ],
-      [[2,3], [[0.1915194503788923, 0.6221087710398319, 0.4377277390071145], [0.7853585837137692, 0.7799758081188035, 0.2725926052826416]],  [[0.3830389007577846, 1.2442175420796637, 0.875455478014229], [1.5707171674275384, 1.559951616237607, 0.5451852105652832]] ]
+      [[],    0.1915,       0.383         ],
+      [[1],   [0.1915],       [0.383]        ],
+      [[2,3], [[0.1915, 0.6221, 0.4377], [0.7854, 0.78, 0.2726]],  [[0.383, 1.2442, 0.8755], [1.5707, 1.56, 0.5452]] ]
     ].each do |shape, expected, range_expected|
       describe "shape #{shape}" do
         it "generates random uniform values" do
-          expect(@sess.run(tf.random_uniform(shape))).to eq(expected)
+          expect(tr(@sess.run(tf.random_uniform(shape)))).to eq(expected)
         end
 
         specify "with ranges" do
-          expect(@sess.run(tf.random_uniform(shape, minval: 0, maxval: 2))).to eq(range_expected)
+          expect(tr(@sess.run(tf.random_uniform(shape, minval: 0, maxval: 2)))).to eq(range_expected)
         end
       end
     end
@@ -353,7 +353,7 @@ RSpec.shared_examples "standard ops evaluator" do
   context "combination of functions" do
     it "add two operation together" do
       y = tf.sin(1.0) + tf.sin(2.0)
-      expect(sess.run(y)).to eq(1.7507684116335782)
+      expect(tr(sess.run(y))).to eq(1.7508)
     end
   end
 
