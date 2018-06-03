@@ -514,7 +514,7 @@ module TensorStream
       rescue StandardError => e
         puts e.message
         puts e.backtrace.join("\n")
-        # binding.pry
+
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
@@ -845,39 +845,6 @@ module TensorStream
         else
           mat
         end
-      end
-
-      def call_op(op, a, child_context, func)
-        a = complete_eval(a, child_context)
-        process_function_op(a, child_context, func)
-      rescue FullEvalNotPossible
-        TensorStream.send(op.to_sym, a)
-      end
-
-      def call_vector_op(op, a, b, child_context, func)
-        process_vector_math_op(a, b, child_context, func)
-      rescue FullEvalNotPossible
-        TensorStream.send(op.to_sym, a, b)
-      end
-
-      def process_vector_math_op(a, b,  child_context, op)
-        eval_a = complete_eval(a, child_context) unless a.nil?
-        eval_b = complete_eval(b, child_context) unless b.nil?
-
-        raise FullEvalNotPossible.new, "full eval not possible for #{a.name}" if eval_a.is_a?(Tensor) || eval_b.is_a?(Tensor)
-
-        # ruby scalar
-        eval_a, eval_b = broadcast(eval_a, eval_b)
-        vector_op(eval_a, eval_b, op)
-        # if get_rank(eval_a).zero?
-        #   if get_rank(eval_b).zero?
-        #     op.call(eval_a, eval_b)
-        #   else
-        #     vector_op(eval_b, eval_a, op, true)
-        #   end
-        # else
-        #   vector_op(eval_a, eval_b, op)
-        # end
       end
 
       # determine possible reduction axis to be used

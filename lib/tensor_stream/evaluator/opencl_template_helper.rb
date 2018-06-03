@@ -1,3 +1,4 @@
+require 'erb'
 class OpenclTemplateHelper
   def initialize(source)
     @source = source

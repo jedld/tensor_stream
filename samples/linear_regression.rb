@@ -2,6 +2,7 @@ require "bundler/setup"
 require 'tensor_stream'
 require 'tensor_stream/evaluator/opencl_evaluator'
 require 'benchmark'
+require 'pry-byebug'
 
 tf = TensorStream
 

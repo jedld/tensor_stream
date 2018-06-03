@@ -153,10 +153,8 @@ module TensorStream
       # ruby scalar
       if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
         vector_op(a, 0, op)
-      elsif a.shape.rank.zero?
-        op.call(a, 0)
       else
-        raise 'cannot be here'
+        op.call(a, 0)
       end
     end
 
