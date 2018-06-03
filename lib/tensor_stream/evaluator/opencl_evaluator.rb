@@ -759,13 +759,7 @@ module TensorStream
       def _create_result_buffer(data_type, shape, name)
         @context[:_cache]["_result_#{name}_#{shape.join('_')}"] ||= begin
           size = shape.empty? ? 1 : shape.reduce(:*)
-          buffer =  if TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type)
-                      NArray.sfloat(size)
-                    elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type) || data_type == :boolean
-                      NArray.int(size)
-                    else
-                      raise "unsupported type #{data_type}"
-                    end
+          buffer =  allocate_narray_for_type(data_type, size)
           cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
           OpenCLBuffer.new(data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)
         end
