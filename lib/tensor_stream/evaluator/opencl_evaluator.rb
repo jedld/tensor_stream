@@ -164,6 +164,16 @@ module TensorStream
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
         case tensor.operation
+        when :cond
+          pred = complete_eval(tensor.options[:pred], child_context)
+          a = _run(a, child_context)
+          b = _run(b, child_context)
+
+          if all_true?(pred.buffer)
+            a
+          else
+            b
+          end
         when :identity
           _run(a, child_context)
         when :assign
@@ -366,6 +376,25 @@ module TensorStream
         when :rank
           a = _run(a, child_context)
           wrap_opencl(a.shape.size, data_type: tensor.data_type, name: tensor.name)
+        when :stop_gradient
+          _run(a, child_context)
+        when :slice
+          input_a = complete_eval(a, child_context)
+          input_b = read_final_result(complete_eval(b, child_context))
+          size = tensor.options[:size]
+
+          slice_param = input_b.zip(size).collect do |x, y|
+            x..x+y-1
+          end.reverse
+
+          new_buf = input_a.buffer.reshape(*input_a.shape.reverse)
+          sliced = new_buf.slice[*slice_param]
+          convert_to_opencl(sliced.flatten, sliced.shape.reverse, data_type: a.data_type, name: tensor.name)
+        when :transpose
+          input_a = complete_eval(a, child_context)
+          t_param = Array.new(input_a.shape.size) { |index| index }.reverse
+          transposed = input_a.buffer.reshape(*input_a.shape.reverse).transpose(*t_param)
+          convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: a.data_type, name: tensor.name)
         when :index
           a = complete_eval(a, child_context)
           input_a = read_final_result(a)
@@ -974,14 +1003,14 @@ module TensorStream
       end
 
       def all_true?(arr)
-        if arr.is_a?(Array)
+        if arr.is_a?(Array) || arr.is_a?(NArray)
           arr.each do |a|
             return false unless all_true?(a)
           end
           return true
         end
 
-        !!arr
+        arr != 0
       end
 
       def generate_vector(shape, dtype: :float32, generator:)

@@ -9,6 +9,10 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   include TensorStream::OpHelper
 
+  def create_session
+    TensorStream.session
+  end
+
   it_behaves_like "standard ops evaluator"
 
   it "can evaluate a tensor" do
