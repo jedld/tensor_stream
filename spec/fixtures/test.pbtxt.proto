@@ -70,6 +70,7 @@ node {
 node {
   name: "assign:0"
   op: "Assign"
+  input: "v1"
   input: "Const_2:0"
   attr {
     key: "T"

@@ -112,7 +112,7 @@ module TensorStream
 
       def _cl_program(kernel)
         @context[:_cache]["_opencl_kernel_#{kernel}"] ||= begin
-          filename = ['cl.erb', 'cl'].map { |ext|  cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
+          filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
           source = OpenclTemplateHelper.new(source).generate
           program = _opencl_context.create_program_with_source(source)
@@ -146,14 +146,8 @@ module TensorStream
       end
 
       def eval_variable(tensor, child_context)
-
-        if tensor.value.nil? && (tensor.buffer.nil? || !tensor.buffer.dirty)
-          raise "variable #{tensor.name} not initalized"
-        end
-
-        if tensor.buffer.nil?
-          tensor.buffer = wrap_opencl(tensor, name: tensor.name)
-        end
+        raise "variable #{tensor.name} not initalized" if tensor.value.nil? && (tensor.buffer.nil? || !tensor.buffer.dirty)
+        tensor.buffer = wrap_opencl(tensor, name: tensor.name) if tensor.buffer.nil?
         tensor.buffer
       end
 
@@ -176,6 +170,38 @@ module TensorStream
           end
         when :identity
           _run(a, child_context)
+        when :eye
+          rows = complete_eval(a, child_context)
+          columns = complete_eval(b, child_context)
+          shape = [rows.buffer[0], columns.buffer[0]]
+          eye_arr = Array.new(rows.buffer[0]) do |i|
+            Array.new(columns.buffer[0]) do |col|
+              if fp_type?(tensor.data_type)
+                i == col ? 1.0 : 0.0
+              else
+                i == col ? 1 : 0
+              end
+            end
+          end
+
+          convert_to_opencl(eye_arr.flatten, shape, data_type: tensor.data_type, name: tensor.name)
+        when :pad
+          a = read_final_result(complete_eval(a, child_context))
+          p = read_final_result(complete_eval(tensor.options[:paddings], child_context))
+
+          padding = arr_pad(a, p, tensor.data_type)
+          convert_to_opencl(padding.flatten, shape_eval(padding), data_type: tensor.data_type, name: tensor.name)
+        when :tile
+          input = read_final_result(complete_eval(a, child_context))
+          multiples = read_final_result(complete_eval(b, child_context))
+
+          rank = get_rank(input)
+          raise '1D or higher tensor required' if rank.zero?
+          raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
+
+          tile = tile_arr(input, 0, multiples)
+          arr = tile.nil? ? [] : tile
+          convert_to_opencl(arr.flatten, shape_eval(arr), data_type: tensor.data_type, name: tensor.name)
         when :assign
           assign_var(tensor, b, child_context)
         when :assign_add
@@ -786,6 +812,7 @@ module TensorStream
         if axis.nil?
           convert_to_opencl(input.buffer.send(func), [], data_type: tensor.data_type, name: tensor.name)
         else
+          return input if input.shape.empty?
           value = input.buffer.reshape(*input.shape.reverse)
           rank = input.shape.size - 1
 
