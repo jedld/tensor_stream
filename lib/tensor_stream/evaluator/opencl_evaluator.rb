@@ -111,12 +111,15 @@ module TensorStream
             end
           end
         end
-
         devices.max { |a| a[1] }
       end
 
       def create_command_queue
-        @context[:_cache][:_opencl_queue] ||= _opencl_context.create_command_queue(opencl_device, properties: [ OpenCL::CommandQueue::PROFILING_ENABLE])
+        supported_proprties = opencl_device.queue_properties.names
+        properties = []
+        properties << OpenCL::CommandQueue::PROFILING_ENABLE if supported_proprties.include?('PROFILING_ENABLE')
+        properties << OpenCL::CommandQueue::OUT_OF_ORDER_EXEC_MODE_ENABLE if supported_proprties.include?('OUT_OF_ORDER_EXEC_MODE_ENABLE')
+        @context[:_cache][:_opencl_queue] ||= _opencl_context.create_command_queue(opencl_device, properties: properties)
       end
 
       def _opencl_context
