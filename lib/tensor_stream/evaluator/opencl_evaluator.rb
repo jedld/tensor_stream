@@ -34,10 +34,11 @@ module TensorStream
       include TensorStream::ArrayOpsHelper
       include TensorStream::MathHelper
 
-      def initialize(session, context, thread_pool: nil, log_intermediates: false)
+      def initialize(session, context, thread_pool: nil, log_intermediates: false, preferred_device: nil)
         @session = session
         @context = context
         @log_intermediates = log_intermediates
+        @preferred_device = preferred_device
         @retain = context[:retain] || []
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
 
@@ -70,6 +71,10 @@ module TensorStream
         buffer
       end
 
+      def opencl_device
+        @context[:_cache][:_opencl_device]
+      end
+
       protected
 
       # read result from opencl and convert to ruby
@@ -82,22 +87,39 @@ module TensorStream
 
       def _create_opencl_context
         @context[:_cache][:_opencl_device] ||= begin
-          platform = OpenCL::platforms.first
-          platform.devices.first
+          device, _score, _platform, _index = choose_best_device
+          @preferred_device || device
         end
-        @context[:_cache][:_opencl_context] ||= OpenCL::create_context(_opencl_device)
+        @context[:_cache][:_opencl_context] ||= OpenCL.create_context(opencl_device)
+      end
+
+      def choose_best_device
+        @best_device ||= begin
+          devices = OpenCL.platforms.flat_map do |p|
+            p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
+              score = 0
+              if d.type.to_s == 'CPU'
+                score += 1
+              elsif d.type.to_s == 'GPU'
+                score += 4
+              end
+
+              score += d.max_compute_units
+
+              [d, score, p.name, index]
+            end
+          end
+        end
+
+        devices.max { |a| a[1] }
       end
 
       def create_command_queue
-        @context[:_cache][:_opencl_queue] ||= _opencl_context.create_command_queue(_opencl_device, :properties => [ OpenCL::CommandQueue::PROFILING_ENABLE])
+        @context[:_cache][:_opencl_queue] ||= _opencl_context.create_command_queue(opencl_device, properties: [ OpenCL::CommandQueue::PROFILING_ENABLE])
       end
 
       def _opencl_context
         @context[:_cache][:_opencl_context]
-      end
-
-      def _opencl_device
-        @context[:_cache][:_opencl_device]
       end
 
       def _opencl_queue
@@ -109,6 +131,7 @@ module TensorStream
       end
 
       def _cl_program(kernel)
+
         @context[:_cache]["_opencl_kernel_#{kernel}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
@@ -566,9 +589,16 @@ module TensorStream
 
       def eval_tensor(tensor, child_context)
         return tensor unless tensor.is_a?(Tensor)
-        return @context[tensor.name] if @context.key?(tensor.name)
-        return @context[:_cache][tensor.name] if tensor.is_const && @context[:_cache][tensor.name]
-        @context[tensor.name] = tensor.value.is_a?(Tensor) ? _run(tensor.value, child_context) : @context[:_cache][tensor.name] = wrap_opencl(tensor, name: tensor.name)
+
+        cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
+        return @context[cache_key] if @context.key?(cache_key)
+        return @context[:_cache][cache_key] if tensor.is_const && @context[:_cache][cache_key]
+        @context[cache_key] = if tensor.value.is_a?(Tensor)
+                                _run(tensor.value, child_context)
+                              else
+                                wrap_opencl(tensor, name: tensor.name)
+                              end
+        @context[:_cache][cache_key] =  @context[cache_key] if tensor.is_const
       end
 
       private

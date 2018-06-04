@@ -101,8 +101,8 @@ sess2 = tf.session(:opencl_evaluator)
 end
 
 Benchmark.bmbm do |x|
-  x.report("pure ruby:") { 100.times do sess.run(model, feed_dict: { p => rand, q => rand }) end }
-  x.report("opencl   :") { 100.times do sess2.run(model, feed_dict: { p => rand, q => rand }) end }
+  x.report("pure ruby                :") { 100.times do sess.run(model, feed_dict: { p => rand, q => rand }) end }
+  x.report("opencl                   :") { 100.times do sess2.run(model, feed_dict: { p => rand, q => rand }) end }
   x.report("pure ruby single function:") { 100.times do sess.run(single_function_test, feed_dict: { p => rand, q => rand }) end }
-  x.report("opencl   singlefunction:") { 100.times do sess2.run(single_function_test, feed_dict: { p => rand, q => rand }) end }
+  x.report("opencl     singlefunction:") { 100.times do sess2.run(single_function_test, feed_dict: { p => rand, q => rand }) end }
 end

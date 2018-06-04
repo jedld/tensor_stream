@@ -505,8 +505,10 @@ module TensorStream
 
       def eval_tensor(tensor, child_context)
         return tensor unless tensor.is_a?(Tensor)
-        return @context[tensor.name] if @context.key?(tensor.name)
-        return @context[:_cache][tensor.name] if @context[:_cache] && @context[:_cache].key?(tensor.name)
+
+        cache_key = "#{tensor.graph.object_id}_ruby_#{tensor.name}"
+        return @context[cache_key] if @context.key?(cache_key)
+        return @context[:_cache][cache_key] if @context[:_cache] && @context[:_cache].key?(tensor.name)
 
         if tensor.value.is_a?(Array)
           tensor.value.collect do |item|
@@ -515,8 +517,8 @@ module TensorStream
         else
           tensor.value.is_a?(Tensor) ? run(tensor.value, child_context) : tensor.value
         end.tap do |result|
-          @context[tensor.name] = result
-          @context[:_cache][tensor.name] = result if @context[:_cache] && tensor.is_const
+          @context[cache_key] = result
+          @context[:_cache][cache_key] = result if @context[:_cache] && tensor.is_const
         end
       end
 
