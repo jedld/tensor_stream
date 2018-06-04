@@ -2,6 +2,7 @@
 
 require "bundler/setup"
 require 'tensor_stream'
+require 'pry-byebug'
 
 tf = TensorStream
 
@@ -61,7 +62,7 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate)
 goal = optimizer.minimize(loss)
 prediction = tf.round(tf.sigmoid(mod))
 # Bool into float32 type
-correct = tf.cast(tf.equal(prediction, target), dtype: :float32)
+correct = tf.cast(tf.equal(prediction, target), :float32)
 # Average
 accuracy = tf.reduce_mean(correct)
 

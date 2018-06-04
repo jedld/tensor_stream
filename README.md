@@ -4,7 +4,7 @@
 
 # TensorStream
 
-A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default as well with support for an opencl evaluator (soon).
+A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default with support for an opencl evaluator for large models and datasets.
 
 The goal of this gem is to have a high performance machine learning and compute solution for ruby with support for a wide range of hardware and software configuration.
 
@@ -175,6 +175,33 @@ f = tf.matmul(a, b).breakpoint! { |tensor, a, b, result_value| binding.pry }
 
 tf.session.run(f)
 ```
+
+### OpenCL
+
+For OpenCL support, make sure that the required OpenCL drivers for your hardware are correctly installed on your system.
+Also OpenCL only supports ruby-mri at the moment.
+
+Also include the following gem in your project:
+
+```
+gem 'opencl_ruby_ffi'
+```
+
+To use the opencl evaluator instead of the ruby evaluator:
+
+```ruby
+require 'tensor_stream/evaluator/opencl_evaluator'
+
+# set session to use the opencl evaluator
+sess = tf.session(:opencl_evaluator)
+
+sess.run(....) # do stuff
+
+```
+
+Note that the OpenCL evaluator provides speedup if you are using large tensors, tensors that are only using scalars like the linear regression sample will actually be slower.
+
+samples/nearest_neighbor.rb contains a sample that uses opencl.
 
 # Visualization
 

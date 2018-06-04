@@ -22,7 +22,7 @@ module TensorStream
         }
 
         vars.each do |variable|
-          variables[variable.name] = variable.value
+          variables[variable.name] = variable.read_value
         end
 
         basename = File.basename(outputfile)

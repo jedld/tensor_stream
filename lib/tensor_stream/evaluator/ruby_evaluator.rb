@@ -76,10 +76,11 @@ module TensorStream
       protected
 
       def eval_variable(tensor, child_context)
-        if tensor.value.nil?
+        value = tensor.read_value
+        if value.nil?
           raise "variable #{tensor.name} not initalized"
         end
-        eval_tensor(tensor.value, child_context).tap do |val|
+        eval_tensor(value, child_context).tap do |val|
           child_context[:returns] ||= {}
           child_context[:returns][:vars] ||= []
           child_context[:returns][:vars] << { name: tensor.name, val: val }
@@ -99,7 +100,12 @@ module TensorStream
           a = complete_eval(a, child_context)
           axis = tensor.options[:axis] || 0
 
-          get_max_with_axis(a, axis, 0, tensor.data_type)
+          get_op_with_axis(a, axis, 0, tensor.data_type)
+        when :argmin
+          a = complete_eval(a, child_context)
+          axis = tensor.options[:axis] || 0
+
+          get_op_with_axis(a, axis, 0, tensor.data_type, ->(a, b) { a < b })
         when :cast
           a = complete_eval(a, child_context)
 
@@ -499,7 +505,10 @@ module TensorStream
 
       def eval_tensor(tensor, child_context)
         return tensor unless tensor.is_a?(Tensor)
-        return @context[tensor.name] if @context.key?(tensor.name)
+
+        cache_key = "#{tensor.graph.object_id}_ruby_#{tensor.name}"
+        return @context[cache_key] if @context.key?(cache_key)
+        return @context[:_cache][cache_key] if @context[:_cache] && @context[:_cache].key?(tensor.name)
 
         if tensor.value.is_a?(Array)
           tensor.value.collect do |item|
@@ -508,20 +517,21 @@ module TensorStream
         else
           tensor.value.is_a?(Tensor) ? run(tensor.value, child_context) : tensor.value
         end.tap do |result|
-          @context[tensor.name] = result
+          @context[cache_key] = result
+          @context[:_cache][cache_key] = result if @context[:_cache] && tensor.is_const
         end
       end
 
       private
 
-      def get_max_with_axis(a, target_axis, current_axis, output_type)
+      def get_op_with_axis(a, target_axis, current_axis, output_type, op = ->(t, u) { t > u })
         if target_axis == current_axis
           if a[0].is_a?(Array)
             (0...a[0].size).each.collect do |column_index|
               max = nil
               max_index = 0
               a.each_with_index do |row, row_index|
-                if max.nil? || row[column_index] > max
+                if max.nil? || op.call(row[column_index], max)
                   max = row[column_index]
                   max_index = row_index
                 end
@@ -533,7 +543,7 @@ module TensorStream
             max = nil
             max_index = 0
             a.each_with_index do |x, index|
-              if max.nil? || x > max
+              if max.nil? || op.call(x, max)
                 max = x
                 max_index = index
               end
@@ -542,7 +552,7 @@ module TensorStream
           end
         else
           a.collect do |row|
-            get_max_with_axis(row, target_axis, current_axis + 1, output_type)
+            get_op_with_axis(row, target_axis, current_axis + 1, output_type, op)
           end
         end
       end
@@ -605,7 +615,7 @@ module TensorStream
 
       def call_op(op, a, child_context, func)
         a = complete_eval(a, child_context)
-        process_function_op(a, child_context, func)
+        process_function_op(a, func)
       rescue FullEvalNotPossible
         TensorStream.send(op.to_sym, a)
       end
@@ -667,13 +677,6 @@ module TensorStream
         end
       end
 
-      def get_rank(value, rank = 0)
-        return rank unless value.is_a?(Array)
-        return rank + 1 if value.empty?
-
-        get_rank(value[0], rank + 1)
-      end
-
       def concat_array(values, axis)
         combined_array = values.shift
         axis = get_rank(combined_array) - 1 if axis == -1
@@ -691,20 +694,6 @@ module TensorStream
           a.each_with_index.collect do |i, index|
             concat(i, b[index], axis - 1)
           end
-        end
-      end
-
-      def process_function_op(a, child_context, op)
-        # ruby scalar
-        if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
-          vector_op(a, 0, op)
-        elsif !a.is_a?(Tensor) || a.shape.rank.zero?
-          v = run(a, child_context)
-          raise FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
-
-          op.call(v, 0)
-        else
-          raise 'cannot be here'
         end
       end
 

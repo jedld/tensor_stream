@@ -188,6 +188,9 @@ module TensorStream
         when :zeros_like
           # non differentiable
           nil
+        when :argmin, :argmax
+          # non differentiable
+          [nil, nil]
         else
           raise "no derivative op for #{node.operation}"
         end

@@ -1,0 +1,5 @@
+% %w[fp int].product(%w[less less_equal equal not_equal greater greater_equal logical_and]).each do |dtype, fname|
+% c_dtype = dtype_to_c_type(dtype)
+% op = operator_to_c(fname)
+<%= render 'bool_operand.cl', c_dtype: c_dtype, op: op, fname: fname, dtype: dtype, result_t: 'int' %>
+% end

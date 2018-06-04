@@ -22,6 +22,17 @@ module TensorStream
       slice_tensor(input, start, target_shape)
     end
 
+    def reduced_shape(input_shape, axes)
+      return [] if axes.nil? # reduce to scalar
+      axes = [ axes ] unless axes.is_a?(Array)
+      return input_shape if axes.empty?
+
+      axes.each do |dimen|
+        input_shape[dimen] = 1
+      end
+      input_shape
+    end
+
     def broadcast(input_a, input_b)
       sa = shape_eval(input_a)
       sb = shape_eval(input_b)
@@ -136,6 +147,22 @@ module TensorStream
 
         new_arr * t
       end
+    end
+
+    def process_function_op(a, op)
+      # ruby scalar
+      if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
+        vector_op(a, 0, op)
+      else
+        op.call(a, 0)
+      end
+    end
+
+    def get_rank(value, rank = 0)
+      return rank unless value.is_a?(Array)
+      return rank + 1 if value.empty?
+
+      get_rank(value[0], rank + 1)
     end
   end
 end

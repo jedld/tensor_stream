@@ -3,15 +3,20 @@ module TensorStream
   class Session
     include StringHelper
 
-    attr_reader :last_session_context, :closed, :target
+    attr_reader :last_session_context, :closed, :target, :session_cache
     attr_accessor :randomizer
 
-    def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
+    def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor, evaluator_options: {})
       @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
       @thread_pool = thread_pool_class.new
       @closed = false
       @session_cache = {}
       @randomizer = {}
+      @evaluator_options = evaluator_options
+    end
+
+    def clear_session_cache
+      @session_cache = {}
     end
 
     def self.default_session
@@ -37,7 +42,9 @@ module TensorStream
         end
       end
 
-      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), thread_pool: @thread_pool, log_intermediates: options[:log_intermediates])
+      @evaluator_options[:thread_pool] = @thread_pool
+      @evaluator_options[:log_intermediates] = options[:log_intermediates]
+      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), @evaluator_options)
 
       execution_context = {}
       @last_session_context = context

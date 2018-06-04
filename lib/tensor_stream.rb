@@ -62,14 +62,15 @@ module TensorStream
   end
 
   def self.variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
+    op = Operation.new(:assign, nil, value)
     common_options = {
-      initializer: initializer || Operation.new(:assign, nil, value),
+      initializer: initializer || op,
       name: name,
       graph: graph,
       dtype: dtype,
       trainable: trainable
     }
-    if value.is_a?(String)
+    tensor = if value.is_a?(String)
       TensorStream::Variable.new(dtype || :string, 0, [], common_options)
     elsif value.is_a?(Integer)
       TensorStream::Variable.new(dtype || :int32, 0, [], common_options)
@@ -78,6 +79,8 @@ module TensorStream
     else
       TensorStream::Variable.new(dtype || :float32, 0, nil, common_options)
     end
+    op.items[0] = tensor
+    tensor
   end
 
   def self.variable_scope(scope = nil, reuse: nil, initializer: nil)
@@ -166,8 +169,8 @@ module TensorStream
     Graph.get_default_graph.get_collection(name, options)
   end
 
-  def self.placeholder(dtype, options = {})
-    TensorStream::Placeholder.new(dtype, nil, options[:shape])
+  def self.placeholder(dtype, shape: nil)
+    TensorStream::Placeholder.new(dtype, nil, shape)
   end
 
   def self.global_variables_initializer

@@ -4,7 +4,7 @@ module TensorStream
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
 
-      @data_type = data_type
+      @data_type = data_type.to_sym
       @rank = rank
       @shape = TensorShape.new(shape, rank)
       @value = nil

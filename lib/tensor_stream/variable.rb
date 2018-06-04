@@ -1,7 +1,7 @@
 module TensorStream
   # Class that defines a TensorStream variable
   class Variable < Tensor
-    attr_accessor :trainable, :options
+    attr_accessor :trainable, :options, :buffer
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
 
@@ -10,6 +10,7 @@ module TensorStream
       @data_type = data_type
       @rank = rank
       @value = nil
+      @is_const = false
       @name = [TensorStream.get_variable_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @initalizer_tensor = options[:initializer] ? options[:initializer] : _variable_scope.initializer || TensorStream.glorot_uniform_initializer
       if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
@@ -36,6 +37,11 @@ module TensorStream
     end
 
     def read_value
+      if buffer && buffer.dirty
+        @value = buffer.to_ruby
+        buffer.dirty = false
+      end
+
       @value
     end
 
