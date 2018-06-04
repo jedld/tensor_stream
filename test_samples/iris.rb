@@ -54,8 +54,8 @@ batch_size = 128
 display_step = 100
 
 # Network Parameters
-n_hidden_1 = 32 # 1st layer number of neurons
-n_hidden_2 = 32 # 2nd layer number of neurons
+n_hidden_1 = 4 # 1st layer number of neurons
+n_hidden_2 = 4 # 2nd layer number of neurons
 num_classes = 3 # MNIST total classes (0-9 digits)
 num_input = 4
 training_epochs = 10

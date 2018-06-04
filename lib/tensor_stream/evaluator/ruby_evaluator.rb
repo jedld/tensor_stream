@@ -486,19 +486,18 @@ module TensorStream
         puts e.message
         puts e.backtrace.join("\n")
 
-        shape_a = a.shape.shape if a
-        shape_b = b.shape.shape if b
-        dtype_a = a.data_type if a
-        dtype_b = b.data_type if b
-        a = complete_eval(a, child_context)
-        b = complete_eval(b, child_context)
+        # shape_a = a.shape.shape if a
+        # shape_b = b.shape.shape if b
+        # dtype_a = a.data_type if a
+        # dtype_b = b.data_type if b
+        # a = complete_eval(a, child_context)
+        # b = complete_eval(b, child_context)
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
         # puts "B #{shape_b} #{dtype_b}: #{b}" if b
         # dump_intermediates if @log_intermediates
-        # File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
-
+        File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
       end
