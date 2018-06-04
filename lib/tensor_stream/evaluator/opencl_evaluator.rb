@@ -88,6 +88,7 @@ module TensorStream
       def _create_opencl_context
         @context[:_cache][:_opencl_device] ||= begin
           device, _score, _platform, _index = choose_best_device
+          puts device.name
           @preferred_device || device
         end
         @context[:_cache][:_opencl_context] ||= OpenCL.create_context(opencl_device)
@@ -131,7 +132,6 @@ module TensorStream
       end
 
       def _cl_program(kernel)
-
         @context[:_cache]["_opencl_kernel_#{kernel}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
@@ -620,9 +620,8 @@ module TensorStream
         b = _run(input_b, child_context)
         a, b = type_cast(a, b)
         dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
-
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
-        binding.pry if tensor.data_type.nil?
+
         output_buffer = _create_result_buffer(tensor.data_type, result_shape, tensor.name)
         a, b, prog, switch_operands = select_program(a, b, op_name)
         m, n = result_shape

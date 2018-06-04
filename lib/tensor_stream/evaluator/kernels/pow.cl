@@ -50,7 +50,18 @@
     const int globalRow = get_global_id(0); // Row ID of C (0..M)
     const int globalCol = get_global_id(1); // Col ID of C (0..N)
 
-    C[globalRow * N + globalCol] = pown((float)A[globalRow * N + globalCol], (int)B[globalRow * N + globalCol]);
+    int acc = A[globalRow * N + globalCol];
+    const int count = B[globalRow * N + globalCol];
+    const int c = A[globalRow * N + globalCol];
+
+    if (count < 4) {
+      for(int i = 0; i < count - 1; i++) {
+        acc *= c;
+      }
+      C[globalRow * N + globalCol] = acc;
+    } else {
+      C[globalRow * N + globalCol] = pow((float)c, (float)count);
+    }
 }
 
  // 1D + Scalar floating point add op
@@ -59,10 +70,23 @@
     const int globalRow = get_global_id(0); // Row ID of C (0..M)
     const int globalCol = get_global_id(1); // Col ID of C (0..N)
     
+    int acc, count, c;
     if (switch_op == 0) {
-      C[globalRow * N + globalCol] = pown((float)A[globalRow * N + globalCol], (int)B[0]);
+      acc = A[globalRow * N + globalCol];
+      count = B[0];
+      c = A[globalRow * N + globalCol];
     } else {
-      C[globalRow * N + globalCol] = pown((float)B[0], (int)A[globalRow * N + globalCol]);
+      acc = B[0];
+      count = A[globalRow * N + globalCol];
+      c = B[0];
+    }
+    if (count < 4) {
+      for(int i =0; i < count - 1; i++) {
+        acc *= c;
+      }
+      C[globalRow * N + globalCol] = acc;
+    } else {
+      C[globalRow * N + globalCol] = pow((float)c, (float)count);
     }
 }
 
@@ -83,9 +107,24 @@
       b_n_index = b_n_index % N2;
     }
 
+    int acc, count, c;
+
     if (switch_op == 0) {
-      C[globalRow * N + globalCol] = pown((float)A[globalRow * N + globalCol], (int)B[b_m_index * N2 + b_n_index]);
+      acc = A[globalRow * N + globalCol];
+      count = B[b_m_index * N2 + b_n_index];
+      c = A[globalRow * N + globalCol];
     } else {
-      C[globalRow * N + globalCol] = pown((float)B[b_m_index * N2 + b_n_index], (int)A[globalRow * N + globalCol]);
+      acc = B[b_m_index * N2 + b_n_index];
+      count = A[globalRow * N + globalCol];
+      c = B[b_m_index * N2 + b_n_index];
+    }
+
+    if (count < 4) {
+      for (int i = 0; i < count - 1; i++) {
+        acc *= c;
+      }
+      C[globalRow * N + globalCol] = acc;
+    } else {
+      C[globalRow * N + globalCol] = pow((float)c, (float)count);
     }
 }

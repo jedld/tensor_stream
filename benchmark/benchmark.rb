@@ -38,6 +38,21 @@ a = tf.constant([
   [4.0, 2.3, 3.0, 4.0, 0.3, 1.1, 1.5, 0.6, 0.3, 2.0, 1.1, 1.9],
 ])
 
+a_int = tf.constant([
+  [1, 2, 3, 4, 4, 1, 4, 8, 3, 4, 1, 1],
+  [2, 2, 3, 4, 4, 1, 1, 1, 1, 4, 1, 1],
+  [3, 2, 3, 4, 0, 1, 1, 2, 1, 1, 2, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 1, 1, 3, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 1, 1, 4, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 0, 1, 5, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 0, 1, 6, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 0, 0, 0, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 0, 2, 6, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 0, 2, 1, 1],
+  [4, 2, 3, 4, 0, 1, 1, 0, 0, 2, 1, 2],
+  [4, 2, 3, 4, 0, 1, 1, 0, 0, 2, 1, 2],
+])
+
 b = tf.constant([
   [1.1, 2.0, 3.0, 4.0, 4.1, 1.1, 4.1, 8.1, 3.2, 4.3, 1.1, 1.1],
   [2.1, 2.1, 3.0, 4.0, 4.2, 1.1, 1.1, 1.1, 1.2, 4.4, 1.0, 1.1],
@@ -88,6 +103,8 @@ q = tf.placeholder("float")
 
 model = -tf.sin(a.dot(b + p) + c).dot(a) + tf.cos(a.dot(d + q))
 single_function_test = (tf.sigmoid(a * p) * tf.sigmoid(b * q)) + c
+pow_f = tf.pow(a, 3)
+pow_i = tf.pow(a_int, 3)
 
 sess = tf.session
 sess2 = tf.session(:opencl_evaluator)
@@ -105,4 +122,8 @@ Benchmark.bmbm do |x|
   x.report("opencl                   :") { 100.times do sess2.run(model, feed_dict: { p => rand, q => rand }) end }
   x.report("pure ruby single function:") { 100.times do sess.run(single_function_test, feed_dict: { p => rand, q => rand }) end }
   x.report("opencl     singlefunction:") { 100.times do sess2.run(single_function_test, feed_dict: { p => rand, q => rand }) end }
+  x.report("pure ruby pow float:") { 100.times do sess.run(pow_f, feed_dict: { p => rand, q => rand }) end }
+  x.report("opencl pow float:") { 100.times do sess2.run(pow_f, feed_dict: { p => rand, q => rand }) end }
+  x.report("pure ruby pow int:") { 100.times do sess.run(pow_i, feed_dict: { p => rand, q => rand }) end }
+  x.report("opencl pow int:") { 100.times do sess2.run(pow_i, feed_dict: { p => rand, q => rand }) end }
 end
