@@ -43,12 +43,12 @@ jobs:
             mkdir /tmp/test-results
             TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
 
-            bundle exec rspec -r rspec_junit_formatter --format progress \
-                            --exclude-pattern "spec/tensor_stream/evaluators/opencl_*.rb" \
-                            --format RspecJunitFormatter \
-                            --out /tmp/test-results/rspec.xml \
-                            --format progress \
-                            $TEST_FILES
+            bundle exec rspec --exclude-pattern "spec/tensor_stream/evaluators/opencl_*.rb" \
+                              -r rspec_junit_formatter --format progress \
+                              --format RspecJunitFormatter \
+                              --out /tmp/test-results/rspec.xml \
+                              --format progress \
+                              $TEST_FILES
 
       # collect reports
       - store_test_results:
