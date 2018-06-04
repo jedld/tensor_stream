@@ -2,7 +2,6 @@
 
 require "bundler/setup"
 require 'tensor_stream'
-require 'pry-byebug'
 
 tf = TensorStream
 
