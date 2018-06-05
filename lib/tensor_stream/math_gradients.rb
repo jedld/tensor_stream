@@ -210,7 +210,7 @@ module TensorStream
     end
 
     def self._sum_grad(x, y, grad)
-      tf.ones_like(x) * grad
+      tf.ones_like(grad) * grad
     end
 
     def self._op_supports_broadcast?(node)
