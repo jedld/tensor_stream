@@ -180,6 +180,8 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
+        cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
+        return @context[cache_key] if @context.key?(cache_key)
 
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
@@ -568,6 +570,7 @@ module TensorStream
               value: result
             }
           end
+          @context[:_cache][cache_key] =  @context[cache_key] if tensor.is_const
           @context[tensor.name] = result
         end
       rescue EvaluatorExcecutionException => e
