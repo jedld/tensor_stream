@@ -21,4 +21,5 @@ RUN sudo mkdir -p /etc/OpenCL/vendors/ \
     &&  echo "/opt/intel/opencl-1.2-6.4.0.25/lib64/libintelocl.so" | sudo tee --append /etc/OpenCL/vendors/intel.icd > /dev/null
 ENV OCL_INC /opt/intel/opencl/include
 ENV OCL_LIB /opt/intel/opencl-1.2-6.4.0.25/lib64
+ENV LIBOPENCL_SO /opt/intel/opencl-1.2-6.4.0.25/lib64/libOpenCL.so
 ENV LD_LIBRARY_PATH $OCL_LIB:$LD_LIBRARY_PATH
