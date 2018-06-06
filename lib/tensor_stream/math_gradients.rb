@@ -184,6 +184,8 @@ module TensorStream
           grad * tf.reciprocal(i_cons(1, data_type: grad.data_type) + x)
         when :sigmoid
           i_op(:sigmoid_grad, x, grad)
+        when :softmax
+          i_op(:ones_like, x) * grad
         when :zeros_like
           # non differentiable
           nil

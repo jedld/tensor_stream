@@ -7,10 +7,7 @@ RSpec.describe TensorStream::NN do
   context ".softmax" do
     it "computes for the softmax of a group of values" do
       outputs = tf.constant([[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0],[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0]])
-      expect(tr(tf.nn.softmax(outputs).eval)).to eq([[0.02364054, 0.06426166, 0.1746813 , 0.474833  , 0.02364054,
-        0.06426166, 0.1746813],
-       [0.02364054, 0.06426166, 0.1746813 , 0.474833  , 0.02364054,
-        0.06426166, 0.1746813]])
+      expect(tr(tf.nn.softmax(outputs).eval)).to eq( [[0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747], [0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747]])
     end
 
     specify "gradients" do
@@ -59,7 +56,7 @@ RSpec.describe TensorStream::NN do
       labels = tf.constant([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
       outputs = tf.constant([[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0], [1.1, 2.1, 3.0, 4.0, 1.0, 2.0, 3.0]])
       f = tf.nn.softmax_cross_entropy_with_logits(logits: outputs, labels: labels)
-      expect(tr(f.eval)).to eq([3.744792 , 2.6539946])
+      expect(tr(f.eval)).to eq([3.7448, 2.654])
     end
 
     specify "gradients" do

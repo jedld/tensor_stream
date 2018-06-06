@@ -459,6 +459,9 @@ module TensorStream
 
           tile = tile_arr(input, 0, multiples)
           tile.nil? ? [] : tile
+        when :softmax
+          input = complete_eval(a, child_context)
+          softmax(input)
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|

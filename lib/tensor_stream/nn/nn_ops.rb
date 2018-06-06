@@ -2,9 +2,8 @@ module TensorStream
   # High level machine learning functions
   class NN
     extend TensorStream::OpHelper
-    def self.softmax(logits, _options = {})
-      e = TensorStream.exp(logits)
-      e / TensorStream.reduce_sum(e)
+    def self.softmax(logits, axis: nil, name: nil)
+      _op(:softmax, logits, nil, axis: axis, name: name)
     end
 
     def self.relu(features, name: nil)
@@ -18,7 +17,7 @@ module TensorStream
         labels = tf.convert_to_tensor(labels, name: 'labels')
         labels = tf.cast(labels, logits.dtype)
         softmax_logits = -tf.log(softmax(logits)) * labels
-        tf.reduce_sum(softmax_logits)
+        tf.reduce_sum(softmax_logits, tf.rank(logits) - 1)
       end
     end
 

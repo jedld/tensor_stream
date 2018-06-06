@@ -165,5 +165,21 @@ module TensorStream
 
       get_rank(value[0], rank + 1)
     end
+
+    def softmax(arr)
+      return arr if arr.empty?
+
+      sum = if !arr[0].is_a?(Array)
+        arr.map { |a| Math.exp(a) }.reduce(:+)
+      end
+
+      arr.collect do |item|
+        if item.is_a?(Array)
+          softmax(item)
+        else
+          Math.exp(item) / sum
+        end
+      end
+    end
   end
 end
