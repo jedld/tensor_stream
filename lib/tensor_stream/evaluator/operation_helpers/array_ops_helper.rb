@@ -2,6 +2,7 @@ module TensorStream
   # varoius utility functions for array processing
   module ArrayOpsHelper
     def slice_tensor(input, start, size)
+      return input if size.empty?
       start_index = start.shift
       dimen_size = start_index + size.shift
 

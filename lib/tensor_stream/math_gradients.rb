@@ -127,11 +127,10 @@ module TensorStream
           sx = tf.shape(x)
           sy = tf.shape(y)
           rx, ry = _broadcast_gradient_args(sx, sy)
-          gx = tf.reshape(
-            tf.reduce_sum(grad * y * tf.pow(x, y - 1), rx), sx)
+          gx = tf.reduce_sum(grad * y * tf.pow(x, y - 1), rx)
 
           log_x = tf.where(x > 0, tf.log(x), tf.zeros_like(x))
-          gy = tf.reshape(tf.reduce_sum(grad * z * log_x, ry), sy)
+          gy = tf.reduce_sum(grad * z * log_x, ry)
 
           [gx, gy]
         when :abs
