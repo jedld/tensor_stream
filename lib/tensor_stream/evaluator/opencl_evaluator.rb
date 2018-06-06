@@ -182,7 +182,7 @@ module TensorStream
         return @context[tensor.name] if @context.key?(tensor.name)
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
         return @context[cache_key] if @context.key?(cache_key)
-
+        puts "#{tensor.name}"
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
@@ -846,7 +846,8 @@ module TensorStream
         input = complete_eval(a, child_context)
         axis = read_final_result(complete_eval(b, child_context))
         if axis.nil?
-          convert_to_opencl(input.buffer.send(func), [], data_type: tensor.data_type, name: tensor.name)
+          red = input.buffer.send(func)
+          convert_to_opencl(red, [], data_type: tensor.data_type, name: tensor.name)
         else
           return input if input.shape.empty?
           value = input.buffer.reshape(*input.shape.reverse)

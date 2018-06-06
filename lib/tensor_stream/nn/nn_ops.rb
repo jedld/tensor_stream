@@ -1,12 +1,25 @@
 module TensorStream
   # High level machine learning functions
   class NN
+    extend TensorStream::OpHelper
     def self.softmax(logits, _options = {})
-      TensorStream.exp(logits) / TensorStream.reduce_sum(TensorStream.exp(logits))
+      e = TensorStream.exp(logits)
+      e / TensorStream.reduce_sum(e)
     end
 
     def self.relu(features, name: nil)
       TensorStream.max(features, 0, name: "relu_#{name}")
+    end
+
+    def self.softmax_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
+      TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do |name|
+        tf = TensorStream
+        logits = tf.convert_to_tensor(logits, name: 'logits')
+        labels = tf.convert_to_tensor(labels, name: 'labels')
+        labels = tf.cast(labels, logits.dtype)
+        softmax_logits = -tf.log(softmax(logits)) * labels
+        tf.reduce_sum(softmax_logits)
+      end
     end
 
     def self.sigmoid_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)

@@ -89,7 +89,7 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-
+        puts "#{tensor.name}"
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
