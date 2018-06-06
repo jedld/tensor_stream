@@ -101,7 +101,7 @@ module TensorStream
 
     def _val(tensor)
       # JSON.pretty_generate(@last_session_context[tensor.name])
-      @last_session_context[tensor.name]
+      @last_session_context[tensor.name] || @last_session_context[:_cache][tensor.name]
     end
 
     def to_graph_ml(tensor, arr_buf = [], added = {}, groups = {}, _id = 0)
