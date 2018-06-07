@@ -12,10 +12,11 @@ RSpec.describe TensorStream::NN do
 
     specify "gradients" do
       outputs = tf.constant([1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
-      f = tf.nn.softmax(outputs)
+      f = tf.log(tf.nn.softmax(outputs))
       g = tf.gradients(f, [outputs])
       sess = tf.session
-      expect(tr(sess.run(g))).to eq([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+      expect(tr(sess.run(g))).to eq([[0.8345162, 0.5501684, -0.22276916, -2.323831, 0.8345162,
+      0.5501684, -0.22276916]])
     end
   end
 
