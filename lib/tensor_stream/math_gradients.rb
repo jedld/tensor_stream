@@ -185,7 +185,7 @@ module TensorStream
         when :sigmoid
           i_op(:sigmoid_grad, x, grad)
         when :softmax
-          grad
+          i_op(:softmax_grad, x, grad)
         when :zeros_like
           # non differentiable
           nil

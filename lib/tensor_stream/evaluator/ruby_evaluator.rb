@@ -464,6 +464,9 @@ module TensorStream
           softmax(input)
         when :softmax_grad
           input = complete_eval(a, child_context)
+          grad = complete_eval(b, child_context)
+          softmax_input = softmax(input)
+          softmax_grad(softmax_input)
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|

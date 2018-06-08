@@ -170,14 +170,32 @@ module TensorStream
       return arr if arr.empty?
 
       sum = if !arr[0].is_a?(Array)
-        arr.map { |a| Math.exp(a) }.reduce(:+)
+        arr.map { |a| Math.exp(a - arr.max) }.reduce(:+)
       end
 
       arr.collect do |item|
         if item.is_a?(Array)
           softmax(item)
         else
-          Math.exp(item) / sum
+          Math.exp(item - arr.max) / sum
+        end
+      end
+    end
+
+    def softmax_grad(arr)
+      return arr if arr.empty?
+
+      arr.each_with_index.collect do |item, index|
+        if item.is_a?(Array)
+          softmax_grad(item)
+        else
+          arr.each.each_with_index.collect do |item2, index2|
+            if index != index2
+              -item * item2
+            else
+              item * (1.0 - item)
+            end
+          end
         end
       end
     end
