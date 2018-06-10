@@ -356,6 +356,19 @@ module TensorStream
           execute_func('log1p', tensor, a, child_context)
         when :round
           execute_func('round', tensor, a, child_context)
+        when :softmax
+          a = _run(a, child_context)
+          event_wait_list = [a.op].compact
+          dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+          output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+  
+          m, n = a.shape
+          work_group = [m]
+          cl_n = OpenCL::Int1.new(n || 1)
+  
+          event = _cl_program("softmax").send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          output_buffer.op = event
+          output_buffer
         when :sigmoid_grad
           execute_2_operand_func('sigmoid_grad', tensor, a, b, child_context)
         when :truncate
@@ -679,7 +692,7 @@ module TensorStream
 
       def execute_func(op_name, tensor, a, child_context)
         a = _run(a, child_context)
-        event_wait_list = [a.op].compact 
+        event_wait_list = [a.op].compact
         dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 

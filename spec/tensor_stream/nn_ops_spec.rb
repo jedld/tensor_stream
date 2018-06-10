@@ -4,23 +4,6 @@ require 'benchmark'
 RSpec.describe TensorStream::NN do
   let(:tf) { TensorStream } # Tensorflow compatibility alias
 
-  context ".softmax" do
-    it "computes for the softmax of a group of values" do
-      outputs = tf.constant([[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0],[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0]])
-      expect(tr(tf.nn.softmax(outputs).eval)).to eq( [[0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747], [0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747]])
-    end
-
-    specify "gradients" do
-      outputs = tf.constant([1.0, 1.0, 0.0])
-      sm = tf.nn.softmax(outputs)
-      f = tf.sin(sm)
-      g = tf.gradients(f, [outputs])
-      sess = tf.session
-      result = sess.run(g)
-      expect(tr(result,7)).to eq([[-0.005, -0.005, 0.0099]])
-    end
-  end
-
   context ".relu" do
     it "Computes rectified linear: max(features, 0)." do
       outputs = tf.constant([-1.0, -1.1, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])

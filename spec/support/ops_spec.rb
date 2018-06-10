@@ -1212,4 +1212,23 @@ end
       end
     end
   end
+
+  context "nn ops" do
+    context ".softmax" do
+      it "computes for the softmax of a group of values" do
+        outputs = tf.constant([[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0],[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0]])
+        expect(tr(sess.run(tf.nn.softmax(outputs)))).to eq( [[0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747], [0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747]])
+      end
+  
+      specify "gradients" do
+        outputs = tf.constant([1.0, 1.0, 0.0])
+        sm = tf.nn.softmax(outputs)
+        f = tf.sin(sm)
+        g = tf.gradients(f, [outputs])
+
+        result = sess.run(g)
+        expect(tr(result,7)).to eq([[-0.005, -0.005, 0.0099]])
+      end
+    end
+  end
 end
