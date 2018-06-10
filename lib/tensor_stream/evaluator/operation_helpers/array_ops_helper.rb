@@ -189,7 +189,7 @@ module TensorStream
         if item.is_a?(Array)
           softmax_grad(item)
         else
-          arr.each.each_with_index.collect do |item2, index2|
+          arr.each_with_index.collect do |item2, index2|
             if index != index2
               -item * item2
             else

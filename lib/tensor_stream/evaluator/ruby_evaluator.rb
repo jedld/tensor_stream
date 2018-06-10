@@ -89,7 +89,6 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        puts "#{tensor.name}"
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
@@ -466,7 +465,14 @@ module TensorStream
           input = complete_eval(a, child_context)
           grad = complete_eval(b, child_context)
           softmax_input = softmax(input)
-          softmax_grad(softmax_input)
+          f_grad = softmax_grad(softmax_input)
+          f_grad.transpose.each_with_index.collect do |row, index|
+            sum = 0.0
+            row.each_with_index do |r, g_index|
+              sum += r * grad[g_index]
+            end
+            sum
+          end
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|

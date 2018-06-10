@@ -182,7 +182,6 @@ module TensorStream
         return @context[tensor.name] if @context.key?(tensor.name)
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
         return @context[cache_key] if @context.key?(cache_key)
-        puts "#{tensor.name}"
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 

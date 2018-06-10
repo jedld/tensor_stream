@@ -13,17 +13,11 @@ RSpec.describe TensorStream::NN do
     specify "gradients" do
       outputs = tf.constant([1.0, 1.0, 0.0])
       sm = tf.nn.softmax(outputs)
-      a = tf.sin(outputs)
       f = tf.sin(sm)
       g = tf.gradients(f, [outputs])
-      z = tf.gradients(a, [outputs])
       sess = tf.session
-      a_result = sess.run(sm)
-      f_result = sess.run(tf.cos(sm))
-      z_result = sess.run(z)
       result = sess.run(g)
-      binding.pry
-      expect(tr(result)).to eq([[-0.0049744 , -0.0049744 ,  0.00994875]])
+      expect(tr(result,7)).to eq([[-0.005, -0.005, 0.0099]])
     end
   end
 
