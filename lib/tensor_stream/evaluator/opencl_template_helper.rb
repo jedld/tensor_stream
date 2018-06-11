@@ -25,11 +25,15 @@ class OpenclTemplateHelper
   end
 
   def dtype_to_c_type(dtype)
-    case(dtype)
-    when 'fp'
+    case(dtype.to_s)
+    when 'float32', 'float'
       'float'
-    when 'int'
+    when 'int32', 'int'
       'int'
+    when 'boolean'
+      'int'
+    else
+      raise "unknown dtype #{dtype}"
     end
   end
 

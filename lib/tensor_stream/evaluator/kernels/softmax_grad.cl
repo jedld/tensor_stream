@@ -1,4 +1,3 @@
-% %w[fp].each do |dtype|
 % c_dtype = dtype_to_c_type(dtype)
 __kernel void softmax_grad_<%= dtype %>(const int N,
                       const __global <%= c_dtype %>* A,
@@ -45,4 +44,3 @@ __kernel void softmax_grad_<%= dtype %>(const int N,
       C[globalRow*N + k] = total_grad;
     }
 }
-% end

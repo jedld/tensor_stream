@@ -138,11 +138,12 @@ module TensorStream
       end
 
       def _cl_program(kernel, args = {})
-        suffix = args.collect { |k,v| "#{k}.#{v}"}.join
+        suffix = args.collect { |k,v| "#{k}.#{v}"}.join('.')
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
           source = OpenclTemplateHelper.new(source).generate(args)
+          File.write("/tmp/#{kernel}.#{suffix}.cl", source)
           program = _opencl_context.create_program_with_source(source)
           program.build
         rescue OpenCL::Error::BUILD_PROGRAM_FAILURE => e
@@ -187,7 +188,7 @@ module TensorStream
         return @context[cache_key] if @context.key?(cache_key)
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-        puts tensor.name
+        # puts tensor.name
         case tensor.operation
         when :concat
           input_a = read_final_result(complete_eval(a, child_context))
@@ -294,7 +295,7 @@ module TensorStream
           raise "#{tensor.items[1].name} rank must be greater than 1" if b.shape.size < 2
           raise "incompatible shape sizes for matrix multiplication (#{a.shape[1]} != #{b.shape[0]}) #{a.shape} vs #{b.shape}" if k != v
 
-          dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+          dtype = tensor.data_type
           a, b = type_cast(a, b)
           output_buffer = _create_result_buffer(a.data_type, result_shape, tensor.name)
 
@@ -315,14 +316,12 @@ module TensorStream
           a = _run(a, child_context)
           if a.data_type != tensor.data_type
             buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-            s_dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(a.data_type) ? 'fp' : 'int'
-            t_dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
             m, n = a.shape
             cl_m = OpenCL::Int1.new(m || 1)
             cl_n = OpenCL::Int1.new(n || 1)
             work_group = [m || 1, n || 1]
 
-            buffer.op = _cl_program("cast").send(:"cast_#{s_dtype}_#{t_dtype}",_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
+            buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: tensor.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
             buffer
           else
             a
@@ -362,7 +361,7 @@ module TensorStream
         when :softmax
           a = _run(a, child_context)
           event_wait_list = [a.op].compact
-          dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+          dtype = tensor.data_type
           output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
           m, n = a.shape
@@ -370,21 +369,21 @@ module TensorStream
           n = m if n.nil?
           cl_n = OpenCL::Int1.new(n || 1)
 
-          event = _cl_program("softmax").send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          event = _cl_program("softmax", dtype: dtype).send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
           output_buffer.op = event
           output_buffer
         when :softmax_grad
           a = _run(a, child_context)
           grad = _run(b, child_context)
           event_wait_list = [a.op].compact
-          dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+          dtype = tensor.data_type
           output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
           m, n = a.shape
           work_group = [m]
           n = m if n.nil?
           cl_n = OpenCL::Int1.new(n || 1)
-          event = _cl_program("softmax_grad", size: n).send(:"softmax_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, grad.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          event = _cl_program("softmax_grad", dtype: dtype, size: n).send(:"softmax_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, grad.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
           output_buffer.op = event
           output_buffer
         when :sigmoid_grad
@@ -614,9 +613,10 @@ module TensorStream
       rescue EvaluatorExcecutionException => e
         raise e
       rescue StandardError => e
+        _opencl_queue.finish # dump queue
         puts e.message
         puts e.backtrace.join("\n")
-
+        binding.pry
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
@@ -666,7 +666,7 @@ module TensorStream
         a = _run(input_a, child_context)
         b = _run(input_b, child_context)
         a, b = type_cast(a, b)
-        dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+        dtype = tensor.data_type
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
 
         output_buffer = _create_result_buffer(tensor.data_type, result_shape, tensor.name)
@@ -687,9 +687,9 @@ module TensorStream
           else
             raise "rank > 2 not supported!"
           end
-          _cl_program("#{prog_name || op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          _cl_program("#{prog_name || op_name}", dtype: dtype).send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         else
-          _cl_program("#{prog_name || op_name}").send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          _cl_program("#{prog_name || op_name}", dtype: dtype).send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         end
 
         output_buffer.op = event
@@ -702,7 +702,7 @@ module TensorStream
         b = _run(input_b, child_context)
 
         a, b = type_cast(a, b)
-        dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+        dtype = tensor.data_type
 
         output_buffer = _create_result_buffer(tensor.data_type, p.shape, tensor.name)
 
@@ -712,14 +712,14 @@ module TensorStream
         cl_n = OpenCL::Int1.new(n || 1)
 
         event_wait_list = [a.op, b.op, p.op].compact # add dependency wait list
-        output_buffer.op = _cl_program("#{op_name}").send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, p.cl_buffer, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = _cl_program("#{op_name}", dtype: dtype).send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, p.cl_buffer, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer
       end
 
       def execute_func(op_name, tensor, a, child_context)
         a = _run(a, child_context)
         event_wait_list = [a.op].compact
-        dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+        dtype = tensor.data_type
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
         m, n = a.shape
@@ -727,7 +727,7 @@ module TensorStream
         cl_m = OpenCL::Int1.new(m || 1)
         cl_n = OpenCL::Int1.new(n || 1)
 
-        event = _cl_program("#{op_name}").send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        event = _cl_program("#{op_name}", dtype: dtype).send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer.op = event
         output_buffer
       end
@@ -742,14 +742,14 @@ module TensorStream
             cl_m = OpenCL::Int1.new(m || 1)
             cl_n = OpenCL::Int1.new(n || 1)
 
-            _cl_program("cast").cast_int_fp(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer)
+            _cl_program("cast", source_dt: a.data_type, target_dt: b.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer)
             return [a, buffer]
           end
         elsif TensorStream::Ops::INTEGER_TYPES.include?(a.data_type.to_sym)
           if TensorStream::Ops::FLOATING_POINT_TYPES.include?(b.data_type.to_sym)
             cl_m = OpenCL::Int1.new(m || 1)
             cl_n = OpenCL::Int1.new(n || 1)
-            _cl_program("cast").cast_fp_int(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer)
+            _cl_program("cast", source_dt: a.data_type, target_dt: b.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer)
             return [a, buffer]
           end
         end
