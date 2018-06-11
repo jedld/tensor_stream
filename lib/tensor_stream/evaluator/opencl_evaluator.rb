@@ -48,9 +48,9 @@ module TensorStream
       # opencl evaluator main entrypoint
       def run(tensor, execution_context)
         _create_opencl_context
-        # _prepare_kernels
 
         read_final_result(complete_eval(tensor, execution_context))
+
       end
 
       def complete_eval(tensor, context)
@@ -137,11 +137,12 @@ module TensorStream
         File.join(File.dirname(__FILE__), 'kernels', "#{kernel}.#{extension}")
       end
 
-      def _cl_program(kernel)
-        @context[:_cache]["_opencl_kernel_#{kernel}"] ||= begin
+      def _cl_program(kernel, args = {})
+        suffix = args.collect { |k,v| "#{k}.#{v}"}.join
+        @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
-          source = OpenclTemplateHelper.new(source).generate
+          source = OpenclTemplateHelper.new(source).generate(args)
           program = _opencl_context.create_program_with_source(source)
           program.build
         rescue OpenCL::Error::BUILD_PROGRAM_FAILURE => e
@@ -184,7 +185,7 @@ module TensorStream
         return @context[cache_key] if @context.key?(cache_key)
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-
+        puts tensor.name
         case tensor.operation
         when :concat
           input_a = read_final_result(complete_eval(a, child_context))
@@ -361,12 +362,27 @@ module TensorStream
           event_wait_list = [a.op].compact
           dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
           output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-  
+
           m, n = a.shape
           work_group = [m]
+          n = m if n.nil?
           cl_n = OpenCL::Int1.new(n || 1)
-  
+
           event = _cl_program("softmax").send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          output_buffer.op = event
+          output_buffer
+        when :softmax_grad
+          a = _run(a, child_context)
+          grad = _run(b, child_context)
+          event_wait_list = [a.op].compact
+          dtype = TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type) ? 'fp' : 'int'
+          output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+
+          m, n = a.shape
+          work_group = [m]
+          n = m if n.nil?
+          cl_n = OpenCL::Int1.new(n || 1)
+          event = _cl_program("softmax_grad", size: n).send(:"softmax_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, grad.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
           output_buffer.op = event
           output_buffer
         when :sigmoid_grad

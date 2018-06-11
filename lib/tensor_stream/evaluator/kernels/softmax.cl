@@ -10,7 +10,7 @@ __kernel void softmax_<%= dtype %>(const int N,
 
     // Compute a single element (loop over K)
     float acc = 0.0f;
-    float max = -9999.0f;
+    float max = FLT_MIN;
 
     for (int k=0; k<N; k++) {
       max = A[globalRow*N + k] > max ? A[globalRow*N + k] : max;

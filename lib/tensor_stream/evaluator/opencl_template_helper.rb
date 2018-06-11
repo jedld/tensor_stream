@@ -4,8 +4,14 @@ class OpenclTemplateHelper
     @source = source
   end
 
-  def generate
-    ERB.new(@source, nil, '%').result(binding)
+  def generate(args = {})
+    current_scope = binding
+
+    args.each do |k, v|
+      current_scope.local_variable_set(k.to_sym, v)
+    end
+
+    ERB.new(@source, nil, '%').result(current_scope)
   end
 
   def render(template, locals = {})
