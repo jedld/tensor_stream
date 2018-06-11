@@ -23,6 +23,7 @@ require 'tensor_stream/graph_serializers/serializer'
 require 'tensor_stream/graph_serializers/pbtext'
 require 'tensor_stream/graph_serializers/graphml'
 require 'tensor_stream/math_gradients'
+require "tensor_stream/debugging/debugging"
 
 # require 'tensor_stream/libraries/layers'
 require 'tensor_stream/monkey_patches/integer'
@@ -32,6 +33,7 @@ require 'tensor_stream/ops'
 module TensorStream
   extend TensorStream::OpHelper
   extend TensorStream::Ops
+  extend TensorStream::Debugging
 
   def self.float32
     Types.float32

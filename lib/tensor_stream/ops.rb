@@ -305,5 +305,9 @@ module TensorStream
     def pad(tensor, paddings, mode: 'CONSTANT', name: nil)
       _op(:pad, tensor, nil, paddings: paddings, mode: mode, name: name)
     end
+
+    def check_numerics(tensor, message, name: nil)
+      _op(:check_numerics, tensor, nil, message: message, name: name)
+    end
   end
 end

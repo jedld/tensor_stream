@@ -67,7 +67,7 @@ y = tf.placeholder("float", shape: [nil, num_classes], name: 'y')
 # Store layers weight & bias
 weights = {
   h1: tf.variable(tf.random_normal([num_input, n_hidden_1]), name: 'h1'),
-  out: tf.variable(tf.random_normal([n_hidden_2, num_classes]), name: 'out')
+  out: tf.variable(tf.random_normal([num_classes, num_classes]), name: 'out')
 }
 
 biases = {

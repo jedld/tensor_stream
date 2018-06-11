@@ -153,7 +153,9 @@ module TensorStream
 
       def _run(tensor, execution_context)
         return tensor if tensor.is_a?(OpenCLBuffer)
-        return tensor.map { |t| _run(t, execution_context) } if tensor.is_a?(Array)
+        if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
+          return tensor.map { |t| _run(t, execution_context) }
+        end
 
         return tensor if retain.include?(tensor) # if var is in retain don't eval to value
 
@@ -411,6 +413,14 @@ module TensorStream
               end
             end
           end
+        when :check_numerics
+          a = complete_eval(a, child_context)
+          name = tensor.options[:name]
+
+          a.buffer.each do |item|
+            raise "#{name} Invalid Argument" if item.nan? || item.infinite?
+          end
+          a
         when :zeros, :ones, :zeros_like, :ones_like
           shape = if %i[zeros_like ones_like].include?(tensor.operation)
             _run(a, child_context).shape

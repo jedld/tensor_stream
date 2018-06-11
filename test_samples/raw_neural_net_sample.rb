@@ -76,6 +76,8 @@ train_op = optimizer.minimize(loss_op)
 correct_pred = tf.equal(tf.argmax(prediction, 1), tf.argmax(Y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_pred, :float32))
 
+# tf.add_check_numerics_ops
+
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer
 

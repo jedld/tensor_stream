@@ -41,7 +41,9 @@ module TensorStream
       end
 
       def run(tensor, execution_context)
-        return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array)
+        if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
+          return tensor.map { |t| run(t, execution_context) }
+        end
 
         return tensor if retain.include?(tensor) # if var is in retain don't eval to value
 
@@ -91,7 +93,7 @@ module TensorStream
         return @context[tensor.name] if @context.key?(tensor.name)
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-
+        # puts tensor.name
         case tensor.operation
         when :const
           complete_eval(a, child_context)
@@ -473,6 +475,11 @@ module TensorStream
             end
             sum
           end
+        when :check_numerics
+          a = complete_eval(a, child_context)
+          message = tensor.options[:message]
+          f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
+          call_op(:check_numerics, a, child_context, f)
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|
@@ -504,8 +511,9 @@ module TensorStream
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
         # dtype_b = b.data_type if b
-        # a = complete_eval(a, child_context)
-        # b = complete_eval(b, child_context)
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
+
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
