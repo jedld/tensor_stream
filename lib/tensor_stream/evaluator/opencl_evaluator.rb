@@ -195,7 +195,7 @@ module TensorStream
         return @context[cache_key] if @context.key?(cache_key)
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-        # puts tensor.name
+        puts tensor.name
         case tensor.operation
         when :concat
           input_a = read_final_result(complete_eval(a, child_context))
@@ -745,24 +745,12 @@ module TensorStream
         work_group = [m || 1, n || 1]
         event_wait_list = [a.op].compact
         buffer = _create_result_buffer(b.data_type, b.shape, name)
-        if (TensorStream::Ops::FLOATING_POINT_TYPES.include?(a.data_type.to_sym))
-          if TensorStream::Ops::INTEGER_TYPES.include?(b.data_type.to_sym)
-            cl_m = OpenCL::Int1.new(m || 1)
-            cl_n = OpenCL::Int1.new(n || 1)
 
-            buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: b.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
-            return [a, buffer]
-          end
-        elsif TensorStream::Ops::INTEGER_TYPES.include?(a.data_type.to_sym)
-          if TensorStream::Ops::FLOATING_POINT_TYPES.include?(b.data_type.to_sym)
-            cl_m = OpenCL::Int1.new(m || 1)
-            cl_n = OpenCL::Int1.new(n || 1)
-            buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: b.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
-            return [a, buffer]
-          end
-        end
+        cl_m = OpenCL::Int1.new(m || 1)
+        cl_n = OpenCL::Int1.new(n || 1)
 
-        [a, b]
+        buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: b.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
+        [a, buffer]
       end
 
       def wrap_opencl(tensor, data_type: nil, name: nil)
