@@ -12,7 +12,7 @@ __kernel void gemm_<%= dtype %>(const int M, const int N, const int K,
     const int globalCol = get_global_id(1); // Col ID of C (0..N)
 
     // Compute a single element (loop over K)
-    float acc = 0.0f;
+    <%= c_dtype %> acc = 0.0f;
     for (int k=0; k<K; k++) {
         int a_index = globalRow*K + k;
         int b_index = k*N + globalCol;

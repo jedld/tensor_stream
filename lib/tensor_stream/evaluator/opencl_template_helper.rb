@@ -26,12 +26,33 @@ class OpenclTemplateHelper
 
   def dtype_to_c_type(dtype)
     case(dtype.to_s)
+    when 'float64'
+      'double'
     when 'float32', 'float'
       'float'
     when 'int32', 'int'
       'int'
+    when 'int16'
+      'short'
     when 'boolean'
       'int'
+    else
+      raise "unknown dtype #{dtype}"
+    end
+  end
+
+  def min_value_for(dtype)
+    case(dtype.to_s)
+    when 'float64'
+      'DBL_MIN'
+    when 'float32', 'float'
+      'FLT_MIN'
+    when 'int32', 'int'
+      'INT_MIN'
+    when 'int16'
+      'SHRT_MIN'
+    when 'boolean'
+      '0'
     else
       raise "unknown dtype #{dtype}"
     end

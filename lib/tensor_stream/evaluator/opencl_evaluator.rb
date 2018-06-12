@@ -826,11 +826,16 @@ module TensorStream
       end
 
       def allocate_narray_for_type(data_type, narray_size)
-        if TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym) || TensorStream::Ops::FLOATING_POINT_TYPES.include?(data_type.to_sym)
+        case data_type
+        when :float, :float32
           NArray.sfloat(narray_size)
-        elsif TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym) || TensorStream::Ops::INTEGER_TYPES.include?(data_type.to_sym)
+        when :float64
+          NArray.float(narray_size)
+        when :int, :int32, :int64
           NArray.int(narray_size)
-        elsif data_type.to_sym == :boolean
+        when :int16
+          NArray.sint(narray_size)
+        when :boolean
           NArray.int(narray_size)
         else
           raise "unsupported type #{data_type}"

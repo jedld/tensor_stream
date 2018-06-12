@@ -33,20 +33,20 @@ num_input = 784 # MNIST data input (img shape: 28*28)
 num_classes = 10 # MNIST total classes (0-9 digits)
 
 # tf Graph input
-X = tf.placeholder("float", shape: [nil, num_input])
-Y = tf.placeholder("float", shape: [nil, num_classes])
+X = tf.placeholder(:float64, shape: [nil, num_input])
+Y = tf.placeholder(:float64, shape: [nil, num_classes])
 
 # Store layers weight & bias
 weights = {
-    'h1' => tf.variable(tf.random_normal([num_input, n_hidden_1])),
-    'h2' => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2])),
-    'out' => tf.variable(tf.random_normal([n_hidden_2, num_classes]))
+    'h1' => tf.variable(tf.random_normal([num_input, n_hidden_1]), dtype: :float64),
+    'h2' => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), dtype: :float64),
+    'out' => tf.variable(tf.random_normal([n_hidden_2, num_classes]), dtype: :float64)
 }
 
 biases = {
-    'b1' => tf.variable(tf.random_normal([n_hidden_1])),
-    'b2' => tf.variable(tf.random_normal([n_hidden_2])),
-    'out' => tf.variable(tf.random_normal([num_classes]))
+    'b1' => tf.variable(tf.random_normal([n_hidden_1]), dtype: :float64),
+    'b2' => tf.variable(tf.random_normal([n_hidden_2]), dtype: :float64),
+    'out' => tf.variable(tf.random_normal([num_classes]), dtype: :float64)
 }
 
 

@@ -8,8 +8,8 @@ __kernel void softmax_<%= dtype %>(const int N,
     const int globalRow = get_global_id(0); // Row ID of C (0..M)
 
     // Compute a single element (loop over K)
-    float acc = 0.0f;
-    float max = FLT_MIN;
+    <%= c_dtype %> acc = 0.0f;
+    <%= c_dtype %> max = <%= min_value_for(dtype) %>;
 
     for (int k=0; k<N; k++) {
       max = A[globalRow*N + k] > max ? A[globalRow*N + k] : max;

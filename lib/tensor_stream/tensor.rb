@@ -203,7 +203,7 @@ module TensorStream
       end
 
       case dtype.to_sym
-      when :float32, :float
+      when :float64, :float32, :float
         if !!val == val
           val ? 1.0 : 0.0
         else
