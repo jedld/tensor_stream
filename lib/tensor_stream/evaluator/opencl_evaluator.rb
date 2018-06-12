@@ -91,6 +91,7 @@ module TensorStream
             @preferred_device
           else
             device, _score, _platform, _index = choose_best_device
+            puts "using #{device.name}"
             device
           end
         end
@@ -100,6 +101,7 @@ module TensorStream
       def choose_best_device
         @best_device ||= begin
           devices = OpenCL.platforms.flat_map do |p|
+
             p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
               score = 0
               if d.type.to_s == 'CPU'
@@ -108,13 +110,18 @@ module TensorStream
                 score += 4
               end
 
+              if d.platform.name == 'NVIDIA CUDA'
+                score += 1000
+              end
+
               score += d.max_compute_units
+              score += d.max_clock_frequency
 
               [d, score, p.name, index]
             end
           end
+          devices.sort { |a| a[1] }.reverse.first
         end
-        devices.max { |a| a[1] }
       end
 
       def create_command_queue
@@ -306,7 +313,7 @@ module TensorStream
           transpose_a = OpenCL::Int1.new(tensor.options[:transpose_a] ? 1 : 0)
           transpose_b = OpenCL::Int1.new(tensor.options[:transpose_b] ? 1 : 0)
 
-          output_buffer.op = _cl_program('gemm').send(:"gemm_#{dtype}", _opencl_queue, result_shape, cl_m, cl_n, cl_k, transpose_a, transpose_b, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer)
+          output_buffer.op = _cl_program('gemm', dtype: dtype).send(:"gemm_#{dtype}", _opencl_queue, result_shape, cl_m, cl_n, cl_k, transpose_a, transpose_b, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer)
           output_buffer
         when :mul
           execute_2_operand_func('mul', tensor, a, b, child_context)
@@ -616,7 +623,7 @@ module TensorStream
         _opencl_queue.finish # dump queue
         puts e.message
         puts e.backtrace.join("\n")
-        binding.pry
+
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
