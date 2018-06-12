@@ -54,6 +54,9 @@ model = -tf.sin(a.dot(b + p) + c).dot(a) + tf.cos(a.dot(d + q))
 single_function_test = (tf.sigmoid(a * p) * tf.sigmoid(b * q)) + c
 pow_f = tf.pow(a, 3)
 pow_i = tf.pow(a_int, 3)
+matmul = tf.matmul(a, b)
+out_of_order = tf.matmul(a, b) + tf.matmul(a, c)
+softmax = tf.nn.softmax(a)
 
 sess = tf.session
 sess2 = tf.session(:opencl_evaluator)
@@ -67,6 +70,12 @@ sess2 = tf.session(:opencl_evaluator)
 end
 
 Benchmark.bmbm do |x|
+  x.report("pure ruby ooo matmul         :") { 100.times do sess.run(out_of_order) end }
+  x.report("opencl    ooo matmul         :") { 100.times do sess2.run(out_of_order) end }
+  x.report("pure ruby softmax        :") { 100.times do sess.run(softmax) end }
+  x.report("opencl    softmax        :") { 100.times do sess2.run(softmax) end }
+  x.report("pure ruby matmul         :") { 100.times do sess.run(matmul) end }
+  x.report("opencl    matmul         :") { 100.times do sess2.run(matmul) end }
   x.report("pure ruby                :") { 100.times do sess.run(model, feed_dict: { p => rand, q => rand }) end }
   x.report("opencl                   :") { 100.times do sess2.run(model, feed_dict: { p => rand, q => rand }) end }
   x.report("pure ruby single function:") { 100.times do sess.run(single_function_test, feed_dict: { p => rand, q => rand }) end }
