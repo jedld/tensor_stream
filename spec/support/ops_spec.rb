@@ -271,11 +271,11 @@ RSpec.shared_examples "standard ops evaluator" do
   context ".derivative" do
     it "Creates a derivative graph for a computation" do
       x = tf.placeholder(TensorStream::Types.float32)
-      p = tf.pow(x, 3) 
-
-      derivative_function = TensorStream::MathGradients.derivative(p, x)
-      expect(tr(sess.run(p,  feed_dict: { x => 2}))).to eq(8)
-      expect(tr(sess.run(derivative_function, feed_dict: { x => 2}))).to eq(12)
+      p = tf.pow(x, 3)
+      g = tf.gradients(p, [x])
+      result = sess.run(g,  feed_dict: { x => 2})
+      expect(tr(result)).to eq(8)
+      expect(tr(sess.run(p, feed_dict: { x => 2}))).to eq(12)
   
       # f(x) = (sin x) ^ 3
       # dx = 3(sin x)^2 * cos x

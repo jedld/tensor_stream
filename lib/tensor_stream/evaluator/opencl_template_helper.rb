@@ -14,6 +14,10 @@ class OpenclTemplateHelper
     ERB.new(@source, nil, '%').result(current_scope)
   end
 
+  def is_floating_point?(dtype)
+    TensorStream::Ops::FLOATING_POINT_TYPES.include?(dtype)
+  end
+
   def render(template, locals = {})
     filename = File.join(File.dirname(__FILE__), 'kernels', "_#{template}")
     source = File.read(filename)

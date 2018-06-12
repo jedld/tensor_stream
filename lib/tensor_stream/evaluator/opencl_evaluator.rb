@@ -48,13 +48,11 @@ module TensorStream
       # opencl evaluator main entrypoint
       def run(tensor, execution_context)
         _create_opencl_context
-
+        create_command_queue
         read_final_result(complete_eval(tensor, execution_context))
-
       end
 
       def complete_eval(tensor, context)
-        create_command_queue
         buffer = _run(tensor, context)
         if buffer.is_a?(Array)
           buffer = buffer.collect do |b|
@@ -66,7 +64,6 @@ module TensorStream
           return buffer if buffer.nil? || buffer.buffer.size.zero?
           _opencl_queue.enqueue_read_buffer(buffer.cl_buffer, buffer.buffer, event_wait_list: [buffer.op].compact)
         end
-
         _opencl_queue.finish
         buffer
       end
@@ -150,7 +147,7 @@ module TensorStream
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
           source = OpenclTemplateHelper.new(source).generate(args)
-          # File.write("/tmp/#{kernel}.#{suffix}.cl", source)
+          File.write("/tmp/#{kernel}.#{suffix}.cl", source)
           program = _opencl_context.create_program_with_source(source)
           program.build
         rescue OpenCL::Error::BUILD_PROGRAM_FAILURE => e
@@ -597,6 +594,7 @@ module TensorStream
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|
+          # puts "#{tensor.to_math(true,1)} = #{read_final_result(complete_eval(result, child_context))}"
           if tensor.breakpoint
             a = read_final_result(complete_eval(a, child_context))
             b = read_final_result(complete_eval(b, child_context))
