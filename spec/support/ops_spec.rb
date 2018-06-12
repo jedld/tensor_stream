@@ -740,9 +740,9 @@ RSpec.shared_examples "standard ops evaluator" do
   context ".pow" do
     it "Computes the power of tensor x to tensor y" do
       x = tf.constant([[2, 2], [3, 3]])
-      y = tf.constant([[8, 16], [2, 3]])
+      y = tf.constant([[8, 15], [2, 3]])
       p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
-      expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
+      expect(sess.run(p)).to eq([[256, 32768], [9, 27]])
 
       p = tf.pow(x, 2)
       expect(sess.run(p)).to eq([[4, 4], [9, 9]])

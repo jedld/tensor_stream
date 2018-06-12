@@ -41,7 +41,7 @@ module TensorStream
         @preferred_device = preferred_device
         @retain = context[:retain] || []
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
-        @context[:_cache][:_cl_buffers] ||= {}
+        @context[:_cache][:_cl_buffers] ||= {} if @context[:_cache]
         @context[:compute_history] = [] if log_intermediates
       end
 
@@ -91,7 +91,7 @@ module TensorStream
             @preferred_device
           else
             device, _score, _platform, _index = choose_best_device
-            puts "using #{device.name}"
+            # puts "using #{device.name}"
             device
           end
         end
@@ -150,7 +150,7 @@ module TensorStream
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
           source = OpenclTemplateHelper.new(source).generate(args)
-          File.write("/tmp/#{kernel}.#{suffix}.cl", source)
+          # File.write("/tmp/#{kernel}.#{suffix}.cl", source)
           program = _opencl_context.create_program_with_source(source)
           program.build
         rescue OpenCL::Error::BUILD_PROGRAM_FAILURE => e
@@ -195,7 +195,7 @@ module TensorStream
         return @context[cache_key] if @context.key?(cache_key)
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-        puts tensor.name
+        # puts tensor.name
         case tensor.operation
         when :concat
           input_a = read_final_result(complete_eval(a, child_context))
