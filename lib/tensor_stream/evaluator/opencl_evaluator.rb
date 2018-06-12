@@ -41,7 +41,7 @@ module TensorStream
         @preferred_device = preferred_device
         @retain = context[:retain] || []
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
-
+        @context[:_cache][:_cl_buffers] ||= {}
         @context[:compute_history] = [] if log_intermediates
       end
 
@@ -296,7 +296,7 @@ module TensorStream
           raise "incompatible shape sizes for matrix multiplication (#{a.shape[1]} != #{b.shape[0]}) #{a.shape} vs #{b.shape}" if k != v
 
           dtype = tensor.data_type
-          a, b = type_cast(a, b)
+          a, b = type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
           output_buffer = _create_result_buffer(a.data_type, result_shape, tensor.name)
 
           cl_m = OpenCL::Int1.new(m)
@@ -665,7 +665,7 @@ module TensorStream
       def execute_2_operand_func(op_name, tensor, input_a, input_b, child_context, prog_name = nil)
         a = _run(input_a, child_context)
         b = _run(input_b, child_context)
-        a, b = type_cast(a, b)
+        a, b = type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
         dtype = tensor.data_type
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
 
@@ -701,7 +701,7 @@ module TensorStream
         a = _run(input_a, child_context)
         b = _run(input_b, child_context)
 
-        a, b = type_cast(a, b)
+        a, b = type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
         dtype = tensor.data_type
 
         output_buffer = _create_result_buffer(tensor.data_type, p.shape, tensor.name)
@@ -732,11 +732,11 @@ module TensorStream
         output_buffer
       end
 
-      def type_cast(a, b)
+      def type_cast(a, b, name: nil)
         return [a, b] if a.data_type == b.data_type
         m, n = b.shape
         work_group = [m || 1, n || 1]
-        buffer = buffer_for(b.shape, b.data_type)
+        buffer = _create_result_buffer(b.data_type, b.shape, name)
         if (TensorStream::Ops::FLOATING_POINT_TYPES.include?(a.data_type.to_sym))
           if TensorStream::Ops::INTEGER_TYPES.include?(b.data_type.to_sym)
             cl_m = OpenCL::Int1.new(m || 1)
@@ -755,15 +755,6 @@ module TensorStream
         end
 
         [a, b]
-      end
-
-      def buffer_for(shape, data_type)
-        size = shape.empty? ? 1 : shape.reduce(:*)
-
-        buffer = allocate_narray_for_type(data_type, size)
-
-        cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
-        OpenCLBuffer.new(data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)
       end
 
       def wrap_opencl(tensor, data_type: nil, name: nil)
@@ -839,7 +830,7 @@ module TensorStream
       end
 
       def _create_result_buffer(data_type, shape, name)
-        @context[:_cache]["_result_#{name}_#{shape.join('_')}"] ||= begin
+        @context[:_cache][:_cl_buffers]["_result_#{name}_#{shape.join('_')}"] ||= begin
           size = shape.empty? ? 1 : shape.reduce(:*)
           buffer =  allocate_narray_for_type(data_type, size)
           cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
