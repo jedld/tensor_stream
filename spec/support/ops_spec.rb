@@ -274,8 +274,8 @@ RSpec.shared_examples "standard ops evaluator" do
       p = tf.pow(x, 3)
       g = tf.gradients(p, [x])
       result = sess.run(g,  feed_dict: { x => 2})
-      expect(tr(result)).to eq(8)
-      expect(tr(sess.run(p, feed_dict: { x => 2}))).to eq(12)
+      expect(tr(result)).to eq([12])
+      expect(tr(sess.run(p, feed_dict: { x => 2}))).to eq(8)
   
       # f(x) = (sin x) ^ 3
       # dx = 3(sin x)^2 * cos x
@@ -718,7 +718,7 @@ RSpec.shared_examples "standard ops evaluator" do
       w = TensorStream.variable(rand, name: "weight", initializer: TensorStream.zeros_initializer)
       sess.run(TensorStream.global_variables_initializer)
       sess.run(w.assign(2))
-      expect(w.read_value).to eq(2)
+      expect(tr(w.read_value)).to eq(2)
     end
   end
 
