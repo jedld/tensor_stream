@@ -247,7 +247,7 @@ module TensorStream
         when :assign_add
           a = _run(a, child_context)
           b = _run(b, child_context)
-
+          binding.pry
           value = execute_2_operand_func('add', tensor, a, b, child_context)
           assign_var(tensor, value, child_context)
         when :assign_sub

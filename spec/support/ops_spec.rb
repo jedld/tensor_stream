@@ -706,7 +706,7 @@ RSpec.shared_examples "standard ops evaluator" do
         it "adds a value to the current variable" do
           v = TensorStream.get_variable("v", shape: shape, initializer: TensorStream.zeros_initializer)
           assignment = v.assign_add(1)
-          TensorStream.global_variables_initializer.run
+          sess.run(TensorStream.global_variables_initializer)
           expect(sess.run(assignment)).to eq(expected)
         end
       end
@@ -716,7 +716,7 @@ RSpec.shared_examples "standard ops evaluator" do
   context ".assign" do
     specify "assign should set value" do
       w = TensorStream.variable(rand, name: "weight", initializer: TensorStream.zeros_initializer)
-      TensorStream.global_variables_initializer.run
+      sess.run(TensorStream.global_variables_initializer)
       sess.run(w.assign(2))
       expect(w.read_value).to eq(2)
     end
