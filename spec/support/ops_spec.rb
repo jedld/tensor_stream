@@ -650,7 +650,7 @@ RSpec.shared_examples "standard ops evaluator" do
       a = tf.constant([1,2,3,4,5])
       b = tf.constant([6,6,6,6,6])
       c = tf.constant([8,8,8,8,8])
-      
+
       expect(sess.run(tf.where(a > 3, b, c))).to eq([8, 8, 8, 6, 6])
     end
 
