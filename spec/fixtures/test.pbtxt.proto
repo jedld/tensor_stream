@@ -31,17 +31,17 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_INT32
+      dtype: DT_FLOAT
     }
   }
   attr {
     key: "value"
     value {
       tensor {
-        dtype: DT_INT32
+        dtype: DT_FLOAT
         tensor_shape {
         }
-        int_val: 2
+        float_val: 2.0
       }
     }
   }

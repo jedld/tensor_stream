@@ -299,7 +299,7 @@ module TensorStream
           raise "incompatible shape sizes for matrix multiplication (#{a.shape[1]} != #{b.shape[0]}) #{a.shape} vs #{b.shape}" if k != v
 
           dtype = tensor.data_type
-          a, b = type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
+          a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
           output_buffer = _create_result_buffer(a.data_type, result_shape, tensor.name)
 
           cl_m = OpenCL::Int1.new(m)
@@ -657,8 +657,12 @@ module TensorStream
       def assign_var(tensor, b, child_context)
         assign = tensor.items[0] || tensor
         buffer = complete_eval(b, child_context)
+
         if assign.buffer
-          assign.buffer.op = _opencl_queue.enqueue_write_buffer(assign.buffer.cl_buffer, buffer.buffer)
+          buffer = type_cast(buffer, assign.data_type, name: "#{tensor.name}/cast_#{tensor.name}_#{tensor.data_type}")
+          if assign.buffer.cl_buffer != buffer.cl_buffer
+            assign.buffer.op = _opencl_queue.enqueue_copy_buffer(buffer.cl_buffer, assign.buffer.cl_buffer, event_wait_list: [buffer.op, assign.buffer.op])
+          end
         else
           assign.buffer = convert_to_opencl(read_final_result(buffer), buffer.shape, data_type: tensor.data_type, name: tensor.name)
         end
@@ -669,7 +673,7 @@ module TensorStream
       def execute_2_operand_func(op_name, tensor, input_a, input_b, child_context, prog_name = nil)
         a = _run(input_a, child_context)
         b = _run(input_b, child_context)
-        a, b = type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
+        a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
         dtype = tensor.data_type
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
 
@@ -705,7 +709,7 @@ module TensorStream
         a = _run(input_a, child_context)
         b = _run(input_b, child_context)
 
-        a, b = type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
+        a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
         dtype = tensor.data_type
 
         output_buffer = _create_result_buffer(tensor.data_type, p.shape, tensor.name)
@@ -736,11 +740,11 @@ module TensorStream
         output_buffer
       end
 
-      def type_cast(a, b, name: nil)
+      def auto_type_cast(a, b, name: nil)
         return [a, b] if a.data_type == b.data_type
         m, n = b.shape
         work_group = [m || 1, n || 1]
-        event_wait_list = [a.op].compact
+        event_wait_list = [b.op].compact
         buffer = _create_result_buffer(b.data_type, b.shape, name)
 
         cl_m = OpenCL::Int1.new(m || 1)
@@ -748,6 +752,20 @@ module TensorStream
 
         buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: b.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, b.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
         [a, buffer]
+      end
+
+      def type_cast(source, data_type, name: nil)
+        return source if source.data_type == data_type
+        m, n = source.shape
+        work_group = [m || 1, n || 1]
+        event_wait_list = [source.op].compact
+        buffer = _create_result_buffer(data_type, source.shape, name)
+
+        cl_m = OpenCL::Int1.new(m || 1)
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        buffer.op = _cl_program("cast", source_dt: source.data_type, target_dt: data_type).cast(_opencl_queue, work_group, cl_m, cl_n, source.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
+        buffer
       end
 
       def wrap_opencl(tensor, data_type: nil, name: nil)

@@ -181,7 +181,7 @@ module TensorStream
           factor = _safe_shape_div(tf.reduce_prod(input_shape), tf.reduce_prod(output_shape))
           tf.div(sum_grad, tf.cast(factor, sum_grad.data_type))
         when :log1p
-          grad * tf.reciprocal(i_cons(1, data_type: grad.data_type) + x)
+          grad * tf.reciprocal(i_cons(1, dtype: grad.data_type) + x)
         when :sigmoid
           i_op(:sigmoid_grad, x, grad)
         when :softmax

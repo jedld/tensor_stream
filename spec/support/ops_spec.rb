@@ -936,9 +936,7 @@ RSpec.shared_examples "standard ops evaluator" do
 
     it "different rank multiplication" do
       a = tf.constant([7.0, 7.0, 7.0, 7.0, 7.0])
-      b = tf.constant([
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1]])
+      b = tf.constant([[2.0, 2.0, 2.0, 2.0, 2.0], [1.0, 1.0, 1.0, 1.0, 1.0]])
       c = a * b
       expect(sess.run(c)).to eq([[14.0, 14.0, 14.0, 14.0, 14.0], [7.0, 7.0, 7.0, 7.0, 7.0]])
     end

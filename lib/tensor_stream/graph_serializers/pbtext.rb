@@ -110,8 +110,12 @@ module TensorStream
       case type
       when :int32, :int
         "DT_INT32"
+      when :int16
+        "DT_INT16"
       when :float, :float32
         "DT_FLOAT"
+      when :float64
+        "DT_FLOAT64"
       when :string
         "DT_STRING"
       else

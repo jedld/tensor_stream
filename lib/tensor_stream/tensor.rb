@@ -55,7 +55,8 @@ module TensorStream
     end
 
     def +(other)
-      TensorStream::Operation.new(:add, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+      _a, b = TensorStream.check_data_types(self, other)
+      TensorStream::Operation.new(:add, self, b)
     end
 
     def [](index)
@@ -63,18 +64,22 @@ module TensorStream
     end
 
     def *(other)
+      TensorStream.check_data_types(self, other)
       TensorStream::Operation.new(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def **(other)
+      TensorStream.check_data_types(self, other)
       TensorStream::Operation.new(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def /(other)
+      TensorStream.check_data_types(self, other)
       TensorStream::Operation.new(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -(other)
+      TensorStream.check_data_types(self, other)
       TensorStream::Operation.new(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
@@ -83,38 +88,47 @@ module TensorStream
     end
 
     def ==(other)
+      TensorStream.check_data_types(self, other)
       _op(:equal, self, other)
     end
 
     def <(other)
+      TensorStream.check_data_types(self, other)
       _op(:less, self, other)
     end
 
     def !=(other)
+      TensorStream.check_data_types(self, other)
       _op(:not_equal, self, other)
     end
 
     def >(other)
+      TensorStream.check_data_types(self, other)
       _op(:greater, self, other)
     end
 
     def >=(other)
+      TensorStream.check_data_types(self, other)
       _op(:greater_equal, self, other)
     end
 
     def <=(other)
+      TensorStream.check_data_types(self, other)
       _op(:less_equal, self, other)
     end
 
     def and(other)
+      TensorStream.check_data_types(self, other)
       _op(:logical_and, self, other)
     end
 
     def matmul(other)
+      TensorStream.check_data_types(self, other)
       _op(:matmul, self, other)
     end
 
     def dot(other)
+      TensorStream.check_data_types(self, other)
       _op(:matmul, self, other)
     end
 

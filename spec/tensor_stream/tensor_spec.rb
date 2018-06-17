@@ -172,8 +172,8 @@ RSpec.describe TensorStream::Tensor do
 
   describe "operation shape inference" do
     it "operations can infer the possible shape of its outputs" do
-      a = tf.constant([1, 2, 3, 4])
-      b = tf.constant(1)
+      a = tf.constant([1.0, 2.0, 3.0, 4.0])
+      b = tf.constant(1.0)
       c = a * b
       expect(c.shape.shape).to eq([4])
 
@@ -193,7 +193,7 @@ RSpec.describe TensorStream::Tensor do
     it "open shapes are also inferred" do
       a = tf.placeholder(:float32, shape: [nil, 4])
       m = tf.constant([[1.0, 0.5], [0.4, 0.2], [1.1, 1.2], [0.2, 0.1]])
-      b = tf.constant(1)
+      b = tf.constant(1.0)
       f = m.dot(a) + b
       expect(f.shape.shape).to eq([4, 4])
     end

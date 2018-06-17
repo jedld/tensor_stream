@@ -93,22 +93,27 @@ module TensorStream
     end
 
     def less(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:less, input_a, input_b, name: name)
     end
 
     def logical_and(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:logical_and, input_a, input_b, name: name)
     end
 
     def greater(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:greater, input_a, input_b, name: name)
     end
 
     def greater_equal(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:greater_equal, input_a, input_b, name: name)
     end
 
     def less_equal(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:less_equal, input_a, input_b, name: name)
     end
 
@@ -154,25 +159,29 @@ module TensorStream
     end
 
     def add(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:add, input_a, input_b, name: name)
     end
 
     def sub(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:sub, input_a, input_b, name: name)
     end
 
     def subtract(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       sub(input_a, input_b, name: name)
     end
 
     def max(input_a, input_b, name: nil)
       check_allowed_types(input_a, NUMERIC_TYPES)
       check_allowed_types(input_b, NUMERIC_TYPES)
-
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:max, input_a, input_b, name: name)
     end
 
     def maximum(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       max(input_a, input_b, name: name)
     end
   
@@ -193,10 +202,12 @@ module TensorStream
     end
 
     def equal(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:equal, input_a, input_b, name: name)
     end
 
     def not_equal(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:not_equal, input_a, input_b, name: name)
     end
 
@@ -213,18 +224,22 @@ module TensorStream
     end
 
     def multiply(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:mul, input_a, input_b, name: name)
     end
 
     def mul(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:mul, input_a, input_b, name: name)
     end
 
     def div(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:div, input_a, input_b, name: name)
     end
 
     def pow(input_a, input_e, name: nil)
+      input_a, input_e = check_data_types(input_a, input_e)
       _op(:pow, input_a, input_e, name: name)
     end
 
@@ -295,6 +310,7 @@ module TensorStream
     def matmul(input_a, input_b, transpose_a: false,
                transpose_b: false,
                name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
       _op(:matmul, input_a, input_b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
     end
 

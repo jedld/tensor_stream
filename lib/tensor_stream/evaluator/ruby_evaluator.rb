@@ -762,7 +762,7 @@ module TensorStream
 
         v_a.each_with_index.collect do |v1, index|
           v2 = v_b[index]
-          v3 = v_c[index]
+          v3 = v_c.is_a?(Array) ? v_c[index] : v_c
           if v1.is_a?(Array)
             call_3way_vector_op(v1, v2, v3, child_context, op)
           else

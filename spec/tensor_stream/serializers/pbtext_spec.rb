@@ -16,7 +16,7 @@ RSpec.describe TensorStream::Pbtext do
   it "saves a graph into pbtext format" do
     # construct a graph
     a = tf.constant([[1.0, 1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 4.0]])
-    b = tf.constant(2)
+    b = tf.constant(2.0)
     c = tf.variable(1.0, name: "v1")
     d = tf.constant([1,2,3,4])
     e = tf.constant("Hello World")
