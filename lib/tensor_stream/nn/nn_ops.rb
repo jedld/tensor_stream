@@ -10,6 +10,10 @@ module TensorStream
       TensorStream.max(features, 0, name: "relu_#{name}")
     end
 
+    def self.sigmoid(input, name: nil)
+      TensorStream.sigmoid(input, name)
+    end
+
     def self.softmax_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
       TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do |name|
         tf = TensorStream

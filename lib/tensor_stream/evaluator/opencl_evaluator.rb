@@ -92,6 +92,7 @@ module TensorStream
             device
           end
         end
+        @context[:cl_device] = opencl_device
         @context[:_cache][:_opencl_context] ||= OpenCL.create_context(opencl_device)
       end
 

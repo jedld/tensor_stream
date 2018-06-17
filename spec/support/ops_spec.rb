@@ -696,6 +696,14 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".zeros_initializer" do
+    specify do
+      u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.zeros_initializer)
+      sess.run(tf.global_variables_initializer)
+      expect(tr(sess.run(u))).to eq(0.0)
+    end
+  end
+
   context ".assign_add" do
     [ [[],    1.0                      ],
       [[1],   [1.0]                     ],

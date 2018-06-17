@@ -68,10 +68,11 @@ sess2 = tf.session(:opencl_evaluator)
   y = sess2.run(model, feed_dict: feed ) 
   fail "not equal #{tr(x.first)} != #{tr(y.first)}" if tr(x) != tr(y)
 end
-
+puts `cat /proc/cpuinfo | grep "model name" | head -1`
+puts "OpenCL device #{sess2.last_session_context[:cl_device].platform} #{sess2.last_session_context[:cl_device].name}"
 Benchmark.bmbm do |x|
-  x.report("pure ruby ooo matmul         :") { 100.times do sess.run(out_of_order) end }
-  x.report("opencl    ooo matmul         :") { 100.times do sess2.run(out_of_order) end }
+  x.report("pure ruby ooo matmul     :") { 100.times do sess.run(out_of_order) end }
+  x.report("opencl    ooo matmul     :") { 100.times do sess2.run(out_of_order) end }
   x.report("pure ruby softmax        :") { 100.times do sess.run(softmax) end }
   x.report("opencl    softmax        :") { 100.times do sess2.run(softmax) end }
   x.report("pure ruby matmul         :") { 100.times do sess.run(matmul) end }
