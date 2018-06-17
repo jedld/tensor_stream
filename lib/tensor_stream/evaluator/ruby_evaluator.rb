@@ -41,7 +41,9 @@ module TensorStream
       end
 
       def run(tensor, execution_context)
-        return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array)
+        if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
+          return tensor.map { |t| run(t, execution_context) }
+        end
 
         return tensor if retain.include?(tensor) # if var is in retain don't eval to value
 
@@ -89,10 +91,9 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-
+        # puts tensor.name
         case tensor.operation
         when :const
           complete_eval(a, child_context)
@@ -459,6 +460,26 @@ module TensorStream
 
           tile = tile_arr(input, 0, multiples)
           tile.nil? ? [] : tile
+        when :softmax
+          input = complete_eval(a, child_context)
+          softmax(input)
+        when :softmax_grad
+          input = complete_eval(a, child_context)
+          grad = complete_eval(b, child_context)
+          softmax_input = softmax(input)
+          f_grad = softmax_grad(softmax_input)
+          f_grad.transpose.each_with_index.collect do |row, index|
+            sum = 0.0
+            row.each_with_index do |r, g_index|
+              sum += r * grad[g_index]
+            end
+            sum
+          end
+        when :check_numerics
+          a = complete_eval(a, child_context)
+          message = tensor.options[:message]
+          f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
+          call_op(:check_numerics, a, child_context, f)
         else
           raise "unknown op #{tensor.operation}"
         end.tap do |result|
@@ -490,8 +511,9 @@ module TensorStream
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
         # dtype_b = b.data_type if b
-        # a = complete_eval(a, child_context)
-        # b = complete_eval(b, child_context)
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
+
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
@@ -740,7 +762,7 @@ module TensorStream
 
         v_a.each_with_index.collect do |v1, index|
           v2 = v_b[index]
-          v3 = v_c[index]
+          v3 = v_c.is_a?(Array) ? v_c[index] : v_c
           if v1.is_a?(Array)
             call_3way_vector_op(v1, v2, v3, child_context, op)
           else

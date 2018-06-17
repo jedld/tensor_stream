@@ -4,8 +4,18 @@ class OpenclTemplateHelper
     @source = source
   end
 
-  def generate
-    ERB.new(@source, nil, '%').result(binding)
+  def generate(args = {})
+    current_scope = binding
+
+    args.each do |k, v|
+      current_scope.local_variable_set(k.to_sym, v)
+    end
+
+    ERB.new(@source, nil, '%').result(current_scope)
+  end
+
+  def is_floating_point?(dtype)
+    TensorStream::Ops::FLOATING_POINT_TYPES.include?(dtype)
   end
 
   def render(template, locals = {})
@@ -19,11 +29,36 @@ class OpenclTemplateHelper
   end
 
   def dtype_to_c_type(dtype)
-    case(dtype)
-    when 'fp'
+    case(dtype.to_s)
+    when 'float64'
+      'double'
+    when 'float32', 'float'
       'float'
-    when 'int'
+    when 'int32', 'int'
       'int'
+    when 'int16'
+      'short'
+    when 'boolean'
+      'int'
+    else
+      raise "unknown dtype #{dtype}"
+    end
+  end
+
+  def min_value_for(dtype)
+    case(dtype.to_s)
+    when 'float64'
+      'DBL_MIN'
+    when 'float32', 'float'
+      'FLT_MIN'
+    when 'int32', 'int'
+      'INT_MIN'
+    when 'int16'
+      'SHRT_MIN'
+    when 'boolean'
+      '0'
+    else
+      raise "unknown dtype #{dtype}"
     end
   end
 

@@ -46,7 +46,8 @@ module TensorStream
     end
 
     def assign_add(value)
-      Operation.new(:assign_add, self, value)
+      value = Tensor.cast_dtype(value, data_type)
+      Operation.new(:assign_add, self, value, data_type: data_type)
     end
 
     def to_math(_tensor, _name_only = false, _max_depth = 99, _unused = 0)

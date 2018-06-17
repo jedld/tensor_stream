@@ -1,18 +1,17 @@
 require "bundler/setup"
 require 'tensor_stream'
-require 'pry-byebug'
 
 # This neural network will predict the species of an iris based on sepal and petal size
 # Dataset: http://en.wikipedia.org/wiki/Iris_flower_data_set
-
+tf = TensorStream
 rows = File.readlines(File.join("samples","iris.data")).map {|l| l.chomp.split(',') }
 
 rows.shuffle!
 
 label_encodings = {
-  "Iris-setosa"     => [1, 0, 0],
-  "Iris-versicolor" => [0, 1, 0],
-  "Iris-virginica"  => [0, 0 ,1]
+  'Iris-setosa'     => [1, 0, 0],
+  'Iris-versicolor' => [0, 1, 0],
+  'Iris-virginica'  => [0, 0, 1]
 }
 
 x_data = rows.map {|row| row[0,4].map(&:to_f) }
@@ -40,7 +39,7 @@ y_test = y_data.slice(100, 50)
 
 test_cases = []
 x_train.each_with_index do |x, index|
-  test_cases << [x, y_train[index] ]
+  test_cases << [x, y_train[index]]
 end
 
 validation_cases = []
@@ -55,10 +54,9 @@ display_step = 100
 
 # Network Parameters
 n_hidden_1 = 4 # 1st layer number of neurons
-n_hidden_2 = 4 # 2nd layer number of neurons
 num_classes = 3 # MNIST total classes (0-9 digits)
 num_input = 4
-training_epochs = 10
+training_epochs = 100
 
 tf = TensorStream
 
@@ -68,26 +66,20 @@ y = tf.placeholder("float", shape: [nil, num_classes], name: 'y')
 
 # Store layers weight & bias
 weights = {
-    h1: tf.variable(tf.random_normal([num_input, n_hidden_1]), name: 'h1'),
-    h2: tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), name: 'h2'),
-    out: tf.variable(tf.random_normal([n_hidden_2, num_classes]), name: 'out')
+  h1: tf.variable(tf.random_normal([num_input, n_hidden_1]), name: 'h1'),
+  out: tf.variable(tf.random_normal([num_classes, num_classes]), name: 'out')
 }
 
 biases = {
-    b1: tf.variable(tf.random_normal([n_hidden_1]), name: 'b1'),
-    b2: tf.variable(tf.random_normal([n_hidden_2]), name: 'b2'),
-    out: tf.variable(tf.random_normal([num_classes]), name: 'b_out')
+  b1: tf.variable(tf.random_normal([n_hidden_1]), name: 'b1'),
+  out: tf.variable(tf.random_normal([num_classes]), name: 'b_out')
 }
-
 
 # Create model
 def neural_net(x, weights, biases)
-    # Hidden fully connected layer with 256 neurons
-    layer_1 =  TensorStream.add(TensorStream.matmul(x, weights[:h1]), biases[:b1], name: 'layer1_add')
-    # Hidden fully connected layer with 256 neurons
-    layer_2 = TensorStream.add(TensorStream.matmul(layer_1, weights[:h2]), biases[:b2], name: 'layer2_add')
+    layer_1 = TensorStream.tanh(TensorStream.add(TensorStream.matmul(x, weights[:h1]), biases[:b1], name: 'layer1_add'))
     # Output fully connected layer with a neuron for each class
-    TensorStream.matmul(layer_2, weights[:out]) + biases[:out]
+    TensorStream.sigmoid(TensorStream.matmul(layer_1, weights[:out]) + biases[:out])
 end
 
 # Construct model
@@ -105,11 +97,13 @@ TensorStream.session do |sess|
   sess.run(init)
   puts "Testing the untrained network..."
   loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })
-  puts sess.run(loss)
+  puts loss
   puts "loss before training"
   (0..training_epochs).each do |epoch|
-    sess.run(optimizer, feed_dict: { x => x_train, y => y_train })
-    loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })
+    x_train.zip(y_train).each do |t_x, t_y|
+      sess.run(optimizer, feed_dict: { x => [t_x], y => [t_y] })
+      loss = sess.run(cost, feed_dict: { x => [t_x], y => [t_y] })
+    end
     puts "loss #{loss}"
   end
   loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })

@@ -127,11 +127,10 @@ module TensorStream
           sx = tf.shape(x)
           sy = tf.shape(y)
           rx, ry = _broadcast_gradient_args(sx, sy)
-          gx = tf.reshape(
-            tf.reduce_sum(grad * y * tf.pow(x, y - 1), rx), sx)
+          gx = tf.reduce_sum(grad * y * tf.pow(x, y - 1), rx)
 
           log_x = tf.where(x > 0, tf.log(x), tf.zeros_like(x))
-          gy = tf.reshape(tf.reduce_sum(grad * z * log_x, ry), sy)
+          gy = tf.reduce_sum(grad * z * log_x, ry)
 
           [gx, gy]
         when :abs
@@ -182,9 +181,11 @@ module TensorStream
           factor = _safe_shape_div(tf.reduce_prod(input_shape), tf.reduce_prod(output_shape))
           tf.div(sum_grad, tf.cast(factor, sum_grad.data_type))
         when :log1p
-          grad * tf.reciprocal(i_cons(1, data_type: grad.data_type) + x)
+          grad * tf.reciprocal(i_cons(1, dtype: grad.data_type) + x)
         when :sigmoid
           i_op(:sigmoid_grad, x, grad)
+        when :softmax
+          i_op(:softmax_grad, x, grad)
         when :zeros_like
           # non differentiable
           nil

@@ -271,11 +271,11 @@ RSpec.shared_examples "standard ops evaluator" do
   context ".derivative" do
     it "Creates a derivative graph for a computation" do
       x = tf.placeholder(TensorStream::Types.float32)
-      p = tf.pow(x, 3) 
-
-      derivative_function = TensorStream::MathGradients.derivative(p, x)
-      expect(tr(sess.run(p,  feed_dict: { x => 2}))).to eq(8)
-      expect(tr(sess.run(derivative_function, feed_dict: { x => 2}))).to eq(12)
+      p = tf.pow(x, 3)
+      g = tf.gradients(p, [x])
+      result = sess.run(g,  feed_dict: { x => 2})
+      expect(tr(result)).to eq([12])
+      expect(tr(sess.run(p, feed_dict: { x => 2}))).to eq(8)
   
       # f(x) = (sin x) ^ 3
       # dx = 3(sin x)^2 * cos x
@@ -339,6 +339,18 @@ RSpec.shared_examples "standard ops evaluator" do
       var_grad = tf.gradients(loss, [var])[0]
 
       expect(tr(sess.run(var_grad))).to eq(0.5403)
+    end
+  end
+
+  context ".check_numerics" do
+    specify do
+      a = tf.constant([[0.0, 0.0, 1.0],[0.0, 1.0, 3.1]])
+      c = tf.check_numerics(a, "a")
+      expect(sess.run(c)).to eq(sess.run(a))
+
+      b = tf.constant([[0.0, 0.0, 1.0],[Float::NAN, 1.0, 3.1]])
+      d = tf.check_numerics(b, "b")
+      expect { sess.run(d) }.to raise_exception
     end
   end
 
@@ -638,7 +650,7 @@ RSpec.shared_examples "standard ops evaluator" do
       a = tf.constant([1,2,3,4,5])
       b = tf.constant([6,6,6,6,6])
       c = tf.constant([8,8,8,8,8])
-      
+
       expect(sess.run(tf.where(a > 3, b, c))).to eq([8, 8, 8, 6, 6])
     end
 
@@ -684,6 +696,14 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".zeros_initializer" do
+    specify do
+      u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.zeros_initializer)
+      sess.run(tf.global_variables_initializer)
+      expect(tr(sess.run(u))).to eq(0.0)
+    end
+  end
+
   context ".assign_add" do
     [ [[],    1.0                      ],
       [[1],   [1.0]                     ],
@@ -694,7 +714,7 @@ RSpec.shared_examples "standard ops evaluator" do
         it "adds a value to the current variable" do
           v = TensorStream.get_variable("v", shape: shape, initializer: TensorStream.zeros_initializer)
           assignment = v.assign_add(1)
-          TensorStream.global_variables_initializer.run
+          sess.run(TensorStream.global_variables_initializer)
           expect(sess.run(assignment)).to eq(expected)
         end
       end
@@ -704,9 +724,9 @@ RSpec.shared_examples "standard ops evaluator" do
   context ".assign" do
     specify "assign should set value" do
       w = TensorStream.variable(rand, name: "weight", initializer: TensorStream.zeros_initializer)
-      TensorStream.global_variables_initializer.run
+      sess.run(TensorStream.global_variables_initializer)
       sess.run(w.assign(2))
-      expect(w.read_value).to eq(2)
+      expect(tr(w.read_value)).to eq(2)
     end
   end
 
@@ -728,9 +748,9 @@ RSpec.shared_examples "standard ops evaluator" do
   context ".pow" do
     it "Computes the power of tensor x to tensor y" do
       x = tf.constant([[2, 2], [3, 3]])
-      y = tf.constant([[8, 16], [2, 3]])
+      y = tf.constant([[8, 15], [2, 3]])
       p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
-      expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
+      expect(sess.run(p)).to eq([[256, 32768], [9, 27]])
 
       p = tf.pow(x, 2)
       expect(sess.run(p)).to eq([[4, 4], [9, 9]])
@@ -924,9 +944,7 @@ RSpec.shared_examples "standard ops evaluator" do
 
     it "different rank multiplication" do
       a = tf.constant([7.0, 7.0, 7.0, 7.0, 7.0])
-      b = tf.constant([
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1]])
+      b = tf.constant([[2.0, 2.0, 2.0, 2.0, 2.0], [1.0, 1.0, 1.0, 1.0, 1.0]])
       c = a * b
       expect(sess.run(c)).to eq([[14.0, 14.0, 14.0, 14.0, 14.0], [7.0, 7.0, 7.0, 7.0, 7.0]])
     end
@@ -971,44 +989,46 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-# tests for single parameter algebra functions
-[
-  [:sin, 0.0998,   [[0.8912,  0.8632], [0.8632, 0.1411]],  0.995, [[0.4536,  -0.5048], [-0.5048, -0.99]]                      ],
-  [:cos, 0.995,    [[0.4536, -0.5048], [-0.5048, -0.99]], -0.0998, [[-0.8912,-0.8632], [-0.8632, -0.1411]]                   ],
-  [:tan, 0.1003,   [[1.9648, -1.7098], [-1.7098, -0.1425]], 1.0101,  [[4.8603, 3.9236], [3.9236, 1.0203]]                     ],
-  [:tanh, 0.0997,  [[0.8005,  0.9705], [0.9705, 0.9951]],      0.9901, [[0.3592, 0.0582], [0.0582, 0.0099]]                         ],
-  [:log, -2.3026,  [[0.0953,  0.7419], [0.7419, 1.0986]],   10.0, [[0.9091, 0.4762], [0.4762, 0.3333]]                        ],
-  [:exp, 1.1052,   [[3.0042, 8.1662], [8.1662, 20.0855]], 1.1052, [[3.0042, 8.1662], [8.1662, 20.0855]]          ],
-  [:square, 0.01,  [[1.21, 4.41], [4.41, 9.0]],          0.2, [[2.2, 4.2], [4.2, 6.0]]                                    ],
-  [:negate, -0.1,  [[-1.1, -2.1], [-2.1, -3.0]],         -1.0, [[-1.0, -1.0], [-1.0, -1.0]]                                 ],
-  [:identity, 0.1, [[1.1, 2.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
-  [:abs, 0.1,      [[1.1, 2.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
-  [:sqrt, 0.3162,  [[1.0488, 1.4491], [1.4491, 1.7321]],   1.5811, [[0.4767,  0.345], [ 0.345, 0.2887]]                       ],
-  [:reciprocal, 10.0, [[0.9091,  0.4762], [0.4762, 0.3333]], -100,  [[-0.8264,  -0.2268], [-0.2268, -0.1111]]                         ],
-  [:sigmoid, 0.525, [[0.7503, 0.8909], [0.8909, 0.9526]], 0.2494, [[0.1874, 0.0972], [0.0972, 0.0452]]]
-].each do |func, scalar, matrix, gradient, gradient2|
-  context ".#{func}" do
-    let(:x) { tf.constant(0.1) }
-    let(:y) {  tf.constant([[1.1, 2.1], [2.1, 3.0]]) }
-    let(:f_x) { tf.send(func,x) }
-    let(:f_y) { tf.send(func,y) }
+  context "math functions" do
+    # tests for single parameter algebra functions
+    [
+      [:sin, 0.0998,   [[0.8912,  0.8632], [0.8632, 0.1411]],  0.995, [[0.4536,  -0.5048], [-0.5048, -0.99]]                      ],
+      [:cos, 0.995,    [[0.4536, -0.5048], [-0.5048, -0.99]], -0.0998, [[-0.8912,-0.8632], [-0.8632, -0.1411]]                   ],
+      [:tan, 0.1003,   [[1.9648, -1.7098], [-1.7098, -0.1425]], 1.0101,  [[4.8603, 3.9236], [3.9236, 1.0203]]                     ],
+      [:tanh, 0.0997,  [[0.8005,  0.9705], [0.9705, 0.9951]],      0.9901, [[0.3592, 0.0582], [0.0582, 0.0099]]                         ],
+      [:log, -2.3026,  [[0.0953,  0.7419], [0.7419, 1.0986]],   10.0, [[0.9091, 0.4762], [0.4762, 0.3333]]                        ],
+      [:exp, 1.1052,   [[3.0042, 8.1662], [8.1662, 20.0855]], 1.1052, [[3.0042, 8.1662], [8.1662, 20.0855]]          ],
+      [:square, 0.01,  [[1.21, 4.41], [4.41, 9.0]],          0.2, [[2.2, 4.2], [4.2, 6.0]]                                    ],
+      [:negate, -0.1,  [[-1.1, -2.1], [-2.1, -3.0]],         -1.0, [[-1.0, -1.0], [-1.0, -1.0]]                                 ],
+      [:identity, 0.1, [[1.1, 2.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
+      [:abs, 0.1,      [[1.1, 2.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
+      [:sqrt, 0.3162,  [[1.0488, 1.4491], [1.4491, 1.7321]],   1.5811, [[0.4767,  0.345], [ 0.345, 0.2887]]                       ],
+      [:reciprocal, 10.0, [[0.9091,  0.4762], [0.4762, 0.3333]], -100,  [[-0.8264,  -0.2268], [-0.2268, -0.1111]]                         ],
+      [:sigmoid, 0.525, [[0.7503, 0.8909], [0.8909, 0.9526]], 0.2494, [[0.1874, 0.0972], [0.0972, 0.0452]]]
+    ].each do |func, scalar, matrix, gradient, gradient2|
+      context ".#{func}" do
+        let(:x) { tf.constant(0.1) }
+        let(:y) {  tf.constant([[1.1, 2.1], [2.1, 3.0]]) }
+        let(:f_x) { tf.send(func,x) }
+        let(:f_y) { tf.send(func,y) }
 
-    specify "scalar #{func} value" do
-      expect(tr(sess.run(f_x))).to eq(scalar)
+        specify "scalar #{func} value" do
+          expect(tr(sess.run(f_x))).to eq(scalar)
+        end
+
+        specify "matrix #{func} values" do
+          expect(tr(sess.run(f_y))).to eq(matrix)
+        end
+
+        specify "gradient #{func} values" do
+          grad = tf.gradients(f_x, [x]).first
+          grad_2 = tf.gradients(f_y, [y]).first
+
+          expect(tr(sess.run(grad))).to eq(tr(gradient))
+          expect(tr(sess.run(grad_2))).to eq(tr(gradient2))
+        end
+      end
     end
-
-    specify "matrix #{func} values" do
-      expect(tr(sess.run(f_y))).to eq(matrix)
-    end
-
-    specify "gradient #{func} values" do
-      grad = tf.gradients(f_x, [x]).first
-      grad_2 = tf.gradients(f_y, [y]).first
-
-      expect(tr(sess.run(grad))).to eq(tr(gradient))
-      expect(tr(sess.run(grad_2))).to eq(tr(gradient2))
-    end
-  end
 end
 
 context "#broadcast" do
@@ -1209,6 +1229,49 @@ end
         specify "mixed rank operation 2  vs 0" do
           func_test(op, a_2, b, expected_2_0, grad_2_0)
         end
+      end
+    end
+  end
+
+  context "nn ops" do
+
+    context ".sigmoid_cross_entropy_with_logits" do
+      it "Measures the probability error in discrete classification tasks" do
+        labels = tf.constant([[1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0], [1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0]])
+        outputs = tf.constant([[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0], [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0]])
+        f = tf.nn.sigmoid_cross_entropy_with_logits(logits: outputs, labels: labels)
+        expect(tr(sess.run(f))).to eq([[0.3133, 2.1269, 0.0486, 4.0181, 0.3133, 0.1269, 3.0486], [0.3133, 2.1269, 0.0486, 4.0181, 0.3133, 0.1269, 3.0486]])
+      end
+
+      specify "gradients" do
+        labels = tf.constant([1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0])
+        outputs = tf.constant([1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
+        f = tf.nn.sigmoid_cross_entropy_with_logits(logits: outputs, labels: labels)
+        g = tf.gradients(f, [labels, outputs])
+        expect(tr(sess.run(g))).to eq([[-1.0, -2.0, -3.0, -4.0, -1.0, -2.0, -3.0], [-0.2689, 0.8808, -0.0474, 0.982, -0.2689, -0.1192, 0.9526]])
+      end
+    end
+
+    context ".softmax" do
+      it "computes for the softmax of a group of values" do
+        outputs = tf.constant([[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0],[1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0]])
+        expect(tr(sess.run(tf.nn.softmax(outputs)))).to eq( [[0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747], [0.0236, 0.0643, 0.1747, 0.4748, 0.0236, 0.0643, 0.1747]])
+      end
+
+      specify "rank 1D" do
+        outputs = tf.constant([1.0, 1.0, 0.0])
+        expect(tr(sess.run(tf.nn.softmax(outputs)))).to eq([0.4223, 0.4223, 0.1554])
+      end
+
+      specify "gradients" do
+        outputs = tf.constant([1.0, 1.0, 0.0])
+        sm = tf.nn.softmax(outputs)
+        f = tf.sin(sm)
+        g = tf.gradients(f, [outputs])
+
+        result = sess.run(g)
+
+        expect(tr(result,7)).to eq([[-0.005, -0.005, 0.0099]])
       end
     end
   end
