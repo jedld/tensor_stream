@@ -6,11 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2018-06-17
 ### Added
-- Allow float64 datatypes for the OpenCL evaluator
+- Allow float64, int16 datatypes for the OpenCL evaluator
 - Various bug fixes
 - Tweaked data type checking to be more tensorflow like
 - initial work on docs
 - [OpenCL] tweaked best device detector
+- [NEW OP] Added op softmax_cross_entropy_with_logits
+- [NEW OP] check_numerics
+### Fixes
+- fixed/improved softmax behavior
+
 
 ## [0.3.0] - 2018-06-05
 ### Added
