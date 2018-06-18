@@ -2,7 +2,7 @@ require "spec_helper"
 require 'benchmark'
 require 'tensor_stream/evaluator/opencl_evaluator'
 
-RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
+RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
   let(:tf) { TensorStream }
   let(:sess) { TensorStream.session(:opencl_evaluator) }
   let(:instance) { described_class.new(sess, {})}

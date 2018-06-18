@@ -1,7 +1,6 @@
 require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
-require 'distribution'
 
 module TensorStream
   module Evaluator
@@ -181,7 +180,7 @@ module TensorStream
         when :cos
           call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
         when :log1p
-          call_op(:log1p, a, child_context, ->(t, _b) { Distribution::MathExtension::Log.log1p(t) })
+          call_op(:log1p, a, child_context, ->(t, _b) { Math.log(1 + t) })
         when :log
           call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
         when :exp
@@ -513,7 +512,6 @@ module TensorStream
         # dtype_b = b.data_type if b
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
-
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a

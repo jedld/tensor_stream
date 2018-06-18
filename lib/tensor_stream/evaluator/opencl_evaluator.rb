@@ -3,7 +3,6 @@ require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
 require 'tensor_stream/evaluator/opencl_buffer'
 require 'tensor_stream/evaluator/opencl_template_helper'
-require 'distribution'
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
 
@@ -147,8 +146,9 @@ module TensorStream
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
+          puts filename
           source = OpenclTemplateHelper.new(source).generate(args)
-          # File.write("/tmp/#{kernel}.#{suffix}.cl", source)
+          File.write("/tmp/#{kernel}.#{suffix}.cl", source)
           program = _opencl_context.create_program_with_source(source)
           program.build
         rescue OpenCL::Error::BUILD_PROGRAM_FAILURE => e
@@ -688,6 +688,7 @@ module TensorStream
 
         event_wait_list = [a.op, b.op].compact # add dependency wait list
 
+        method_call = :"#{prog}_#{a.data_type}_#{b.data_type}"
         event = if prog == "#{op_name}_b"
           cl_m_b, cl_n_b = if b.shape.size == 2
             [ OpenCL::Int1.new(b.shape[0]), OpenCL::Int1.new(b.shape[1]) ]
@@ -696,9 +697,9 @@ module TensorStream
           else
             raise "rank > 2 not supported!"
           end
-          _cl_program("#{prog_name || op_name}", dtype: dtype).send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          _cl_program("#{prog_name || op_name}", a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         else
-          _cl_program("#{prog_name || op_name}", dtype: dtype).send(:"#{prog}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+          _cl_program("#{prog_name || op_name}", a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         end
 
         output_buffer.op = event
@@ -813,13 +814,13 @@ module TensorStream
             if element.is_a?(Tensor)
               cl_object.buffer[index] = read_final_result(complete_eval(element, {}))
             else
-              cl_object.buffer[index] = Tensor.cast_dtype(element, data_type)
+              cl_object.buffer[index] = ( data_type == :boolean ? ( element ? 1 : 0 ) : Tensor.cast_dtype(element, data_type))
             end
           end
         elsif value.is_a?(NArray)
           cl_object.buffer = value
         else
-          cl_object.buffer[0] = Tensor.cast_dtype(value, data_type)
+          cl_object.buffer[0] = ( data_type == :boolean ? ( element ? 1 : 0 )  : Tensor.cast_dtype(value, data_type))
         end
 
         write_op = if cl_object.cl_buffer && !value.nil? && (!value.is_a?(Array) || !value.empty?)
@@ -840,7 +841,7 @@ module TensorStream
         when :int16
           NArray.sint(narray_size)
         when :boolean
-          NArray.int(narray_size)
+          NArray.sint(narray_size)
         else
           raise "unsupported type #{data_type}"
         end
@@ -1056,7 +1057,7 @@ module TensorStream
           reduced_val = r[0]
           if r.size > 1
             reduced_val = f.call(r[0..val.size])
-          elsif r.size == 0
+          elsif r.size.zero?
             reduced_val = f.call(nil)
           end
           keep_dims ? [ reduced_val ] : reduced_val
