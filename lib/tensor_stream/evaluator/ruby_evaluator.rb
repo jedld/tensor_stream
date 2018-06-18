@@ -93,7 +93,7 @@ module TensorStream
         return @context[tensor.name] if @context.key?(tensor.name)
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-        # puts tensor.name
+        puts tensor.name
         case tensor.operation
         when :const
           complete_eval(a, child_context)
@@ -513,7 +513,7 @@ module TensorStream
         # dtype_b = b.data_type if b
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
-
+        binding.pry
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
