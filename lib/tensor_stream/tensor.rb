@@ -189,7 +189,9 @@ module TensorStream
     end
 
     def self.detect_type(value)
-      if value.is_a?(String)
+      if !!value==value
+        :boolean
+      elsif value.is_a?(String)
         :string
       elsif value.is_a?(Float)
         :float32

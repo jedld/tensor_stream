@@ -11,7 +11,7 @@ class OpenclTemplateHelper
       current_scope.local_variable_set(k.to_sym, v)
     end
 
-    ERB.new(@source, trim_mode: '%').result(current_scope)
+    ERB.new(@source, nil, '%').result(current_scope)
   end
 
   def floating_point?(dtype)
@@ -25,7 +25,7 @@ class OpenclTemplateHelper
     locals.each do |k, v|
       current_scope.local_variable_set(k.to_sym, v)
     end
-    ERB.new(source, trim_mode: '%').result(current_scope)
+    ERB.new(source, nil, '%').result(current_scope)
   end
 
   def dtype_to_c_type(dtype)
@@ -39,7 +39,7 @@ class OpenclTemplateHelper
     when 'int16'
       'short'
     when 'boolean'
-      'int'
+      'short'
     else
       raise "unknown dtype #{dtype}"
     end
