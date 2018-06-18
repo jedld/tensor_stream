@@ -93,7 +93,7 @@ module TensorStream
         return @context[tensor.name] if @context.key?(tensor.name)
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
-        puts tensor.name
+        # puts tensor.name
         case tensor.operation
         when :const
           complete_eval(a, child_context)

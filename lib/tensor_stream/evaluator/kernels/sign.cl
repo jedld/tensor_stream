@@ -5,7 +5,7 @@ __kernel void sign_<%= dtype %>(const int M, const int N, __global const <%= c_d
     const int globalRow = get_global_id(0); // Row ID of C (0..M)
     const int globalCol = get_global_id(1); // Col ID of C (0..N)
     <%= c_dtype %> value = A[globalRow * N + globalCol];
-% if is_floating_point?(dtype)
+% if floating_point?(dtype)
     if (isnan(value) || value == 0.0f) {
       C[globalRow * N + globalCol] = 0.0;
     } else {

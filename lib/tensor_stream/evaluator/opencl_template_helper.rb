@@ -11,10 +11,10 @@ class OpenclTemplateHelper
       current_scope.local_variable_set(k.to_sym, v)
     end
 
-    ERB.new(@source, nil, '%').result(current_scope)
+    ERB.new(@source, trim_mode: '%').result(current_scope)
   end
 
-  def is_floating_point?(dtype)
+  def floating_point?(dtype)
     TensorStream::Ops::FLOATING_POINT_TYPES.include?(dtype)
   end
 
@@ -22,14 +22,14 @@ class OpenclTemplateHelper
     filename = File.join(File.dirname(__FILE__), 'kernels', "_#{template}")
     source = File.read(filename)
     current_scope = binding
-    locals.each do |k,v|
+    locals.each do |k, v|
       current_scope.local_variable_set(k.to_sym, v)
     end
-    ERB.new(source, nil, '%').result(current_scope)
+    ERB.new(source, trim_mode: '%').result(current_scope)
   end
 
   def dtype_to_c_type(dtype)
-    case(dtype.to_s)
+    case dtype.to_s
     when 'float64'
       'double'
     when 'float32', 'float'
@@ -46,7 +46,7 @@ class OpenclTemplateHelper
   end
 
   def min_value_for(dtype)
-    case(dtype.to_s)
+    case dtype.to_s
     when 'float64'
       'DBL_MIN'
     when 'float32', 'float'
@@ -63,7 +63,7 @@ class OpenclTemplateHelper
   end
 
   def operator_to_c(op)
-    case(op)
+    case op
     when 'less'
       '<'
     when 'less_equal'
