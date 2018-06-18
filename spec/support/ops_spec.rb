@@ -1089,6 +1089,7 @@ context ".shape" do
 
     v = tf.constant([[1,2,3],[4,5,6]])
     shape = tf.shape(v)
+    binding.pry
     expect(sess.run(shape)).to eq([2 ,3])
   end
 

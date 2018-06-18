@@ -33,8 +33,12 @@ module TensorStream
       arr
     end
 
-    def dtype_eval(rank, value)
-      dtype = Tensor.detect_type(value[0])
+    def dtype_eval(rank, value, data_type = nil)
+      dtype = if data_type.nil?
+        Tensor.detect_type(value[0])
+      else
+       data_type
+      end
 
       rank += 1 if dtype == :array
 

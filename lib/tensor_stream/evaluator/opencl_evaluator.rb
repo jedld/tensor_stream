@@ -146,7 +146,6 @@ module TensorStream
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
-          puts filename
           source = OpenclTemplateHelper.new(source).generate(args)
           File.write("/tmp/#{kernel}.#{suffix}.cl", source)
           program = _opencl_context.create_program_with_source(source)
@@ -515,7 +514,6 @@ module TensorStream
           wrap_opencl(get_broadcast_gradient_args(a.buffer.to_a, b.buffer.to_a), data_type: a.data_type, name: tensor.name)
         when :shape
           a = _run(a, child_context)
-
           wrap_opencl(a.shape, name: tensor.name, data_type: tensor.options[:out_type] || :float32)
         when :reshape
           arr = complete_eval(a, child_context)
