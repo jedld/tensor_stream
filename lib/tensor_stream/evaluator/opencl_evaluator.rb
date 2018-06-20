@@ -5,6 +5,7 @@ require 'tensor_stream/evaluator/opencl_buffer'
 require 'tensor_stream/evaluator/opencl_template_helper'
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
+require 'tensor_stream/evaluator/base_evaluator'
 
 module TensorStream
   module Evaluator
@@ -26,7 +27,7 @@ module TensorStream
     end
 
     ## PURE ruby evaluator used for testing and development
-    class OpenclEvaluator
+    class OpenclEvaluator < BaseEvaluator
       attr_accessor :retain
 
       include TensorStream::OpHelper
@@ -42,6 +43,17 @@ module TensorStream
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
         @context[:_cache][:_cl_buffers] ||= {} if @context[:_cache]
         @context[:compute_history] = [] if log_intermediates
+      end
+
+      def self.query_supported_devices
+        devices = query_devices_with_score
+        devices.sort { |a| a[1] }.reverse.map do |d|
+          device = d[0]
+          index = d[3]
+          uri = [device.platform.icd_suffix_khr, index].join('/')
+
+          Device.new(uri, device.type, 'opencl')
+        end
       end
 
       # opencl evaluator main entrypoint
@@ -97,27 +109,31 @@ module TensorStream
 
       def choose_best_device
         @best_device ||= begin
-          devices = OpenCL.platforms.flat_map do |p|
-
-            p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
-              score = 0
-              if d.type.to_s == 'CPU'
-                score += 1
-              elsif d.type.to_s == 'GPU'
-                score += 4
-              end
-
-              if d.platform.name == 'NVIDIA CUDA'
-                score += 1000
-              end
-
-              score += d.max_compute_units
-              score += d.max_clock_frequency
-
-              [d, score, p.name, index]
-            end
-          end
+          devices = OpenclEvaluator.query_devices_with_score
           devices.sort { |a| a[1] }.reverse.first
+        end
+      end
+
+      def self.query_devices_with_score
+        OpenCL.platforms.flat_map do |p|
+
+          p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
+            score = 0
+            if d.type.to_s == 'CPU'
+              score += 1
+            elsif d.type.to_s == 'GPU'
+              score += 4
+            end
+
+            if d.platform.name == 'NVIDIA CUDA'
+              score += 1000
+            end
+
+            score += d.max_compute_units
+            score += d.max_clock_frequency
+
+            [d, score, p.name, index]
+          end
         end
       end
 
@@ -1143,3 +1159,5 @@ module TensorStream
     end
   end
 end
+
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::OpenclEvaluator, "opencl")

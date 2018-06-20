@@ -28,6 +28,19 @@ module TensorStream
       TensorStream::Graph.get_default_graph.executing_eagerly?
     end
 
+    ##
+    # List available evaluators + devices in the current local environment
+    # Returns:
+    # - An array containing the names of those devices
+    def list_local_devices
+      local_name = 'job:localhost'
+      TensorStream::Evaluator.evaluators.collect do |k, v|
+        v[:class].query_supported_devices.collect do |device_str|
+          [local_name, device_str.name].join('/') + '?evaluator=' + k
+        end
+      end.flatten
+    end
+
     def variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
       op = Operation.new(:assign, nil, value)
       common_options = {

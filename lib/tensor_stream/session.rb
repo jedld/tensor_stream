@@ -53,7 +53,11 @@ module TensorStream
     end
 
     def list_devices
-      [Device.new("cpu")]
+      TensorStream::Evaluator.evaluators.collect do |k, v|
+        v[:class].query_supported_devices.collect do |device|
+          device
+        end
+      end.flatten
     end
 
     def close

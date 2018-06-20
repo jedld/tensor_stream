@@ -13,6 +13,12 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
     TensorStream.session(:opencl_evaluator)
   end
 
+  context ".list_local_devices" do
+    specify do
+      expect(tf.list_local_devices.size > 1).to be
+    end
+  end
+
   describe "data types" do
     %i[int32 int16 int].each do |dtype|
       context "#{dtype}" do
