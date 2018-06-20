@@ -50,7 +50,8 @@ module TensorStream
         devices.sort { |a| a[1] }.reverse.map do |d|
           device = d[0]
           index = d[3]
-          uri = [device.platform.icd_suffix_khr, index].join('/')
+          platform_name = device.platform.name.gsub(/(.)([A-Z])/,'\1_\2').downcase
+          uri = [platform_name, index].join('/')
 
           Device.new(uri, device.type, 'opencl')
         end
@@ -162,9 +163,8 @@ module TensorStream
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
-          puts filename
           source = OpenclTemplateHelper.new(source).generate(args)
-          File.write("/tmp/#{kernel}.#{suffix}.cl", source)
+          # File.write("/tmp/#{kernel}.#{suffix}.cl", source)
           program = _opencl_context.create_program_with_source(source)
           program.build
         rescue OpenCL::Error::BUILD_PROGRAM_FAILURE => e
