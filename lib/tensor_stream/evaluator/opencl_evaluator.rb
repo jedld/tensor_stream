@@ -35,14 +35,8 @@ module TensorStream
       include TensorStream::MathHelper
 
       def initialize(session, context, thread_pool: nil, log_intermediates: false, preferred_device: nil)
-        @session = session
-        @context = context
-        @log_intermediates = log_intermediates
-        @preferred_device = preferred_device
-        @retain = context[:retain] || []
-        @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
+        super
         @context[:_cache][:_cl_buffers] ||= {} if @context[:_cache]
-        @context[:compute_history] = [] if log_intermediates
       end
 
       def self.query_supported_devices

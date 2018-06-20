@@ -30,16 +30,6 @@ module TensorStream
       include TensorStream::ArrayOpsHelper
       include TensorStream::MathHelper
 
-      def initialize(session, context, thread_pool: nil, log_intermediates: false)
-        @session = session
-        @context = context
-        @log_intermediates = log_intermediates
-        @retain = context[:retain] || []
-        @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
-
-        @context[:compute_history] = [] if log_intermediates
-      end
-
       def run(tensor, execution_context)
         if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
           return tensor.map { |t| run(t, execution_context) }
@@ -141,11 +131,6 @@ module TensorStream
         b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
-        when :not_equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:not_equal, a, b, child_context, ->(t, u) { t != u })
         when :index
           f = run(a, child_context)
           index = run(b, child_context)
