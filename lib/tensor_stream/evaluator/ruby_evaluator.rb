@@ -89,54 +89,58 @@ module TensorStream
         end
       end
 
+      register_op(:const) do |context, _tensor, inputs|
+        inputs[0]
+      end
+
+      register_op(:argmax) do |context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
+      end
+
+      register_op(:argmin) do |context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        get_op_with_axis(inputs[0], axis, 0, tensor.data_type, ->(a, b) { a < b })
+      end
+
+      register_op(:cast) do |context, tensor, inputs|
+        call_op(:cast, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
+      end
+
+      register_op(:sign) do |context, tensor, inputs|
+        func = lambda { |x, _b|
+          if x.zero? || (x.is_a?(Float) && x.nan?)
+            0
+          elsif x < 0
+            -1
+          elsif x > 0
+            1
+          else
+            raise 'assert: cannot be here'
+          end
+        }
+
+        call_op(:sign, inputs[0], context, func)
+      end
+
+      register_op(:logical_and) do |context, tensor, inputs|
+        call_vector_op(:logical_and, inputs[0], inputs[1], context, ->(t, u) { t && u })
+      end
+
+      register_op(:equal) do |context, tensor, inputs|
+        call_vector_op(:equal, inputs[0], inputs[1], context, ->(t, u) { t == u })
+      end
+
+      register_op(:not_equal) do |context, tensor, inputs|
+        call_vector_op(:not_equal, inputs[0], inputs[1], child_context, ->(t, u) { t != u })
+      end
+
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
         b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
-        when :const
-          complete_eval(a, child_context)
-        when :argmax
-          a = complete_eval(a, child_context)
-          axis = tensor.options[:axis] || 0
-
-          get_op_with_axis(a, axis, 0, tensor.data_type)
-        when :argmin
-          a = complete_eval(a, child_context)
-          axis = tensor.options[:axis] || 0
-
-          get_op_with_axis(a, axis, 0, tensor.data_type, ->(a, b) { a < b })
-        when :cast
-          a = complete_eval(a, child_context)
-
-          call_op(:cast, a, child_context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
-        when :sign
-          a = complete_eval(a, child_context)
-
-          func = lambda { |x, _b|
-            if x.zero? || (x.is_a?(Float) && x.nan?)
-              0
-            elsif x < 0
-              -1
-            elsif x > 0
-              1
-            else
-              raise 'assert: cannot be here'
-            end
-          }
-
-          call_op(:sign, a, child_context, func)
-        when :logical_and
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t && u })
-        when :equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t == u })
         when :not_equal
           a = complete_eval(a, child_context)
           b = complete_eval(b, child_context)
