@@ -208,8 +208,8 @@ module TensorStream
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
         return @context[cache_key] if @context.key?(cache_key)
 
-        a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
-        b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
+        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
         when :concat
@@ -312,8 +312,8 @@ module TensorStream
 
           result_shape = [m, n]
 
-          raise "#{tensor.items[0].name} rank must be greater than 1" if a.shape.size < 2
-          raise "#{tensor.items[1].name} rank must be greater than 1" if b.shape.size < 2
+          raise "#{tensor.inputs[0].name} rank must be greater than 1" if a.shape.size < 2
+          raise "#{tensor.inputs[1].name} rank must be greater than 1" if b.shape.size < 2
           raise "incompatible shape sizes for matrix multiplication (#{a.shape[1]} != #{b.shape[0]}) #{a.shape} vs #{b.shape}" if k != v
 
           dtype = tensor.data_type
@@ -437,8 +437,8 @@ module TensorStream
           a = complete_eval(a, child_context)
           name = tensor.options[:name]
 
-          a.buffer.each do |item|
-            raise "#{name} Invalid Argument" if item.nan? || item.infinite?
+          a.buffer.each do |input|
+            raise "#{name} Invalid Argument" if input.nan? || input.infinite?
           end
           a
         when :zeros, :ones, :zeros_like, :ones_like
@@ -583,7 +583,7 @@ module TensorStream
           generator = -> { random.rand * (maxval - minval) + minval }
           convert_to_opencl(generate_vector(shape, generator: generator), shape, data_type: tensor.data_type, name: tensor.name)
         when :flow_group
-          tensor.items.collect { |item| _run(item, child_context) }
+          tensor.inputs.collect { |input| _run(input, child_context) }
         when :sum
           reduction(child_context, tensor, a, b, :sum)
         when :mean
@@ -672,7 +672,7 @@ module TensorStream
       private
 
       def assign_var(tensor, b, child_context)
-        assign = tensor.items[0] || tensor
+        assign = tensor.inputs[0] || tensor
         buffer = complete_eval(b, child_context)
 
         if assign.buffer

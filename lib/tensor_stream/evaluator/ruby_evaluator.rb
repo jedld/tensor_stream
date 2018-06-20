@@ -91,8 +91,8 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
-        b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
+        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
         when :const
@@ -234,17 +234,17 @@ module TensorStream
           generator = -> { random.rand * (maxval - minval) + minval }
           generate_vector(shape, generator: generator)
         when :flow_group
-          tensor.items.collect { |item| run(item, child_context) }
+          tensor.inputs.collect { |input| run(input, child_context) }
         when :assign
-          assign = tensor.items[0] || tensor
-          assign.value = complete_eval(tensor.items[1], child_context)
+          assign = tensor.inputs[0] || tensor
+          assign.value = complete_eval(tensor.inputs[1], child_context)
           assign.value
         when :assign_add
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t + u })
-          tensor.items[0].value
+          tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], child_context, ->(t, u) { t + u })
+          tensor.inputs[0].value
         when :assign_sub
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t - u })
-          tensor.items[0].value
+          tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], child_context, ->(t, u) { t - u })
+          tensor.inputs[0].value
         when :mean
           c = fp_type?(tensor.data_type) ? 0.0 : 0
           func = lambda do |arr|
@@ -375,8 +375,8 @@ module TensorStream
           rank_a = get_rank(matrix_a)
           rank_b = get_rank(matrix_b)
 
-          raise "#{tensor.items[0].name} rank must be greater than 1" if rank_a < 2
-          raise "#{tensor.items[1].name} rank must be greater than 1" if rank_b < 2
+          raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
+          raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
 
           matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
           matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
@@ -531,8 +531,8 @@ module TensorStream
         return @context[:_cache][cache_key] if @context[:_cache] && @context[:_cache].key?(tensor.name)
 
         if tensor.value.is_a?(Array)
-          tensor.value.collect do |item|
-            item.is_a?(Tensor) ? run(item, child_context) : item
+          tensor.value.collect do |input|
+            input.is_a?(Tensor) ? run(input, child_context) : input
           end
         else
           tensor.value.is_a?(Tensor) ? run(tensor.value, child_context) : tensor.value
@@ -578,8 +578,8 @@ module TensorStream
       end
 
       def reduction(child_context, tensor, func)
-        val = complete_eval(tensor.items[0], child_context)
-        axis = complete_eval(tensor.items[1], child_context)
+        val = complete_eval(tensor.inputs[0], child_context)
+        axis = complete_eval(tensor.inputs[1], child_context)
         keep_dims = complete_eval(tensor.options[:keepdims], child_context)
         rank = get_rank(val)
         return val if axis && axis.is_a?(Array) && axis.empty?

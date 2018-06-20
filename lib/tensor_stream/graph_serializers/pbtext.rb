@@ -11,7 +11,7 @@ module TensorStream
         @lines << "  name: #{node.name.to_json}"
         if node.is_a?(TensorStream::Operation)
           @lines << "  op: #{camelize(node.operation.to_s).to_json}"
-          node.items.each do |input|
+          node.inputs.each do |input|
             next unless input
             @lines << "  input: #{input.name.to_json}"
           end
