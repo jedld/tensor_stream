@@ -36,7 +36,7 @@ module TensorStream
       local_name = 'job:localhost'
       TensorStream::Evaluator.evaluators.collect do |k, v|
         v[:class].query_supported_devices.collect do |device_str|
-          [local_name, device_str.name].join('/') + '?evaluator=' + k
+          [local_name, "ts:#{device_str.name}"].join('/') + '?evaluator=' + k
         end
       end.flatten
     end
@@ -76,6 +76,10 @@ module TensorStream
       ensure
         Thread.current[:tensor_stream_variable_scope].pop
       end
+    end
+
+    def device(device_uri, &block)
+      get_default_graph.device(device_uri, &block)
     end
 
     def name_scope(name, default: nil, values: nil)

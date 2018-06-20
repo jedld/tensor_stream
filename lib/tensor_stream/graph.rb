@@ -43,6 +43,21 @@ module TensorStream
       end
     end
 
+    ##
+    # Returns a context manager that specifies the default device to use.
+    def device(device_name)
+      return yield if get_device_scope.nil?
+
+      Thread.current["ts_graph_#{object_id}"] ||= {}
+      Thread.current["ts_graph_#{object_id}"][:default_device] ||= []
+      Thread.current["ts_graph_#{object_id}"][:default_device] << device_name
+      begin
+        yield
+      ensure
+        Thread.current["ts_graph_#{object_id}"][:default_device].pop
+      end
+    end
+
     def self.get_default_graph
       Thread.current[:tensor_stream_current_graph] || create_default
     end
@@ -68,7 +83,7 @@ module TensorStream
                   else
                     node.name
                   end
-
+      node.device = get_device_scope
       @nodes[node.name] = node
       @constants[node.name] = node if node.is_const
       node.send(:propagate_outputs)
@@ -159,9 +174,16 @@ module TensorStream
 
     def get_name_scope
       graph_thread_storage = Thread.current["ts_graph_#{object_id}"]
-      return nil if graph_thread_storage.nil?
+      return nil if graph_thread_storage.nil? || graph_thread_storage[:current_scope].nil?
 
       graph_thread_storage[:current_scope].join('/')
+    end
+
+    def get_device_scope
+      graph_thread_storage = Thread.current["ts_graph_#{object_id}"]
+      return :default if graph_thread_storage.nil? || graph_thread_storage[:default_device].nil?
+
+      graph_thread_storage[:default_device].last
     end
 
     def as_graph_def

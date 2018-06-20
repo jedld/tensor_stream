@@ -7,7 +7,7 @@ module TensorStream
 
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
                   :value, :breakpoint, :internal, :source, :given_name, :graph,
-                  :consumers, :outputs
+                  :consumers, :outputs, :device
 
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
