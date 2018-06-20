@@ -1,7 +1,7 @@
 require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
-require 'distribution'
+require 'tensor_stream/evaluator/base_evaluator'
 
 module TensorStream
   module Evaluator
@@ -23,7 +23,7 @@ module TensorStream
     end
 
     ## PURE ruby evaluator used for testing and development
-    class RubyEvaluator
+    class RubyEvaluator < BaseEvaluator
       attr_accessor :retain
 
       include TensorStream::OpHelper
@@ -181,7 +181,7 @@ module TensorStream
         when :cos
           call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
         when :log1p
-          call_op(:log1p, a, child_context, ->(t, _b) { Distribution::MathExtension::Log.log1p(t) })
+          call_op(:log1p, a, child_context, ->(t, _b) { Math.log(1 + t) })
         when :log
           call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
         when :exp
@@ -833,3 +833,5 @@ module TensorStream
     end
   end
 end
+
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::RubyEvaluator, "ruby")

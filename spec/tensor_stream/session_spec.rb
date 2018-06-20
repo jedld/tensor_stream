@@ -62,7 +62,7 @@ RSpec.describe TensorStream::Session do
     context "#list_devices" do
       let(:sess) { TensorStream.session }
       it "list available device sin this session" do
-        expect(sess.list_devices.map(&:name)).to eq(["cpu"])
+        expect(sess.list_devices.map(&:name)).to include "cpu"
       end
     end
 

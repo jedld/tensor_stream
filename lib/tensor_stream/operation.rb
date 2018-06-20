@@ -1,7 +1,7 @@
 module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
-    attr_accessor :name, :operation, :items, :rank, :options
+    attr_accessor :name, :operation, :items, :rank, :options, :device
     attr_reader :outputs
 
     def initialize(operation, input_a, input_b, options = {})

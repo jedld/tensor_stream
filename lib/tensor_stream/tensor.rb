@@ -28,7 +28,7 @@ module TensorStream
           options[:value] = reshape(options[:value], shape.reverse.dup) if shape.size >= 2 && !options[:value].empty? && !options[:value][0].is_a?(Array)
 
           @value = options[:value].collect do |v|
-            v.is_a?(Tensor) ? Tensor.cast_dtype(v, data_type) : v
+            v.is_a?(Tensor) ? Tensor.cast_dtype(v, @data_type) : v
           end
         elsif !shape.empty?
           @value = reshape(Tensor.cast_dtype(options[:value], @data_type), shape.dup)
@@ -198,7 +198,7 @@ module TensorStream
       elsif value.is_a?(Integer)
         :int32
       elsif value.is_a?(Array)
-        :array
+        return detect_type(value[0])
       else
         :float32
       end
@@ -227,7 +227,7 @@ module TensorStream
         end
       when :string
         val.to_s
-      when :int32, :int16
+      when :int32, :int16, :int
         if !!val == val
           val ? 1 : 0
         else

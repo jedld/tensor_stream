@@ -3,9 +3,9 @@ require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
 require 'tensor_stream/evaluator/opencl_buffer'
 require 'tensor_stream/evaluator/opencl_template_helper'
-require 'distribution'
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
+require 'tensor_stream/evaluator/base_evaluator'
 
 module TensorStream
   module Evaluator
@@ -27,7 +27,7 @@ module TensorStream
     end
 
     ## PURE ruby evaluator used for testing and development
-    class OpenclEvaluator
+    class OpenclEvaluator < BaseEvaluator
       attr_accessor :retain
 
       include TensorStream::OpHelper
@@ -43,6 +43,17 @@ module TensorStream
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
         @context[:_cache][:_cl_buffers] ||= {} if @context[:_cache]
         @context[:compute_history] = [] if log_intermediates
+      end
+
+      def self.query_supported_devices
+        devices = query_devices_with_score
+        devices.sort { |a| a[1] }.reverse.map do |d|
+          device = d[0]
+          index = d[3]
+          uri = [device.platform.icd_suffix_khr, index].join('/')
+
+          Device.new(uri, device.type, 'opencl')
+        end
       end
 
       # opencl evaluator main entrypoint
@@ -98,27 +109,31 @@ module TensorStream
 
       def choose_best_device
         @best_device ||= begin
-          devices = OpenCL.platforms.flat_map do |p|
-
-            p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
-              score = 0
-              if d.type.to_s == 'CPU'
-                score += 1
-              elsif d.type.to_s == 'GPU'
-                score += 4
-              end
-
-              if d.platform.name == 'NVIDIA CUDA'
-                score += 1000
-              end
-
-              score += d.max_compute_units
-              score += d.max_clock_frequency
-
-              [d, score, p.name, index]
-            end
-          end
+          devices = OpenclEvaluator.query_devices_with_score
           devices.sort { |a| a[1] }.reverse.first
+        end
+      end
+
+      def self.query_devices_with_score
+        OpenCL.platforms.flat_map do |p|
+
+          p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
+            score = 0
+            if d.type.to_s == 'CPU'
+              score += 1
+            elsif d.type.to_s == 'GPU'
+              score += 4
+            end
+
+            if d.platform.name == 'NVIDIA CUDA'
+              score += 1000
+            end
+
+            score += d.max_compute_units
+            score += d.max_clock_frequency
+
+            [d, score, p.name, index]
+          end
         end
       end
 
@@ -192,6 +207,7 @@ module TensorStream
         return @context[tensor.name] if @context.key?(tensor.name)
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
         return @context[cache_key] if @context.key?(cache_key)
+
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
         # puts tensor.name
@@ -457,19 +473,19 @@ module TensorStream
           end
 
           convert_to_opencl(data, shape, data_type: tensor.data_type, name: tensor.name)
-         when :broadcast_transform
+        when :broadcast_transform
           a = _run(a, child_context)
           b = _run(b, child_context)
 
-         if a.shape == b.shape
-           [a, b]
-         else
-           input_a = read_final_result(complete_eval(a, child_context))
-           input_b = read_final_result(complete_eval(b, child_context))
-           b_a, b_b = broadcast(input_a, input_b)
-           [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
-             wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
-         end
+          if a.shape == b.shape
+            [a, b]
+          else
+            input_a = read_final_result(complete_eval(a, child_context))
+            input_b = read_final_result(complete_eval(b, child_context))
+            b_a, b_b = broadcast(input_a, input_b)
+            [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
+              wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
+          end
         when :print
           a = _run(a, child_context)
           b = _run(b, child_context)
@@ -516,7 +532,6 @@ module TensorStream
           wrap_opencl(get_broadcast_gradient_args(a.buffer.to_a, b.buffer.to_a), data_type: a.data_type, name: tensor.name)
         when :shape
           a = _run(a, child_context)
-
           wrap_opencl(a.shape, name: tensor.name, data_type: tensor.options[:out_type] || :float32)
         when :reshape
           arr = complete_eval(a, child_context)
@@ -786,7 +801,7 @@ module TensorStream
           value = [value]
         end
 
-        cache_key = "_cl_object_#{name}_#{shape.join('_')}"
+        cache_key = "_cl_object_#{name}:#{shape.join('_')}"
         cl_object =  if name && @context[:_cache][cache_key]
                       @context[:_cache][cache_key]
                      else
@@ -1145,3 +1160,5 @@ module TensorStream
     end
   end
 end
+
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::OpenclEvaluator, "opencl")
