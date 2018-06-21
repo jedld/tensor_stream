@@ -78,14 +78,20 @@ module TensorStream
 
     def dump_ops(tensor, selector)
       graph = tensor.graph
-      graph.nodes.select { |k, v| selector.call(k, v) }.collect do |k, node|
+      graph.nodes.select { |k, v| selector.call(k, v) }.collect { |k, node|
         next unless @last_session_context[node.name]
         "#{k} #{node.to_math(true, 1)} = #{@last_session_context[node.name]}"
-      end.compact
+      }.compact
     end
 
     def graph_ml(tensor, filename)
       TensorStream::Graphml.new(self).serialize(tensor, filename)
+    end
+
+    protected
+
+    def eval(tensor)
+
     end
   end
 end

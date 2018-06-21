@@ -35,8 +35,6 @@ module TensorStream
           return tensor.map { |t| run(t, execution_context) }
         end
 
-        return tensor if retain.include?(tensor) # if var is in retain don't eval to value
-
         tensor = tensor.call if tensor.is_a?(Proc)
 
         child_context = execution_context.dup
@@ -66,6 +64,16 @@ module TensorStream
       end
 
       protected
+
+      def prepare_input(tensor, context, options = {})
+        return nil unless tensor
+        tensor = resolve_placeholder(tensor)
+        if options[:no_eval]
+          run(tensor, child_context)
+        else
+          complete_eval(tensor, context)
+        end
+      end
 
       def eval_variable(tensor, child_context)
         value = tensor.read_value
@@ -122,7 +130,7 @@ module TensorStream
       end
 
       register_op(:not_equal) do |context, tensor, inputs|
-        call_vector_op(:not_equal, inputs[0], inputs[1], child_context, ->(t, u) { t != u })
+        call_vector_op(:not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
       def eval_operation(tensor, child_context)
@@ -470,7 +478,7 @@ module TensorStream
           f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
           call_op(:check_numerics, a, child_context, f)
         else
-          raise "unknown op #{tensor.operation}"
+          invoke(tensor, child_context)
         end.tap do |result|
           if tensor.breakpoint
             a = complete_eval(a, child_context)
@@ -708,7 +716,6 @@ module TensorStream
 
       def resolve_placeholder(placeholder, _execution_context = {})
         return nil if placeholder.nil?
-        return placeholder if retain.include?(placeholder)
 
         var = if placeholder.is_a?(Placeholder)
                 @context[placeholder.name.to_sym].tap do |c|

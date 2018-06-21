@@ -15,6 +15,12 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   it_behaves_like "standard ops evaluator"
 
+  context "supported ops" do
+    specify do
+      expect(TensorStream::Evaluator::RubyEvaluator.ops.keys.sort).to eq([:argmax, :argmin, :cast, :const, :equal, :logical_and, :not_equal, :sign])
+    end
+  end
+
   it "can evaluate a tensor" do
     c = tf.constant(1.0)
     expect(instance.run(c, execution_context)).to eq(1.0)

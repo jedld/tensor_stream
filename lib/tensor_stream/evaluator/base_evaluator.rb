@@ -6,7 +6,7 @@ module TensorStream
       end
 
       def message
-        "unsupported op #{tensor.operation}"
+        "unsupported op #{@tensor.operation}"
       end
     end
 
@@ -16,7 +16,6 @@ module TensorStream
         @context = context
         @log_intermediates = log_intermediates
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
-
         @context[:compute_history] = [] if log_intermediates
       end
 
@@ -24,18 +23,30 @@ module TensorStream
         [Device.new("cpu", :cpu, "ruby")]
       end
 
-      def self.register_op(opcode, &block)
+      def self.register_op(opcode, options = {}, &block)
         @ops ||= {}
-        @ops[opcode.to_sym] = block
+        @ops[opcode.to_sym] = { options: options, block: block }
+      end
+
+      def self.ops
+        @ops ||={}
       end
 
       def invoke(tensor, context)
-        if @ops.key?(tensor.operation.to_sym)
-          resolved_inputs = tensor.inputs.map { |i| eval(resolve_placeholder(i)) if i }
-          @ops[tensor.operation.to_sym].call(context, tensor, resolved_inputs)
+        if self.class.ops.key?(tensor.operation.to_sym)
+          op = self.class.ops[tensor.operation.to_sym]
+          op_options = op[:options]
+          resolved_inputs = tensor.inputs.map { |i| prepare_input(i, context, op_options)}
+          instance_exec(context, tensor, resolved_inputs, &op[:block])
         else
           raise UnsupportedOp.new(tensor)
         end
+      end
+
+      protected
+
+      def prepare_input(tensor, context, options = {})
+        raise "need implementation"
       end
     end
 
