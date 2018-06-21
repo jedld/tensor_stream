@@ -69,7 +69,7 @@ module TensorStream
         return nil unless tensor
         tensor = resolve_placeholder(tensor)
         if options[:no_eval]
-          run(tensor, child_context)
+          run(tensor, context)
         else
           complete_eval(tensor, context)
         end
@@ -133,31 +133,45 @@ module TensorStream
         call_vector_op(:not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
+      register_op :index, no_eval: true do |context, tensor, inputs|
+        f = inputs[0]
+        index = inputs[1]
+        f[index]
+      end
+
+      register_op :slice do |context, tensor, inputs|
+        input = inputs[0]
+        start = inputs[1]
+        size = complete_eval(tensor.options[:size], context)
+        raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
+        slice_tensor(input, start, size)
+      end
+
+      register_op :negate, no_eval: true do |context, tensor, inputs|
+        call_vector_op(:negate, inputs[0], nil, context, ->(t, _u) { -t })
+      end
+
+      register_op :add, no_eval: true do |context, tensor, inputs|
+        a, b = inputs
+        call_vector_op(:add, a, b, context, ->(t, u) { t + u })
+      end
+
+      register_op :sub, no_eval: true do |context, tensor, inputs|
+        a, b = inputs
+        call_vector_op(:sub, a, b, context, ->(t, u) { t - u })
+      end
+
+      register_op :mul, no_eval: true do |context, tensor, inputs|
+        a, b = inputs
+        call_vector_op(:mul, a, b, context, ->(t, u) { t * u })
+      end
+
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
         b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
-        when :index
-          f = run(a, child_context)
-          index = run(b, child_context)
-
-          f[index]
-        when :slice
-          input = complete_eval(a, child_context)
-          start = complete_eval(b, child_context)
-          size = complete_eval(tensor.options[:size], child_context)
-          raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
-          slice_tensor(input, start, size)
-        when :negate
-          call_vector_op(:negate, a, nil, child_context, ->(t, _u) { -t })
-        when :add
-          call_vector_op(:add, a, b, child_context, ->(t, u) { t + u })
-        when :sub
-          call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
-        when :mul
-          call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
         when :pow
           call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
         when :concat
