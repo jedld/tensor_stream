@@ -147,23 +147,36 @@ module TensorStream
         slice_tensor(input, start, size)
       end
 
-      register_op :negate, no_eval: true do |context, tensor, inputs|
+      register_op :negate, no_eval: true do |context, _tensor, inputs|
         call_vector_op(:negate, inputs[0], nil, context, ->(t, _u) { -t })
       end
 
-      register_op :add, no_eval: true do |context, tensor, inputs|
+      register_op :add, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:add, a, b, context, ->(t, u) { t + u })
       end
 
-      register_op :sub, no_eval: true do |context, tensor, inputs|
+      register_op :sub, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:sub, a, b, context, ->(t, u) { t - u })
       end
 
-      register_op :mul, no_eval: true do |context, tensor, inputs|
+      register_op :mul, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:mul, a, b, context, ->(t, u) { t * u })
+      end
+
+      register_op :pow, no_eval: true do |_context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
+      end
+
+      register_op :concat do |_context, tensor, inputs|
+        concat_array(inputs[0], tensor.options[:axis])
+      end
+
+      register_op :round do |_context, tensor, inputs|
+        call_op(:round, inputs[0], child_context, ->(t, _b) { t.round })
       end
 
       def eval_operation(tensor, child_context)
@@ -172,13 +185,6 @@ module TensorStream
         b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
-        when :pow
-          call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
-        when :concat
-          values = complete_eval(a, child_context)
-          concat_array(values, tensor.options[:axis])
-        when :round
-          call_op(:round, a, child_context, ->(t, _b) { t.round })
         when :abs
           call_op(:abs, a, child_context, ->(t, _b) { t.abs })
         when :tanh
