@@ -7,12 +7,24 @@ module TensorStream
     attr_accessor :randomizer
 
     def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor, evaluator_options: {})
-      @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
       @thread_pool = thread_pool_class.new
       @closed = false
       @session_cache = {}
       @randomizer = {}
       @evaluator_options = evaluator_options
+      get_evaluator_classes(evaluator)
+    end
+
+    def get_evaluator_classes(evaluators)
+      if evaluators.is_a?(Array)
+        if evaluators.empty?
+          @evaluator_classes = TensorStream::Evaluator::RubyEvaluator
+        else
+          @evaluator_classes = evaluators.collect { |name|  Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
+        end
+      else
+        @evaluator_classes = [Object.const_get("TensorStream::Evaluator::#{camelize(evaluators.to_s)}")]
+      end
     end
 
     def clear_session_cache
@@ -44,11 +56,14 @@ module TensorStream
 
       @evaluator_options[:thread_pool] = @thread_pool
       @evaluator_options[:log_intermediates] = options[:log_intermediates]
-      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), @evaluator_options)
+      @evaluators = @evaluator_classes.map { |klass| klass.new(self, context.merge!(retain: options[:retain]), @evaluator_options) }
 
       execution_context = {}
       @last_session_context = context
-      result = args.collect { |e| evaluator.run(e, execution_context) }
+      result = args.collect do |e|
+        value = delegate_to_evaluator(e, context)
+        value.respond_to?(:to_ruby) ? value.to_ruby : value
+      end
       result.size == 1 ? result.first : result
     end
 
@@ -86,6 +101,14 @@ module TensorStream
 
     def graph_ml(tensor, filename)
       TensorStream::Graphml.new(self).serialize(tensor, filename)
+    end
+
+    def delegate_to_evaluator(tensor, context)
+      @evaluators.each do |evaluator|
+        next if tensor.is_a?(Operation) && !evaluator.class.ops.include?(tensor.operation.to_sym)
+        return evaluator.run_with_buffer(tensor, context)
+      end
+      raise "no evaluator available to execute #{tensor.operation}"
     end
 
     protected

@@ -2,7 +2,7 @@ module TensorStream
   class OpenCLBuffer < Buffer
     include ArrayOpsHelper
 
-    attr_accessor :data_type, :shape, :buffer, :cl_buffer, :op
+    attr_accessor :shape, :buffer, :cl_buffer, :op
 
     def initialize(data_type: , shape:, buffer:, cl_buffer:, op: nil, name: nil)
       @data_type = data_type

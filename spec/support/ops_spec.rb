@@ -346,7 +346,7 @@ RSpec.shared_examples "standard ops evaluator" do
     specify do
       a = tf.constant([[0.0, 0.0, 1.0],[0.0, 1.0, 3.1]])
       c = tf.check_numerics(a, "a")
-      expect(sess.run(c)).to eq(sess.run(a))
+      expect(tr(sess.run(c))).to eq(tr(sess.run(a)))
 
       b = tf.constant([[0.0, 0.0, 1.0],[Float::NAN, 1.0, 3.1]])
       d = tf.check_numerics(b, "b")

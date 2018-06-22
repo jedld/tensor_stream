@@ -34,7 +34,7 @@ module TensorStream
       include TensorStream::ArrayOpsHelper
       include TensorStream::MathHelper
 
-      def initialize(session, context, thread_pool: nil, log_intermediates: false, preferred_device: nil)
+      def initialize(session, context, thread_pool: nil, log_intermediates: false)
         super
         @context[:_cache][:_cl_buffers] ||= {} if @context[:_cache]
       end
@@ -58,6 +58,18 @@ module TensorStream
         read_final_result(complete_eval(tensor, execution_context))
       end
 
+      def run_with_buffer(tensor, execution_context)
+        if tensor.is_a?(Array)
+          tensor.collect do |t|
+            value = run(t, execution_context)
+            Buffer.new(data_type: t.data_type, buffer: value)
+          end
+        else
+          value = run(tensor, execution_context)
+            Buffer.new(data_type: tensor.data_type, buffer: value)
+        end
+      end
+
       def complete_eval(tensor, context)
         buffer = _run(tensor, context)
         if buffer.is_a?(Array)
@@ -79,6 +91,18 @@ module TensorStream
       end
 
       protected
+
+      def prepare_input(tensor, context, options = {})
+        return nil unless tensor
+        tensor = resolve_placeholder(tensor)
+        if options[:noop]
+          tensor
+        elsif options[:complete]
+          read_final_result(complete_eval(tensor, context))
+        else
+          _run(tensor, context)
+        end
+      end
 
       # read result from opencl and convert to ruby
       def read_final_result(buffer)
@@ -173,13 +197,16 @@ module TensorStream
           return tensor.map { |t| _run(t, execution_context) }
         end
 
-        return tensor if retain.include?(tensor) # if var is in retain don't eval to value
-
         tensor = tensor.call if tensor.is_a?(Proc)
 
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
-                eval_operation(tensor, child_context)
+                if !self.class.ops.include?(tensor.operation.to_sym)
+                  result = @session.delegate_to_evaluator(tensor, execution_context)
+                  convert_to_opencl([result.buffer].flatten, shape_eval(result.buffer), data_type: result.data_type, name: tensor.name)
+                else
+                  eval_operation(tensor, child_context)
+                end
               elsif tensor.is_a?(Variable)
                 eval_variable(tensor, child_context)
               elsif tensor.is_a?(Placeholder)
@@ -197,6 +224,28 @@ module TensorStream
         tensor.buffer
       end
 
+      register_op :log do |context, tensor, inputs|
+        execute_func('log', tensor, inputs[0], context)
+      end
+
+      register_op :sin do |context, tensor, inputs|
+        execute_func('sin', tensor, inputs[0], context)
+      end
+
+      register_op :cond do |context, tensor, inputs|
+        pred = complete_eval(tensor.options[:pred], context)
+
+        if all_true?(pred.buffer)
+          inputs[0]
+        else
+          inputs[1]
+        end
+      end
+
+      register_op :identity do |_context, _tensor, inputs|
+        inputs[0]
+      end
+
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
@@ -206,37 +255,6 @@ module TensorStream
         b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
-        when :concat
-          input_a = read_final_result(complete_eval(a, child_context))
-          arr = concat_array(input_a, tensor.options[:axis])
-          convert_to_opencl(arr.flatten, shape_eval(arr), data_type: tensor.data_type, name: tensor.name)
-        when :cond
-          pred = complete_eval(tensor.options[:pred], child_context)
-          a = _run(a, child_context)
-          b = _run(b, child_context)
-
-          if all_true?(pred.buffer)
-            a
-          else
-            b
-          end
-        when :identity
-          _run(a, child_context)
-        when :eye
-          rows = complete_eval(a, child_context)
-          columns = complete_eval(b, child_context)
-          shape = [rows.buffer[0], columns.buffer[0]]
-          eye_arr = Array.new(rows.buffer[0]) do |i|
-            Array.new(columns.buffer[0]) do |col|
-              if fp_type?(tensor.data_type)
-                i == col ? 1.0 : 0.0
-              else
-                i == col ? 1 : 0
-              end
-            end
-          end
-
-          convert_to_opencl(eye_arr.flatten, shape, data_type: tensor.data_type, name: tensor.name)
         when :pad
           a = read_final_result(complete_eval(a, child_context))
           p = read_final_result(complete_eval(tensor.options[:paddings], child_context))
@@ -345,10 +363,6 @@ module TensorStream
           execute_func('sign', tensor, a, child_context)
         when :exp
           execute_func('exp', tensor, a, child_context)
-        when :log
-          execute_func('log', tensor, a, child_context)
-        when :sin
-          execute_func('sin', tensor, a, child_context)
         when :tan
           execute_func('tan', tensor, a, child_context)
         when :cos
@@ -602,7 +616,7 @@ module TensorStream
           op = get_op_with_axis(arr, axis, 0, a.data_type, ->(a, b) { a > b })
           convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
         else
-          raise "unknown op #{tensor.operation}"
+          invoke(tensor, child_context)
         end.tap do |result|
           # puts "#{tensor.to_math(true,1)} = #{read_final_result(complete_eval(result, child_context))}"
           if tensor.breakpoint
@@ -1040,7 +1054,6 @@ module TensorStream
 
       def resolve_placeholder(placeholder, _execution_context = {})
         return nil if placeholder.nil?
-        return placeholder if retain.include?(placeholder)
 
         var = if placeholder.is_a?(Placeholder)
                 @context[placeholder.name.to_sym].tap do |c|

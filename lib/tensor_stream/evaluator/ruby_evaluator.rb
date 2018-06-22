@@ -51,6 +51,11 @@ module TensorStream
         res
       end
 
+      def run_with_buffer(tensor, execution_context)
+        result = run(tensor, execution_context)
+        TensorStream::Buffer.new(data_type: tensor.data_type, buffer: result)
+      end
+
       def complete_eval(tensor, context)
         Kernel.loop do
           old_tensor = tensor

@@ -4,13 +4,30 @@ require 'tensor_stream/evaluator/opencl_evaluator'
 
 RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
   let(:tf) { TensorStream }
-  let(:sess) { TensorStream.session(:opencl_evaluator) }
+  let(:sess) { TensorStream.session([:opencl_evaluator, :ruby_evaluator]) }
   let(:instance) { described_class.new(sess, {})}
 
   it_behaves_like "standard ops evaluator"
 
   def create_session
-    TensorStream.session(:opencl_evaluator)
+    TensorStream.session([:opencl_evaluator, :ruby_evaluator])
+  end
+
+  context "supported ops" do
+    specify do
+      expect(described_class.ops.keys.size).to eq(0)
+    end
+
+    specify do
+      expect(described_class.ops.keys.sort).to eq([])
+    end
+
+    it "allows automatic fallback" do
+      a = tf.constant([1,2,3,4], dtype: :float32)
+      c = tf.concat(a, 0)
+      d = tf.sin(c)
+      expect(sess.run(d)).to eq(-0.5440210700035095)
+    end
   end
 
   context ".list_local_devices" do
