@@ -25,7 +25,14 @@ module TensorStream
 
       def self.register_op(opcode, options = {}, &block)
         @ops ||= {}
-        @ops[opcode.to_sym] = { options: options, block: block }
+        if opcode.is_a?(Array)
+          opcode.each do |op|
+            @ops[op.to_sym] = { options: options, block: block }
+          end
+        else
+
+          @ops[opcode.to_sym] = { options: options, block: block }
+        end
       end
 
       def self.ops

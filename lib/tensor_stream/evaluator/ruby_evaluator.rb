@@ -345,219 +345,230 @@ module TensorStream
         reduction(context, tensor, func)
       end
 
-      register_op :tanh_grad, no_eval: true do |context, tensor, inputs|
+      register_op :tanh_grad, no_eval: true do |context, _tensor, inputs|
         call_op(:tanh_grad, inputs[0], context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
+      end
+
+      register_op :transpose do |_context, _tensor, inputs|
+        inputs[0].transpose
+      end
+
+      register_op :eye do |_context, tensor, inputs|
+        rows, columns = inputs
+
+        Array.new(rows) do |i|
+          Array.new(columns) do |col|
+            if fp_type?(tensor.data_type)
+              i == col ? 1.0 : 0.0
+            else
+              i == col ? 1 : 0
+            end
+          end
+        end
+      end
+
+      register_op :cond do |context, tensor, inputs|
+        pred = complete_eval(tensor.options[:pred], context)
+        if all_true?(pred)
+          inputs[0]
+        else
+          inputs[1]
+        end
+      end
+
+      register_op :where do |context, tensor, inputs|
+        pred = complete_eval(tensor.options[:pred], context)
+        call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
+      end
+
+      register_op :less do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:less, a, b, context, ->(t, u) { t < u })
+      end
+
+      register_op :greater do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:greater, a, b, context, ->(t, u) { t > u })
+      end
+
+      register_op :greater_equal do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:greater_equal, a, b, context, ->(t, u) { t >= u })
+      end
+
+      register_op :less_equal do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:greater_equal, a, b, context, ->(t, u) { t <= u })
+      end
+
+      register_op %i[zeros ones zeros_like ones_like] do |_context, tensor, inputs|
+        shape = if %i[zeros_like ones_like].include?(tensor.operation)
+          shape_eval(inputs[0])
+        else
+          inputs[0] || tensor.shape.shape
+        end
+
+        func = if %i[zeros zeros_like].include?(tensor.operation)
+                -> { tensor.data_type == :int32 ? 0 : 0.0 }
+              else
+                -> { tensor.data_type == :int32 ? 1 : 1.0 }
+              end
+
+        if shape.is_a?(Array) && shape.size.zero?
+          func.call
+        else
+          shape = [shape.to_i] unless shape.is_a?(Array)
+
+          cache_key = "#{tensor.operation}_#{shape.to_s}"
+          if @context[:_cache].key?(cache_key)
+            @context[:_cache][cache_key]
+          else
+            generate_vector(shape, generator: func).tap do |v|
+              @context[:_cache][cache_key] = v
+            end
+          end
+        end
+      end
+
+      register_op :shape do |_context, tensor, inputs|
+        shape_eval(inputs[0], tensor.options[:out_type])
+      end
+
+      register_op :matmul do |_context, tensor, inputs|
+        matrix_a, matrix_b = inputs
+        rank_a = get_rank(matrix_a)
+        rank_b = get_rank(matrix_b)
+
+        raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
+        raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
+
+        matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
+        matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
+
+        # handle matrix multiplication with constants like 1 or 0
+        matrix_a = matmul_const_transform(matrix_a, matrix_b, tensor)
+        matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
+
+        # check matrix dimensions
+        raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+
+        (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
+      end
+
+      register_op :broadcast_transform do |_context, _tensor, inputs|
+        broadcast(inputs[0], inputs[1])
+      end
+
+      register_op :truncate do |_context, _tensor, inputs|
+        truncate(inputs[0], inputs[1])
+      end
+
+      register_op :identity do |_context, _tensor, inputs|
+        inputs[0]
+      end
+
+      register_op :print do |_context, tensor, inputs|
+        puts "#{tensor.options.fetch(:message, '')} #{inputs[1]}"
+        inputs[0]
+      end
+
+      register_op :rank do |_context, _tensor, inputs|
+        get_rank(inputs[0])
+      end
+
+      register_op :div, noop: true do |context, _tensor, inputs|
+        process_vector_math_op(inputs[0], inputs[1], context, ->(t, u) { t / u })
+      end
+
+      register_op :reshape do |_context, _tensor, inputs|
+        arr, new_shape = inputs
+
+        arr = [arr] unless arr.is_a?(Array)
+
+        flat_arr = arr.flatten
+        if new_shape.size.zero? && flat_arr.size == 1
+          flat_arr[0]
+        else
+          new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
+          TensorShape.reshape(flat_arr, new_shape)
+        end
+      end
+
+      register_op :pad do |context, tensor, inputs|
+        p = complete_eval(tensor.options[:paddings], context)
+
+        arr_pad(inputs[0], p, tensor.data_type)
+      end
+
+      register_op :max, noop: true do |context, _tensor, inputs|
+        call_vector_op(:max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
+      end
+
+      register_op :broadcast_gradient_args do |_context, _tensor, inputs|
+        get_broadcast_gradient_args(inputs[0], inputs[1])
+      end
+
+      register_op :reduced_shape do |context, _tensor, inputs|
+        input_shape, axes = inputs
+
+        return [] if axes.nil? # reduce to scalar
+        axes = [ axes ] unless axes.is_a?(Array)
+        return input_shape if axes.empty?
+
+        axes.each do |dimen|
+          input_shape[dimen] = 1
+        end
+        input_shape
+      end
+
+      register_op :tile do |context, _tensor, inputs|
+        input, multiples = inputs
+        rank = get_rank(input)
+        raise '1D or higher tensor required' if rank.zero?
+        raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
+
+        tile = tile_arr(input, 0, multiples)
+        tile.nil? ? [] : tile
+      end
+
+      register_op :flow_group, noop: true do |context, _tensor, inputs|
+        inputs.collect { |input| run(input, context) }
+      end
+
+      register_op :softmax do |context, _tensor, inputs|
+        softmax(inputs[0])
+      end
+
+      register_op :softmax_grad do |_context, _tensor, inputs|
+        input, grad = inputs
+
+        softmax_input = softmax(input)
+        f_grad = softmax_grad(softmax_input)
+        f_grad.transpose.each_with_index.collect do |row, index|
+          sum = 0.0
+          row.each_with_index do |r, g_index|
+            sum += r * grad[g_index]
+          end
+          sum
+        end
+      end
+
+      register_op :check_numerics do |context, tensor, inputs|
+        message = tensor.options[:message]
+        f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
+        call_op(:check_numerics, inputs[0], context, f)
       end
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
+
         # puts tensor.name
-        case tensor.operation
-        when :flow_group
-          tensor.inputs.collect { |input| run(input, child_context) }
-        when :transpose
-          matrix_a = complete_eval(a, child_context)
-          matrix_a.transpose
-        when :eye
-          rows = complete_eval(a, child_context)
-          columns = complete_eval(b, child_context)
-
-          Array.new(rows) do |i|
-            Array.new(columns) do |col|
-              if fp_type?(tensor.data_type)
-                i == col ? 1.0 : 0.0
-              else
-                i == col ? 1 : 0
-              end
-            end
-          end
-        when :cond
-          pred = complete_eval(tensor.options[:pred], child_context)
-
-          if all_true?(pred)
-            complete_eval(a, child_context)
-          else
-            complete_eval(b, child_context)
-          end
-        when :where
-          pred = complete_eval(tensor.options[:pred], child_context)
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_3way_vector_op(pred, a, b, child_context, ->(t, u, v) { t ? u : v })
-        when :less
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t < u })
-        when :greater
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t > u })
-        when :greater_equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater_equal, a, b, child_context, ->(t, u) { t >= u })
-        when :less_equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:less_equal, a, b, child_context, ->(t, u) { t <= u })
-        when :zeros, :ones, :zeros_like, :ones_like
-
-          shape = if %i[zeros_like ones_like].include?(tensor.operation)
-                    a = complete_eval(a, child_context)
-                    shape_eval(a)
-                  else
-                    complete_eval(a, child_context) || tensor.shape.shape
-                  end
-
-          func = if %i[zeros zeros_like].include?(tensor.operation)
-                   -> { tensor.data_type == :int32 ? 0 : 0.0 }
-                 else
-                   -> { tensor.data_type == :int32 ? 1 : 1.0 }
-                 end
-
-          if shape.is_a?(Array) && shape.size.zero?
-            func.call
-          else
-            shape = [shape.to_i] unless shape.is_a?(Array)
-
-            cache_key = "#{tensor.operation}_#{shape.to_s}"
-            if @context[:_cache].key?(cache_key)
-              return @context[:_cache][cache_key]
-            else
-              generate_vector(shape, generator: func).tap do |v|
-                @context[:_cache][cache_key] = v
-              end
-            end
-          end
-        when :shape
-          input = complete_eval(a, child_context)
-          shape_eval(input, tensor.options[:out_type])
-        when :matmul
-          matrix_a = complete_eval(a, child_context)
-          matrix_b = complete_eval(b, child_context)
-
-          rank_a = get_rank(matrix_a)
-          rank_b = get_rank(matrix_b)
-
-          raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
-          raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
-
-          matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
-          matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-
-          # handle matrix multiplication with constants like 1 or 0
-          matrix_a = matmul_const_transform(matrix_a, matrix_b, tensor)
-          matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
-
-          # check matrix dimensions
-          raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
-
-          (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
-        when :gradients
-          raise 'not implemented in evaluator' # see TensorStream.gradients instead.
-        when :broadcast_transform
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-          broadcast(a, b)
-        when :truncate
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-          truncate(a, b)
-        when :identity
-          complete_eval(a, child_context)
-        when :print
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-          puts "#{tensor.options.fetch(:message, '')} #{b}"
-          a
-        when :rank
-          a = complete_eval(a, child_context)
-          get_rank(a)
-        when :div
-          process_vector_math_op(a, b, child_context, ->(t, u) { t / u })
-        when :reshape
-          arr = complete_eval(a, child_context)
-          new_shape = complete_eval(b, child_context)
-
-          arr = [arr] unless arr.is_a?(Array)
-
-          flat_arr = arr.flatten
-          return flat_arr[0] if new_shape.size.zero? && flat_arr.size == 1
-
-          new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
-
-          TensorShape.reshape(flat_arr, new_shape)
-        when :pad
-          a = complete_eval(a, child_context)
-          p = complete_eval(tensor.options[:paddings], child_context)
-
-          arr_pad(a, p, tensor.data_type)
-        when :max
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:max, a, b, child_context, ->(t, u) { [t, u].max })
-        when :broadcast_gradient_args
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          get_broadcast_gradient_args(a, b)
-        when :reduced_shape
-          input_shape = complete_eval(a, child_context)
-          axes = complete_eval(b, child_context)
-
-          return [] if axes.nil? # reduce to scalar
-          axes = [ axes ] unless axes.is_a?(Array)
-          return input_shape if axes.empty?
-
-          axes.each do |dimen|
-            input_shape[dimen] = 1
-          end
-          input_shape
-        when :tile
-          input = complete_eval(a, child_context)
-          multiples = complete_eval(b, child_context)
-
-          rank = get_rank(input)
-          raise '1D or higher tensor required' if rank.zero?
-          raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
-
-          tile = tile_arr(input, 0, multiples)
-          tile.nil? ? [] : tile
-        when :softmax
-          input = complete_eval(a, child_context)
-          softmax(input)
-        when :softmax_grad
-          input = complete_eval(a, child_context)
-          grad = complete_eval(b, child_context)
-          softmax_input = softmax(input)
-          f_grad = softmax_grad(softmax_input)
-          f_grad.transpose.each_with_index.collect do |row, index|
-            sum = 0.0
-            row.each_with_index do |r, g_index|
-              sum += r * grad[g_index]
-            end
-            sum
-          end
-        when :check_numerics
-          a = complete_eval(a, child_context)
-          message = tensor.options[:message]
-          f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
-          call_op(:check_numerics, a, child_context, f)
-        else
-          invoke(tensor, child_context)
-        end.tap do |result|
+        invoke(tensor, child_context).tap do |result|
           if tensor.breakpoint
+            a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+            b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
             a = complete_eval(a, child_context)
             b = complete_eval(b, child_context)
-
             tensor.breakpoint.call(tensor, a, b, complete_eval(result, child_context))
           end
           if @log_intermediates
@@ -575,9 +586,10 @@ module TensorStream
       rescue EvaluatorExcecutionException => e
         raise e
       rescue StandardError => e
+        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         puts e.message
         puts e.backtrace.join("\n")
-
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a

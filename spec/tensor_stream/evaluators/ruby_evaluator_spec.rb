@@ -17,7 +17,83 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(TensorStream::Evaluator::RubyEvaluator.ops.keys.sort).to eq([:argmax, :argmin, :cast, :const, :equal, :logical_and, :not_equal, :sign])
+      expect(TensorStream::Evaluator::RubyEvaluator.ops.keys.size).to eq(72)
+    end
+
+    specify do
+      expect(TensorStream::Evaluator::RubyEvaluator.ops.keys.sort).to eq(%i[
+        abs
+        add
+        argmax
+        argmin
+        assign
+        assign_add
+        assign_sub
+        broadcast_gradient_args
+        broadcast_transform
+        cast
+        check_numerics
+        concat
+        cond
+        const
+        cos
+        div
+        equal
+        exp
+        eye
+        flow_group
+        glorot_uniform
+        greater
+        greater_equal
+        identity
+        index
+        less
+        less_equal
+        log
+        log1p
+        logical_and
+        matmul
+        max
+        mean
+        mul
+        negate
+        not_equal
+        ones
+        ones_like
+        pad
+        pow
+        print
+        prod
+        random_normal
+        random_uniform
+        rank
+        reciprocal
+        reduced_shape
+        reshape
+        round
+        sec
+        shape
+        sigmoid
+        sigmoid_grad
+        sign
+        sin
+        slice
+        softmax
+        softmax_grad
+        sqrt
+        square
+        stop_gradient
+        sub
+        sum
+        tan
+        tanh
+        tanh_grad
+        tile
+        transpose
+        truncate
+        where
+        zeros
+        zeros_like])
     end
   end
 
