@@ -246,6 +246,187 @@ module TensorStream
         inputs[0]
       end
 
+      register_op :assign, noop: true do |context, tensor, inputs|
+        assign_var(tensor, inputs[1], context)
+      end
+
+      register_op :assign_add do |context, tensor, inputs|
+        value = execute_2_operand_func('add', tensor, inputs[0], inputs[1], context)
+        assign_var(tensor, value, context)
+      end
+
+      register_op :assign_sub do |context, tensor, inputs|
+        value = execute_2_operand_func('sub', tensor, inputs[0], inputs[1], context)
+        assign_var(tensor, value, context)
+      end
+
+      %i[less less_equal greater greater_equal equal not_equal logical_and].each do |op|
+        register_op op, noop: true do |context, tensor, inputs|
+          execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context, 'cond')
+        end
+      end
+
+      %i[max add div sub mul pow sigmoid_grad].each do |op|
+        register_op op, noop: true do |context, tensor, inputs|
+          execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
+        end
+      end
+
+      register_op :where, noop: true do |context, tensor, inputs|
+        pred = tensor.options[:pred]
+        execute_cond_func('where', tensor, pred, inputs[0], inputs[1], context)
+      end
+
+      register_op :matmul do |_context, tensor, inputs|
+        a, b = inputs
+
+        m = a.shape[0]
+        n = b.shape[1]
+        v = b.shape[0]
+        k = a.shape[1]
+
+        m, k = [a.shape[1], a.shape[0]] if tensor.options[:transpose_a]
+        n, v = [b.shape[0], b.shape[1]] if tensor.options[:transpose_b]
+
+        result_shape = [m, n]
+
+        raise "#{tensor.inputs[0].name} rank must be greater than 1" if a.shape.size < 2
+        raise "#{tensor.inputs[1].name} rank must be greater than 1" if b.shape.size < 2
+        raise "incompatible shape sizes for matrix multiplication (#{a.shape[1]} != #{b.shape[0]}) #{a.shape} vs #{b.shape}" if k != v
+
+        dtype = tensor.data_type
+        a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
+        output_buffer = _create_result_buffer(a.data_type, result_shape, tensor.name)
+
+        cl_m = OpenCL::Int1.new(m)
+        cl_n = OpenCL::Int1.new(n)
+        cl_k = OpenCL::Int1.new(k)
+
+        transpose_a = OpenCL::Int1.new(tensor.options[:transpose_a] ? 1 : 0)
+        transpose_b = OpenCL::Int1.new(tensor.options[:transpose_b] ? 1 : 0)
+
+        output_buffer.op = _cl_program('gemm', dtype: dtype).send(:"gemm_#{dtype}", _opencl_queue, result_shape, cl_m, cl_n, cl_k, transpose_a, transpose_b, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer)
+        output_buffer
+      end
+
+      register_op :cast do |_context, tensor, inputs|
+        a = inputs[0]
+        if a.data_type != tensor.data_type
+          buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+          m, n = a.shape
+          cl_m = OpenCL::Int1.new(m || 1)
+          cl_n = OpenCL::Int1.new(n || 1)
+          work_group = [m || 1, n || 1]
+
+          buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: tensor.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
+          buffer
+        else
+          a
+        end
+      end
+
+      %i[sign exp tan cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round].each do |op|
+        register_op op, noop: true do |context, tensor, inputs|
+          execute_func(op.to_s, tensor, inputs[0], context)
+        end
+      end
+
+      register_op :softmax do |_context, tensor, inputs|
+        a = inputs[0]
+        event_wait_list = [a.op].compact
+        dtype = tensor.data_type
+        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+
+        m, n = a.shape
+        work_group = [m]
+        n = m if n.nil?
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event = _cl_program("softmax", dtype: dtype).send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
+      register_op :softmax_grad do |_context, tensor, inputs|
+        a, grad = inputs
+
+        event_wait_list = [a.op].compact
+        dtype = tensor.data_type
+        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+
+        m, n = a.shape
+        work_group = [m]
+        n = m if n.nil?
+        cl_n = OpenCL::Int1.new(n || 1)
+        event = _cl_program('softmax_grad', dtype: dtype, size: n).send(:"softmax_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, grad.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
+      register_op :truncate do |context, tensor, inputs|
+        a, b = inputs
+        if a.shape.size.zero?
+          a
+        else
+          input_b = read_final_result(b)
+          if a.shape == input_b
+            a
+          else
+            input_a = read_final_result(a)
+            if input_b == []
+              if a.buffer.size == 1
+                a.shape = input_b
+                a
+              else
+                wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
+              end
+            else
+              wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
+            end
+          end
+        end
+      end
+
+      register_op :check_numerics, noop: true do |context, tensor, inputs|
+        a = complete_eval(inputs[0], context)
+        name = tensor.options[:name]
+
+        a.buffer.each do |input|
+          raise "#{name} Invalid Argument" if input.nan? || input.infinite?
+        end
+        a
+      end
+
+      register_op :broadcast_transform do |context, tensor, inputs|
+        a, b = inputs
+
+        if a.shape == b.shape
+          [a, b]
+        else
+          input_a = read_final_result(complete_eval(a, context))
+          input_b = read_final_result(complete_eval(b, context))
+          b_a, b_b = broadcast(input_a, input_b)
+          [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
+            wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
+        end
+      end
+
+      register_op :print do |context, tensor, inputs|
+        a, b = inputs
+        input_b = complete_eval(b, context)
+        input_b = read_final_result(input_b)
+        puts "#{tensor.options.fetch(:message, '')} #{input_b}"
+        a
+      end
+
+      register_op :rank do |_context, tensor, inputs|
+        wrap_opencl(inputs[0].shape.size, data_type: tensor.data_type, name: tensor.name)
+      end
+
+      register_op :stop_gradient do |_context, _tensor, inputs|
+        inputs[0]
+      end
+
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
@@ -255,257 +436,6 @@ module TensorStream
         b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
         case tensor.operation
-        when :pad
-          a = read_final_result(complete_eval(a, child_context))
-          p = read_final_result(complete_eval(tensor.options[:paddings], child_context))
-
-          padding = arr_pad(a, p, tensor.data_type)
-          convert_to_opencl(padding.flatten, shape_eval(padding), data_type: tensor.data_type, name: tensor.name)
-        when :tile
-          input = read_final_result(complete_eval(a, child_context))
-          multiples = read_final_result(complete_eval(b, child_context))
-
-          rank = get_rank(input)
-          raise '1D or higher tensor required' if rank.zero?
-          raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
-
-          tile = tile_arr(input, 0, multiples)
-          arr = tile.nil? ? [] : tile
-          convert_to_opencl(arr.flatten, shape_eval(arr), data_type: tensor.data_type, name: tensor.name)
-        when :assign
-          assign_var(tensor, b, child_context)
-        when :assign_add
-          a = _run(a, child_context)
-          b = _run(b, child_context)
-          value = execute_2_operand_func('add', tensor, a, b, child_context)
-          assign_var(tensor, value, child_context)
-        when :assign_sub
-          a = _run(a, child_context)
-          b = _run(b, child_context)
-
-          value = execute_2_operand_func('sub', tensor, a, b, child_context)
-          assign_var(tensor, value, child_context)
-        when :less
-          execute_2_operand_func('less', tensor, a, b, child_context, 'cond')
-        when :less_equal
-          execute_2_operand_func('less_equal', tensor, a, b, child_context, 'cond')
-        when :greater
-          execute_2_operand_func('greater', tensor, a, b, child_context, 'cond')
-        when :greater_equal
-          execute_2_operand_func('greater_equal', tensor, a, b, child_context, 'cond')
-        when :equal
-          execute_2_operand_func('equal', tensor, a, b, child_context, 'cond')
-        when :not_equal
-          execute_2_operand_func('not_equal', tensor, a, b, child_context, 'cond')
-        when :logical_and
-          execute_2_operand_func('logical_and', tensor, a, b, child_context, 'cond')
-        when :where
-          pred = tensor.options[:pred]
-          execute_cond_func('where', tensor, pred, a, b, child_context)
-        when :max
-          execute_2_operand_func('max', tensor, a, b, child_context)
-        when :add
-          execute_2_operand_func('add', tensor, a, b, child_context)
-        when :div
-          execute_2_operand_func('div', tensor, a, b, child_context)
-        when :sub
-          execute_2_operand_func('sub', tensor, a, b, child_context)
-        when :matmul
-          a = _run(a, child_context)
-          b = _run(b, child_context)
-
-          m = a.shape[0]
-          n = b.shape[1]
-          v = b.shape[0]
-          k = a.shape[1]
-
-          m, k = [a.shape[1], a.shape[0]] if tensor.options[:transpose_a]
-          n, v = [b.shape[0], b.shape[1]] if tensor.options[:transpose_b]
-
-          result_shape = [m, n]
-
-          raise "#{tensor.inputs[0].name} rank must be greater than 1" if a.shape.size < 2
-          raise "#{tensor.inputs[1].name} rank must be greater than 1" if b.shape.size < 2
-          raise "incompatible shape sizes for matrix multiplication (#{a.shape[1]} != #{b.shape[0]}) #{a.shape} vs #{b.shape}" if k != v
-
-          dtype = tensor.data_type
-          a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
-          output_buffer = _create_result_buffer(a.data_type, result_shape, tensor.name)
-
-          cl_m = OpenCL::Int1.new(m)
-          cl_n = OpenCL::Int1.new(n)
-          cl_k = OpenCL::Int1.new(k)
-
-          transpose_a = OpenCL::Int1.new(tensor.options[:transpose_a] ? 1 : 0)
-          transpose_b = OpenCL::Int1.new(tensor.options[:transpose_b] ? 1 : 0)
-
-          output_buffer.op = _cl_program('gemm', dtype: dtype).send(:"gemm_#{dtype}", _opencl_queue, result_shape, cl_m, cl_n, cl_k, transpose_a, transpose_b, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer)
-          output_buffer
-        when :mul
-          execute_2_operand_func('mul', tensor, a, b, child_context)
-        when :pow
-          execute_2_operand_func('pow', tensor, a, b, child_context)
-        when :cast
-          a = _run(a, child_context)
-          if a.data_type != tensor.data_type
-            buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-            m, n = a.shape
-            cl_m = OpenCL::Int1.new(m || 1)
-            cl_n = OpenCL::Int1.new(n || 1)
-            work_group = [m || 1, n || 1]
-
-            buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: tensor.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
-            buffer
-          else
-            a
-          end
-        when :sign
-          execute_func('sign', tensor, a, child_context)
-        when :exp
-          execute_func('exp', tensor, a, child_context)
-        when :tan
-          execute_func('tan', tensor, a, child_context)
-        when :cos
-          execute_func('cos', tensor, a, child_context)
-        when :abs
-          execute_func('abs', tensor, a, child_context)
-        when :sqrt
-          execute_func('sqrt', tensor, a, child_context)
-        when :negate
-          execute_func('negate', tensor, a, child_context)
-        when :square
-          execute_func('square', tensor, a, child_context)
-        when :reciprocal
-          execute_func('reciprocal', tensor, a, child_context)
-        when :tanh
-          execute_func('tanh', tensor, a, child_context)
-        when :tanh_grad
-          execute_func('tanh_grad', tensor, a, child_context)
-        when :sigmoid
-          execute_func('sigmoid', tensor, a, child_context)
-        when :log1p
-          execute_func('log1p', tensor, a, child_context)
-        when :round
-          execute_func('round', tensor, a, child_context)
-        when :softmax
-          a = _run(a, child_context)
-          event_wait_list = [a.op].compact
-          dtype = tensor.data_type
-          output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-
-          m, n = a.shape
-          work_group = [m]
-          n = m if n.nil?
-          cl_n = OpenCL::Int1.new(n || 1)
-
-          event = _cl_program("softmax", dtype: dtype).send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-          output_buffer.op = event
-          output_buffer
-        when :softmax_grad
-          a = _run(a, child_context)
-          grad = _run(b, child_context)
-          event_wait_list = [a.op].compact
-          dtype = tensor.data_type
-          output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-
-          m, n = a.shape
-          work_group = [m]
-          n = m if n.nil?
-          cl_n = OpenCL::Int1.new(n || 1)
-          event = _cl_program("softmax_grad", dtype: dtype, size: n).send(:"softmax_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, grad.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-          output_buffer.op = event
-          output_buffer
-        when :sigmoid_grad
-          execute_2_operand_func('sigmoid_grad', tensor, a, b, child_context)
-        when :truncate
-          a = _run(a, child_context)
-          b = _run(b, child_context)
-
-          if a.shape.size.zero?
-            a
-          else
-            input_b = read_final_result(b)
-            if a.shape == input_b
-              a
-            else
-              input_a = read_final_result(a)
-              if input_b == []
-                if a.buffer.size == 1
-                  a.shape = input_b
-                  a
-                else
-                  wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
-                end
-              else
-                wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
-              end
-            end
-          end
-        when :check_numerics
-          a = complete_eval(a, child_context)
-          name = tensor.options[:name]
-
-          a.buffer.each do |input|
-            raise "#{name} Invalid Argument" if input.nan? || input.infinite?
-          end
-          a
-        when :zeros, :ones, :zeros_like, :ones_like
-          shape = if %i[zeros_like ones_like].include?(tensor.operation)
-            _run(a, child_context).shape
-          else
-            read_final_result(complete_eval(a, child_context)) || tensor.shape.shape
-          end
-
-          func = if %i[zeros zeros_like].include?(tensor.operation)
-            -> { tensor.data_type == :int32 ? 0 : 0.0 }
-          else
-            -> { tensor.data_type == :int32 ? 1 : 1.0 }
-          end
-
-          size = shape.empty? ? 1 : shape.reduce(:*)
-
-          buffer = if TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
-                      NArray.sfloat(size)
-                    elsif TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
-                      NArray.int(size)
-                    else
-                      raise "unsupported type #{tensor.data_type}"
-                    end
-
-          data = if !shape.empty?
-            Array.new(size) do |index|
-              func.call
-            end
-          else
-            func.call
-          end
-
-          convert_to_opencl(data, shape, data_type: tensor.data_type, name: tensor.name)
-        when :broadcast_transform
-          a = _run(a, child_context)
-          b = _run(b, child_context)
-
-          if a.shape == b.shape
-            [a, b]
-          else
-            input_a = read_final_result(complete_eval(a, child_context))
-            input_b = read_final_result(complete_eval(b, child_context))
-            b_a, b_b = broadcast(input_a, input_b)
-            [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
-              wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
-          end
-        when :print
-          a = _run(a, child_context)
-          b = _run(b, child_context)
-          input_b = complete_eval(b, child_context)
-          input_b = read_final_result(input_b)
-          puts "#{tensor.options.fetch(:message, '')} #{input_b}"
-          a
-        when :rank
-          a = _run(a, child_context)
-          wrap_opencl(a.shape.size, data_type: tensor.data_type, name: tensor.name)
-        when :stop_gradient
-          _run(a, child_context)
         when :slice
           input_a = complete_eval(a, child_context)
           input_b = read_final_result(complete_eval(b, child_context))
