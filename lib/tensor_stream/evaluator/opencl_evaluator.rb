@@ -34,9 +34,8 @@ module TensorStream
       include TensorStream::ArrayOpsHelper
       include TensorStream::MathHelper
 
-      def initialize(session, context, thread_pool: nil, log_intermediates: false)
+      def initialize(session,thread_pool: nil, log_intermediates: false)
         super
-        @context[:_cache][:_cl_buffers] ||= {} if @context[:_cache]
       end
 
       def self.query_supported_devices
@@ -53,12 +52,15 @@ module TensorStream
 
       # opencl evaluator main entrypoint
       def run(tensor, execution_context)
-        _create_opencl_context
-        create_command_queue
         read_final_result(complete_eval(tensor, execution_context))
       end
 
-      def run_with_buffer(tensor, execution_context)
+      def run_with_buffer(tensor, context, execution_context)
+        @context = context
+        @context[:_cache][:_cl_buffers] ||= {} if context[:_cache]
+        _create_opencl_context
+        create_command_queue
+
         if tensor.is_a?(Array)
           tensor.collect do |t|
             value = run(t, execution_context)
@@ -66,7 +68,7 @@ module TensorStream
           end
         else
           value = run(tensor, execution_context)
-            Buffer.new(data_type: tensor.data_type, buffer: value)
+          Buffer.new(data_type: tensor.data_type, buffer: value)
         end
       end
 
@@ -97,6 +99,8 @@ module TensorStream
         tensor = resolve_placeholder(tensor)
         if options[:noop]
           tensor
+        elsif options[:buffer]
+          complete_eval(tensor, context)
         elsif options[:complete]
           read_final_result(complete_eval(tensor, context))
         else
@@ -202,7 +206,7 @@ module TensorStream
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
                 if !self.class.ops.include?(tensor.operation.to_sym)
-                  result = @session.delegate_to_evaluator(tensor, execution_context)
+                  result = @session.delegate_to_evaluator(tensor, @context, execution_context)
                   convert_to_opencl([result.buffer].flatten, shape_eval(result.buffer), data_type: result.data_type, name: tensor.name)
                 else
                   eval_operation(tensor, child_context)
@@ -427,6 +431,93 @@ module TensorStream
         inputs[0]
       end
 
+      register_op :slice, noop: true do |context, tensor, inputs|
+        input_a = complete_eval(inputs[0], context)
+        input_b = read_final_result(complete_eval(inputs[1], context))
+        size = tensor.options[:size]
+
+        slice_param = input_b.zip(size).collect { |x, y| x..x + y - 1 }.reverse
+
+        new_buf = input_a.buffer.reshape(*input_a.shape.reverse)
+        sliced = new_buf.slice[*slice_param]
+        convert_to_opencl(sliced.flatten, sliced.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
+      end
+
+      register_op :transpose, buffer: true do |_context, tensor, inputs|
+        t_param = Array.new(inputs[0].shape.size) { |index| index }.reverse
+        transposed = inputs[0].buffer.reshape(*inputs[0].shape.reverse).transpose(*t_param)
+        convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
+      end
+
+      register_op :index, buffer: true do |_context, tensor, inputs|
+        a = inputs[0]
+        input_a = read_final_result(a)
+        index = read_final_result(inputs[1])
+
+        if a.is_a?(Array)
+          a[index]
+        else
+          new_shape = a.shape.dup
+          new_shape.shift
+          convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
+        end
+      end
+
+      register_op :broadcast_gradient_args, buffer: true do |_context, tensor, inputs|
+        wrap_opencl(get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a), data_type: inputs[0].data_type, name: tensor.name)
+      end
+
+      register_op :shape do |_context, tensor, inputs|
+        wrap_opencl(inputs[0].shape, name: tensor.name, data_type: tensor.options[:out_type] || :float32)
+      end
+
+      register_op :reshape, buffer: true do |_context, _tensor, inputs|
+        arr = inputs[0]
+        new_shape = read_final_result(inputs[1])
+
+        if new_shape.size.zero? && arr.buffer.size == 1
+          arr.shape = new_shape
+          arr
+        else
+          new_shape = TensorShape.fix_inferred_elements(new_shape, arr.buffer.size)
+          arr.shape = new_shape
+          arr
+        end
+      end
+
+      register_op :flow_group do |_context, _tensor, inputs|
+        inputs
+      end
+
+      %i[sum mean].each do |op|
+        register_op op, noop: true do |context, tensor, inputs|
+          reduction(context, tensor, inputs[0], inputs[1], op.to_sym)
+        end
+      end
+
+      register_op :prod, noop: true do |context, tensor, inputs|
+        input_a = complete_eval(inputs[0], context)
+        if input_a.buffer.empty?
+          convert_to_opencl([1.0], [], data_type: inputs[0].data_type, name: tensor.name)
+        else
+          reduction(context, tensor, inputs[0], inputs[1], :prod)
+        end
+      end
+
+      register_op :argmin, buffer: true do |_context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        arr = inputs[0].buffer.reshape(*inputs[0].shape.reverse).to_a
+        op = get_op_with_axis(arr, axis, 0, inputs[0].data_type, ->(a, b) { a < b })
+        convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
+      end
+
+      register_op :argmax, buffer: true do |_context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        arr = inputs[0].buffer.reshape(*inputs[0].shape.reverse).to_a
+        op = get_op_with_axis(arr, axis, 0, inputs[0].data_type, ->(a, b) { a > b })
+        convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
+      end
+
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
@@ -435,119 +526,7 @@ module TensorStream
         a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
         b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         # puts tensor.name
-        case tensor.operation
-        when :slice
-          input_a = complete_eval(a, child_context)
-          input_b = read_final_result(complete_eval(b, child_context))
-          size = tensor.options[:size]
-
-          slice_param = input_b.zip(size).collect { |x, y| x..x + y - 1 }.reverse
-
-          new_buf = input_a.buffer.reshape(*input_a.shape.reverse)
-          sliced = new_buf.slice[*slice_param]
-          convert_to_opencl(sliced.flatten, sliced.shape.reverse, data_type: a.data_type, name: tensor.name)
-        when :transpose
-          input_a = complete_eval(a, child_context)
-          t_param = Array.new(input_a.shape.size) { |index| index }.reverse
-          transposed = input_a.buffer.reshape(*input_a.shape.reverse).transpose(*t_param)
-          convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: a.data_type, name: tensor.name)
-        when :index
-          a = complete_eval(a, child_context)
-          input_a = read_final_result(a)
-          index = read_final_result(complete_eval(b, child_context))
-
-          if a.is_a?(Array)
-            a[index]
-          else
-            new_shape = a.shape.dup
-            new_shape.shift
-            convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
-          end
-        when :broadcast_gradient_args
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          wrap_opencl(get_broadcast_gradient_args(a.buffer.to_a, b.buffer.to_a), data_type: a.data_type, name: tensor.name)
-        when :shape
-          a = _run(a, child_context)
-          wrap_opencl(a.shape, name: tensor.name, data_type: tensor.options[:out_type] || :float32)
-        when :reshape
-          arr = complete_eval(a, child_context)
-          new_shape = read_final_result(complete_eval(b, child_context))
-
-          if new_shape.size.zero? && arr.buffer.size == 1
-            arr.shape = new_shape
-            arr
-          else
-            new_shape = TensorShape.fix_inferred_elements(new_shape, arr.buffer.size)
-            arr.shape = new_shape
-            arr
-          end
-        when :random_uniform
-          maxval = tensor.options.fetch(:maxval, 1)
-          minval = tensor.options.fetch(:minval, 0)
-          seed = tensor.options[:seed]
-
-          random = _get_randomizer(tensor, seed)
-          generator = -> { random.rand * (maxval - minval) + minval }
-          shape = tensor.options[:shape] || tensor.shape.shape
-
-          convert_to_opencl(generate_vector(shape, generator: generator), shape, data_type: tensor.data_type, name: tensor.name)
-        when :random_normal
-          random = _get_randomizer(tensor, seed)
-          r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
-          random = _get_randomizer(tensor, seed)
-          generator = -> { r.rand }
-          shape = tensor.options[:shape] || tensor.shape.shape
-
-          convert_to_opencl(generate_vector(shape, generator: generator), shape, data_type: tensor.data_type, name: tensor.name)
-        when :glorot_uniform
-          random = _get_randomizer(tensor, seed)
-
-          shape = tensor.options[:shape] || tensor.shape.shape
-          fan_in, fan_out = if shape.size.zero?
-                              [1, 1]
-                            elsif shape.size == 1
-                              [1, shape[0]]
-                            else
-                              [shape[0], shape.last]
-                            end
-
-          limit = Math.sqrt(6.0 / (fan_in + fan_out))
-
-          minval = -limit
-          maxval = limit
-
-          generator = -> { random.rand * (maxval - minval) + minval }
-          convert_to_opencl(generate_vector(shape, generator: generator), shape, data_type: tensor.data_type, name: tensor.name)
-        when :flow_group
-          tensor.inputs.collect { |input| _run(input, child_context) }
-        when :sum
-          reduction(child_context, tensor, a, b, :sum)
-        when :mean
-          reduction(child_context, tensor, a, b, :mean)
-        when :prod
-          input_a = complete_eval(a, child_context)
-          if input_a.buffer.empty?
-            convert_to_opencl([1.0], [], data_type: a.data_type, name: tensor.name)
-          else
-            reduction(child_context, tensor, a, b, :prod)
-          end
-        when :argmin
-          a = complete_eval(a, child_context)
-          axis = tensor.options[:axis] || 0
-          arr = a.buffer.reshape(*a.shape.reverse).to_a
-          op = get_op_with_axis(arr, axis, 0, a.data_type, ->(a, b) { a < b })
-          convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
-        when :argmax
-          a = complete_eval(a, child_context)
-          axis = tensor.options[:axis] || 0
-          arr = a.buffer.reshape(*a.shape.reverse).to_a
-          op = get_op_with_axis(arr, axis, 0, a.data_type, ->(a, b) { a > b })
-          convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
-        else
-          invoke(tensor, child_context)
-        end.tap do |result|
+        invoke(tensor, child_context).tap do |result|
           # puts "#{tensor.to_math(true,1)} = #{read_final_result(complete_eval(result, child_context))}"
           if tensor.breakpoint
             a = read_final_result(complete_eval(a, child_context))

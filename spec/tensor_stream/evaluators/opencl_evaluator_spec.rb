@@ -13,6 +13,14 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
     TensorStream.session([:opencl_evaluator, :ruby_evaluator])
   end
 
+  around :each do |spec|
+    device = described_class.query_supported_devices.first
+    puts "using #{device.name}"
+    tf.device(device) do
+      spec.call
+    end
+  end
+
   context "supported ops" do
     specify do
       expect(described_class.ops.keys.size).to eq(0)

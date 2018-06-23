@@ -56,12 +56,11 @@ module TensorStream
 
       @evaluator_options[:thread_pool] = @thread_pool
       @evaluator_options[:log_intermediates] = options[:log_intermediates]
-      @evaluators = @evaluator_classes.map { |klass| klass.new(self, context.merge!(retain: options[:retain]), @evaluator_options) }
 
-      execution_context = {}
+      args.each { |t| prepare_evaluators(t, context) }
       @last_session_context = context
       result = args.collect do |e|
-        value = delegate_to_evaluator(e, context)
+        value = delegate_to_evaluator(e, context, {})
         value.respond_to?(:to_ruby) ? value.to_ruby : value
       end
       result.size == 1 ? result.first : result
@@ -103,18 +102,34 @@ module TensorStream
       TensorStream::Graphml.new(self).serialize(tensor, filename)
     end
 
-    def delegate_to_evaluator(tensor, context)
-      @evaluators.each do |evaluator|
-        next if tensor.is_a?(Operation) && !evaluator.class.ops.include?(tensor.operation.to_sym)
-        return evaluator.run_with_buffer(tensor, context)
+    def delegate_to_evaluator(tensor_arr, session_context, context)
+      arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
+      result = arr.collect do |tensor|
+        session_context[:placement][tensor.name].run_with_buffer(tensor, session_context, context)
       end
-      raise "no evaluator available to execute #{tensor.operation}"
+      result.size == 1 ? result.first : result
     end
 
     protected
 
-    def eval(tensor)
+    def assign_evaluator(tensor, evaluators)
+      evaluators.each do |evaluator|
+        next if tensor.is_a?(Operation) && !evaluator.class.ops.include?(tensor.operation.to_sym)
+        return evaluator
+      end
+      raise "no evaluator available to execute #{tensor.operation}"
+    end
 
+    def prepare_evaluators(tensor_arr, context)
+      context[:placement] = {}
+      evaluators = @evaluator_classes.map { |klass| klass.new(self, @evaluator_options) }
+      tensor_arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
+      tensor_arr.each do |tensor|
+        graph = tensor.graph
+        graph.nodes.values.each do |node|
+          context[:placement][node.name] = assign_evaluator(node, evaluators)
+        end
+      end
     end
   end
 end

@@ -11,9 +11,8 @@ module TensorStream
     end
 
     class BaseEvaluator
-      def initialize(session, context, thread_pool: nil, log_intermediates: false)
+      def initialize(session, thread_pool: nil, log_intermediates: false)
         @session = session
-        @context = context
         @log_intermediates = log_intermediates
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
         @context[:compute_history] = [] if log_intermediates

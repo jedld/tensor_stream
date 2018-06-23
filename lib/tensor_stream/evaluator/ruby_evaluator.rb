@@ -51,7 +51,9 @@ module TensorStream
         res
       end
 
-      def run_with_buffer(tensor, execution_context)
+      def run_with_buffer(tensor, context, execution_context)
+        @context = context
+        @context[:_cache][:_cl_buffers] ||= {} if context[:_cache]
         result = run(tensor, execution_context)
         TensorStream::Buffer.new(data_type: tensor.data_type, buffer: result)
       end
