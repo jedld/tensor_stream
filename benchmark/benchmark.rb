@@ -3,7 +3,7 @@ require 'tensor_stream'
 require 'benchmark'
 require 'pry-byebug'
 require 'awesome_print'
-require 'tensor_stream/evaluator/opencl_evaluator'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 def tr(t, places = 1)
   if t.is_a?(Array)

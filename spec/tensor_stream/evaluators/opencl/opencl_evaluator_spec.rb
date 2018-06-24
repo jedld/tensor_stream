@@ -1,6 +1,6 @@
 require "spec_helper"
 require 'benchmark'
-require 'tensor_stream/evaluator/opencl_evaluator'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
   let(:tf) { TensorStream }

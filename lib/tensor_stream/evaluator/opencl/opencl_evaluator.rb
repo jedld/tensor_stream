@@ -1,8 +1,8 @@
 require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
-require 'tensor_stream/evaluator/opencl_buffer'
-require 'tensor_stream/evaluator/opencl_template_helper'
+require 'tensor_stream/evaluator/opencl/opencl_buffer'
+require 'tensor_stream/evaluator/opencl/opencl_template_helper'
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
 require 'tensor_stream/evaluator/base_evaluator'
@@ -34,7 +34,7 @@ module TensorStream
       include TensorStream::ArrayOpsHelper
       include TensorStream::MathHelper
 
-      def initialize(session,thread_pool: nil, log_intermediates: false)
+      def initialize(session, device, thread_pool: nil, log_intermediates: false)
         super
       end
 
