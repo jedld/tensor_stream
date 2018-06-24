@@ -97,17 +97,6 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
     end
   end
 
-  it "can evaluate a tensor" do
-    c = tf.constant(1.0)
-    expect(instance.run(c, execution_context)).to eq(1.0)
-  end
-
-  it "can evaluate an array of tensors" do
-    a = tf.constant(1.0)
-    input = [tf.constant([1.0, 1.0]), tf.sin(a)]
-    expect(instance.run(input, execution_context)).to eq([[1.0, 1.0], 0.8414709848078965])
-  end
-
   context "#shape_diff" do
     it "computes for the difference in shapes" do
       expect(instance.shape_diff([5],[])).to eq([5])

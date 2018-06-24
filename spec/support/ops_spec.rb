@@ -58,6 +58,17 @@ RSpec.shared_examples "standard ops evaluator" do
     expect(tr(b.read_value)).to eq(0.6314)
   end
 
+  it "can evaluate a tensor" do
+    c = tf.constant(1.0)
+    expect(sess.run(c)).to eq(1.0)
+  end
+
+  it "can evaluate an array of tensors" do
+    a = tf.constant(1.0)
+    input = [tf.constant([1.0, 1.0]), tf.sin(a)]
+    expect(tr(sess.run(*input))).to eq([[1.0, 1.0], 0.8415])
+  end
+
   context ".zeros_like" do
     it "Creates a tensor with all elements set to zero." do
       tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
