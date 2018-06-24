@@ -19,7 +19,7 @@ RSpec.describe "TensorStream::Train::Saver" do
 
     # Later, launch the model, initialize the variables, do some work, and save the
     # variables to disk.
-    tf.session do |sess|
+    tf.session(:ruby_evaluator) do |sess|
       sess.run(init_op)
       # Do some work with the model.
       inc_v1.run()
@@ -42,7 +42,7 @@ RSpec.describe "TensorStream::Train::Saver" do
 
     # Later, launch the model, use the saver to restore variables from disk, and
     # do some work with the model.
-    tf.session do |sess|
+    tf.session(:ruby_evaluator) do |sess|
       # Restore variables from disk.
       saver.restore(sess, "/tmp/model.ckpt")
       print("Model restored.")

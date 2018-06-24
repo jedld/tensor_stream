@@ -102,7 +102,7 @@ module TensorStream
       Thread.current[:tensor_stream_variable_scope].map(&:name).compact.reject(&:empty?).join('/')
     end
 
-    def session(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
+    def session(evaluator = nil, thread_pool_class: Concurrent::ImmediateExecutor)
       session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class)
       yield session if block_given?
 

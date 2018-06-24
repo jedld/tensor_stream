@@ -10,7 +10,7 @@ RSpec.describe "Hello world sample" do
     hello = TensorStream.constant('Hello, TensorStream!')
 
     # Start the TensorStream session
-    sess = TensorStream.session
+    sess = TensorStream.session(:ruby_evaluator)
 
     expect(sess.run(hello)).to eq('Hello, TensorStream!')
     puts(sess.run(hello))

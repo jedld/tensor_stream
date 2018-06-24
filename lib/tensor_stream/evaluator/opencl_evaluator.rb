@@ -1081,4 +1081,4 @@ module TensorStream
   end
 end
 
-TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::OpenclEvaluator, "opencl")
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::OpenclEvaluator, "opencl", 1)

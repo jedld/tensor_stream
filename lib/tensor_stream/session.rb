@@ -6,22 +6,25 @@ module TensorStream
     attr_reader :last_session_context, :closed, :target, :session_cache
     attr_accessor :randomizer
 
-    def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor, evaluator_options: {})
+    def initialize(evaluator = nil, thread_pool_class: Concurrent::ImmediateExecutor, evaluator_options: {})
       @thread_pool = thread_pool_class.new
       @closed = false
       @session_cache = {}
       @randomizer = {}
       @evaluator_options = evaluator_options
       get_evaluator_classes(evaluator)
+      @evaluators = @evaluator_classes.map { |klass| klass.new(self, @evaluator_options) }
     end
 
     def get_evaluator_classes(evaluators)
       if evaluators.is_a?(Array)
         if evaluators.empty?
-          @evaluator_classes = TensorStream::Evaluator::RubyEvaluator
+          @evaluator_classes = TensorStream::Evaluator.default_evaluators
         else
           @evaluator_classes = evaluators.collect { |name|  Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
         end
+      elsif evaluators.nil?
+        @evaluator_classes = TensorStream::Evaluator.default_evaluators
       else
         @evaluator_classes = [Object.const_get("TensorStream::Evaluator::#{camelize(evaluators.to_s)}")]
       end
@@ -105,7 +108,7 @@ module TensorStream
     def delegate_to_evaluator(tensor_arr, session_context, context)
       arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
       result = arr.collect do |tensor|
-        session_context[:placement][tensor.name].run_with_buffer(tensor, session_context, context)
+        session_context[:_cache][:placement][tensor.name].run_with_buffer(tensor, session_context, context)
       end
       result.size == 1 ? result.first : result
     end
@@ -121,13 +124,15 @@ module TensorStream
     end
 
     def prepare_evaluators(tensor_arr, context)
-      context[:placement] = {}
-      evaluators = @evaluator_classes.map { |klass| klass.new(self, @evaluator_options) }
+      context[:_cache][:placement] ||= {}
+
       tensor_arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
       tensor_arr.each do |tensor|
+        next if context[:_cache][:placement][tensor.name]
+
         graph = tensor.graph
         graph.nodes.values.each do |node|
-          context[:placement][node.name] = assign_evaluator(node, evaluators)
+          context[:_cache][:placement][node.name] = assign_evaluator(node, @evaluators)
         end
       end
     end

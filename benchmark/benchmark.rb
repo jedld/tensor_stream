@@ -12,7 +12,7 @@ def tr(t, places = 1)
     end
   end
 
-  return t unless t.kind_of?(Float)
+  return t unless t.is_a?(Float)
 
   t.round(places)
 end
@@ -46,8 +46,8 @@ c = tf.random_uniform(SHAPES)
 
 d = tf.random_uniform(SHAPES)
 
-p = tf.placeholder("float")
-q = tf.placeholder("float")
+p = tf.placeholder('float')
+q = tf.placeholder('float')
 
 model = -tf.sin(a.dot(b + p) + c).dot(a) + tf.cos(a.dot(d + q))
 single_function_test = (tf.sigmoid(a * p) * tf.sigmoid(b * q)) + c
@@ -57,18 +57,11 @@ matmul = tf.matmul(a, b)
 out_of_order = tf.matmul(a, b) + tf.matmul(a, c)
 softmax = tf.nn.softmax(a)
 
-sess = tf.session
-sess2 = tf.session(:opencl_evaluator)
+puts TensorStream::Evaluator.default_evaluators
 
-# verify correctness
-10.times do 
-  feed = { p => rand, q => rand }
-  x = sess.run(model, feed_dict: feed ) 
-  y = sess2.run(model, feed_dict: feed ) 
-  fail "not equal #{tr(x.first)} != #{tr(y.first)}" if tr(x) != tr(y)
-end
-puts `cat /proc/cpuinfo | grep "model name" | head -1`
-puts "OpenCL device #{sess2.last_session_context[:cl_device].platform} #{sess2.last_session_context[:cl_device].name}"
+sess = tf.session(:ruby_evaluator)
+sess2 = tf.session
+
 Benchmark.bmbm do |x|
   x.report("pure ruby ooo matmul     :") { 100.times do sess.run(out_of_order) end }
   x.report("opencl    ooo matmul     :") { 100.times do sess2.run(out_of_order) end }
@@ -85,3 +78,6 @@ Benchmark.bmbm do |x|
   x.report("pure ruby pow int:") { 100.times do sess.run(pow_i, feed_dict: { p => rand, q => rand }) end }
   x.report("opencl pow int:") { 100.times do sess2.run(pow_i, feed_dict: { p => rand, q => rand }) end }
 end
+
+puts `cat /proc/cpuinfo | grep "model name" | head -1`
+puts "OpenCL device #{sess2.last_session_context[:cl_device].platform} #{sess2.last_session_context[:cl_device].name}"

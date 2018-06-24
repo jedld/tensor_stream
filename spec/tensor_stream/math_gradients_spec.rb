@@ -3,7 +3,7 @@ require 'benchmark'
 
 RSpec.describe TensorStream::MathGradients do
   let(:tf) { TensorStream }
-  let(:sess) { tf.session }
+  let(:sess) { tf.session(:ruby_evaluator) }
   context "addition" do
     it "handles shape differences, rank 2 vs 1" do
       a = tf.constant([[1, 2],[3, 4],[5, 6]])
@@ -11,7 +11,7 @@ RSpec.describe TensorStream::MathGradients do
       sum = a + b
       g = tf.gradients(sum, [a, b])
 
-      expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], [3, 3]])
+      expect(sess.run(g)).to eq([[[1, 1], [1, 1], [1, 1]], [3, 3]])
     end
 
     it "handles shape differences, rank 2 vs 0" do
@@ -20,11 +20,11 @@ RSpec.describe TensorStream::MathGradients do
       sum = a + b
       g = tf.gradients(sum, [a, b])
 
-      expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], 6])
+      expect(sess.run(g)).to eq([[[1, 1], [1, 1], [1, 1]], 6])
 
       sum2 = b + a
       g2 = tf.gradients(sum2, [a, b])
-      expect(g2.eval).to eq([[[1, 1], [1, 1], [1, 1]], 6])
+      expect(sess.run(g2)).to eq([[[1, 1], [1, 1], [1, 1]], 6])
     end
   end
 
@@ -35,7 +35,7 @@ RSpec.describe TensorStream::MathGradients do
       sum = a - b
       g = tf.gradients(sum, [a, b])
 
-      expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], [-3, -3]])
+      expect(sess.run(g)).to eq([[[1, 1], [1, 1], [1, 1]], [-3, -3]])
     end
 
     it "handles shape differences, rank 2 vs 0" do
@@ -44,7 +44,7 @@ RSpec.describe TensorStream::MathGradients do
       sum = a - b
       g = tf.gradients(sum, [a, b])
 
-      expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], -6])
+      expect(sess.run(g)).to eq([[[1, 1], [1, 1], [1, 1]], -6])
     end
   end
 
@@ -54,9 +54,9 @@ RSpec.describe TensorStream::MathGradients do
 
     c = tf.matmul(x, y)
 
-    expect(c.eval).to eq([[19, 28], [23, 34]])
+    expect(sess.run(c)).to eq([[19, 28], [23, 34]])
     c_grad = tf.gradients(c, [x, y])
-    expect(c_grad.eval).to eq([
+    expect(sess.run(c_grad)).to eq([
       [[3.0, 7.0], [3.0, 7.0]],
       [[9.0, 9.0], [11.0, 11.0]]
     ])
@@ -67,7 +67,7 @@ RSpec.describe TensorStream::MathGradients do
     z = tf.constant([[4.0, 5.0]], dtype: :float32)
     cz = tf.matmul(z, y)
     z_grad = tf.gradients(cz, [y])
-    expect(z_grad.eval).to eq([
+    expect(sess.run(z_grad)).to eq([
       [[4.0, 4.0], [5.0, 5.0]]
     ])
   end
@@ -76,9 +76,9 @@ RSpec.describe TensorStream::MathGradients do
     y = tf.constant([[1.0, 2.0 , 2.1, 0.8], [3.0, 4.0, 3.1, 0.9]], dtype: :float32)
     z = tf.constant([[4.0, 5.0], [1.1, 3.2], [5.0, 3.1], [1.0, 1.0]], dtype: :float32)
     cz = tf.matmul(y, z)
-    expect(tr(cz.eval)).to eq([[17.5, 18.71], [32.8, 38.31]])
+    expect(tr(sess.run(cz))).to eq([[17.5, 18.71], [32.8, 38.31]])
     z_grad = tf.gradients(cz, [y, z])
-    expect(tr(z_grad.eval)).to eq(
+    expect(tr(sess.run(z_grad))).to eq(
       [[[9.0 , 4.3, 8.1, 2.0 ],
         [9.0 , 4.3, 8.1, 2.0 ]],
 
@@ -107,7 +107,8 @@ RSpec.describe TensorStream::MathGradients do
       ])
 
       g = tf.gradients(f, [b])
-      expect(g.eval.first).to eq([2.1, 6.0, 7.1, 12.0, 15.0])
+
+      expect(sess.run(g).first).to eq([2.1, 6.0, 7.1, 12.0, 15.0])
     end
 
     it "sum automatically reduces broadcasted args (axis = 1)" do
@@ -125,7 +126,7 @@ RSpec.describe TensorStream::MathGradients do
 
       f = a * b
 
-      expect(tr(f.eval)).to eq(
+      expect(tr(sess.run(f))).to eq(
         [[1.0, 2.0], [0.16, 1.64], [0.02, 0.42]]
       )
 
@@ -231,7 +232,7 @@ RSpec.describe TensorStream::MathGradients do
         [0.061, 0.9791, -2.1727, -0.9553, -1.434]], name: 'w2')
 
 
-      sess = tf.session
+      sess = tf.session(:ruby_evaluator)
 
       layer_1 =  tf.matmul(inputs, weights) + biases
       neural_net = tf.matmul(layer_1, weights_layer2) + biases2

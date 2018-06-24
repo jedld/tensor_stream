@@ -292,7 +292,7 @@ RSpec.shared_examples "standard ops evaluator" do
       # dx = 3(sin x)^2 * cos x
       y = tf.sin(x) ** 3
       derivative_function_y = TensorStream::MathGradients.derivative(y, x)
-      expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
+      expect(tr(derivative_function_y.eval(feed_dict: { x => 1 }))).to eq(1.1477)
     end
   end
 

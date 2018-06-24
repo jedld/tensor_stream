@@ -44,7 +44,7 @@ module TensorStream
           op_options = op[:options]
           resolved_inputs = tensor.inputs.map do |i|
             next if i.nil?
-            if @context[:placement][tensor.name] != @context[:placement][i.name] # tensor is on another device or evaluator
+            if @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
               result = @session.delegate_to_evaluator(i, @context, execution_context)
               convert_from_buffer(i, result)
             else
@@ -74,9 +74,13 @@ module TensorStream
       @evaluators ||= {}
     end
 
-    def self.register_evaluator(klass, name)
+    def self.register_evaluator(klass, name, index = 0)
       @evaluators ||= {}
-      @evaluators[name] = { name: name, class: klass }
+      @evaluators[name] = { name: name, class: klass, index: index }
+    end
+
+    def self.default_evaluators
+      evaluators.values.sort { |v| v[:index] }.reverse.map { |v| v[:class] }
     end
   end
 end
