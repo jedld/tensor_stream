@@ -632,6 +632,10 @@ module TensorStream
         end
       end
 
+      def convert_from_buffer(tensor, result)
+        result.buffer
+      end
+
       private
 
       def get_op_with_axis(a, target_axis, current_axis, output_type, op = ->(t, u) { t > u })

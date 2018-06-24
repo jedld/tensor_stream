@@ -15,7 +15,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   around :each do |spec|
     device = described_class.query_supported_devices.first
-    puts "using #{device.name}"
+    # puts "using #{device.name}"
     tf.device(device) do
       spec.call
     end
@@ -23,11 +23,70 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(0)
+      expect(described_class.ops.keys.size).to eq(58)
     end
 
     specify do
-      expect(described_class.ops.keys.sort).to eq([])
+      expect(described_class.ops.keys.sort).to eq(%i[
+        abs
+        add
+        argmax
+        argmin
+        assign
+        assign_add
+        assign_sub
+        broadcast_gradient_args
+        broadcast_transform
+        cast
+        check_numerics
+        cond
+        cos
+        div
+        equal
+        exp
+        flow_group
+        greater
+        greater_equal
+        identity
+        index
+        less
+        less_equal
+        log
+        log1p
+        logical_and
+        matmul
+        max
+        mean
+        mul
+        negate
+        not_equal
+        pow
+        print
+        prod
+        rank
+        reciprocal
+        reshape
+        round
+        shape
+        sigmoid
+        sigmoid_grad
+        sign
+        sin
+        slice
+        softmax
+        softmax_grad
+        sqrt
+        square
+        stop_gradient
+        sub
+        sum
+        tan
+        tanh
+        tanh_grad
+        transpose
+        truncate
+        where
+      ])
     end
 
     it "allows automatic fallback" do

@@ -72,6 +72,10 @@ module TensorStream
         end
       end
 
+      def convert_from_buffer(tensor, result)
+        convert_to_opencl([result.buffer].flatten, shape_eval(result.buffer), data_type: result.data_type, name: tensor.name)
+      end
+
       def complete_eval(tensor, context)
         buffer = _run(tensor, context)
         if buffer.is_a?(Array)
@@ -207,7 +211,7 @@ module TensorStream
         res = if tensor.is_a?(Operation)
                 if !self.class.ops.include?(tensor.operation.to_sym)
                   result = @session.delegate_to_evaluator(tensor, @context, execution_context)
-                  convert_to_opencl([result.buffer].flatten, shape_eval(result.buffer), data_type: result.data_type, name: tensor.name)
+                  convert_from_buffer(tensor, result)
                 else
                   eval_operation(tensor, child_context)
                 end
