@@ -7,7 +7,7 @@ module TensorStream
 
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
                   :value, :breakpoint, :internal, :source, :given_name, :graph,
-                  :consumers, :outputs
+                  :consumers, :outputs, :device
 
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
@@ -28,7 +28,7 @@ module TensorStream
           options[:value] = reshape(options[:value], shape.reverse.dup) if shape.size >= 2 && !options[:value].empty? && !options[:value][0].is_a?(Array)
 
           @value = options[:value].collect do |v|
-            v.is_a?(Tensor) ? Tensor.cast_dtype(v, data_type) : v
+            v.is_a?(Tensor) ? Tensor.cast_dtype(v, @data_type) : v
           end
         elsif !shape.empty?
           @value = reshape(Tensor.cast_dtype(options[:value], @data_type), shape.dup)
@@ -189,14 +189,16 @@ module TensorStream
     end
 
     def self.detect_type(value)
-      if value.is_a?(String)
+      if !!value==value
+        :boolean
+      elsif value.is_a?(String)
         :string
       elsif value.is_a?(Float)
         :float32
       elsif value.is_a?(Integer)
         :int32
       elsif value.is_a?(Array)
-        :array
+        return detect_type(value[0])
       else
         :float32
       end
@@ -225,7 +227,7 @@ module TensorStream
         end
       when :string
         val.to_s
-      when :int32, :int16
+      when :int32, :int16, :int
         if !!val == val
           val ? 1 : 0
         else

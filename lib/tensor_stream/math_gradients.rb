@@ -38,22 +38,22 @@ module TensorStream
         computed_op.each_with_index do |op_grad, index|
           next if op_grad.nil?
 
-          if nodes_to_compute.include?(tensor.items[index].name)
-            partials << _propagate(op_grad, tensor.items[index], stop_tensor, nodes_to_compute, stop_gradients)
+          if nodes_to_compute.include?(tensor.inputs[index].name)
+            partials << _propagate(op_grad, tensor.inputs[index], stop_tensor, nodes_to_compute, stop_gradients)
           end
         end
 
         partials.reduce(:+)
       else
         return tf.zeros_like(stop_tensor) if computed_op.nil?
-        _propagate(computed_op, tensor.items[0], stop_tensor, nodes_to_compute, stop_gradients)
+        _propagate(computed_op, tensor.inputs[0], stop_tensor, nodes_to_compute, stop_gradients)
       end
     end
 
     def self._compute_derivative(node, grad)
       node.graph.name_scope("#{node.name}_grad") do
-        x = node.items[0] if node.items[0]
-        y = node.items[1] if node.items[1]
+        x = node.inputs[0] if node.inputs[0]
+        y = node.inputs[1] if node.inputs[1]
 
         case node.operation
         when :add
@@ -221,8 +221,8 @@ module TensorStream
 
     def self._min_or_max_grad(op, grad)
       y = op
-      indicators = tf.cast(tf.equal(y, op.items[0]), grad.data_type)
-      num_selected = tf.reduce_sum(indicators, op.items[1])
+      indicators = tf.cast(tf.equal(y, op.inputs[0]), grad.data_type)
+      num_selected = tf.reduce_sum(indicators, op.inputs[1])
       _safe_shape_div(indicators, num_selected) * grad
     end
 

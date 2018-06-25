@@ -1,7 +1,7 @@
 require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
 require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
-require 'distribution'
+require 'tensor_stream/evaluator/base_evaluator'
 
 module TensorStream
   module Evaluator
@@ -23,29 +23,17 @@ module TensorStream
     end
 
     ## PURE ruby evaluator used for testing and development
-    class RubyEvaluator
+    class RubyEvaluator < BaseEvaluator
       attr_accessor :retain
 
       include TensorStream::OpHelper
       include TensorStream::ArrayOpsHelper
       include TensorStream::MathHelper
 
-      def initialize(session, context, thread_pool: nil, log_intermediates: false)
-        @session = session
-        @context = context
-        @log_intermediates = log_intermediates
-        @retain = context[:retain] || []
-        @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
-
-        @context[:compute_history] = [] if log_intermediates
-      end
-
       def run(tensor, execution_context)
         if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
           return tensor.map { |t| run(t, execution_context) }
         end
-
-        return tensor if retain.include?(tensor) # if var is in retain don't eval to value
 
         tensor = tensor.call if tensor.is_a?(Proc)
 
@@ -63,6 +51,13 @@ module TensorStream
         res
       end
 
+      def run_with_buffer(tensor, context, execution_context)
+        @context = context
+        @context[:_cache][:_cl_buffers] ||= {} if context[:_cache]
+        result = run(tensor, execution_context)
+        TensorStream::Buffer.new(data_type: tensor.data_type, buffer: result)
+      end
+
       def complete_eval(tensor, context)
         Kernel.loop do
           old_tensor = tensor
@@ -77,6 +72,18 @@ module TensorStream
 
       protected
 
+      def prepare_input(tensor, context, options = {})
+        return nil unless tensor
+        tensor = resolve_placeholder(tensor)
+        if options[:noop]
+          tensor
+        elsif options[:no_eval]
+          run(tensor, context)
+        else
+          complete_eval(tensor, context)
+        end
+      end
+
       def eval_variable(tensor, child_context)
         value = tensor.read_value
         if value.nil?
@@ -89,404 +96,486 @@ module TensorStream
         end
       end
 
+      register_op(:const) do |context, _tensor, inputs|
+        inputs[0]
+      end
+
+      register_op(:argmax) do |context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
+      end
+
+      register_op(:argmin) do |context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        get_op_with_axis(inputs[0], axis, 0, tensor.data_type, ->(a, b) { a < b })
+      end
+
+      register_op(:cast) do |context, tensor, inputs|
+        call_op(:cast, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
+      end
+
+      register_op(:sign) do |context, tensor, inputs|
+        func = lambda { |x, _b|
+          if x.zero? || (x.is_a?(Float) && x.nan?)
+            0
+          elsif x < 0
+            -1
+          elsif x > 0
+            1
+          else
+            raise 'assert: cannot be here'
+          end
+        }
+
+        call_op(:sign, inputs[0], context, func)
+      end
+
+      register_op(:logical_and) do |context, tensor, inputs|
+        call_vector_op(:logical_and, inputs[0], inputs[1], context, ->(t, u) { t && u })
+      end
+
+      register_op(:equal) do |context, tensor, inputs|
+        call_vector_op(:equal, inputs[0], inputs[1], context, ->(t, u) { t == u })
+      end
+
+      register_op(:not_equal) do |context, tensor, inputs|
+        call_vector_op(:not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
+      end
+
+      register_op :index, no_eval: true do |context, tensor, inputs|
+        f = inputs[0]
+        index = inputs[1]
+        f[index]
+      end
+
+      register_op :slice do |context, tensor, inputs|
+        input = inputs[0]
+        start = inputs[1]
+        size = complete_eval(tensor.options[:size], context)
+        raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
+        slice_tensor(input, start, size)
+      end
+
+      register_op :negate, no_eval: true do |context, _tensor, inputs|
+        call_vector_op(:negate, inputs[0], nil, context, ->(t, _u) { -t })
+      end
+
+      register_op :add, no_eval: true do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:add, a, b, context, ->(t, u) { t + u })
+      end
+
+      register_op :sub, no_eval: true do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:sub, a, b, context, ->(t, u) { t - u })
+      end
+
+      register_op :mul, no_eval: true do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:mul, a, b, context, ->(t, u) { t * u })
+      end
+
+      register_op :pow, no_eval: true do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:pow, a, b, context, ->(t, u) { t**u })
+      end
+
+      register_op :concat do |_context, tensor, inputs|
+        concat_array(inputs[0], tensor.options[:axis])
+      end
+
+      register_op :round, no_eval: true do |context, tensor, inputs|
+        call_op(:round, inputs[0], context, ->(t, _b) { t.round })
+      end
+
+      register_op :abs, no_eval: true do |context, tensor, inputs|
+        call_op(:abs, inputs[0], context, ->(t, _b) { t.abs })
+      end
+
+      register_op :tanh, no_eval: true do |context, tensor, inputs|
+        call_op(:tanh, inputs[0], context, ->(t, _b) { Math.tanh(t) })
+      end
+
+      register_op :tan, no_eval: true do |context, tensor, inputs|
+        call_op(:tan, inputs[0], context, ->(t, _b) { Math.tan(t) })
+      end
+
+      register_op :sec, no_eval: true do |context, tensor, inputs|
+        call_op(:sec, inputs[0], context, ->(t, _b) { Math.sec(t) })
+      end
+
+      register_op :sin, no_eval: true do |context, tensor, inputs|
+        call_op(:sin, inputs[0], context, ->(t, _b) { Math.sin(t) })
+      end
+
+      register_op :cos, no_eval: true do |context, tensor, inputs|
+        call_op(:cos, inputs[0], context, ->(t, _b) { Math.cos(t) })
+      end
+
+      register_op :log1p, no_eval: true do |context, tensor, inputs|
+        call_op(:log1p, inputs[0], context, ->(t, _b) { Math.log(1 + t) })
+      end
+
+      register_op :log, no_eval: true  do |context, tensor, inputs|
+        call_op(:log, inputs[0], context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
+      end
+
+      register_op :exp, no_eval: true  do |context, tensor, inputs|
+        call_op(:exp, inputs[0], context, ->(t, _b) { Math.exp(t) })
+      end
+
+      register_op :sigmoid, no_eval: true  do |context, tensor, inputs|
+        call_op(:sigmoid, inputs[0], context, ->(t, _b) { sigmoid(t) })
+      end
+
+      register_op :sqrt, no_eval: true  do |context, tensor, inputs|
+        call_op(:sqrt, inputs[0], context, ->(t, _b) { Math.sqrt(t) })
+      end
+
+      register_op :square, no_eval: true  do |context, tensor, inputs|
+        call_op(:square, inputs[0], context, ->(t, _b) {  t * t  })
+      end
+
+      register_op :reciprocal, no_eval: true  do |context, tensor, inputs|
+        call_op(:reciprocal, inputs[0], context,  ->(t, _b) { 1 / t })
+      end
+
+      register_op :stop_gradient, no_eval: true  do |_context, _tensor, inputs|
+        inputs[0]
+      end
+
+      register_op :sigmoid_grad, no_eval: true do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:sigmoid_grad, a, b, context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t))} )
+      end
+
+      register_op :random_uniform, no_eval: true do |_context, tensor, _inputs|
+        maxval = tensor.options.fetch(:maxval, 1)
+        minval = tensor.options.fetch(:minval, 0)
+        seed = tensor.options[:seed]
+
+        random = _get_randomizer(tensor, seed)
+        generator = -> { random.rand * (maxval - minval) + minval }
+        shape = tensor.options[:shape] || tensor.shape.shape
+        generate_vector(shape, generator: generator)
+      end
+
+      register_op :random_normal, no_eval: true do |_context, tensor, _inputs|
+        seed = tensor.options[:seed]
+        random = _get_randomizer(tensor, seed)
+        r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
+        random = _get_randomizer(tensor, seed)
+        generator = -> { r.rand }
+        shape = tensor.options[:shape] || tensor.shape.shape
+        generate_vector(shape, generator: generator)
+      end
+
+      register_op :glorot_uniform, no_eval: true do |_context, tensor, _inputs|
+        seed = tensor.options[:seed]
+        random = _get_randomizer(tensor, seed)
+
+        shape = tensor.options[:shape] || tensor.shape.shape
+        fan_in, fan_out = if shape.size.zero?
+                            [1, 1]
+                          elsif shape.size == 1
+                            [1, shape[0]]
+                          else
+                            [shape[0], shape.last]
+                          end
+
+        limit = Math.sqrt(6.0 / (fan_in + fan_out))
+
+        minval = -limit
+        maxval = limit
+
+        generator = -> { random.rand * (maxval - minval) + minval }
+        generate_vector(shape, generator: generator)
+      end
+
+      register_op :assign, noop: true do |context, tensor, inputs|
+        assign = tensor.inputs[0] || tensor
+        assign.value = complete_eval(tensor.inputs[1], context)
+        assign.value
+      end
+
+      register_op :assign_add, noop: true do |context, tensor, inputs|
+        tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
+        tensor.inputs[0].value
+      end
+
+      register_op :assign_sub, noop: true do |context, tensor, inputs|
+        tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
+        tensor.inputs[0].value
+      end
+
+      register_op :mean, noop: true do |context, tensor, _inputs|
+        c = fp_type?(tensor.data_type) ? 0.0 : 0
+        func = lambda do |arr|
+          return c if arr.nil?
+
+          reduced_val = arr[0]
+          arr[1..arr.size].each do |v|
+            reduced_val = vector_op(reduced_val, v, ->(a, b) { a + b })
+          end
+
+          vector_op(reduced_val, nil, ->(a, _b) { a / arr.size })
+        end
+
+        reduction(context, tensor, func)
+      end
+
+      register_op :sum, noop: true do |context, tensor, _inputs|
+        c = fp_type?(tensor.data_type) ? 0.0 : 0
+        func = lambda do |arr|
+          reduced_val = arr[0]
+          arr[1..arr.size].each do |v|
+            reduced_val = vector_op(reduced_val, v, ->(t, u) { t + u })
+          end
+          reduced_val
+        end
+
+        reduction(context, tensor, func)
+      end
+
+      register_op :prod, noop: true do |context, tensor, _inputs|
+        c = fp_type?(tensor.data_type) ? 1.0 : 1
+        func = lambda do |arr|
+          return c if arr.nil?
+
+          reduced_val = arr[0]
+          arr[1..arr.size].each do |v|
+            reduced_val = vector_op(reduced_val, v, ->(a, b) { a * b })
+          end
+          reduced_val
+        end
+
+        reduction(context, tensor, func)
+      end
+
+      register_op :tanh_grad, no_eval: true do |context, _tensor, inputs|
+        call_op(:tanh_grad, inputs[0], context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
+      end
+
+      register_op :transpose do |_context, _tensor, inputs|
+        inputs[0].transpose
+      end
+
+      register_op :eye do |_context, tensor, inputs|
+        rows, columns = inputs
+
+        Array.new(rows) do |i|
+          Array.new(columns) do |col|
+            if fp_type?(tensor.data_type)
+              i == col ? 1.0 : 0.0
+            else
+              i == col ? 1 : 0
+            end
+          end
+        end
+      end
+
+      register_op :cond do |context, tensor, inputs|
+        pred = complete_eval(tensor.options[:pred], context)
+        if all_true?(pred)
+          inputs[0]
+        else
+          inputs[1]
+        end
+      end
+
+      register_op :where do |context, tensor, inputs|
+        pred = complete_eval(tensor.options[:pred], context)
+        call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
+      end
+
+      register_op :less do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:less, a, b, context, ->(t, u) { t < u })
+      end
+
+      register_op :greater do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:greater, a, b, context, ->(t, u) { t > u })
+      end
+
+      register_op :greater_equal do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:greater_equal, a, b, context, ->(t, u) { t >= u })
+      end
+
+      register_op :less_equal do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:greater_equal, a, b, context, ->(t, u) { t <= u })
+      end
+
+      register_op %i[zeros ones zeros_like ones_like] do |_context, tensor, inputs|
+        shape = if %i[zeros_like ones_like].include?(tensor.operation)
+          shape_eval(inputs[0])
+        else
+          inputs[0] || tensor.shape.shape
+        end
+
+        func = if %i[zeros zeros_like].include?(tensor.operation)
+                -> { tensor.data_type == :int32 ? 0 : 0.0 }
+              else
+                -> { tensor.data_type == :int32 ? 1 : 1.0 }
+              end
+
+        if shape.is_a?(Array) && shape.size.zero?
+          func.call
+        else
+          shape = [shape.to_i] unless shape.is_a?(Array)
+
+          cache_key = "#{tensor.operation}_#{shape.to_s}"
+          if @context[:_cache].key?(cache_key)
+            @context[:_cache][cache_key]
+          else
+            generate_vector(shape, generator: func).tap do |v|
+              @context[:_cache][cache_key] = v
+            end
+          end
+        end
+      end
+
+      register_op :shape do |_context, tensor, inputs|
+        shape_eval(inputs[0], tensor.options[:out_type])
+      end
+
+      register_op :matmul do |_context, tensor, inputs|
+        matrix_a, matrix_b = inputs
+        rank_a = get_rank(matrix_a)
+        rank_b = get_rank(matrix_b)
+
+        raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
+        raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
+
+        matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
+        matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
+
+        # handle matrix multiplication with constants like 1 or 0
+        matrix_a = matmul_const_transform(matrix_a, matrix_b, tensor)
+        matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
+
+        # check matrix dimensions
+        raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+
+        (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
+      end
+
+      register_op :broadcast_transform do |_context, _tensor, inputs|
+        broadcast(inputs[0], inputs[1])
+      end
+
+      register_op :truncate do |_context, _tensor, inputs|
+        truncate(inputs[0], inputs[1])
+      end
+
+      register_op :identity do |_context, _tensor, inputs|
+        inputs[0]
+      end
+
+      register_op :print do |_context, tensor, inputs|
+        puts "#{tensor.options.fetch(:message, '')} #{inputs[1]}"
+        inputs[0]
+      end
+
+      register_op :rank do |_context, _tensor, inputs|
+        get_rank(inputs[0])
+      end
+
+      register_op :div, noop: true do |context, _tensor, inputs|
+        process_vector_math_op(inputs[0], inputs[1], context, ->(t, u) { t / u })
+      end
+
+      register_op :reshape do |_context, _tensor, inputs|
+        arr, new_shape = inputs
+
+        arr = [arr] unless arr.is_a?(Array)
+
+        flat_arr = arr.flatten
+        if new_shape.size.zero? && flat_arr.size == 1
+          flat_arr[0]
+        else
+          new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
+          TensorShape.reshape(flat_arr, new_shape)
+        end
+      end
+
+      register_op :pad do |context, tensor, inputs|
+        p = complete_eval(tensor.options[:paddings], context)
+
+        arr_pad(inputs[0], p, tensor.data_type)
+      end
+
+      register_op :max, noop: true do |context, _tensor, inputs|
+        call_vector_op(:max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
+      end
+
+      register_op :broadcast_gradient_args do |_context, _tensor, inputs|
+        get_broadcast_gradient_args(inputs[0], inputs[1])
+      end
+
+      register_op :reduced_shape do |context, _tensor, inputs|
+        input_shape, axes = inputs
+
+        return [] if axes.nil? # reduce to scalar
+        axes = [ axes ] unless axes.is_a?(Array)
+        return input_shape if axes.empty?
+
+        axes.each do |dimen|
+          input_shape[dimen] = 1
+        end
+        input_shape
+      end
+
+      register_op :tile do |context, _tensor, inputs|
+        input, multiples = inputs
+        rank = get_rank(input)
+        raise '1D or higher tensor required' if rank.zero?
+        raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
+
+        tile = tile_arr(input, 0, multiples)
+        tile.nil? ? [] : tile
+      end
+
+      register_op :flow_group, noop: true do |context, _tensor, inputs|
+        inputs.collect { |input| run(input, context) }
+      end
+
+      register_op :softmax do |context, _tensor, inputs|
+        softmax(inputs[0])
+      end
+
+      register_op :softmax_grad do |_context, _tensor, inputs|
+        input, grad = inputs
+
+        softmax_input = softmax(input)
+        f_grad = softmax_grad(softmax_input)
+        f_grad.transpose.each_with_index.collect do |row, index|
+          sum = 0.0
+          row.each_with_index do |r, g_index|
+            sum += r * grad[g_index]
+          end
+          sum
+        end
+      end
+
+      register_op :check_numerics do |context, tensor, inputs|
+        message = tensor.options[:message]
+        f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
+        call_op(:check_numerics, inputs[0], context, f)
+      end
+
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
-        b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
+
         # puts tensor.name
-        case tensor.operation
-        when :const
-          complete_eval(a, child_context)
-        when :argmax
-          a = complete_eval(a, child_context)
-          axis = tensor.options[:axis] || 0
-
-          get_op_with_axis(a, axis, 0, tensor.data_type)
-        when :argmin
-          a = complete_eval(a, child_context)
-          axis = tensor.options[:axis] || 0
-
-          get_op_with_axis(a, axis, 0, tensor.data_type, ->(a, b) { a < b })
-        when :cast
-          a = complete_eval(a, child_context)
-
-          call_op(:cast, a, child_context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
-        when :sign
-          a = complete_eval(a, child_context)
-
-          func = lambda { |x, _b|
-            if x.zero? || (x.is_a?(Float) && x.nan?)
-              0
-            elsif x < 0
-              -1
-            elsif x > 0
-              1
-            else
-              raise 'assert: cannot be here'
-            end
-          }
-
-          call_op(:sign, a, child_context, func)
-        when :logical_and
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t && u })
-        when :equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t == u })
-        when :not_equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:not_equal, a, b, child_context, ->(t, u) { t != u })
-        when :index
-          f = run(a, child_context)
-          index = run(b, child_context)
-
-          f[index]
-        when :slice
-          input = complete_eval(a, child_context)
-          start = complete_eval(b, child_context)
-          size = complete_eval(tensor.options[:size], child_context)
-          raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
-          slice_tensor(input, start, size)
-        when :negate
-          call_vector_op(:negate, a, nil, child_context, ->(t, _u) { -t })
-        when :add
-          call_vector_op(:add, a, b, child_context, ->(t, u) { t + u })
-        when :sub
-          call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
-        when :mul
-          call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
-        when :pow
-          call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
-        when :concat
-          values = complete_eval(a, child_context)
-          concat_array(values, tensor.options[:axis])
-        when :round
-          call_op(:round, a, child_context, ->(t, _b) { t.round })
-        when :abs
-          call_op(:abs, a, child_context, ->(t, _b) { t.abs })
-        when :tanh
-          call_op(:tanh, a, child_context, ->(t, _b) { Math.tanh(t) })
-        when :tan
-          call_op(:tan, a, child_context, ->(t, _b) { Math.tan(t) })
-        when :sec
-          call_op(:sec, a, child_context, ->(t, _b) { Math.sec(t) })
-        when :sin
-          call_op(:sin, a, child_context, ->(t, _b) { Math.sin(t) })
-        when :cos
-          call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
-        when :log1p
-          call_op(:log1p, a, child_context, ->(t, _b) { Distribution::MathExtension::Log.log1p(t) })
-        when :log
-          call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
-        when :exp
-          call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) })
-        when :sigmoid
-          call_op(:sigmoid, a, child_context, ->(t, _b) { sigmoid(t) })
-        when :sigmoid_grad
-          call_vector_op(:sigmoid_grad, a, b, child_context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t)) })
-        when :sqrt
-          call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) })
-        when :square
-          call_op(:square, a, child_context, ->(t, _b) { t * t })
-        when :reciprocal
-          call_op(:square, a, child_context, ->(t, _b) { 1 / t })
-        when :stop_gradient
-          run(a, child_context)
-        when :random_uniform
-          maxval = tensor.options.fetch(:maxval, 1)
-          minval = tensor.options.fetch(:minval, 0)
-          seed = tensor.options[:seed]
-
-          random = _get_randomizer(tensor, seed)
-          generator = -> { random.rand * (maxval - minval) + minval }
-          shape = tensor.options[:shape] || tensor.shape.shape
-          generate_vector(shape, generator: generator)
-        when :random_normal
-          random = _get_randomizer(tensor, seed)
-          r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
-          random = _get_randomizer(tensor, seed)
-          generator = -> { r.rand }
-          shape = tensor.options[:shape] || tensor.shape.shape
-          generate_vector(shape, generator: generator)
-        when :glorot_uniform
-          random = _get_randomizer(tensor, seed)
-
-          shape = tensor.options[:shape] || tensor.shape.shape
-          fan_in, fan_out = if shape.size.zero?
-                              [1, 1]
-                            elsif shape.size == 1
-                              [1, shape[0]]
-                            else
-                              [shape[0], shape.last]
-                            end
-
-          limit = Math.sqrt(6.0 / (fan_in + fan_out))
-
-          minval = -limit
-          maxval = limit
-
-          generator = -> { random.rand * (maxval - minval) + minval }
-          generate_vector(shape, generator: generator)
-        when :flow_group
-          tensor.items.collect { |item| run(item, child_context) }
-        when :assign
-          assign = tensor.items[0] || tensor
-          assign.value = complete_eval(tensor.items[1], child_context)
-          assign.value
-        when :assign_add
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t + u })
-          tensor.items[0].value
-        when :assign_sub
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(t, u) { t - u })
-          tensor.items[0].value
-        when :mean
-          c = fp_type?(tensor.data_type) ? 0.0 : 0
-          func = lambda do |arr|
-            return c if arr.nil?
-
-            reduced_val = arr[0]
-            arr[1..arr.size].each do |v|
-              reduced_val = vector_op(reduced_val, v, ->(a, b) { a + b })
-            end
-
-            vector_op(reduced_val, nil, ->(a, _b) { a / arr.size })
-          end
-
-          reduction(child_context, tensor, func)
-        when :sum
-          c = fp_type?(tensor.data_type) ? 0.0 : 0
-          func = lambda do |arr|
-            reduced_val = arr[0]
-            arr[1..arr.size].each do |v|
-              reduced_val = vector_op(reduced_val, v, ->(t, u) { t + u })
-            end
-            reduced_val
-          end
-
-          reduction(child_context, tensor, func)
-        when :tanh_grad
-          x = complete_eval(a, child_context)
-          call_op(:tanh_grad, x, child_context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
-        when :prod
-          c = fp_type?(tensor.data_type) ? 1.0 : 1
-          func = lambda do |arr|
-            return c if arr.nil?
-
-            reduced_val = arr[0]
-            arr[1..arr.size].each do |v|
-              reduced_val = vector_op(reduced_val, v, ->(a, b) { a * b })
-            end
-            reduced_val
-          end
-
-          reduction(child_context, tensor, func)
-        when :transpose
-          matrix_a = complete_eval(a, child_context)
-          matrix_a.transpose
-        when :eye
-          rows = complete_eval(a, child_context)
-          columns = complete_eval(b, child_context)
-
-          Array.new(rows) do |i|
-            Array.new(columns) do |col|
-              if fp_type?(tensor.data_type)
-                i == col ? 1.0 : 0.0
-              else
-                i == col ? 1 : 0
-              end
-            end
-          end
-        when :cond
-          pred = complete_eval(tensor.options[:pred], child_context)
-
-          if all_true?(pred)
-            complete_eval(a, child_context)
-          else
-            complete_eval(b, child_context)
-          end
-        when :where
-          pred = complete_eval(tensor.options[:pred], child_context)
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_3way_vector_op(pred, a, b, child_context, ->(t, u, v) { t ? u : v })
-        when :less
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t < u })
-        when :greater
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater, a, b, child_context, ->(t, u) { t > u })
-        when :greater_equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:greater_equal, a, b, child_context, ->(t, u) { t >= u })
-        when :less_equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:less_equal, a, b, child_context, ->(t, u) { t <= u })
-        when :zeros, :ones, :zeros_like, :ones_like
-
-          shape = if %i[zeros_like ones_like].include?(tensor.operation)
-                    a = complete_eval(a, child_context)
-                    shape_eval(a)
-                  else
-                    complete_eval(a, child_context) || tensor.shape.shape
-                  end
-
-          func = if %i[zeros zeros_like].include?(tensor.operation)
-                   -> { tensor.data_type == :int32 ? 0 : 0.0 }
-                 else
-                   -> { tensor.data_type == :int32 ? 1 : 1.0 }
-                 end
-
-          if shape.is_a?(Array) && shape.size.zero?
-            func.call
-          else
-            shape = [shape.to_i] unless shape.is_a?(Array)
-
-            cache_key = "#{tensor.operation}_#{shape.to_s}"
-            if @context[:_cache].key?(cache_key)
-              return @context[:_cache][cache_key]
-            else
-              generate_vector(shape, generator: func).tap do |v|
-                @context[:_cache][cache_key] = v
-              end
-            end
-          end
-        when :shape
-          input = complete_eval(a, child_context)
-          shape_eval(input, tensor.options[:out_type])
-        when :matmul
-          matrix_a = complete_eval(a, child_context)
-          matrix_b = complete_eval(b, child_context)
-
-          rank_a = get_rank(matrix_a)
-          rank_b = get_rank(matrix_b)
-
-          raise "#{tensor.items[0].name} rank must be greater than 1" if rank_a < 2
-          raise "#{tensor.items[1].name} rank must be greater than 1" if rank_b < 2
-
-          matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
-          matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-
-          # handle matrix multiplication with constants like 1 or 0
-          matrix_a = matmul_const_transform(matrix_a, matrix_b, tensor)
-          matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
-
-          # check matrix dimensions
-          raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
-
-          (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
-        when :gradients
-          raise 'not implemented in evaluator' # see TensorStream.gradients instead.
-        when :broadcast_transform
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-          broadcast(a, b)
-        when :truncate
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-          truncate(a, b)
-        when :identity
-          complete_eval(a, child_context)
-        when :print
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-          puts "#{tensor.options.fetch(:message, '')} #{b}"
-          a
-        when :rank
-          a = complete_eval(a, child_context)
-          get_rank(a)
-        when :div
-          process_vector_math_op(a, b, child_context, ->(t, u) { t / u })
-        when :reshape
-          arr = complete_eval(a, child_context)
-          new_shape = complete_eval(b, child_context)
-
-          arr = [arr] unless arr.is_a?(Array)
-
-          flat_arr = arr.flatten
-          return flat_arr[0] if new_shape.size.zero? && flat_arr.size == 1
-
-          new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
-
-          TensorShape.reshape(flat_arr, new_shape)
-        when :pad
-          a = complete_eval(a, child_context)
-          p = complete_eval(tensor.options[:paddings], child_context)
-
-          arr_pad(a, p, tensor.data_type)
-        when :max
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          call_vector_op(:max, a, b, child_context, ->(t, u) { [t, u].max })
-        when :broadcast_gradient_args
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          get_broadcast_gradient_args(a, b)
-        when :reduced_shape
-          input_shape = complete_eval(a, child_context)
-          axes = complete_eval(b, child_context)
-
-          return [] if axes.nil? # reduce to scalar
-          axes = [ axes ] unless axes.is_a?(Array)
-          return input_shape if axes.empty?
-
-          axes.each do |dimen|
-            input_shape[dimen] = 1
-          end
-          input_shape
-        when :tile
-          input = complete_eval(a, child_context)
-          multiples = complete_eval(b, child_context)
-
-          rank = get_rank(input)
-          raise '1D or higher tensor required' if rank.zero?
-          raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
-
-          tile = tile_arr(input, 0, multiples)
-          tile.nil? ? [] : tile
-        when :softmax
-          input = complete_eval(a, child_context)
-          softmax(input)
-        when :softmax_grad
-          input = complete_eval(a, child_context)
-          grad = complete_eval(b, child_context)
-          softmax_input = softmax(input)
-          f_grad = softmax_grad(softmax_input)
-          f_grad.transpose.each_with_index.collect do |row, index|
-            sum = 0.0
-            row.each_with_index do |r, g_index|
-              sum += r * grad[g_index]
-            end
-            sum
-          end
-        when :check_numerics
-          a = complete_eval(a, child_context)
-          message = tensor.options[:message]
-          f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
-          call_op(:check_numerics, a, child_context, f)
-        else
-          raise "unknown op #{tensor.operation}"
-        end.tap do |result|
+        invoke(tensor, child_context).tap do |result|
           if tensor.breakpoint
+            a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+            b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
             a = complete_eval(a, child_context)
             b = complete_eval(b, child_context)
-
             tensor.breakpoint.call(tensor, a, b, complete_eval(result, child_context))
           end
           if @log_intermediates
@@ -504,16 +593,16 @@ module TensorStream
       rescue EvaluatorExcecutionException => e
         raise e
       rescue StandardError => e
+        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         puts e.message
         puts e.backtrace.join("\n")
-
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
         # dtype_b = b.data_type if b
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
-
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
@@ -532,8 +621,8 @@ module TensorStream
         return @context[:_cache][cache_key] if @context[:_cache] && @context[:_cache].key?(tensor.name)
 
         if tensor.value.is_a?(Array)
-          tensor.value.collect do |item|
-            item.is_a?(Tensor) ? run(item, child_context) : item
+          tensor.value.collect do |input|
+            input.is_a?(Tensor) ? run(input, child_context) : input
           end
         else
           tensor.value.is_a?(Tensor) ? run(tensor.value, child_context) : tensor.value
@@ -541,6 +630,10 @@ module TensorStream
           @context[cache_key] = result
           @context[:_cache][cache_key] = result if @context[:_cache] && tensor.is_const
         end
+      end
+
+      def convert_from_buffer(tensor, result)
+        result.buffer
       end
 
       private
@@ -579,8 +672,8 @@ module TensorStream
       end
 
       def reduction(child_context, tensor, func)
-        val = complete_eval(tensor.items[0], child_context)
-        axis = complete_eval(tensor.items[1], child_context)
+        val = complete_eval(tensor.inputs[0], child_context)
+        axis = complete_eval(tensor.inputs[1], child_context)
         keep_dims = complete_eval(tensor.options[:keepdims], child_context)
         rank = get_rank(val)
         return val if axis && axis.is_a?(Array) && axis.empty?
@@ -720,7 +813,6 @@ module TensorStream
 
       def resolve_placeholder(placeholder, _execution_context = {})
         return nil if placeholder.nil?
-        return placeholder if retain.include?(placeholder)
 
         var = if placeholder.is_a?(Placeholder)
                 @context[placeholder.name.to_sym].tap do |c|
@@ -834,3 +926,5 @@ module TensorStream
     end
   end
 end
+
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::RubyEvaluator, "ruby")

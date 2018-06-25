@@ -6,11 +6,11 @@ module TensorStream
       start_index = start.shift
       dimen_size = start_index + size.shift
 
-      input[start_index...dimen_size].collect do |item|
-        if item.is_a?(Array)
-          slice_tensor(item, start.dup, size.dup)
+      input[start_index...dimen_size].collect do |input|
+        if input.is_a?(Array)
+          slice_tensor(input, start.dup, size.dup)
         else
-          item
+          input
         end
       end
     end
@@ -72,8 +72,8 @@ module TensorStream
       d = dims.shift
 
       if input.is_a?(Array) && (get_rank(input) - 1) == dims.size
-        row_to_dup = input.collect do |item|
-          broadcast_dimensions(item, dims.dup)
+        row_to_dup = input.collect do |input|
+          broadcast_dimensions(input, dims.dup)
         end
 
         row_to_dup + Array.new(d) { row_to_dup }.flatten(1)
@@ -95,8 +95,8 @@ module TensorStream
 
       return op.call(vector, vector2) unless vector.is_a?(Array)
 
-      vector.each_with_index.collect do |item, index|
-        next vector_op(item, vector2, op, switch) if item.is_a?(Array) && get_rank(vector) > get_rank(vector2)
+      vector.each_with_index.collect do |input, index|
+        next vector_op(input, vector2, op, switch) if input.is_a?(Array) && get_rank(vector) > get_rank(vector2)
 
         if safe && vector2.is_a?(Array)
           next nil if vector2.size != 1 && index >= vector2.size
@@ -113,10 +113,10 @@ module TensorStream
               vector2
             end
 
-        if item.is_a?(Array)
-          vector_op(item, z, op, switch)
+        if input.is_a?(Array)
+          vector_op(input, z, op, switch)
         else
-          switch ? op.call(z, item) : op.call(item, z)
+          switch ? op.call(z, input) : op.call(input, z)
         end
       end.compact
     end
@@ -173,11 +173,11 @@ module TensorStream
         arr.map { |a| Math.exp(a - arr.max) }.reduce(:+)
       end
 
-      arr.collect do |item|
-        if item.is_a?(Array)
-          softmax(item)
+      arr.collect do |input|
+        if input.is_a?(Array)
+          softmax(input)
         else
-          Math.exp(item - arr.max) / sum
+          Math.exp(input - arr.max) / sum
         end
       end
     end
@@ -185,15 +185,15 @@ module TensorStream
     def softmax_grad(arr)
       return arr if arr.empty?
 
-      arr.each_with_index.collect do |item, index|
-        if item.is_a?(Array)
-          softmax_grad(item)
+      arr.each_with_index.collect do |input, index|
+        if input.is_a?(Array)
+          softmax_grad(input)
         else
-          arr.each_with_index.collect do |item2, index2|
+          arr.each_with_index.collect do |input2, index2|
             if index != index2
-              -item * item2
+              -input * input2
             else
-              item * (1.0 - item)
+              input * (1.0 - input)
             end
           end
         end

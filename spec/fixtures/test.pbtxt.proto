@@ -1,5 +1,5 @@
 node {
-  name: "Const:2"
+  name: "Const"
   op: "Const"
   attr {
     key: "T"
@@ -26,7 +26,7 @@ node {
   }
 }
 node {
-  name: "Const_1:0"
+  name: "Const_1"
   op: "Const"
   attr {
     key: "T"
@@ -47,7 +47,7 @@ node {
   }
 }
 node {
-  name: "Const_2:0"
+  name: "Const:0"
   op: "Const"
   attr {
     key: "T"
@@ -71,7 +71,7 @@ node {
   name: "assign:0"
   op: "Assign"
   input: "v1"
-  input: "Const_2:0"
+  input: "Const:0"
   attr {
     key: "T"
     value {
@@ -97,7 +97,7 @@ node {
   }
 }
 node {
-  name: "Const_3:1"
+  name: "Const_2"
   op: "Const"
   attr {
     key: "T"
@@ -121,7 +121,7 @@ node {
   }
 }
 node {
-  name: "Const_4:0"
+  name: "Const_3"
   op: "Const"
   attr {
     key: "T"
@@ -145,7 +145,7 @@ node {
   name: "Placeholder:"
 }
 node {
-  name: "Const_5:1"
+  name: "Const_4"
   op: "Const"
   attr {
     key: "T"
@@ -175,8 +175,8 @@ node {
 node {
   name: "mul_1:0"
   op: "Mul"
-  input: "Const:2"
-  input: "Const_1:0"
+  input: "Const"
+  input: "Const_1"
   attr {
     key: "T"
     value {
@@ -197,7 +197,7 @@ node {
   }
 }
 node {
-  name: "Const_6:1"
+  name: "Const_1:1"
   op: "Const"
   attr {
     key: "T"
@@ -223,8 +223,8 @@ node {
 node {
   name: "sum_3:0"
   op: "Sum"
-  input: "Const:2"
-  input: "Const_6:1"
+  input: "Const"
+  input: "Const_1:1"
   attr {
     key: "T"
     value {

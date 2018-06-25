@@ -22,9 +22,9 @@ RSpec.describe TensorStream::Tensor do
       f = -e
       g = -d
       # expect(TensorStream::Graph.get_default_graph.nodes.keys).to eq([])
-      expect(a.to_s).to eq("Const:0")
-      expect(b.to_s).to eq("Const_1:0")
-      expect(c.to_s).to eq("Const_2:0")
+      expect(a.to_s).to eq("Const")
+      expect(b.to_s).to eq("Const_1")
+      expect(c.to_s).to eq("Const_2")
       expect(total.to_s).to eq("add_3:0")
       expect(d.to_s).to eq("Variable:0")
       expect(e.to_s).to eq("Variable_2:0")
@@ -40,6 +40,8 @@ RSpec.describe TensorStream::Tensor do
         expect(c.eval).to eql(1.0)
         c = TensorStream.constant(1, dtype: :float32, shape: [2, 2])
         expect(c.eval).to eql([[1.0, 1.0], [1.0, 1.0]])
+        c = TensorStream.constant([1, 2, 3, 4], dtype: :float32)
+        expect(c.eval).to eql([1.0, 2.0, 3.0, 4.0])
       end
     end
 
@@ -68,7 +70,7 @@ RSpec.describe TensorStream::Tensor do
       a = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
       b = TensorStream.constant([])
 
-      expect(a.to_s).to eq("Const:1")
+      expect(a.to_s).to eq("Const")
       expect(a.shape.to_s).to eq("TensorShape([Dimension(1)])")
       expect(b.shape.to_s).to eq("TensorShape([Dimension(0)])")
     end

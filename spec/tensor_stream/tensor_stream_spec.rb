@@ -10,7 +10,7 @@ RSpec.describe TensorStream do
 
   describe ".VERSION" do
     it "returns the version" do
-      expect(TensorStream.version).to eq("0.4.1")
+      expect(TensorStream.version).to eq("0.5.0")
     end
   end
 
@@ -25,10 +25,10 @@ RSpec.describe TensorStream do
 
       x = [[2.0]]
       m = TensorStream.matmul(x, x)
-      expect(m.to_a).to eq([[4.0]])
+      expect(tr(m.to_a)).to eq([[4.0]])
 
       d = TensorStream.constant(3.1)
-      expect(d.to_f).to eq(3.1)
+      expect(tr(d.to_f)).to eq(3.1)
     end
   end
 
@@ -57,7 +57,7 @@ RSpec.describe TensorStream do
       tf.variable_scope(initializer: tf.random_normal([2, 2])) do
         v1 = tf.get_variable('test', shape: [2, 2])
         expect(v1.name).to eq("test")
-        sess = tf.session
+        sess = tf.session(:ruby_evaluator)
         sess.run(tf.global_variables_initializer())
         expect(sess.run(v1)).to eq([[0.5011628459350929, 1.301972948852967], [-1.621722019401658, 0.6690221526288901]])
       end

@@ -58,6 +58,17 @@ RSpec.shared_examples "standard ops evaluator" do
     expect(tr(b.read_value)).to eq(0.6314)
   end
 
+  it "can evaluate a tensor" do
+    c = tf.constant(1.0)
+    expect(sess.run(c)).to eq(1.0)
+  end
+
+  it "can evaluate an array of tensors" do
+    a = tf.constant(1.0)
+    input = [tf.constant([1.0, 1.0]), tf.sin(a)]
+    expect(tr(sess.run(*input))).to eq([[1.0, 1.0], 0.8415])
+  end
+
   context ".zeros_like" do
     it "Creates a tensor with all elements set to zero." do
       tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
@@ -281,7 +292,7 @@ RSpec.shared_examples "standard ops evaluator" do
       # dx = 3(sin x)^2 * cos x
       y = tf.sin(x) ** 3
       derivative_function_y = TensorStream::MathGradients.derivative(y, x)
-      expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
+      expect(tr(derivative_function_y.eval(feed_dict: { x => 1 }))).to eq(1.1477)
     end
   end
 
@@ -346,7 +357,7 @@ RSpec.shared_examples "standard ops evaluator" do
     specify do
       a = tf.constant([[0.0, 0.0, 1.0],[0.0, 1.0, 3.1]])
       c = tf.check_numerics(a, "a")
-      expect(sess.run(c)).to eq(sess.run(a))
+      expect(tr(sess.run(c))).to eq(tr(sess.run(a)))
 
       b = tf.constant([[0.0, 0.0, 1.0],[Float::NAN, 1.0, 3.1]])
       d = tf.check_numerics(b, "b")

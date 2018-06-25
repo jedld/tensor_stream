@@ -28,6 +28,19 @@ module TensorStream
       TensorStream::Graph.get_default_graph.executing_eagerly?
     end
 
+    ##
+    # List available evaluators + devices in the current local environment
+    # Returns:
+    # - An array containing the names of those devices
+    def list_local_devices
+      local_name = 'job:localhost'
+      TensorStream::Evaluator.evaluators.collect do |k, v|
+        v[:class].query_supported_devices.collect do |device_str|
+          [local_name, "ts:#{device_str.name}"].join('/') + '?evaluator=' + k
+        end
+      end.flatten
+    end
+
     def variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
       op = Operation.new(:assign, nil, value)
       common_options = {
@@ -46,7 +59,7 @@ module TensorStream
       else
         TensorStream::Variable.new(dtype || :float32, 0, nil, common_options)
       end
-      op.items[0] = tensor
+      op.inputs[0] = tensor
       tensor
     end
 
@@ -63,6 +76,10 @@ module TensorStream
       ensure
         Thread.current[:tensor_stream_variable_scope].pop
       end
+    end
+
+    def device(device_uri, &block)
+      get_default_graph.device(device_uri, &block)
     end
 
     def name_scope(name, default: nil, values: nil)
@@ -85,8 +102,8 @@ module TensorStream
       Thread.current[:tensor_stream_variable_scope].map(&:name).compact.reject(&:empty?).join('/')
     end
 
-    def session(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
-      session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class)
+    def session(evaluator = nil, thread_pool_class: Concurrent::ImmediateExecutor, log_device_placement: false)
+      session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class, log_device_placement: log_device_placement)
       yield session if block_given?
 
       session
@@ -100,27 +117,23 @@ module TensorStream
       TensorStream::Layers
     end
 
-    def constant(value, options = {})
-      shared_options = { const: true, value: value, name: options[:name] }
+    def constant(value, dtype: nil, shape: nil, internal: false, name: 'Const')
+      shared_options = { const: true, value: value, name: name, internal: internal }
       if value.is_a?(Float)
-        TensorStream::Tensor.new(options[:dtype] || :float32, 0, options[:shape] || [], shared_options)
+        TensorStream::Tensor.new(dtype || :float32, 0, shape || [], shared_options)
       elsif value.is_a?(Integer)
-        TensorStream::Tensor.new(options[:dtype] || :int32, 0, options[:shape] || [], shared_options)
+        TensorStream::Tensor.new(dtype || :int32, 0, shape || [], shared_options)
       elsif value.is_a?(String)
-        TensorStream::Tensor.new(options[:dtype] || :string, 0, options[:shape] || [], shared_options)
+        TensorStream::Tensor.new(dtype || :string, 0, shape || [], shared_options)
       elsif value.is_a?(Array)
-        dtype = nil
-        rank = 1
-        dimensions = []
-        value_ptr = value
+        dimension = shape || shape_eval(value)
+        rank = dimension.size
 
-        Kernel.loop do
-          dtype, rank, value_ptr, d = dtype_eval(rank, value_ptr)
-          dimensions << d
-          break if dtype != :array
-        end
+        cur_dtype = dtype || Tensor.detect_type(value.flatten.last)
+        value = Tensor.cast_dtype(value, cur_dtype) unless dtype.nil?
 
-        TensorStream::Tensor.new(dtype, rank, options[:shape] || dimensions, shared_options)
+        shared_options[:value] = value
+        TensorStream::Tensor.new(cur_dtype, rank, dimension, shared_options)
       end
     end
 

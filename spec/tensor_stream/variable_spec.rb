@@ -10,6 +10,8 @@ RSpec.describe TensorStream::Variable do
     TensorStream::Session.default_session.clear_session_cache
   end
 
+  let(:sess) { tf.session(:ruby_evaluator)}
+
   context "Variable" do
     it "define a variable" do
       # Set model weights
@@ -23,10 +25,9 @@ RSpec.describe TensorStream::Variable do
     end
 
     it "can access after initialized" do
-      session = TensorStream::Session.default_session
       mammal = TensorStream.variable("Elephant", dtype: :string)
-      session.run(TensorStream.global_variables_initializer)
-      expect(mammal.eval).to eq("Elephant")
+      sess.run(TensorStream.global_variables_initializer)
+      expect(sess.run(mammal)).to eq("Elephant")
     end
 
     specify "has a default data type" do
@@ -50,8 +51,7 @@ RSpec.describe TensorStream::Variable do
     end
 
     it "can access after initialized" do
-      session = TensorStream::Session.default_session
-      session.run(TensorStream.global_variables_initializer)
+      sess.run(TensorStream.global_variables_initializer)
       expect(variable.eval).to eq([23, 42])
     end
 

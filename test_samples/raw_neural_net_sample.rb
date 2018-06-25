@@ -38,15 +38,15 @@ Y = tf.placeholder(:float64, shape: [nil, num_classes])
 
 # Store layers weight & bias
 weights = {
-    'h1' => tf.variable(tf.random_normal([num_input, n_hidden_1]), dtype: :float64),
-    'h2' => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), dtype: :float64),
-    'out' => tf.variable(tf.random_normal([n_hidden_2, num_classes]), dtype: :float64)
+    'h1' => tf.variable(tf.random_normal([num_input, n_hidden_1]), dtype: :float64, name: 'h1'),
+    'h2' => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), dtype: :float64, name: 'h2'),
+    'out' => tf.variable(tf.random_normal([n_hidden_2, num_classes]), dtype: :float64, name: 'out')
 }
 
 biases = {
-    'b1' => tf.variable(tf.random_normal([n_hidden_1]), dtype: :float64),
-    'b2' => tf.variable(tf.random_normal([n_hidden_2]), dtype: :float64),
-    'out' => tf.variable(tf.random_normal([num_classes]), dtype: :float64)
+    'b1' => tf.variable(tf.random_normal([n_hidden_1]), dtype: :float64, name: 'b1'),
+    'b2' => tf.variable(tf.random_normal([n_hidden_2]), dtype: :float64, name: 'b2'),
+    'out' => tf.variable(tf.random_normal([num_classes]), dtype: :float64, name: 'out2')
 }
 
 
@@ -82,7 +82,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, :float32))
 init = tf.global_variables_initializer
 
 # Start training
-tf.session(:opencl_evaluator) do |sess|
+tf.session do |sess|
     # Run the initializer
     sess.run(init)
 

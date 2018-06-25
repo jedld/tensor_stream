@@ -14,16 +14,88 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   end
 
   it_behaves_like "standard ops evaluator"
+  it_behaves_like "TensorStream::Train::Saver"
 
-  it "can evaluate a tensor" do
-    c = tf.constant(1.0)
-    expect(instance.run(c, execution_context)).to eq(1.0)
-  end
+  context "supported ops" do
+    specify do
+      expect(described_class.ops.keys.size).to eq(72)
+    end
 
-  it "can evaluate an array of tensors" do
-    a = tf.constant(1.0)
-    input = [tf.constant([1.0, 1.0]), tf.sin(a)]
-    expect(instance.run(input, execution_context)).to eq([[1.0, 1.0], 0.8414709848078965])
+    specify do
+      expect(described_class.ops.keys.sort).to eq(%i[
+        abs
+        add
+        argmax
+        argmin
+        assign
+        assign_add
+        assign_sub
+        broadcast_gradient_args
+        broadcast_transform
+        cast
+        check_numerics
+        concat
+        cond
+        const
+        cos
+        div
+        equal
+        exp
+        eye
+        flow_group
+        glorot_uniform
+        greater
+        greater_equal
+        identity
+        index
+        less
+        less_equal
+        log
+        log1p
+        logical_and
+        matmul
+        max
+        mean
+        mul
+        negate
+        not_equal
+        ones
+        ones_like
+        pad
+        pow
+        print
+        prod
+        random_normal
+        random_uniform
+        rank
+        reciprocal
+        reduced_shape
+        reshape
+        round
+        sec
+        shape
+        sigmoid
+        sigmoid_grad
+        sign
+        sin
+        slice
+        softmax
+        softmax_grad
+        sqrt
+        square
+        stop_gradient
+        sub
+        sum
+        tan
+        tanh
+        tanh_grad
+        tile
+        transpose
+        truncate
+        where
+        zeros
+        zeros_like])
+    end
   end
 
   context "#shape_diff" do

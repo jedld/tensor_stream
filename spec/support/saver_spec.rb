@@ -1,9 +1,15 @@
-require "spec_helper"
-require 'benchmark'
-require 'matrix'
 
-RSpec.describe "TensorStream::Train::Saver" do
+
+RSpec.shared_examples "TensorStream::Train::Saver" do
+  before(:each) do
+    TensorStream::Tensor.reset_counters
+    TensorStream::Operation.reset_counters
+    tf.reset_default_graph
+    sess.clear_session_cache
+  end
+
   let(:tf) { TensorStream }
+
   it "saves models using the saver" do
     v1 = tf.get_variable("v1", shape: [3], initializer: tf.zeros_initializer)
     v2 = tf.get_variable("v2", shape: [5], initializer: tf.zeros_initializer)
@@ -19,15 +25,13 @@ RSpec.describe "TensorStream::Train::Saver" do
 
     # Later, launch the model, initialize the variables, do some work, and save the
     # variables to disk.
-    tf.session do |sess|
-      sess.run(init_op)
-      # Do some work with the model.
-      inc_v1.run()
-      dec_v2.run()
-      # Save the variables to disk.
-      save_path = saver.save(sess, "/tmp/model.ckpt")
-      print("Model saved in path: %s" % save_path)
-    end
+    sess.run(init_op)
+    # Do some work with the model.
+    sess.run(inc_v1)
+    sess.run(dec_v2)
+    # Save the variables to disk.
+    save_path = saver.save(sess, "/tmp/model.ckpt")
+    print("Model saved in path: %s" % save_path)
   end
 
   it "restores variables using the saver" do
@@ -42,16 +46,13 @@ RSpec.describe "TensorStream::Train::Saver" do
 
     # Later, launch the model, use the saver to restore variables from disk, and
     # do some work with the model.
-    tf.session do |sess|
-      # Restore variables from disk.
-      saver.restore(sess, "/tmp/model.ckpt")
-      print("Model restored.")
-      # Check the values of the variables
-      print("v1 : %s" % v1.eval())
-      print("v2 : %s" % v2.eval())
+    
+    # Restore variables from disk.
+    saver.restore(sess, "/tmp/model.ckpt")
+    print("Model restored.")
+    # Check the values of the variables
 
-      expect(v1.eval).to eq([1.0, 1.0, 1.0])
-      expect(v2.eval).to eq([-1.0, -1.0, -1.0, -1.0, -1.0])
-    end
+    expect(sess.run(v1)).to eq([1.0, 1.0, 1.0])
+    expect(sess.run(v2)).to eq([-1.0, -1.0, -1.0, -1.0, -1.0])
   end
 end

@@ -1,0 +1,6 @@
+% ["#{dtype}"].product(%w[less less_equal equal not_equal greater greater_equal logical_and]).each do |dtype, fname|
+% a_dtype = dtype_to_c_type(a)
+% b_dtype = dtype_to_c_type(b)
+% op = operator_to_c(fname)
+<%= render 'bool_operand.cl', a_dtype: a_dtype, b_dtype: b_dtype, op: op, fname: fname, dtype: "#{a}_#{b}", result_t: 'short' %>
+% end
