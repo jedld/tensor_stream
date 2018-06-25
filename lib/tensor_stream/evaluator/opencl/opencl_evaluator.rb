@@ -51,7 +51,7 @@ module TensorStream
 
       def self.fetch_device(query = [])
         devices = query_devices_with_score
-        platform_devices = devices.select { |d| d[0].platform.to_s.downcase =~ /#{query[0].downcase}/ }
+        platform_devices = devices.select { |d| d[0].platform.to_s.gsub(' ','_').downcase =~ /#{query[0].downcase}/ }
         opencl_to_device(platform_devices[[query[1].to_i, platform_devices.size - 1].min])
       end
 

@@ -1,33 +1,36 @@
-using GeForce GTX 950M
-Rehearsal ------------------------------------------------------------------
-pure ruby ooo matmul         :   1.850000   0.000000   1.850000 (  1.851424)
-opencl    ooo matmul         :   0.050000   0.000000   0.050000 (  0.059594)
-pure ruby softmax        :       0.310000   0.000000   0.310000 (  0.309991)
-opencl    softmax        :       0.040000   0.000000   0.040000 (  0.029352)
-pure ruby matmul         :       0.900000   0.000000   0.900000 (  0.902600)
-opencl    matmul         :       0.040000   0.000000   0.040000 (  0.032638)
-pure ruby                :       3.160000   0.010000   3.170000 (  3.167418)
-opencl                   :       0.200000   0.000000   0.200000 (  0.191803)
-pure ruby single function:       0.470000   0.000000   0.470000 (  0.486152)
-opencl     singlefunction:       0.120000   0.000000   0.120000 (  0.118357)
-pure ruby pow float:             0.120000   0.000000   0.120000 (  0.123476)
-opencl pow float:                0.060000   0.000000   0.060000 (  0.056446)
-pure ruby pow int:               0.020000   0.000000   0.020000 (  0.021575)
-opencl pow int:                  0.070000   0.010000   0.080000 (  0.073531)
---------------------------------------------------------- total: 7.430000sec
+TensorStream::Evaluator::OpenclEvaluator
+TensorStream::Evaluator::RubyEvaluator
+model name	: Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz
+OpenCL device NVIDIA CUDA GeForce GTX 950M
+Rehearsal --------------------------------------------------------------
+pure ruby ooo matmul     :   1.670000   0.010000   1.680000 (  1.682059)
+opencl    ooo matmul     :   0.100000   0.100000   0.200000 (  0.220002)
+pure ruby softmax        :   0.380000   0.010000   0.390000 (  0.377827)
+opencl    softmax        :   0.040000   0.000000   0.040000 (  0.040750)
+pure ruby matmul         :   1.000000   0.010000   1.010000 (  1.013795)
+opencl    matmul         :   0.040000   0.000000   0.040000 (  0.032285)
+pure ruby                :   3.460000   0.010000   3.470000 (  3.486048)
+opencl                   :   0.320000   0.020000   0.340000 (  0.326977)
+pure ruby single function:   0.460000   0.000000   0.460000 (  0.460433)
+opencl     singlefunction:   0.130000   0.000000   0.130000 (  0.130273)
+pure ruby pow float:         0.110000   0.000000   0.110000 (  0.115466)
+opencl pow float:            0.040000   0.010000   0.050000 (  0.030290)
+pure ruby pow int:           0.020000   0.000000   0.020000 (  0.023065)
+opencl pow int:              0.040000   0.010000   0.050000 (  0.044086)
+----------------------------------------------------- total: 7.990000sec
 
-                                     user     system      total        real
-pure ruby ooo matmul         :   1.840000   0.000000   1.840000 (  1.841208)
-opencl    ooo matmul         :   0.060000   0.020000   0.080000 (  0.073492)
-pure ruby softmax        :       0.310000   0.000000   0.310000 (  0.306199)
-opencl    softmax        :       0.030000   0.000000   0.030000 (  0.034720)
-pure ruby matmul         :       0.910000   0.000000   0.910000 (  0.910180)
-opencl    matmul         :       0.030000   0.010000   0.040000 (  0.025197)
-pure ruby                :       3.180000   0.000000   3.180000 (  3.170839)
-opencl                   :       0.170000   0.000000   0.170000 (  0.165880)
-pure ruby single function:       0.430000   0.000000   0.430000 (  0.427909)
-opencl     singlefunction:       0.090000   0.010000   0.100000 (  0.091550)
-pure ruby pow float:             0.090000   0.000000   0.090000 (  0.096681)
-opencl pow float:                0.040000   0.000000   0.040000 (  0.040202)
-pure ruby pow int:               0.020000   0.000000   0.020000 (  0.021576)
-opencl pow int:                  0.030000   0.000000   0.030000 (  0.022889)
+                                 user     system      total        real
+pure ruby ooo matmul     :   1.790000   0.000000   1.790000 (  1.794305)
+opencl    ooo matmul     :   0.050000   0.000000   0.050000 (  0.049030)
+pure ruby softmax        :   0.300000   0.000000   0.300000 (  0.305664)
+opencl    softmax        :   0.030000   0.000000   0.030000 (  0.021897)
+pure ruby matmul         :   0.810000   0.000000   0.810000 (  0.805583)
+opencl    matmul         :   0.030000   0.000000   0.030000 (  0.024358)
+pure ruby                :   2.870000   0.010000   2.880000 (  2.881779)
+opencl                   :   0.170000   0.000000   0.170000 (  0.173036)
+pure ruby single function:   0.400000   0.000000   0.400000 (  0.398390)
+opencl     singlefunction:   0.120000   0.000000   0.120000 (  0.117482)
+pure ruby pow float:         0.100000   0.000000   0.100000 (  0.099471)
+opencl pow float:            0.030000   0.000000   0.030000 (  0.025039)
+pure ruby pow int:           0.030000   0.000000   0.030000 (  0.028251)
+opencl pow int:              0.040000   0.000000   0.040000 (  0.031384)

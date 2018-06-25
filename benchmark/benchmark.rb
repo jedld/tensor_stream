@@ -24,7 +24,10 @@ seed = 5
 tf.set_random_seed(seed)
 
 SHAPES = [32, 32]
-a = tf.random_uniform(SHAPES)
+
+sess = tf.session(:ruby_evaluator)
+
+a = tf.constant(sess.run(tf.random_uniform(SHAPES)))
 a_int = tf.constant([
   [1, 2, 3, 4, 4, 1, 4, 8, 3, 4, 1, 1],
   [2, 2, 3, 4, 4, 1, 1, 1, 1, 4, 1, 1],
@@ -40,11 +43,11 @@ a_int = tf.constant([
   [4, 2, 3, 4, 0, 1, 1, 0, 0, 2, 1, 2],
 ])
 
-b = tf.random_uniform(SHAPES)
+b = tf.constant(sess.run(tf.random_uniform(SHAPES)))
 
-c = tf.random_uniform(SHAPES)
+c = tf.constant(sess.run(tf.random_uniform(SHAPES)))
 
-d = tf.random_uniform(SHAPES)
+d = tf.constant(sess.run(tf.random_uniform(SHAPES)))
 
 p = tf.placeholder('float')
 q = tf.placeholder('float')
@@ -59,13 +62,11 @@ softmax = tf.nn.softmax(a)
 
 puts TensorStream::Evaluator.default_evaluators
 
-sess = tf.session(:ruby_evaluator)
 sess2 = tf.session
 
 puts `cat /proc/cpuinfo | grep "model name" | head -1`
 device = TensorStream::Evaluator::OpenclEvaluator.default_device.native_device
 puts "OpenCL device #{device.platform.to_s} #{device.name}"
-
 Benchmark.bmbm do |x|
   x.report("pure ruby ooo matmul     :") { 100.times do sess.run(out_of_order) end }
   x.report("opencl    ooo matmul     :") { 100.times do sess2.run(out_of_order) end }
