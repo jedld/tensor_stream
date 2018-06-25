@@ -29,7 +29,7 @@ module TensorStream
       end
 
       def self.query_device(query)
-        return default_device if query.nil?
+        return default_device if query.nil? || query == :default
 
         all_devices = query_supported_devices
         substrs = query.split('/')

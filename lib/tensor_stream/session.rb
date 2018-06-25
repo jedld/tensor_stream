@@ -129,7 +129,6 @@ module TensorStream
       if @evaluators.key?(key)
         @evaluators[key]
       else
-        puts "Creating new evaluator #{key}"
         @evaluators[key] = device.evaluator.new(self, device)
       end
     end
