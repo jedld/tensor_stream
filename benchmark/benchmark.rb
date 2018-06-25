@@ -62,6 +62,10 @@ puts TensorStream::Evaluator.default_evaluators
 sess = tf.session(:ruby_evaluator)
 sess2 = tf.session
 
+puts `cat /proc/cpuinfo | grep "model name" | head -1`
+device = TensorStream::Evaluator::OpenclEvaluator.default_device.native_device
+puts "OpenCL device #{device.platform.to_s} #{device.name}"
+
 Benchmark.bmbm do |x|
   x.report("pure ruby ooo matmul     :") { 100.times do sess.run(out_of_order) end }
   x.report("opencl    ooo matmul     :") { 100.times do sess2.run(out_of_order) end }
@@ -78,6 +82,3 @@ Benchmark.bmbm do |x|
   x.report("pure ruby pow int:") { 100.times do sess.run(pow_i, feed_dict: { p => rand, q => rand }) end }
   x.report("opencl pow int:") { 100.times do sess2.run(pow_i, feed_dict: { p => rand, q => rand }) end }
 end
-
-puts `cat /proc/cpuinfo | grep "model name" | head -1`
-puts "OpenCL device #{sess2.last_session_context[:cl_device].platform} #{sess2.last_session_context[:cl_device].name}"
