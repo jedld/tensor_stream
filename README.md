@@ -214,10 +214,41 @@ sess.run(....) # do stuff
 
 ```
 
-You can manually place operations using ts.device
+You can manually place operations using ts.device e.g:
 
 ```ruby
+ts = TensorStream
+# Creates a graph. place in the first OpenCL CPU device
 
+a, b = ts.device('/cpu:0') do
+  a = ts.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape: [2, 3], name: 'a')
+  b = ts.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape: [3, 2], name: 'b')
+  [a, b]
+end
+
+c = ts.device('/device:GPU:0') do
+  ts.matmul(a, b)
+end
+
+# Creates a session with log_device_placement set to True.
+sess = ts.session(log_device_placement: true)
+# Runs the op.
+print(sess.run(c))
+
+# a : apple:0
+# b : apple:0
+# a_1 : apple:0
+# b_1 : apple:0
+# matmul:0 : apple:1
+# [[22.0, 28.0], [49.0, 64.0]] => nil
+```
+
+To force the ruby evaluator even with the OpenCL evaluator loaded you can use:
+
+```ruby
+ts.device('/ts:ruby:cpu') do
+    # put ops here
+end
 ```
 
 Note that the OpenCL evaluator provides speedup if you are using large tensors, tensors that are only using scalars like the linear regression sample will actually be slower.
