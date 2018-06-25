@@ -181,7 +181,7 @@ module TensorStream
 
     def get_device_scope
       graph_thread_storage = Thread.current["ts_graph_#{object_id}"]
-      return :default if graph_thread_storage.nil? || graph_thread_storage[:default_device].nil?
+      return nil if graph_thread_storage.nil? || graph_thread_storage[:default_device].nil?
 
       graph_thread_storage[:default_device].last
     end

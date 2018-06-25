@@ -19,7 +19,34 @@ module TensorStream
       end
 
       def self.query_supported_devices
-        [Device.new("cpu", :cpu, "ruby")]
+        [Device.new("cpu", :cpu, self)]
+      end
+
+      ##
+      # Select the best device available in the system for this evaluator
+      def self.default_device
+        Device.new("cpu", :cpu, self)
+      end
+
+      def self.query_device(query)
+        return default_device if query.nil?
+
+        all_devices = query_supported_devices
+        substrs = query.split('/')
+        substrs.each do |q|
+          components = q.split(':')
+          next if components.size.zero?
+          if components[0] == 'device' # use tensorflow convention
+            device_type = components[1]
+            select_index = components[2].to_i
+
+            devices = all_devices.select { |d| d.type == device_type.downcase.to_sym }
+            return nil if devices.empty?
+
+            select_index = [devices.size - 1, select_index].min
+            return devices[select_index]
+          end
+        end
       end
 
       def self.register_op(opcode, options = {}, &block)

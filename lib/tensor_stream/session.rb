@@ -13,21 +13,21 @@ module TensorStream
       @randomizer = {}
       @evaluator_options = evaluator_options
       get_evaluator_classes(evaluator)
-      @evaluators = @evaluator_classes.map { |klass| klass.new(self, @evaluator_options) }
+      @evaluators = {}
     end
 
     def get_evaluator_classes(evaluators)
-      if evaluators.is_a?(Array)
-        if evaluators.empty?
-          @evaluator_classes = TensorStream::Evaluator.default_evaluators
-        else
-          @evaluator_classes = evaluators.collect { |name|  Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
-        end
-      elsif evaluators.nil?
-        @evaluator_classes = TensorStream::Evaluator.default_evaluators
-      else
-        @evaluator_classes = [Object.const_get("TensorStream::Evaluator::#{camelize(evaluators.to_s)}")]
-      end
+      @evaluator_classes = if evaluators.is_a?(Array)
+                             if evaluators.empty?
+                               TensorStream::Evaluator.default_evaluators
+                             else
+                               evaluators.collect { |name|  Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
+                             end
+                           elsif evaluators.nil?
+                             TensorStream::Evaluator.default_evaluators
+                           else
+                             [Object.const_get("TensorStream::Evaluator::#{camelize(evaluators.to_s)}")]
+                           end
     end
 
     def clear_session_cache
@@ -116,11 +116,22 @@ module TensorStream
     protected
 
     def assign_evaluator(tensor, evaluators)
-      evaluators.each do |evaluator|
-        next if tensor.is_a?(Operation) && !evaluator.class.ops.include?(tensor.operation.to_sym)
-        return evaluator
+      device = @evaluator_classes.map do |klass|
+        next nil if tensor.is_a?(Operation) && !klass.ops.include?(tensor.operation.to_sym)
+        next klass.default_device if tensor.device.nil?
+
+        klass.query_device(tensor.device)
+      end.compact.first
+
+      raise "no evaluator available to execute #{tensor.operation}" if device.nil?
+
+      key = "#{device.evaluator.to_s}/#{device.name}"
+      if @evaluators.key?(key)
+        @evaluators[key]
+      else
+        puts "Creating new evaluator #{key}"
+        @evaluators[key] = device.evaluator.new(self, device)
       end
-      raise "no evaluator available to execute #{tensor.operation}"
     end
 
     def prepare_evaluators(tensor_arr, context)

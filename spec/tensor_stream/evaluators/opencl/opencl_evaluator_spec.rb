@@ -5,7 +5,7 @@ require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
   let(:tf) { TensorStream }
   let(:sess) { TensorStream.session([:opencl_evaluator, :ruby_evaluator]) }
-  let(:instance) { described_class.new(sess, {})}
+  let(:instance) { described_class.new(sess, TensorStream::Evaluator::OpenclEvaluator.default_device, {})}
 
   it_behaves_like "standard ops evaluator"
   it_behaves_like "TensorStream::Train::Saver"
@@ -14,11 +14,11 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
     TensorStream.session([:opencl_evaluator, :ruby_evaluator])
   end
 
-  around :each do |spec|
-    device = described_class.query_supported_devices.first
-    # puts "using #{device.name}"
-    tf.device(device) do
-      spec.call
+  context ".query_device" do
+    it "selects the first GPU if there is one" do
+      device = described_class.query_device("/device:GPU:0")
+      expect(device).to be
+      expect(device.type).to eq(:gpu)
     end
   end
 

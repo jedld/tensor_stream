@@ -3,6 +3,7 @@ require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
 require 'tensor_stream/evaluator/operation_helpers/math_helper'
 require 'tensor_stream/evaluator/opencl/opencl_buffer'
 require 'tensor_stream/evaluator/opencl/opencl_template_helper'
+require 'tensor_stream/evaluator/opencl/opencl_device'
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
 require 'tensor_stream/evaluator/base_evaluator'
@@ -36,18 +37,37 @@ module TensorStream
 
       def initialize(session, device, thread_pool: nil, log_intermediates: false)
         super
+        _create_opencl_context(device.native_device)
+        @opencl_device = device.native_device
+        create_command_queue
       end
 
       def self.query_supported_devices
         devices = query_devices_with_score
         devices.sort { |a| a[1] }.reverse.map do |d|
-          device = d[0]
-          index = d[3]
-          platform_name = device.platform.name.gsub(/(.)([A-Z])/,'\1_\2').downcase
-          uri = [platform_name, index].join('/')
-
-          Device.new(uri, device.type, 'opencl')
+          opencl_to_device(d)
         end
+      end
+
+      def self.opencl_to_device(d)
+        device = d[0]
+        index = d[3]
+        platform_name = device.platform.name.gsub(/(.)([A-Z])/,'\1_\2').downcase
+        uri = [platform_name, index].join('/')
+
+        device_type = device.type.to_s == 'GPU' ? :gpu : :cpu
+
+        OpenclDevice.new(uri, device_type, self).tap do |d|
+          d.native_device = device
+        end
+      end
+
+      ##
+      # Select the best device available in the system for this evaluator
+      def self.default_device
+        devices = OpenclEvaluator.query_devices_with_score
+        device = devices.sort { |a| a[1] }.reverse.first
+        opencl_to_device(device)
       end
 
       # opencl evaluator main entrypoint
@@ -58,8 +78,6 @@ module TensorStream
       def run_with_buffer(tensor, context, execution_context)
         @context = context
         @context[:_cache][:_cl_buffers] ||= {} if context[:_cache]
-        _create_opencl_context
-        create_command_queue
 
         if tensor.is_a?(Array)
           tensor.collect do |t|
@@ -93,7 +111,7 @@ module TensorStream
       end
 
       def opencl_device
-        @context[:_cache][:_opencl_device]
+        @opencl_device
       end
 
       protected
@@ -120,18 +138,8 @@ module TensorStream
         buffer.to_ruby
       end
 
-      def _create_opencl_context
-        @context[:_cache][:_opencl_device] ||= begin
-          if @preferred_device
-            @preferred_device
-          else
-            device, _score, _platform, _index = choose_best_device
-            # puts "using #{device.name}"
-            device
-          end
-        end
-        @context[:cl_device] = opencl_device
-        @context[:_cache][:_opencl_context] ||= OpenCL.create_context(opencl_device)
+      def _create_opencl_context(opencl_device)
+        @opencl_context ||= OpenCL.create_context(opencl_device)
       end
 
       def choose_best_device
@@ -169,15 +177,15 @@ module TensorStream
         properties = []
         properties << OpenCL::CommandQueue::PROFILING_ENABLE if supported_proprties.include?('PROFILING_ENABLE')
         properties << OpenCL::CommandQueue::OUT_OF_ORDER_EXEC_MODE_ENABLE if supported_proprties.include?('OUT_OF_ORDER_EXEC_MODE_ENABLE')
-        @context[:_cache][:_opencl_queue] ||= _opencl_context.create_command_queue(opencl_device, properties: properties)
+        @command_queue ||= _opencl_context.create_command_queue(opencl_device, properties: properties)
       end
 
       def _opencl_context
-        @context[:_cache][:_opencl_context]
+        @opencl_context
       end
 
       def _opencl_queue
-        @context[:_cache][:_opencl_queue]
+        @command_queue
       end
 
       def cl_template_path(kernel, extension)
