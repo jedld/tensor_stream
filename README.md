@@ -127,14 +127,14 @@ Note the difference in named and optional parameters
 Python
 
 ```python
-w = tf.Variable(0, name='weights')
-w = tf.Variable(0, 'weights')
+w = ts.Variable(0, name='weights')
+w = ts.Variable(0, 'weights')
 ```
 
 Ruby
 
 ```ruby
-w = tf.variable(0, name: 'weights')
+w = ts.variable(0, name: 'weights')
 ```
 
 # Shapes
@@ -149,31 +149,31 @@ ruby supports symbols for specifying data types, nil can be used for None
 
 Ruby
 ```ruby
-x = tf.placeholder(:float32, shape: [1024, 1024])
-x = tf.placeholder(:float32, shape: [nil, 1024])
+x = ts.placeholder(:float32, shape: [1024, 1024])
+x = ts.placeholder(:float32, shape: [nil, 1024])
 ```
 
 For debugging, each operation or tensor supports the to_math method
 
 ```ruby
-X = tf.placeholder("float")
-Y = tf.placeholder("float")
-W = tf.variable(rand, name: "weight")
-b = tf.variable(rand, name: "bias")
+X = ts.placeholder("float")
+Y = ts.placeholder("float")
+W = ts.variable(rand, name: "weight")
+b = ts.variable(rand, name: "bias")
 pred = X * W + b
-cost = tf.reduce_sum(tf.pow(pred - Y, 2)) / ( 2 * 10)
+cost = ts.reduce_sum(ts.pow(pred - Y, 2)) / ( 2 * 10)
 cost.to_math # "(reduce_sum(|((((Placeholder: * weight) + bias) - Placeholder_2:)^2)|) / 20.0)"
 ```
 
 breakpoints can also be set, block will be evaluated during computation
 
 ```ruby
-a = tf.constant([2,2])
-b = tf.constant([3,3])
+a = ts.constant([2,2])
+b = ts.constant([3,3])
 
-f = tf.matmul(a, b).breakpoint! { |tensor, a, b, result_value| binding.pry }
+f = ts.matmul(a, b).breakpoint! { |tensor, a, b, result_value| binding.pry }
 
-tf.session.run(f)
+ts.session.run(f)
 ```
 
 ### OpenCL
@@ -187,15 +187,36 @@ Also include the following gem in your project:
 gem 'opencl_ruby_ffi'
 ```
 
-To use the opencl evaluator instead of the ruby evaluator:
+To use the opencl evaluator instead of the ruby evaluator simply add require it.
 
 ```ruby
-require 'tensor_stream/evaluator/opencl_evaluator'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+```
+
+Adding the OpenCL evaluator should expose additional devices available to tensor_stream
+
+```ruby
+ts.list_local_devices
+# ["job:localhost/ts:ruby:cpu", "job:localhost/ts:opencl:apple:0", "job:localhost/ts:opencl:apple:1"]
+```
+Here we see 1 "ruby" cpu device and 2 opencl "apple" devices (Intel CPU, Intel Iris GPU)
+
+By default TensorStream will determine using the given evaluators the best possible
+placement for each tensor operation
+
+```ruby
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 # set session to use the opencl evaluator
-sess = tf.session(:opencl_evaluator)
+sess = ts.session
 
 sess.run(....) # do stuff
+
+```
+
+You can manually place operations using ts.device
+
+```ruby
 
 ```
 

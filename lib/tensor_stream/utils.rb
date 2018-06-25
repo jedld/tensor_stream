@@ -36,7 +36,7 @@ module TensorStream
       local_name = 'job:localhost'
       TensorStream::Evaluator.evaluators.collect do |k, v|
         v[:class].query_supported_devices.collect do |device_str|
-          [local_name, "ts:#{device_str.name}"].join('/') + '?evaluator=' + k
+          [local_name, "ts:#{k}:#{device_str.name}"].join('/')
         end
       end.flatten
     end

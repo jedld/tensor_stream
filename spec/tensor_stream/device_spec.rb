@@ -4,7 +4,7 @@ RSpec.describe TensorStream::Graph do
   let(:tf) { TensorStream }
   context ".list_local_devices" do
     specify do
-      expect(tf.list_local_devices).to include "job:localhost/ts:cpu?evaluator=ruby"
+      expect(tf.list_local_devices).to include "job:localhost/ts:ruby:cpu"
     end
   end
 

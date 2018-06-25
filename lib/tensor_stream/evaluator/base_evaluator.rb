@@ -28,6 +28,13 @@ module TensorStream
         Device.new("cpu", :cpu, self)
       end
 
+      ##
+      # Selects the best device with the specified query, query can
+      # be evaluator specific
+      def self.fetch_device(query = [])
+        Device.new("cpu", :cpu, self)
+      end
+
       def self.query_device(query)
         return default_device if query.nil? || query == :default
 
@@ -54,10 +61,17 @@ module TensorStream
 
             select_index = [devices.size - 1, select_index].min
             return devices[select_index]
+          elsif components[0] == 'ts' # tensorstream specific
+            evaluator_class = TensorStream::Evaluator.evaluators[components[1]][:class]
+            return nil unless self == evaluator_class
+            return evaluator_class.fetch_device(components[2..components.size]) if evaluator_class.respond_to?(:fetch_device)
+            return nil
           end
         end
       end
 
+      ##
+      # registers an op for the current evaluator class
       def self.register_op(opcode, options = {}, &block)
         @ops ||= {}
         if opcode.is_a?(Array)
@@ -70,6 +84,8 @@ module TensorStream
         end
       end
 
+      ##
+      # gets all supported ops for this Evaluator class
       def self.ops
         @ops ||={}
       end

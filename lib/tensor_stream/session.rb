@@ -63,16 +63,18 @@ module TensorStream
 
       args.each { |t| prepare_evaluators(t, context) }
       @last_session_context = context
-      result = args.collect do |e|
-        value = delegate_to_evaluator(e, context, {})
-        value.respond_to?(:to_ruby) ? value.to_ruby : value
-      end
 
       if @log_device_placement
         context[:_cache][:placement].each do |k, v|
           puts "#{k} : #{v[0].name}"
         end
       end
+      result = args.collect do |e|
+        value = delegate_to_evaluator(e, context, {})
+        value.respond_to?(:to_ruby) ? value.to_ruby : value
+      end
+
+ 
 
       result.size == 1 ? result.first : result
     end

@@ -1,4 +1,6 @@
 RSpec.shared_examples "standard ops evaluator" do
+  extend SupportedOp
+
   before(:each) do
     TensorStream::Tensor.reset_counters
     TensorStream::Operation.reset_counters
@@ -69,7 +71,7 @@ RSpec.shared_examples "standard ops evaluator" do
     expect(tr(sess.run(*input))).to eq([[1.0, 1.0], 0.8415])
   end
 
-  context ".zeros_like" do
+  supported_op ".zeros_like" do
     it "Creates a tensor with all elements set to zero." do
       tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
       z = tf.zeros_like(tensor)
@@ -77,7 +79,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".concat" do
+  supported_op ".concat" do
     it "Concatenates tensors along one dimension." do
       t1 = [[1, 2, 3], [4, 5, 6]]
       t2 = [[7, 8, 9], [10, 11, 12]]
@@ -96,7 +98,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".reshape" do
+  supported_op ".reshape" do
     it "Reshapes a tensor." do
       t = [1, 2, 3, 4, 5, 6, 7, 8, 9]
       expect(sess.run(tf.reshape(t, [3, 3]))).to eq(
@@ -186,7 +188,7 @@ RSpec.shared_examples "standard ops evaluator" do
   # The generated values follow a uniform distribution in the range [minval, maxval). The lower bound minval is included in the range, while the upper bound maxval is excluded.
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.
   # In the integer case, the random integers are slightly biased unless maxval - minval is an exact power of two. The bias is small for values of maxval - minval significantly smaller than the range of the output (either 2**32 or 2**64).
-  context ".random_uniform" do
+  supported_op ".random_uniform" do
     before do
       tf.set_random_seed(1234)
       @sess = create_session
@@ -243,7 +245,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".pad" do
+  supported_op ".pad" do
     it "pads a tensor, rank 1" do
       t = tf.constant([1, 2, 3])
       paddings = tf.constant([[1,1]])
@@ -296,7 +298,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".eye" do
+  supported_op ".eye" do
     it "creates an identity matrix" do
       tf.program do |tf|
         e = tf.eye(2)
@@ -393,7 +395,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".reduce_mean" do
+  supported_op ".reduce_mean" do
     it "Computes the mean of elements across dimensions of a tensor" do
       x = tf.constant([[1.0, 1.0], [2.0, 2.0]])
       expect(sess.run(tf.reduce_mean(x))).to eq(1.5)
@@ -414,7 +416,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".tile" do
+  supported_op ".tile" do
     it "Constructs a tensor by tiling a given tensor." do
       a = tf.constant([[1, 2, 3, 4], [1, 2, 3, 4]])
       expect(sess.run(tf.tile(a,[1, 0]))).to eq([])
@@ -432,7 +434,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".max" do
+  supported_op ".max" do
     it "returns the maximum of two tensors" do
       a = tf.constant(1.0)
       b = tf.constant([1.0, 3.0])
@@ -450,7 +452,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".cast" do
+  supported_op ".cast" do
     it "converts from one datatype to another" do
       a = tf.constant([1.0, 3.0])
       b = tf.constant([true, true])
@@ -461,7 +463,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".less" do
+  supported_op ".less" do
     it "returns true if a < b" do
       a = tf.constant(2.0)
       b = tf.constant(3.0)
@@ -471,7 +473,7 @@ RSpec.shared_examples "standard ops evaluator" do
   end
 
 
-  context ".greater_equal" do
+  supported_op ".greater_equal" do
     it "returns true if a >= b elementwise" do
       a = tf.constant(1.0)
       b = tf.constant(1.0)
@@ -485,7 +487,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".less_equal" do
+  supported_op ".less_equal" do
     it "returns true if a >= b elementwise" do
       a = tf.constant(1.0)
       b = tf.constant(1.0)
@@ -499,7 +501,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".equal" do
+  supported_op ".equal" do
     it "returns the truth value of two tensors" do
       a = tf.constant(1.0)
       b = tf.constant(1.0)
@@ -518,7 +520,7 @@ RSpec.shared_examples "standard ops evaluator" do
   end
 
 
-  context ".logical_and" do
+  supported_op ".logical_and" do
     it "Returns the truth value of x AND y element-wise." do
       a = tf.constant([[true, true], [false, true]])
       b = tf.constant([[true, true], [true, true]])
@@ -530,7 +532,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".not_equal" do
+  supported_op ".not_equal" do
     it "returns the truth value of two tensors" do
       a = tf.constant(1.0)
       b = tf.constant(1.0)
@@ -548,7 +550,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".print" do
+  supported_op ".print" do
     it "behaves like identity but prints a message to stdout" do
       x = tf.constant([[2.0, 2.0], [3.0, 3.0]])
       y = tf.print(x, x, message: "this is a prefix")
@@ -557,7 +559,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".slice" do
+  supported_op ".slice" do
     it "slices a tensor" do
       t = tf.constant([[[1, 1, 1], [2, 2, 2]],
         [[3, 3, 3], [4, 4, 4]],
@@ -573,7 +575,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".rank" do
+  supported_op ".rank" do
     it "returns the rank of a tensor" do
       t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
       t2 = tf.constant(1)
@@ -587,7 +589,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".negate" do
+  supported_op ".negate" do
     it "computes the negative of a tensor" do
       x = tf.constant(0.1)
       y = tf.constant([[1.1, 16.1], [2.1, 3.0]])
@@ -601,7 +603,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".abs" do
+  supported_op ".abs" do
     it "Computes the absolute value of a tensor" do
       tf = TensorStream
 
@@ -620,7 +622,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".sign" do
+  supported_op ".sign" do
     it "Returns an element-wise indication of the sign of a number." do
       tf = TensorStream
 
@@ -632,7 +634,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".transpose" do
+  supported_op ".transpose" do
     it "transposes matrices" do
       tf.program do |tf|
         x = tf.constant([[1, 2, 3], [4, 5, 6]])
@@ -642,21 +644,22 @@ RSpec.shared_examples "standard ops evaluator" do
       end
     end
   end
-  context ".zeros" do
+
+  supported_op ".zeros" do
     it "generates a zero tensor" do
       a = tf.zeros([2,2])
       expect(sess.run(a)).to eq([[0.0, 0.0], [0.0, 0.0]])
     end
   end
 
-  context ".ones" do
+  supported_op ".ones" do
     it "generates a ones tensor" do
       ones = tf.ones([2,2])
       expect(sess.run(ones)).to eq([[1.0, 1.0], [1.0, 1.0]])
     end
   end
 
-  context ".where" do
+  supported_op ".where" do
     it "does an elementwise comparison and picks the appropriate element from x or y" do
       a = tf.constant([1,2,3,4,5])
       b = tf.constant([6,6,6,6,6])
@@ -698,7 +701,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".random_uniform_initializer" do
+  supported_op ".random_uniform_initializer" do
     it "initializes variables using the random uniform initializer" do
       tf.set_random_seed(1234)
       u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.random_uniform_initializer)
@@ -707,7 +710,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".zeros_initializer" do
+  supported_op ".zeros_initializer" do
     specify do
       u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.zeros_initializer)
       sess.run(tf.global_variables_initializer)
@@ -715,7 +718,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".assign_add" do
+  supported_op ".assign_add" do
     [ [[],    1.0                      ],
       [[1],   [1.0]                     ],
       [[2],   [1.0, 1.0]                ],
@@ -732,7 +735,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".assign" do
+  supported_op ".assign" do
     specify "assign should set value" do
       w = TensorStream.variable(rand, name: "weight", initializer: TensorStream.zeros_initializer)
       sess.run(TensorStream.global_variables_initializer)
@@ -741,7 +744,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".greater" do
+  supported_op ".greater" do
     it "returns true if a > b" do
       a = tf.constant(2.0)
       b = tf.constant(3.0)
@@ -756,7 +759,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".pow" do
+  supported_op ".pow" do
     it "Computes the power of tensor x to tensor y" do
       x = tf.constant([[2, 2], [3, 3]])
       y = tf.constant([[8, 15], [2, 3]])
@@ -779,7 +782,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".argmin" do
+  supported_op ".argmin" do
     it "Returns the index with the smallest value across axes of a tensor. " do
       a = tf.constant([
         [31, 23,  4, 24, 27, 34],
@@ -794,7 +797,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context '.argmax' do
+  supported_op '.argmax' do
     it 'Returns the index with the largest value across axes of a tensor. (deprecated arguments)' do
       a = tf.constant([
         [31, 23,  4, 24, 27, 34],
@@ -857,7 +860,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".sub" do
+  supported_op ".sub" do
     let(:a) { tf.constant([1.0, 2.0, 3.0])}
     let(:b) { tf.constant([0.1, 0.2, 0.3])}
     let(:c) { tf.constant(0.1) }
@@ -886,7 +889,7 @@ RSpec.shared_examples "standard ops evaluator" do
       @sess = tf.session
     end
 
-    context ".random_normal" do
+    supported_op ".random_normal" do
       [
         [[],    0.5011628459350929],
         [[1],   [0.5011628459350929] ],
@@ -902,7 +905,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".div" do
+  supported_op ".div" do
     let(:a) { tf.constant(2.5) }
     let(:b) { tf.constant(3.1) }
 
@@ -917,7 +920,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  context ".mul" do
+  supported_op ".mul" do
     it "performs elementwise multiplication" do
       a = tf.constant([[1, 2, 3], [4, 5, 6]])
 
@@ -1017,7 +1020,7 @@ RSpec.shared_examples "standard ops evaluator" do
       [:reciprocal, 10.0, [[0.9091,  0.4762], [0.4762, 0.3333]], -100,  [[-0.8264,  -0.2268], [-0.2268, -0.1111]]                         ],
       [:sigmoid, 0.525, [[0.7503, 0.8909], [0.8909, 0.9526]], 0.2494, [[0.1874, 0.0972], [0.0972, 0.0452]]]
     ].each do |func, scalar, matrix, gradient, gradient2|
-      context ".#{func}" do
+      supported_op ".#{func}" do
         let(:x) { tf.constant(0.1) }
         let(:y) {  tf.constant([[1.1, 2.1], [2.1, 3.0]]) }
         let(:f_x) { tf.send(func,x) }
@@ -1110,7 +1113,7 @@ context ".shape" do
   end
 end
 
-context ".reduce_sum" do
+supported_op ".reduce_sum" do
   it "computes the sum of elements across dimensions of a tensor." do
     x = tf.constant([[1, 1, 1], [1, 1, 1]])
 
@@ -1148,7 +1151,7 @@ context ".reduce_sum" do
   end
 end
 
-context ".reduce_prod" do
+supported_op ".reduce_prod" do
   it "computes the sum of elements across dimensions of a tensor." do
     x = tf.constant([[2, 1, 2], [2, 1, 2]])
     expect(sess.run(tf.reduce_prod(x))).to eq(16)
@@ -1173,7 +1176,7 @@ context ".reduce_prod" do
   end
 end
 
-context ".zeros_like" do
+supported_op ".zeros_like" do
   it "generates a zero tensor based on another tensor" do
     a = tf.zeros_like([2,2,2,2,2])
     b = tf.zeros_like([[2,2],[3,3]])
@@ -1182,7 +1185,7 @@ context ".zeros_like" do
   end
 end
 
-context ".ones_like" do
+supported_op ".ones_like" do
   it "generates a zero tensor based on another tensor" do
     a = tf.ones_like([2, 2, 2, 2, 2])
     b = tf.ones_like([[2, 2],[3, 3]])
@@ -1211,7 +1214,7 @@ end
       [:add, 3.0,  [3.0, 1.6],  [[3.0, 1.6], [3.8, 0.21]],    [1.0,  1.0],  [[1.0, 1.0], [1.0,   1.0]],  [[[1.0, 1.0], [1.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]]] ],
       [:sub, -1.0, [-1.0, 1.4], [[-1.0, 1.4], [-2.2, 0.19]],  [1.0, -1.0],  [[1.0, 1.0], [-1.0, -1.0]],   [[[1.0, 1.0], [1.0, 1.0]], [[-1.0, -1.0], [-1.0, -1.0]]] ],
     ].each do |op, expected_0, expected_1, expected_2, expected_grad_0, expected_grad_1, expected_grad_2|
-      context ".#{op}" do
+      supported_op ".#{op}" do
 
 
         specify "basic scalar operation" do
@@ -1232,7 +1235,7 @@ end
       [:add, [3.0, 3.5],   [[3.0, 3.5], [2.8, 2.2]], [[1.0, 1.0], 2.0],       [[[1.0, 1.0], [1.0, 1.0]], 4.0] ],
       [:sub, [-1.0, -0.5], [[-1.0, -0.5], [-1.2, -1.8]], [[1.0, 1.0], -2.0],  [[[1.0, 1.0], [1.0, 1.0]], -4.0] ],
     ].each do |op, expected_1_0, expected_2_0, grad_1_0, grad_2_0|
-      context ".#{op}" do
+      supported_op ".#{op}" do
         specify "mixed rank operation 1  vs 0" do
           func_test(op, a_1, b, expected_1_0, grad_1_0)
         end

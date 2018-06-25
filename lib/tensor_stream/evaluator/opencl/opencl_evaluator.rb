@@ -49,11 +49,17 @@ module TensorStream
         end
       end
 
+      def self.fetch_device(query = [])
+        devices = query_devices_with_score
+        platform_devices = devices.select { |d| d[0].platform.to_s.downcase =~ /#{query[0].downcase}/ }
+        opencl_to_device(platform_devices[[query[1].to_i, platform_devices.size - 1].min])
+      end
+
       def self.opencl_to_device(d)
         device = d[0]
         index = d[3]
-        platform_name = device.platform.name.gsub(/(.)([A-Z])/,'\1_\2').downcase
-        uri = [platform_name, index].join('/')
+        platform_name = device.platform.name.gsub(' ', '_').downcase
+        uri = [platform_name, index].join(':')
 
         device_type = device.type.to_s == 'GPU' ? :gpu : :cpu
 
@@ -139,7 +145,7 @@ module TensorStream
       end
 
       def _create_opencl_context(opencl_device)
-        @opencl_context ||= OpenCL.create_context(opencl_device)
+        @opencl_context = OpenCL.create_context(opencl_device)
       end
 
       def choose_best_device
@@ -177,7 +183,7 @@ module TensorStream
         properties = []
         properties << OpenCL::CommandQueue::PROFILING_ENABLE if supported_proprties.include?('PROFILING_ENABLE')
         properties << OpenCL::CommandQueue::OUT_OF_ORDER_EXEC_MODE_ENABLE if supported_proprties.include?('OUT_OF_ORDER_EXEC_MODE_ENABLE')
-        @command_queue ||= _opencl_context.create_command_queue(opencl_device, properties: properties)
+        @command_queue = _opencl_context.create_command_queue(opencl_device, properties: properties)
       end
 
       def _opencl_context
@@ -194,7 +200,7 @@ module TensorStream
 
       def _cl_program(kernel, args = {})
         suffix = args.collect { |k,v| "#{k}.#{v}"}.join('.')
-        @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}"] ||= begin
+        @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}:#{object_id}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           source = File.read(filename)
           source = OpenclTemplateHelper.new(source).generate(args)
@@ -532,15 +538,14 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
+        cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[cache_key] if @context.key?(cache_key)
-
-        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
-        # puts tensor.name
+         # puts tensor.name
         invoke(tensor, child_context).tap do |result|
           # puts "#{tensor.to_math(true,1)} = #{read_final_result(complete_eval(result, child_context))}"
           if tensor.breakpoint
+            a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+            b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]    
             a = read_final_result(complete_eval(a, child_context))
             b = read_final_result(complete_eval(b, child_context))
             result = read_final_result(complete_eval(result, child_context))
@@ -587,7 +592,7 @@ module TensorStream
       def eval_tensor(tensor, child_context)
         return tensor unless tensor.is_a?(Tensor)
 
-        cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}"
+        cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[cache_key] if @context.key?(cache_key)
         return @context[:_cache][cache_key] if tensor.is_const && @context[:_cache][cache_key]
         @context[cache_key] = if tensor.value.is_a?(Tensor)
@@ -623,7 +628,7 @@ module TensorStream
         dtype = tensor.data_type
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
 
-        output_buffer = _create_result_buffer(tensor.data_type, result_shape, tensor.name)
+        output_buffer = _create_result_buffer(tensor.data_type, result_shape, "out_#{tensor.name}")
         a, b, prog, switch_operands = select_program(a, b, op_name)
         m, n = result_shape
         work_group = [m || 1, n || 1]
@@ -730,7 +735,7 @@ module TensorStream
           value = [value]
         end
 
-        cache_key = "_cl_object_#{name}:#{shape.join('_')}"
+        cache_key = "_cl_object_#{name}:#{shape.join('_')}:#{object_id}"
         cl_object =  if name && @context[:_cache][cache_key]
                       @context[:_cache][cache_key]
                      else
@@ -793,7 +798,7 @@ module TensorStream
       end
 
       def _create_result_buffer(data_type, shape, name)
-        @context[:_cache][:_cl_buffers]["_result_#{name}_#{shape.join('_')}"] ||= begin
+        @context[:_cache][:_cl_buffers]["_result_#{name}_#{shape.join('_')}:#{object_id}"] ||= begin
           size = shape.empty? ? 1 : shape.reduce(:*)
           buffer =  allocate_narray_for_type(data_type, size)
           cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
@@ -1089,4 +1094,4 @@ module TensorStream
   end
 end
 
-TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::OpenclEvaluator, "opencl", 1)
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::OpenclEvaluator, 'opencl', 1)

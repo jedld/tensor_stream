@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2018-06-25
+### Added
+- [OpenCL] boolean types now use short by default
+- [OpenCL] Supported multiple OpenCL devices in one model
+- Added support for tf.device to alter device placement when using OpenCL
+- Internal changes to allow placement of tensor nodes to specific evaluators/devices
+
+### Fixes
+- removed dependency on SciRuby distribution for the pure ruby evaluator for better compatibility
+
 ## [0.4.1] - 2018-06-17
 ### Fixes
 - [OpenCL] disable program writes to /tmp

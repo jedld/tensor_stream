@@ -46,8 +46,6 @@ module TensorStream
     ##
     # Returns a context manager that specifies the default device to use.
     def device(device_name)
-      return yield if get_device_scope.nil?
-
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:default_device] ||= []
       Thread.current["ts_graph_#{object_id}"][:default_device] << device_name
@@ -183,7 +181,6 @@ module TensorStream
     def get_device_scope
       graph_thread_storage = Thread.current["ts_graph_#{object_id}"]
       return :default if graph_thread_storage.nil? || graph_thread_storage[:default_device].nil?
-
       graph_thread_storage[:default_device].last
     end
 

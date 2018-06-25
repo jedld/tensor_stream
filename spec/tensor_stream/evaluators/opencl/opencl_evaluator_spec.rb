@@ -20,6 +20,14 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
       expect(device).to be
       expect(device.type).to eq(:gpu)
     end
+
+    context "tensor_stream convention" do
+      it "selects a specific device on evaluator" do
+      device = described_class.query_device("/ts:opencl:apple:1")
+      expect(device).to be
+      expect(device.type).to eq(:gpu)
+      end
+    end
   end
 
   context "device placement test" do
@@ -30,13 +38,13 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         b = tf.constant(1.0)
         a + b
       end
-
+      expect(c.device).to eq("/cpu:0")
       d = tf.device("/device:GPU:0") do
         a = tf.constant(1.0)
         b = tf.constant(1.0)
         a + b
       end
-
+      expect(d.device).to eq("/device:GPU:0")
       sess.run(c, d)
     end
   end
@@ -113,7 +121,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
       a = tf.constant([1,2,3,4], dtype: :float32)
       c = tf.concat(a, 0)
       d = tf.sin(c)
-      expect(sess.run(d)).to eq(-0.5440210700035095)
+      expect(tr(sess.run(d))).to eq(-0.544)
     end
   end
 
