@@ -4,7 +4,15 @@ module TensorStream
     attr_accessor :name, :operation, :inputs, :rank, :options
     attr_reader :outputs
 
-    def initialize(operation, input_a, input_b, options = {})
+    def initialize(operation, *args)
+      options = if args.last.is_a?(Hash)
+        args.pop
+      else
+        {}
+      end
+
+      inputs = args
+
       setup_initial_state(options)
 
       @operation = operation
@@ -15,7 +23,7 @@ module TensorStream
 
       @options = options
 
-      @inputs = [input_a, input_b].map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
+      @inputs = inputs.map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
       @data_type = set_data_type(options[:data_type])
       @is_const = infer_const
       @shape = TensorShape.new(infer_shape)

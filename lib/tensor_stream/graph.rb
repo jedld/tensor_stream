@@ -123,7 +123,7 @@ module TensorStream
     def control_dependencies(control_inputs = [], &block)
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] ||= []
-      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << control_inputs
+      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Operation.new(:no_op, *control_inputs)
       begin
         block.call
       ensure
@@ -183,6 +183,12 @@ module TensorStream
       return nil if graph_thread_storage.nil? || graph_thread_storage[:current_scope].nil?
 
       graph_thread_storage[:current_scope].join('/')
+    end
+
+    def get_dependency_scope
+      graph_thread_storage = Thread.current["ts_graph_#{object_id}"]
+      return nil if graph_thread_storage.nil? || graph_thread_storage[:control_dependencies].nil?
+      graph_thread_storage[:control_dependencies].last
     end
 
     def get_device_scope

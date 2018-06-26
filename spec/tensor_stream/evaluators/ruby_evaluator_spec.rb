@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(72)
+      expect(described_class.ops.keys.size).to eq(73)
     end
 
     specify do
@@ -58,6 +58,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         mean
         mul
         negate
+        no_op
         not_equal
         ones
         ones_like

@@ -55,36 +55,36 @@ module TensorStream
     end
 
     def +(other)
-      _a, b = TensorStream.check_data_types(self, other)
-      TensorStream::Operation.new(:add, self, b)
+      TensorStream.check_data_types(self, other)
+      _op(:add, self, other)
     end
 
     def [](index)
-      TensorStream::Operation.new(:index, self, index)
+      _op(:index, self, index)
     end
 
     def *(other)
       TensorStream.check_data_types(self, other)
-      TensorStream::Operation.new(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+      _op(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def **(other)
       TensorStream.check_data_types(self, other)
-      TensorStream::Operation.new(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+      _op(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def /(other)
       TensorStream.check_data_types(self, other)
-      TensorStream::Operation.new(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+      _op(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -(other)
       TensorStream.check_data_types(self, other)
-      TensorStream::Operation.new(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+      _op(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -@
-      TensorStream::Operation.new(:negate, self, nil)
+      _op(:negate, self, nil)
     end
 
     def ==(other)

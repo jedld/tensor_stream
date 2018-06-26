@@ -215,9 +215,7 @@ module TensorStream
 
       def _run(tensor, execution_context)
         return tensor if tensor.is_a?(OpenCLBuffer)
-        if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
-          return tensor.map { |t| _run(t, execution_context) }
-        end
+        return tensor.map { |t| _run(t, execution_context) } if tensor.is_a?(Array) && !tensor.size.empty? && tensor[0].is_a?(Tensor)
 
         tensor = tensor.call if tensor.is_a?(Proc)
 
@@ -244,6 +242,9 @@ module TensorStream
         raise "variable #{tensor.name} not initalized" if tensor.value.nil? && (tensor.buffer.nil? || !tensor.buffer.dirty)
         tensor.buffer = wrap_opencl(tensor, name: tensor.name) if tensor.buffer.nil?
         tensor.buffer
+      end
+
+      register_op :no_op do |_context, _tensor, _inputs|
       end
 
       register_op :log do |context, tensor, inputs|
@@ -385,30 +386,6 @@ module TensorStream
         output_buffer
       end
 
-      register_op :truncate do |context, tensor, inputs|
-        a, b = inputs
-        if a.shape.size.zero?
-          a
-        else
-          input_b = read_final_result(b)
-          if a.shape == input_b
-            a
-          else
-            input_a = read_final_result(a)
-            if input_b == []
-              if a.buffer.size == 1
-                a.shape = input_b
-                a
-              else
-                wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
-              end
-            else
-              wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
-            end
-          end
-        end
-      end
-
       register_op :check_numerics, noop: true do |context, tensor, inputs|
         a = complete_eval(inputs[0], context)
         name = tensor.options[:name]
@@ -430,6 +407,30 @@ module TensorStream
           b_a, b_b = broadcast(input_a, input_b)
           [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
             wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
+        end
+      end
+
+      register_op :truncate do |_context, tensor, inputs|
+        a, b = inputs
+        if a.shape.size.zero?
+          a
+        else
+          input_b = read_final_result(b)
+          if a.shape == input_b
+            a
+          else
+            input_a = read_final_result(a)
+            if input_b == []
+              if a.buffer.size == 1
+                a.shape = input_b
+                a
+              else
+                wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
+              end
+            else
+              wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
+            end
+          end
         end
       end
 

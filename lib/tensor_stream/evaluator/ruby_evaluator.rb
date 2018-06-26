@@ -96,6 +96,10 @@ module TensorStream
         end
       end
 
+      register_op(:no_op, no_eval: true) do |_context, _tensor, inputs|
+        inputs
+      end
+
       register_op(:const) do |context, _tensor, inputs|
         inputs[0]
       end

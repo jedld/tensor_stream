@@ -50,34 +50,9 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
     end
   end
 
-  context ".control_dependencies" do
-    it "control inputs must be fully evaluated before executing block" do
-      # We define our Variables and placeholders
-      x = tf.placeholder(:int32, shape: [], name: 'x')
-      y = tf.variable(2, dtype: :int32)
-
-      # We set our assign op
-      assign_op = tf.assign(y, y + 1)
-
-      # We build our multiplication (this could be a more complicated graph)
-      out = tf.control_dependencies([assign_op]) do
-        x * y
-      end
-
-      tf.session do |sess|
-        sess.run(tf.global_variables_initializer)
-
-        result = 3.times.collect do |i|
-          sess.run(out, feed_dict: {x => 1})
-        end
-        expect(result).to eq([])
-      end
-    end
-  end
-
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(58)
+      expect(described_class.ops.keys.size).to eq(59)
     end
 
     specify do
@@ -113,6 +88,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         mean
         mul
         negate
+        no_op
         not_equal
         pow
         print

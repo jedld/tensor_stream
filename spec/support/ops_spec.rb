@@ -8,6 +8,32 @@ RSpec.shared_examples "standard ops evaluator" do
     sess.clear_session_cache
   end
 
+  context ".control_dependencies" do
+    it "control inputs must be fully evaluated before executing block" do
+      # We define our Variables and placeholders
+      x = tf.placeholder(:int32, shape: [], name: 'x')
+      y = tf.variable(2, dtype: :int32)
+
+      # We set our assign op
+      assign_op = tf.assign(y, y + 1)
+
+      # We build our multiplication (this could be a more complicated graph)
+      out = tf.control_dependencies([assign_op]) do
+        x * y
+      end
+
+      tf.session do |sess|
+        sess.run(tf.global_variables_initializer)
+
+        result = 3.times.collect do |i|
+          sess.run(out, feed_dict: {x => 1})
+        end
+        expect(result).to eq([2, 3, 4])
+      end
+    end
+  end
+
+
   it "performs a linear regression" do
     learning_rate = 0.01
     training_epochs = 2
