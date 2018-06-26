@@ -120,8 +120,15 @@ module TensorStream
       add_node(node)
     end
 
-    def control_dependencies(_dependencies = [], &_block)
-      raise 'not implemented'
+    def control_dependencies(control_inputs = [], &block)
+      Thread.current["ts_graph_#{object_id}"] ||= {}
+      Thread.current["ts_graph_#{object_id}"][:control_dependencies] ||= []
+      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << control_inputs
+      begin
+        block.call
+      ensure
+        Thread.current["ts_graph_#{object_id}"][:control_dependencies].pop
+      end
     end
 
     def enable_eager_execution

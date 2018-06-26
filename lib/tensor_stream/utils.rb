@@ -149,6 +149,11 @@ module TensorStream
       Graph.get_default_graph.get_collection(name, options)
     end
 
+    def assign(ref, value, name: nil)
+      raise "#{ref.name} not a variable" unless ref.is_a?(Variable)
+      ref.assign(value, name: name)
+    end
+
     def placeholder(dtype, shape: nil, name: nil)
       TensorStream::Placeholder.new(dtype, nil, shape, name: name)
     end
@@ -167,6 +172,10 @@ module TensorStream
 
     def set_random_seed(seed)
       TensorStream.get_default_graph.random_seed = seed
+    end
+
+    def control_dependencies(control_inputs, &block)
+      TensorStream.get_default_graph.control_dependencies(control_inputs, &block)
     end
 
     def convert_to_tensor(value, dtype: nil, name: nil, preferred_dtype: nil)

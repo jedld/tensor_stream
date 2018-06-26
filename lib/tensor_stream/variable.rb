@@ -32,8 +32,8 @@ module TensorStream
       assign(init_op)
     end
 
-    def assign(value)
-      Operation.new(:assign, self, value)
+    def assign(value, name: nil)
+      Operation.new(:assign, self, value, name: name)
     end
 
     def read_value
