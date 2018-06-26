@@ -147,6 +147,20 @@ module TensorStream
     end
 
     ##
+    # Returns element-wise largest integer not greater than x.
+    def floor(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:floor, input, name: name)
+    end
+
+    ##
+    # Returns element-wise smallest integer in not less than x
+    def ceil(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:ceil, input, name: name)
+    end
+
+    ##
     # Returns the truth value of (x < y) element-wise.
     # This operation supports broadcasting
     def less(input_a, input_b, name: nil)

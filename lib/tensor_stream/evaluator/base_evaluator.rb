@@ -97,8 +97,13 @@ module TensorStream
           resolved_inputs = tensor.inputs.map do |i|
             next if i.nil?
             if @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
+              cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"
+              next @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
+
               result = @session.delegate_to_evaluator(i, @context, execution_context)
-              convert_from_buffer(i, result)
+              convert_from_buffer(i, result).tap do |buffer|
+                @context[:_cache][cache_key] = buffer if i.is_const
+              end
             else
               prepare_input(i, execution_context, op_options)
             end

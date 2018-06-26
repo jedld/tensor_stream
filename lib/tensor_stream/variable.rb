@@ -32,21 +32,21 @@ module TensorStream
       assign(init_op)
     end
 
-    def assign(value)
-      Operation.new(:assign, self, value)
+    def assign(value, name: nil)
+      _a, value = TensorStream.check_data_types(self, value)
+      Operation.new(:assign, self, value, name: name)
     end
 
     def read_value
-      if buffer && buffer.dirty
+      if buffer
         @value = buffer.to_ruby
-        buffer.dirty = false
       end
 
       @value
     end
 
     def assign_add(value)
-      value = Tensor.cast_dtype(value, data_type)
+      _a, value = TensorStream.check_data_types(self, value)
       Operation.new(:assign_add, self, value, data_type: data_type)
     end
 
@@ -55,6 +55,7 @@ module TensorStream
     end
 
     def assign_sub(value)
+      _a, value = TensorStream.check_data_types(self, value)
       Operation.new(:assign_sub, self, value)
     end
 

@@ -51,7 +51,7 @@ module TensorStream
 
       def self.fetch_device(query = [])
         devices = query_devices_with_score
-        platform_devices = devices.select { |d| d[0].platform.to_s.downcase =~ /#{query[0].downcase}/ }
+        platform_devices = devices.select { |d| d[0].platform.to_s.gsub(' ','_').downcase =~ /#{query[0].downcase}/ }
         opencl_to_device(platform_devices[[query[1].to_i, platform_devices.size - 1].min])
       end
 
@@ -215,9 +215,7 @@ module TensorStream
 
       def _run(tensor, execution_context)
         return tensor if tensor.is_a?(OpenCLBuffer)
-        if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
-          return tensor.map { |t| _run(t, execution_context) }
-        end
+        return tensor.map { |t| _run(t, execution_context) } if tensor.is_a?(Array) && !tensor.size.empty? && tensor[0].is_a?(Tensor)
 
         tensor = tensor.call if tensor.is_a?(Proc)
 
@@ -246,12 +244,11 @@ module TensorStream
         tensor.buffer
       end
 
-      register_op :log do |context, tensor, inputs|
-        execute_func('log', tensor, inputs[0], context)
+      register_op :no_op do |_context, _tensor, _inputs|
       end
 
-      register_op :sin do |context, tensor, inputs|
-        execute_func('sin', tensor, inputs[0], context)
+      register_op :log do |context, tensor, inputs|
+        execute_func('log', tensor, inputs[0], context)
       end
 
       register_op :cond do |context, tensor, inputs|
@@ -347,7 +344,7 @@ module TensorStream
         end
       end
 
-      %i[sign exp tan cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round].each do |op|
+      %i[sign exp tan sin cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round floor ceil].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_func(op.to_s, tensor, inputs[0], context)
         end
@@ -385,30 +382,6 @@ module TensorStream
         output_buffer
       end
 
-      register_op :truncate do |context, tensor, inputs|
-        a, b = inputs
-        if a.shape.size.zero?
-          a
-        else
-          input_b = read_final_result(b)
-          if a.shape == input_b
-            a
-          else
-            input_a = read_final_result(a)
-            if input_b == []
-              if a.buffer.size == 1
-                a.shape = input_b
-                a
-              else
-                wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
-              end
-            else
-              wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
-            end
-          end
-        end
-      end
-
       register_op :check_numerics, noop: true do |context, tensor, inputs|
         a = complete_eval(inputs[0], context)
         name = tensor.options[:name]
@@ -430,6 +403,30 @@ module TensorStream
           b_a, b_b = broadcast(input_a, input_b)
           [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
             wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
+        end
+      end
+
+      register_op :truncate do |_context, tensor, inputs|
+        a, b = inputs
+        if a.shape.size.zero?
+          a
+        else
+          input_b = read_final_result(b)
+          if a.shape == input_b
+            a
+          else
+            input_a = read_final_result(a)
+            if input_b == []
+              if a.buffer.size == 1
+                a.shape = input_b
+                a
+              else
+                wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
+              end
+            else
+              wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
+            end
+          end
         end
       end
 
@@ -610,12 +607,16 @@ module TensorStream
         buffer = complete_eval(b, child_context)
 
         if assign.buffer
-          buffer = type_cast(buffer, assign.data_type, name: "#{tensor.name}/cast_#{tensor.name}_#{tensor.data_type}")
+          # buffer = type_cast(buffer, assign.data_type, name: "#{tensor.name}/cast_#{tensor.name}_#{tensor.data_type}")
           if assign.buffer.cl_buffer != buffer.cl_buffer
             assign.buffer.op = _opencl_queue.enqueue_copy_buffer(buffer.cl_buffer, assign.buffer.cl_buffer, event_wait_list: [buffer.op, assign.buffer.op])
+          else
+            assign.buffer.op = buffer.op
           end
         else
-          assign.buffer = convert_to_opencl(read_final_result(buffer), buffer.shape, data_type: tensor.data_type, name: tensor.name)
+          value = read_final_result(buffer)
+          assign.buffer = convert_to_opencl(value, buffer.shape, data_type: tensor.data_type, name: assign.name)
+          assign.value = value
         end
         assign.buffer.dirty = true
         assign.buffer

@@ -23,7 +23,8 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
 
     context "tensor_stream convention" do
       it "selects a specific device on evaluator" do
-      device = described_class.query_device("/ts:opencl:apple:1")
+      devices = tf.list_local_devices.select { |d| d =~ /opencl/ }
+      device = described_class.query_device(devices.first)
       expect(device).to be
       expect(device.type).to eq(:gpu)
       end
@@ -51,7 +52,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(58)
+      expect(described_class.ops.keys.size).to eq(61)
     end
 
     specify do
@@ -66,12 +67,14 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         broadcast_gradient_args
         broadcast_transform
         cast
+        ceil
         check_numerics
         cond
         cos
         div
         equal
         exp
+        floor
         flow_group
         greater
         greater_equal
@@ -87,6 +90,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         mean
         mul
         negate
+        no_op
         not_equal
         pow
         print

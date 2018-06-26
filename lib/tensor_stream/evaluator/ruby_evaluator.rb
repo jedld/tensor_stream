@@ -96,6 +96,10 @@ module TensorStream
         end
       end
 
+      register_op(:no_op, no_eval: true) do |_context, _tensor, inputs|
+        inputs
+      end
+
       register_op(:const) do |context, _tensor, inputs|
         inputs[0]
       end
@@ -230,6 +234,14 @@ module TensorStream
 
       register_op :sqrt, no_eval: true  do |context, tensor, inputs|
         call_op(:sqrt, inputs[0], context, ->(t, _b) { Math.sqrt(t) })
+      end
+
+      register_op :floor, no_eval: true do |context, _tensor, inputs|
+        call_op(:floor, inputs[0], context, ->(t, _b) { t.floor })
+      end
+
+      register_op :ceil, no_eval: true do |context, _tensor, inputs|
+        call_op(:ceil, inputs[0], context, ->(t, _b) { t.ceil })
       end
 
       register_op :square, no_eval: true  do |context, tensor, inputs|

@@ -73,9 +73,6 @@ module TensorStream
         value = delegate_to_evaluator(e, context, {})
         value.respond_to?(:to_ruby) ? value.to_ruby : value
       end
-
- 
-
       result.size == 1 ? result.first : result
     end
 

@@ -8,6 +8,32 @@ RSpec.shared_examples "standard ops evaluator" do
     sess.clear_session_cache
   end
 
+  context ".control_dependencies" do
+    it "control inputs must be fully evaluated before executing block" do
+      # We define our Variables and placeholders
+      x = tf.placeholder(:int32, shape: [], name: 'x')
+      y = tf.variable(2, dtype: :int32)
+
+      # We set our assign op
+      assign_op = tf.assign(y, y + 1)
+
+      # We build our multiplication (this could be a more complicated graph)
+      out = tf.control_dependencies([assign_op]) do
+        x * y
+      end
+
+      tf.session do |sess|
+        sess.run(tf.global_variables_initializer)
+
+        result = 3.times.collect do |i|
+          sess.run(out, feed_dict: {x => 1})
+        end
+        expect(result).to eq([2, 3, 4])
+      end
+    end
+  end
+
+
   it "performs a linear regression" do
     learning_rate = 0.01
     training_epochs = 2
@@ -1018,7 +1044,9 @@ RSpec.shared_examples "standard ops evaluator" do
       [:abs, 0.1,      [[1.1, 2.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
       [:sqrt, 0.3162,  [[1.0488, 1.4491], [1.4491, 1.7321]],   1.5811, [[0.4767,  0.345], [ 0.345, 0.2887]]                       ],
       [:reciprocal, 10.0, [[0.9091,  0.4762], [0.4762, 0.3333]], -100,  [[-0.8264,  -0.2268], [-0.2268, -0.1111]]                         ],
-      [:sigmoid, 0.525, [[0.7503, 0.8909], [0.8909, 0.9526]], 0.2494, [[0.1874, 0.0972], [0.0972, 0.0452]]]
+      [:sigmoid, 0.525, [[0.7503, 0.8909], [0.8909, 0.9526]], 0.2494, [[0.1874, 0.0972], [0.0972, 0.0452]]],
+      [:floor, 0, [[1, 2], [2, 3]], 0, [[0.0, 0.0], [0.0, 0.0]]],
+      [:ceil, 1,[[2, 3], [3, 3]], 0, [[0.0, 0.0], [0.0, 0.0]]]
     ].each do |func, scalar, matrix, gradient, gradient2|
       supported_op ".#{func}" do
         let(:x) { tf.constant(0.1) }

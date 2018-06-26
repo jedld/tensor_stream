@@ -20,7 +20,14 @@ module TensorStream
         return buffer[0]
       end
 
+      if dirty
+        op.command_queue.enqueue_read_buffer(cl_buffer, buffer, event_wait_list: [op].compact)
+        op.command_queue.finish
+        self.dirty = false
+      end
+
       result = buffer.reshape(*shape.reverse).to_a
+
       if data_type == :boolean
         result = process_function_op(result, ->(a, _b) { a != 0 })
       end
