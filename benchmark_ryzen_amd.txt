@@ -1,0 +1,36 @@
+TensorStream::Evaluator::OpenclEvaluator
+TensorStream::Evaluator::RubyEvaluator
+model name	: AMD Ryzen 3 1300X Quad-Core Processor
+OpenCL device AMD Accelerated Parallel Processing Ellesmere
+Rehearsal --------------------------------------------------------------
+pure ruby ooo matmul     :   1.480000   0.000000   1.480000 (  1.486855)
+opencl    ooo matmul     :   0.190000   0.130000   0.320000 (  0.332605)
+pure ruby softmax        :   0.280000   0.000000   0.280000 (  0.278398)
+opencl    softmax        :   0.040000   0.020000   0.060000 (  0.070980)
+pure ruby matmul         :   0.730000   0.000000   0.730000 (  0.726565)
+opencl    matmul         :   0.020000   0.010000   0.030000 (  0.046762)
+pure ruby                :   2.550000   0.000000   2.550000 (  2.544265)
+opencl                   :   0.290000   0.020000   0.310000 (  0.318674)
+pure ruby single function:   0.370000   0.000000   0.370000 (  0.374805)
+opencl     singlefunction:   0.190000   0.050000   0.240000 (  0.239913)
+pure ruby pow float:         0.090000   0.000000   0.090000 (  0.093488)
+opencl pow float:            0.100000   0.010000   0.110000 (  0.110532)
+pure ruby pow int:           0.030000   0.000000   0.030000 (  0.022236)
+opencl pow int:              0.090000   0.010000   0.100000 (  0.111199)
+----------------------------------------------------- total: 6.700000sec
+
+                                 user     system      total        real
+pure ruby ooo matmul     :   1.460000   0.000000   1.460000 (  1.468597)
+opencl    ooo matmul     :   0.040000   0.000000   0.040000 (  0.053625)
+pure ruby softmax        :   0.280000   0.000000   0.280000 (  0.280252)
+opencl    softmax        :   0.020000   0.010000   0.030000 (  0.043143)
+pure ruby matmul         :   0.700000   0.000000   0.700000 (  0.703540)
+opencl    matmul         :   0.030000   0.000000   0.030000 (  0.037716)
+pure ruby                :   2.540000   0.000000   2.540000 (  2.539661)
+opencl                   :   0.150000   0.000000   0.150000 (  0.164203)
+pure ruby single function:   0.350000   0.000000   0.350000 (  0.351883)
+opencl     singlefunction:   0.090000   0.010000   0.100000 (  0.092359)
+pure ruby pow float:         0.080000   0.000000   0.080000 (  0.080484)
+opencl pow float:            0.030000   0.000000   0.030000 (  0.032691)
+pure ruby pow int:           0.020000   0.000000   0.020000 (  0.019487)
+opencl pow int:              0.020000   0.000000   0.020000 (  0.026782)

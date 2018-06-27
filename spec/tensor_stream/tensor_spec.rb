@@ -211,4 +211,20 @@ RSpec.describe TensorStream::Tensor do
       expect(a[0].shape.shape).to eq([2])
     end
   end
+
+  context ".floor" do
+    specify do
+      t = tf.constant(2.0)
+      u = tf.constant(2.2)
+      expect(t.floor.run).to eq(2)
+      expect(u.floor.run).to eq(2)
+    end
+  end
+
+  context ".ceil" do
+    specify do
+      t = tf.constant(3.1)
+      expect(t.ceil.run).to eq(4)
+    end
+  end
 end

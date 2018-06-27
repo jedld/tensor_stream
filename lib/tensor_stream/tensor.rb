@@ -87,6 +87,14 @@ module TensorStream
       _op(:negate, self, nil)
     end
 
+    def floor
+      TensorStream.floor(self)
+    end
+
+    def ceil
+      TensorStream.ceil(self)
+    end
+
     def ==(other)
       _a, other = TensorStream.check_data_types(self, other)
       _op(:equal, self, other)
