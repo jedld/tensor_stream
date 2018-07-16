@@ -18,8 +18,7 @@ module TensorStream
 
       grad = i_op(:fill, tf.shape(tensor), tf.constant(1, dtype: wrt_dx.data_type))
 
-      result = _propagate(grad, tensor, wrt_dx, nodes_to_compute, options[:stop_gradients] || [])
-      i_op(:truncate, result, tf.shape(wrt_dx))
+      _propagate(grad, tensor, wrt_dx, nodes_to_compute, options[:stop_gradients] || [] ) || i_op(:zeros_like, wrt_dx)
     end
 
     def self._propagate(grad, tensor, stop_tensor, nodes_to_compute, stop_gradients = [])
@@ -39,9 +38,9 @@ module TensorStream
           end
         end
 
-        partials.reduce(:+)
+        partials.compact.reduce(:+)
       else
-        return tf.zeros_like(stop_tensor) if computed_op.nil?
+        return nil if computed_op.nil?
         _propagate(computed_op, tensor.inputs[0], stop_tensor, nodes_to_compute, stop_gradients)
       end
     end
@@ -98,29 +97,19 @@ module TensorStream
           t_a = node.options[:transpose_a]
           t_b = node.options[:transpose_b]
 
-          s0 =  tf.shape(x)
-          s1 =  tf.shape(y)
-
-          identity_0 = tf.ones([ s0[0], s1[1] ], dtype: x.data_type, name: 'matmul/identity0')
-          identity_1 = tf.ones([ s0[0], s1[1] ], dtype: y.data_type, name: 'matmul/identity1')
-
-          grad_a, grad_b = nil
           if !t_a && !t_b
-            grad_a = tf.matmul(identity_0, y, transpose_b: true)
-            grad_b = tf.matmul(x, identity_1, transpose_a: true)
+            grad_a = tf.matmul(grad, y, transpose_b: true)
+            grad_b = tf.matmul(x, grad, transpose_a: true)
           elsif !ta && tb
-            grad_a = tf.matmul(identity_0, y)
-            grad_b = tf.matmul(identity_1, x, transpose_a: true)
+            grad_a = tf.matmul(grad, y)
+            grad_b = tf.matmul(grad, x, transpose_a: true)
           elsif t_a && !t_b
-            grad_a = tf.matmul(y, identity_0, transpose_b: true)
-            grad_b = tf.matmul(x, identity_1)
+            grad_a = tf.matmul(y, grad, transpose_b: true)
+            grad_b = tf.matmul(x, grad)
           elsif t_a && t_b
-            grad_a = tf.matmul(y, identity_0, transpose_a: true, transpose_b: true)
-            grad_b = tf.matmul(identity_1, x, transpose_a: true, transpose_b: true)
+            grad_a = tf.matmul(y, grad, transpose_a: true, transpose_b: true)
+            grad_b = tf.matmul(grad, x, transpose_a: true, transpose_b: true)
           end
-
-          grad_a = i_op(:mul, grad, grad_a, name: 'matmul/grad_a_norm_mul_da')
-          grad_b = i_op(:mul, grad, grad_b, name: 'matmul/grad_b_norm_mul_db')
 
           [grad_a, grad_b]
         when :sin
@@ -220,7 +209,11 @@ module TensorStream
     end
 
     def self._sum_grad(x, y, grad)
-      tf.ones_like(grad) * grad
+      input_shape = _op(:shape, x)
+      output_shape_kept_dims = _op(:reduced_shape, input_shape, y)
+      tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
+      grad = _op(:reshape, grad, output_shape_kept_dims)
+      [_op(:tile, grad, tile_scaling), nil ]
     end
 
     def self._op_supports_broadcast?(node)

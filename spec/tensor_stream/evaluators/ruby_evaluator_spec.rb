@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(77)
+      expect(described_class.ops.keys.size).to eq(79)
     end
 
     specify do
@@ -45,6 +45,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         eye
         fill
         floor
+        flow_dynamic_stitch
         flow_group
         glorot_uniform
         greater
@@ -82,6 +83,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         sigmoid_grad
         sign
         sin
+        size
         slice
         softmax
         softmax_grad
@@ -111,15 +113,6 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
       expect(instance.shape_diff([5, 4],[2, 1])).to eq([3, 3])
       expect(instance.shape_diff([5, 4],[5, 5])).to be_nil
       expect(instance.shape_diff([2, 2],[1])).to eq([2, 1])
-    end
-  end
-
-  context "private ops" do
-    context ".reduced_shape" do
-      it "returns the output shape of a tensor after reduction assuing keepdims= true" do
-        input = tf.constant([[2,3],[3,4]])
-        expect(sess.run(_op(:reduced_shape, tf.shape(input), 0))).to eq([1, 2])
-      end
     end
   end
 end

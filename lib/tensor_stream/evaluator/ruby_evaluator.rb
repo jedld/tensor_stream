@@ -160,6 +160,28 @@ module TensorStream
         slice_tensor(input, start, size)
       end
 
+      def merge_dynamic_stitch(merged, indexes, data)
+        indexes.each_with_index do |ind, m|
+          if ind.is_a?(Array)
+            merge_dynamic_stitch(merged, ind, data[m])
+          else
+            merged[ind] = data[m]
+          end
+        end
+      end
+
+      register_op :flow_dynamic_stitch, noop: true do |context, tensor, inputs|
+        indexes, data = inputs
+        merged = []
+        merge_dynamic_stitch(merged, indexes, data)
+        merged
+      end
+
+      register_op :size do |_context, tensor, inputs|
+        input = inputs[0]
+        Tensor.cast_dtype(input.flatten.size, tensor.options[:out_type])
+      end
+
       register_op :negate, no_eval: true do |context, _tensor, inputs|
         call_vector_op(:negate, inputs[0], nil, context, ->(t, _u) { -t })
       end
@@ -546,16 +568,17 @@ module TensorStream
         get_broadcast_gradient_args(inputs[0], inputs[1])
       end
 
-      register_op :reduced_shape do |context, _tensor, inputs|
+      register_op :reduced_shape do |_context, _tensor, inputs|
         input_shape, axes = inputs
-
-        return [] if axes.nil? # reduce to scalar
+        
+        next [] if axes.nil? # reduce to scalar
         axes = [ axes ] unless axes.is_a?(Array)
-        return input_shape if axes.empty?
+        next input_shape if axes.empty?
 
         axes.each do |dimen|
           input_shape[dimen] = 1
         end
+
         input_shape
       end
 
@@ -705,7 +728,6 @@ module TensorStream
       def reduction(child_context, tensor, func)
         val = complete_eval(tensor.inputs[0], child_context)
         axis = complete_eval(tensor.inputs[1], child_context)
-        puts "val #{val} axis #{axis}"
         keep_dims = complete_eval(tensor.options[:keepdims], child_context)
         rank = get_rank(val)
         return val if axis && axis.is_a?(Array) && axis.empty?

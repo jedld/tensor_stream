@@ -95,6 +95,10 @@ module TensorStream
           op = self.class.ops[tensor.operation.to_sym]
           op_options = op[:options]
           resolved_inputs = tensor.inputs.map do |i|
+            next i.collect do |sub_item|
+              sub_item.is_a?(Tensor) ? invoke(sub_item, execution_context) : sub_item
+            end if i.is_a?(Array)
+
             next if i.nil?
             if @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
               cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"

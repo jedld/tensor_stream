@@ -9,7 +9,7 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
-require 'tensor_stream/evaluator/opencl_evaluator'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 tf = TensorStream
 

@@ -15,7 +15,7 @@ module TensorStream
     end
 
     def self.softmax_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
-      TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do |name|
+      TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do
         tf = TensorStream
         logits = tf.convert_to_tensor(logits, name: 'logits')
         labels = tf.convert_to_tensor(labels, name: 'labels')

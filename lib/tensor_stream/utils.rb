@@ -141,6 +141,10 @@ module TensorStream
       TensorStream::ControlFlow.new(:group, inputs, nil, name: name)
     end
 
+    def dynamic_stitch(indices, data, name: name)
+      TensorStream::ControlFlow.new(:dynamic_stitch, [indices, data], name: name)
+    end
+
     def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil)
       TensorStream::Variable.new(dtype || :float32, nil, shape, collections: collections, name: name, initializer: initializer, trainable: trainable)
     end

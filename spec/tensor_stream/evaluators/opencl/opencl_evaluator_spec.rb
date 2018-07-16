@@ -51,7 +51,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(62)
+      expect(described_class.ops.keys.size).to eq(63)
     end
 
     specify do
@@ -103,6 +103,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         sigmoid_grad
         sign
         sin
+        size
         slice
         softmax
         softmax_grad

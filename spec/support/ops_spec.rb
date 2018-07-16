@@ -1145,7 +1145,7 @@ context ".shape" do
   end
 end
 
-supported_op ".reduce_sum" do
+supported_op ".sum" do
   it "computes the sum of elements across dimensions of a tensor." do
     x = tf.constant([[1, 1, 1], [1, 1, 1]])
 
@@ -1301,6 +1301,30 @@ end
     end
   end
 
+  supported_op ".size" do
+    specify do
+      t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      size = tf.size(t)  # 12
+      expect(sess.run(size)).to eq(12)
+    end
+  end
+
+  supported_op ".flow_dynamic_stitch" do
+    specify do
+      indices = []
+      data = []
+
+      indices[0] = 6
+      indices[1] = [4, 1]
+      indices[2] = [[5, 2], [0, 3]]
+      data[0] = [61, 62]
+      data[1] = [[41, 42], [11, 12]]
+      data[2] = [[[51, 52], [21, 22]], [[1, 2], [31, 32]]]
+      expect(sess.run(tf.dynamic_stitch(indices, data))).to eq([[1, 2], [11, 12], [21, 22], [31, 32], [41, 42],
+        [51, 52], [61, 62]])
+    end
+  end
+
   supported_op ".fill" do
     specify do
       g = tf.fill([2, 3], 9)
@@ -1360,96 +1384,110 @@ end
       end
     end
 
-    context ".broadcast_gradient_args" do
-      specify do
-        sx, sy = tf.broadcast_gradient_args([], [])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([])
+    context "private ops" do
+      context ".reduced_shape" do
+        include TensorStream::OpHelper
+        it "returns the output shape of a tensor after reduction assuing keepdims= true" do
+          input = tf.constant([[2,3],[3,4]])
+          expect(sess.run(_op(:reduced_shape, tf.shape(input), 0))).to eq([1, 2])
+        end
+
+        specify do
+          expect(sess.run(_op(:reduced_shape, [2, 3], 0))).to eq([1, 3])
+        end
       end
 
-      specify do
-        sx, sy = tf.broadcast_gradient_args([2,3], [])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0, 1])
-      end
-
-      it "handles a.shape > b.shape" do
-        sx, sy = tf.broadcast_gradient_args([3, 2], [2])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0])
-      end
-
-      it "handles a.shape < b.shape" do
-        sx, sy = tf.broadcast_gradient_args([], [2, 2])
-        expect(sess.run(sx)).to eq([0, 1])
-        expect(sess.run(sy)).to eq([])
-
-        sx, sy = tf.broadcast_gradient_args([2], [3, 2])
-        expect(sess.run(sx)).to eq([0])
-        expect(sess.run(sy)).to eq([])
-      end
-
-      specify do
-        sx, sy = tf.broadcast_gradient_args([1], [2])
-        expect(sess.run(sx)).to eq([0])
-        expect(sess.run(sy)).to eq([])
-
-        sx, sy = tf.broadcast_gradient_args([2], [1])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0])
-
-        sx, sy = tf.broadcast_gradient_args([3], [1])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0])
-
-
-        sx, sy = tf.broadcast_gradient_args([3], [])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0])
-
-        sx, sy = tf.broadcast_gradient_args([2,2], [])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0,1])
-
-        sx, sy = tf.broadcast_gradient_args([2,2], [1])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0,1])
-
-        sx, sy = tf.broadcast_gradient_args([4,4], [1, 1])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0,1])
-
-        sx, sy = tf.broadcast_gradient_args([4,4], [4, 4])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([])
-
-        sx, sy = tf.broadcast_gradient_args([4,4], [1, 4])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0])
-
-        sx, sy = tf.broadcast_gradient_args([4,4], [4, 1])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([1])
-
-        sx, sy = tf.broadcast_gradient_args([4,4,4], [1, 4, 4])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0])
-
-        sx, sy = tf.broadcast_gradient_args([4,4,4], [1, 1, 4])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0, 1])
-
-        sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 1, 4])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([1])
-
-        sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 4, 1])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([2])
-
-        sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 4])
-        expect(sess.run(sx)).to eq([])
-        expect(sess.run(sy)).to eq([0])
+      context ".broadcast_gradient_args" do
+        specify do
+          sx, sy = tf.broadcast_gradient_args([], [])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([])
+        end
+  
+        specify do
+          sx, sy = tf.broadcast_gradient_args([2,3], [])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0, 1])
+        end
+  
+        it "handles a.shape > b.shape" do
+          sx, sy = tf.broadcast_gradient_args([3, 2], [2])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0])
+        end
+  
+        it "handles a.shape < b.shape" do
+          sx, sy = tf.broadcast_gradient_args([], [2, 2])
+          expect(sess.run(sx)).to eq([0, 1])
+          expect(sess.run(sy)).to eq([])
+  
+          sx, sy = tf.broadcast_gradient_args([2], [3, 2])
+          expect(sess.run(sx)).to eq([0])
+          expect(sess.run(sy)).to eq([])
+        end
+  
+        specify do
+          sx, sy = tf.broadcast_gradient_args([1], [2])
+          expect(sess.run(sx)).to eq([0])
+          expect(sess.run(sy)).to eq([])
+  
+          sx, sy = tf.broadcast_gradient_args([2], [1])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0])
+  
+          sx, sy = tf.broadcast_gradient_args([3], [1])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0])
+  
+  
+          sx, sy = tf.broadcast_gradient_args([3], [])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0])
+  
+          sx, sy = tf.broadcast_gradient_args([2,2], [])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0,1])
+  
+          sx, sy = tf.broadcast_gradient_args([2,2], [1])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0,1])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4], [1, 1])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0,1])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4], [4, 4])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4], [1, 4])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4], [4, 1])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([1])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4,4], [1, 4, 4])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4,4], [1, 1, 4])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0, 1])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 1, 4])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([1])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 4, 1])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([2])
+  
+          sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 4])
+          expect(sess.run(sx)).to eq([])
+          expect(sess.run(sy)).to eq([0])
+        end
       end
     end
   end

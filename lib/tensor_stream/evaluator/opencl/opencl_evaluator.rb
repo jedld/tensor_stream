@@ -505,6 +505,10 @@ module TensorStream
         inputs
       end
 
+      register_op :size do |_context, tensor, inputs|
+        wrap_opencl(inputs[0].buffer.size, name: tensor.name, data_type: tensor.options[:out_type] || :int32)
+      end
+
       %i[sum mean].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           reduction(context, tensor, inputs[0], inputs[1], op.to_sym)

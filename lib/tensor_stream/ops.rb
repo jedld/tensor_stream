@@ -529,6 +529,10 @@ module TensorStream
       _op(:check_numerics, tensor, nil, message: message, name: name)
     end
 
+    def size(tensor, name: nil, out_type: :int32)
+      _op(:size, tensor, name: name, out_type: out_type)
+    end
+
     def squared_difference(input_a, input_b, name: nil)
       _op(:squared_difference, input_a, input_b, name: name)
     end

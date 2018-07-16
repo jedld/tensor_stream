@@ -284,13 +284,25 @@ module TensorStream
     def propagate_consumer(consumer)
       super
       @inputs.compact.each do |input|
-        input.send(:propagate_consumer, consumer) if input.name != name
+        if input.is_a?(Array)
+          input.flatten.compact.each do |t|
+            t.send(:propagate_consumer, consumer) if t.is_a?(Tensor)
+          end
+        else
+          input.send(:propagate_consumer, consumer) if input.name != name
+        end
       end
     end
 
     def propagate_outputs
       @inputs.compact.each do |input|
-        input.send(:setup_output, self) if input.name != self.name
+        if input.is_a?(Array)
+          input.flatten.compact.each do |t|
+            t.send(:setup_output, self) if t.is_a?(Tensor)
+          end
+        else
+          input.send(:setup_output, self) if input.is_a?(Tensor) && (input.name != self.name)
+        end
       end
     end
 
