@@ -285,7 +285,7 @@ module TensorStream
         end
       end
 
-      %i[max add div sub mul pow sigmoid_grad].each do |op|
+      %i[max add div sub mul pow sigmoid_grad squared_difference].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
         end
@@ -479,7 +479,8 @@ module TensorStream
       end
 
       register_op :broadcast_gradient_args, buffer: true do |_context, tensor, inputs|
-        wrap_opencl(get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a), data_type: inputs[0].data_type, name: tensor.name)
+        rx, ry = get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a)
+        [ wrap_opencl(rx, data_type: :int32, name: "#{tensor.name}"), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")]
       end
 
       register_op :shape do |_context, tensor, inputs|
@@ -853,7 +854,8 @@ module TensorStream
 
           if axis.is_a?(Array)
             axis.map{ |x| rank - x.abs }.sort.reverse.each do |x|
-              value = value.send(func, x)
+  
+              value = value.send(func, x.to_i)
             end
           else
             value = value.send(func, rank - axis.abs)
@@ -946,17 +948,6 @@ module TensorStream
 
       def _rank_from_shape(shape)
         shape.is_a?(Array) ? shape.size : 0
-      end
-
-      def get_broadcast_gradient_args(input_a, input_b)
-        return [] if get_rank(input_b).zero? && get_rank(input_a).zero?
-        return nil if get_rank(input_b).zero?
-        # ruby scalar
-        if get_rank(input_a).zero?
-          _broadcast_gradient_op(input_b, input_a, 0, true)
-        elsif get_rank(input_a) > 0
-          _broadcast_gradient_op(input_a, input_b, 0)
-        end
       end
 
       def concat_array(values, axis)

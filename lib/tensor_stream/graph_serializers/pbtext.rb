@@ -40,11 +40,19 @@ module TensorStream
     private
 
     def process_options(node)
+      return if node.options.nil?
       node.options.each do |k, v|
         next if %w[name].include?(k.to_s)
         @lines << "  attr {"
         @lines << "    key: \"#{k}\""
         @lines << "    value {"
+        if (v.is_a?(TrueClass) || v.is_a?(FalseClass))
+          @lines << "       b: #{v.to_s}"
+        elsif (v.is_a?(Integer))
+          @lines << "       int_val: #{v}"
+        elsif (v.is_a?(Float))
+          @lines << "       float_val: #{v}"
+        end
         @lines << "    }"
         @lines << "  }"
       end

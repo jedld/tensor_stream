@@ -69,10 +69,12 @@ module TensorStream
 
     def set_data_type(passed_data_type)
       case operation
+      when :fill
+        @inputs[1].data_type
       when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
         :boolean
       when :shape, :rank
-        :int32
+        options[:out_type] || :int32
       when :random_normal, :random_uniform, :glorot_uniform
         passed_data_type || :float32
       when :index

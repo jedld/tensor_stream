@@ -184,6 +184,11 @@ module TensorStream
         call_vector_op(:pow, a, b, context, ->(t, u) { t**u })
       end
 
+      register_op :squared_difference, no_eval: true do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:squared_difference, a, b, context, ->(t, u) { (t - u) * (t - u) })
+      end
+
       register_op :concat do |_context, tensor, inputs|
         concat_array(inputs[0], tensor.options[:axis])
       end
@@ -345,7 +350,7 @@ module TensorStream
           end
           reduced_val
         end
-
+   
         reduction(context, tensor, func)
       end
 
@@ -420,25 +425,39 @@ module TensorStream
         call_vector_op(:greater_equal, a, b, context, ->(t, u) { t <= u })
       end
 
+      register_op :fill do |_context, tensor, inputs|
+        shape = inputs[0]
+        value = inputs[1]
+
+        func = -> { value }
+
+        if shape.is_a?(Array) && shape.size.zero?
+          func.call
+        else
+          shape = [shape.to_i] unless shape.is_a?(Array)
+          generate_vector(shape, generator: func)
+        end
+      end
+
       register_op %i[zeros ones zeros_like ones_like] do |_context, tensor, inputs|
         shape = if %i[zeros_like ones_like].include?(tensor.operation)
-          shape_eval(inputs[0])
-        else
-          inputs[0] || tensor.shape.shape
-        end
+                  shape_eval(inputs[0])
+                else
+                  inputs[0] || tensor.shape.shape
+                end
 
         func = if %i[zeros zeros_like].include?(tensor.operation)
-                -> { tensor.data_type == :int32 ? 0 : 0.0 }
-              else
-                -> { tensor.data_type == :int32 ? 1 : 1.0 }
-              end
+                 -> { int_type?(tensor.data_type) ? 0 : 0.0 }
+               else
+                 -> { int_type?(tensor.data_type) ? 1 : 1.0 }
+               end
 
         if shape.is_a?(Array) && shape.size.zero?
           func.call
         else
           shape = [shape.to_i] unless shape.is_a?(Array)
 
-          cache_key = "#{tensor.operation}_#{shape.to_s}"
+          cache_key = "#{tensor.operation}_#{shape}"
           if @context[:_cache].key?(cache_key)
             @context[:_cache][cache_key]
           else
@@ -686,6 +705,7 @@ module TensorStream
       def reduction(child_context, tensor, func)
         val = complete_eval(tensor.inputs[0], child_context)
         axis = complete_eval(tensor.inputs[1], child_context)
+        puts "val #{val} axis #{axis}"
         keep_dims = complete_eval(tensor.options[:keepdims], child_context)
         rank = get_rank(val)
         return val if axis && axis.is_a?(Array) && axis.empty?
@@ -790,17 +810,6 @@ module TensorStream
 
       def _rank_from_shape(shape)
         shape.is_a?(Array) ? shape.size : 0
-      end
-
-      def get_broadcast_gradient_args(input_a, input_b)
-        return [] if get_rank(input_b).zero? && get_rank(input_a).zero?
-        return nil if get_rank(input_b).zero?
-        # ruby scalar
-        if get_rank(input_a).zero?
-          _broadcast_gradient_op(input_b, input_a, 0, true)
-        elsif get_rank(input_a) > 0
-          _broadcast_gradient_op(input_a, input_b, 0)
-        end
       end
 
       def concat_array(values, axis)

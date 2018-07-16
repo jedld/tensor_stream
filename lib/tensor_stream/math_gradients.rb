@@ -16,22 +16,18 @@ module TensorStream
         node.consumers.include?(tensor.name) || node.equal?(tensor)
       end.compact + [wrt_dx.name]
 
-      grad = i_op(:ones_like, wrt_dx)
+      grad = i_op(:fill, tf.shape(tensor), tf.constant(1, dtype: wrt_dx.data_type))
 
       result = _propagate(grad, tensor, wrt_dx, nodes_to_compute, options[:stop_gradients] || [])
       i_op(:truncate, result, tf.shape(wrt_dx))
     end
 
     def self._propagate(grad, tensor, stop_tensor, nodes_to_compute, stop_gradients = [])
-      return grad * i_op(:ones_like, stop_tensor) if stop_tensor.equal?(tensor)
-      return i_op(:zeros_like, stop_tensor) if stop_gradients && _include?(stop_gradients, tensor)
-      return i_op(:zeros_like, stop_tensor) unless tensor.is_a?(Operation)
+      return grad if stop_tensor.equal?(tensor)
+      return i_op(:zeros_like, tensor) if stop_gradients && _include?(stop_gradients, tensor)
+      return i_op(:zeros_like, tensor) unless tensor.is_a?(Operation)
 
-      computed_op = if _op_supports_broadcast?(tensor)
-                      _compute_derivative(tensor, _broadcast_transform(tensor, grad)[1])
-                    else
-                      _compute_derivative(tensor, grad)
-                    end
+      computed_op = _compute_derivative(tensor, grad)
 
       if computed_op.is_a?(Array)
         partials = []
@@ -57,38 +53,47 @@ module TensorStream
 
         case node.operation
         when :add
-          return [grad, grad] if _shapes_fully_specified_and_equal(x, y)
-
+          return [grad, grad] if shapes_fully_specified_and_equal(x, y)
           sx = tf.shape(x, name: 'add/shape_x')
           sy = tf.shape(y, name: 'add/shape_y')
           rx, ry = _broadcast_gradient_args(sx, sy)
-          keep_dims_x = tf.rank(x) == tf.rank(grad)
-          keep_dims_y = tf.rank(y) == tf.rank(grad)
 
-          [tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x', keepdims: keep_dims_x),
-          tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y', keepdims: keep_dims_y)]
+          [ tf.reshape(tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x'),sx),
+            tf.reshape(tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y'),sy) ]
         when :sub
-          return [grad, -grad] if _shapes_fully_specified_and_equal(x, y)
+          return [grad, -grad] if shapes_fully_specified_and_equal(x, y)
 
           sx = tf.shape(x, name: 'sub/shape_x')
           sy = tf.shape(y, name: 'sub/shape_y')
           rx, ry = _broadcast_gradient_args(sx, sy)
-          [tf.reduce_sum(grad, rx), -tf.reduce_sum(grad, ry)]
+
+          [ tf.reshape(tf.reduce_sum(grad, rx, name: 'add/reduce_sub_x'),sx),
+            -tf.reshape(tf.reduce_sum(grad, ry, name: 'add/reduce_sub_y'),sy) ]
         when :mul
           sx = tf.shape(x)
           sy = tf.shape(y)
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [ tf.reduce_sum(tf.mul(grad, y), rx),
-            tf.reduce_sum(tf.mul(x, grad), ry)]
+          [ tf.reshape(tf.reduce_sum(tf.mul(grad, y), rx), sx),
+            tf.reshape(tf.reduce_sum(tf.mul(x, grad), ry), sy)]
         when :div
           sx = i_op(:shape, x)
           sy = i_op(:shape, y)
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [tf.reduce_sum(tf.div(grad, y), rx),
-          tf.reduce_sum(grad * tf.div(tf.div(-x, y), y),
-                                  ry)]
+          [
+            tf.reshape(tf.reduce_sum(tf.div(grad, y), rx), sx),
+            tf.reshape(tf.reduce_sum(grad * tf.div(tf.div(-x, y), y),
+                                  ry), sy)]
+        when :squared_difference
+          sx = i_op(:shape, x)
+          sy = i_op(:shape, y)
+          rx, ry = _broadcast_gradient_args(sx, sy)
+
+          x_grad = tf.mul(2.0, grad) * (x - y)
+
+          [ tf.reshape(tf.reduce_sum(x_grad, rx), sx),
+            tf.reshape(-tf.reduce_sum(x_grad, ry), sy)]
         when :matmul
           t_a = node.options[:transpose_a]
           t_b = node.options[:transpose_b]
@@ -202,7 +207,8 @@ module TensorStream
     end
 
     def self._broadcast_gradient_args(input_a, input_b)
-      [_op(:broadcast_gradient_args, input_b, input_a), _op(:broadcast_gradient_args, input_a, input_b)]
+      res = _op(:broadcast_gradient_args, input_a, input_b)
+      [res[0], res[1]]
     end
 
     def self._broadcast_transform(input_a, input_b)
@@ -232,21 +238,6 @@ module TensorStream
     def self._include?(arr, obj)
       arr.each { |a| return true if a.equal?(obj) }
       false
-    end
-
-    def self._shapes_fully_specified_and_equal(x, y)
-     return false if !_shape_full_specified(x) || !_shape_full_specified(y)
-     return false if x.shape.shape != y.shape.shape
-     
-     true
-    end
-
-    def self._shape_full_specified(tensor)
-      return false if tensor.shape.nil?
-      return false if tensor.shape.shape.nil?
-
-      tensor.shape.shape.each { |s| return false if s.nil? }
-      true
     end
   end
 end

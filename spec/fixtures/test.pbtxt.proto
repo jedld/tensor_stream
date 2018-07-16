@@ -234,6 +234,7 @@ node {
   attr {
     key: "keepdims"
     value {
+      b: false
     }
   }
 }

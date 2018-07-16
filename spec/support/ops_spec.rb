@@ -192,6 +192,10 @@ RSpec.shared_examples "standard ops evaluator" do
           [5, 5, 5],
           [6, 6, 6]]])
     end
+
+    specify do
+      expect(tr(sess.run(tf.reshape([ 1.7226844, -0.0204582], [2])))).to eq([1.7227, -0.0205])
+    end
   end
 
   context ".glorot_uniform_initializer" do
@@ -1179,6 +1183,28 @@ supported_op ".reduce_sum" do
   end
 end
 
+supported_op ".squared_difference" do
+  it "Returns (x - y)(x - y) element-wise." do
+    a = tf.constant([[1,2,3],[4,5,6]])
+    b = tf.constant([[2,4,6],[1,2,3]])
+    op = tf.squared_difference(a, b)
+    expect(sess.run(op)).to eq([[1, 4, 9], [9, 9, 9]])
+
+    a = tf.constant([[1.0, 2.0, 3.0],[4.0, 5.0, 6.0]])
+    b = tf.constant(2.0)
+    op = tf.squared_difference(a, b)
+    expect(sess.run(op)).to eq([[1.0, 0.0, 1.0], [4.0, 9.0, 16.0]])
+  end
+
+  it "computes for the gradient" do
+    a = tf.constant([[1.0, 2.0, 3.0],[4.0, 5.0, 6.0]])
+    b = tf.constant(2.0)
+    op = tf.squared_difference(a, b)
+    g = tf.gradients(op, [a, b])
+    expect(sess.run(g)).to eq([[[-2.0, 0.0, 2.0], [4.0, 6.0, 8.0]], -18.0])
+  end
+end
+
 supported_op ".reduce_prod" do
   it "computes the sum of elements across dimensions of a tensor." do
     x = tf.constant([[2, 1, 2], [2, 1, 2]])
@@ -1275,8 +1301,25 @@ end
     end
   end
 
-  context "nn ops" do
+  supported_op ".fill" do
+    specify do
+      g = tf.fill([2, 3], 9)
+      expect(sess.run(g)).to eq([[9, 9, 9],
+                                 [9, 9, 9]])
+    end
 
+    specify do
+      g = tf.fill([5, 5], 1.2)
+      expect(sess.run(g)).to eq([[1.2, 1.2, 1.2, 1.2, 1.2], [1.2, 1.2, 1.2, 1.2, 1.2], [1.2, 1.2, 1.2, 1.2, 1.2], [1.2, 1.2, 1.2, 1.2, 1.2], [1.2, 1.2, 1.2, 1.2, 1.2]])
+    end
+
+    specify do
+      g = tf.fill([], 1.0)
+      expect(sess.run(g)).to eq(1.0)
+    end
+  end
+
+  context "nn ops" do
     context ".sigmoid_cross_entropy_with_logits" do
       it "Measures the probability error in discrete classification tasks" do
         labels = tf.constant([[1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0], [1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0]])
@@ -1314,6 +1357,99 @@ end
         result = sess.run(g)
 
         expect(tr(result,7)).to eq([[-0.005, -0.005, 0.0099]])
+      end
+    end
+
+    context ".broadcast_gradient_args" do
+      specify do
+        sx, sy = tf.broadcast_gradient_args([], [])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([])
+      end
+
+      specify do
+        sx, sy = tf.broadcast_gradient_args([2,3], [])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0, 1])
+      end
+
+      it "handles a.shape > b.shape" do
+        sx, sy = tf.broadcast_gradient_args([3, 2], [2])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0])
+      end
+
+      it "handles a.shape < b.shape" do
+        sx, sy = tf.broadcast_gradient_args([], [2, 2])
+        expect(sess.run(sx)).to eq([0, 1])
+        expect(sess.run(sy)).to eq([])
+
+        sx, sy = tf.broadcast_gradient_args([2], [3, 2])
+        expect(sess.run(sx)).to eq([0])
+        expect(sess.run(sy)).to eq([])
+      end
+
+      specify do
+        sx, sy = tf.broadcast_gradient_args([1], [2])
+        expect(sess.run(sx)).to eq([0])
+        expect(sess.run(sy)).to eq([])
+
+        sx, sy = tf.broadcast_gradient_args([2], [1])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0])
+
+        sx, sy = tf.broadcast_gradient_args([3], [1])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0])
+
+
+        sx, sy = tf.broadcast_gradient_args([3], [])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0])
+
+        sx, sy = tf.broadcast_gradient_args([2,2], [])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0,1])
+
+        sx, sy = tf.broadcast_gradient_args([2,2], [1])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0,1])
+
+        sx, sy = tf.broadcast_gradient_args([4,4], [1, 1])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0,1])
+
+        sx, sy = tf.broadcast_gradient_args([4,4], [4, 4])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([])
+
+        sx, sy = tf.broadcast_gradient_args([4,4], [1, 4])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0])
+
+        sx, sy = tf.broadcast_gradient_args([4,4], [4, 1])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([1])
+
+        sx, sy = tf.broadcast_gradient_args([4,4,4], [1, 4, 4])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0])
+
+        sx, sy = tf.broadcast_gradient_args([4,4,4], [1, 1, 4])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0, 1])
+
+        sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 1, 4])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([1])
+
+        sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 4, 1])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([2])
+
+        sx, sy = tf.broadcast_gradient_args([4,4,4], [4, 4])
+        expect(sess.run(sx)).to eq([])
+        expect(sess.run(sy)).to eq([0])
       end
     end
   end

@@ -275,20 +275,11 @@ RSpec.describe TensorStream::MathGradients do
      end
 
      xit "computes for open ended shapes" do
-      x = tf.constant([
-          [1.0, 0.5, 4.0],
-        ])
+      x = tf.constant([[1.0, 0.5, 4.0]])
 
-      w = tf.constant([
-          [0.4, 0.2],
-          [0.1, 0.45],
-          [0.2, 4.0]
-      ])
+      w = tf.constant([[0.4, 0.2],[0.1, 0.45],[0.2, 4.0]])
 
-      w2 = tf.constant([
-        [0.3, 0.2],
-        [0.15, 0.45],
-      ])
+      w2 = tf.constant([[0.3, 0.2],[0.15, 0.45]])
 
       b= tf.constant([4.0, 5.0])
       b2= tf.constant([4.1, 5.1])
@@ -300,14 +291,9 @@ RSpec.describe TensorStream::MathGradients do
 
       a2 = tf.sin(matmul_layer_2_add)
 
-      g_matmul_layer_1 = tf.gradients(matmul_layer_1, [x, w])
-      g_sin_a = tf.gradients(a, [b])
-      g_matmul_layer_2 = tf.gradients(matmul_layer_2, [b])
-      g_matmul_layer_2_add = tf.gradients(matmul_layer_2_add, [b])
-
       g2 = tf.gradients(a2, [ b], name: 'final')
       final_result = sess.run(g2)
-      
+
       # File.write('/home/jedld/workspace/tensor_stream/samples/gradient_sample.graphml', TensorStream::Graphml.new.get_string(g2, sess))
       # expect(tr(s4)).to eq([[0.5121, -0.844]])
       # expect(tr(s1)).to eq([[0.256, -0.5064]])
@@ -325,5 +311,45 @@ RSpec.describe TensorStream::MathGradients do
       #   ])
 
      end
+
+     include TensorStream::OpHelper
+
+    #  it "tensorflow reconstruction" do
+    #   const = tf.constant([[1.0, 0.5, 4.0]])
+    #   const_1 = tf.constant([[0.4, 0.2],[0.1, 0.45],[0.2, 4.0]])
+    #   const_2 = tf.constant([[0.3, 0.2],[0.15, 0.45]])
+    #   const_3 = tf.constant([4.0, 5.0])
+    #   const_4 = tf.constant([4.1, 5.1])
+    #   matmul = tf.matmul(const_1, const_2)
+    #   add = tf.add(matmul, const_3)
+    #   sin = tf.sin(add)
+    #   matmul_1 = tf. matmul(sin, const_2)
+    #   add_1 = tf.add(matmul_1, const_4)
+    #   sin_1 = tf.sin(add_1)
+    #   final_shape = tf.constant([1, 2])
+    #   final_grad_ys_0 = tf.constant(1.0)
+    #   final_fill = tf.fill(final_shape, final_grad_ys_0)
+    #   final_sin_1_grad_cos = tf.cos(add_1)
+    #   final_sin_1_grad_mul = tf.mul(final_fill, final_sin_1_grad_cos)
+    #   final_add_1_grad_shape = tf.constant([1 , 2])
+    #   final_add_1_grad_shape_1 = tf.constant([2])
+    #   final_add_1_grad_broadcastgradientargs = _op(:broadcast_gradient_args, final_add_1_grad_shape, final_add_1_grad_shape_1)
+    #   final_add_1_grad_sum = tf.reduce_sum(final_sin_1_grad_mul, final_add_1_grad_broadcastgradientargs[0], keepdims: false)
+    #   final_add_1_grad_reshape = tf.reshape(final_add_1_grad_sum, final_add_1_grad_shape)
+    #   final_add_1_grad_sum_1 = tf.reduce_sum(final_sin_1_grad_mul, final_add_1_grad_broadcastgradientargs[1])
+    #   final_add_1_grad_reshape_1 = tf.reshape(final_add_1_grad_sum_1, final_add_1_grad_shape_1)
+    #   final_matmul_1_grad_matmul = tf.matmul(final_add_1_grad_reshape, const_2, transpose_b: true)
+    #   # final_matmul_1_grad_matmul_1 = tf.matmul(sin, final_add_1_grad_reshape, transpose_a: true)
+    #   final_sin_grad_cos = tf.cos(add)
+    #   final_sin_grad_mul = tf.mul(final_matmul_1_grad_matmul, final_sin_1_grad_cos)
+    #   final_add_grad_shape = tf.constant([1, 2])
+    #   final_add_grad_shape_1 = tf.constant([2])
+    #   final_add_grad_broadcastgradientargs = _op(:broadcast_gradient_args, final_add_grad_shape, final_add_grad_shape_1)
+    #   final_add_grad_sum = tf.reduce_sum(final_sin_grad_mul, final_add_grad_broadcastgradientargs[0])
+    #   final_add_grad_reshape = tf.reshape(final_add_grad_sum, final_add_grad_shape)
+    #   final_add_grad_sum_1 = tf.reduce_sum(final_sin_grad_mul, final_add_grad_broadcastgradientargs[1])
+    #   final_add_grad_reshape_1 = tf.reshape(final_add_grad_sum_1, final_add_grad_shape_1)
+    #   expect(sess.run(final_add_grad_reshape_1)).to eq([])
+    #  end
   end
 end

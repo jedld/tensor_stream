@@ -2,7 +2,7 @@ require "spec_helper"
 require 'benchmark'
 require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
-RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
+RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
   let(:tf) { TensorStream }
   let(:sess) { TensorStream.session([:opencl_evaluator, :ruby_evaluator]) }
   let(:instance) { described_class.new(sess, TensorStream::Evaluator::OpenclEvaluator.default_device, {})}
@@ -26,7 +26,6 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
       devices = tf.list_local_devices.select { |d| d =~ /opencl/ }
       device = described_class.query_device(devices.first)
       expect(device).to be
-      expect(device.type).to eq(:gpu)
       end
     end
   end
@@ -52,7 +51,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(61)
+      expect(described_class.ops.keys.size).to eq(62)
     end
 
     specify do
@@ -109,6 +108,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         softmax_grad
         sqrt
         square
+        squared_difference
         stop_gradient
         sub
         sum

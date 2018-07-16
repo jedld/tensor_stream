@@ -116,6 +116,32 @@ module TensorStream
 
       protected
 
+      def get_broadcast_gradient_args(input_a, input_b)
+        return [[], []] if input_a == input_b
+
+        input_a_args = []
+        input_b_args = []
+        
+        input_a = input_b.size.times.map { |i| i < input_a.size ? input_a[i] : nil }.reverse if input_a.size < input_b.size
+        input_b = input_a.size.times.map { |i| i < input_b.size ? input_b[i] : nil }.reverse if input_a.size > input_b.size
+
+        input_a.reverse.zip(input_b.reverse).each_with_index do |item, index|
+          a, b = item
+ 
+          if a.nil?
+            input_a_args << input_b.size - index - 1
+          elsif b.nil?
+            input_b_args << input_a.size - index - 1
+          elsif (a < b)
+            input_a_args << input_b.size - index - 1
+          elsif (a > b)
+            input_b_args << input_a.size - index - 1
+          end
+        end
+
+        [input_a_args.reverse, input_b_args.reverse]
+      end
+
       ##
       # converts from a ruby Buffer object to the evaluator's native buffer format
       def convert_from_buffer(tensor, result)
