@@ -913,6 +913,54 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  supported_op ".mod" do
+    specify do
+      a = tf.constant([2, 4])
+      b = tf.constant([2, 3])
+      f = tf.mod(a, b)
+      expect(sess.run(f)).to eq([0, 1])
+    end
+
+    specify do
+      a = tf.constant([2, 8])
+      b = tf.constant([5, 6])
+      f = a % b
+      expect(sess.run(f)).to eq([2, 2])
+    end
+
+    context "gradients" do
+      specify do
+        a = tf.constant([2, 8])
+        b = tf.constant([5, 6])
+        f = a % b
+        g = tf.gradients(f, [a, b])
+        expect(sess.run(g)).to eq([[1, 1], [0, -1]])
+      end
+
+      specify do
+        a = tf.constant([2.0, 8.0])
+        b = tf.constant([5.0, 6.0])
+        f = a % b
+        g = tf.gradients(f, [a, b])
+        expect(sess.run(g)).to eq([[1.0, 1.0], [-0.0, -1.0]])
+      end
+    end
+  end
+
+  supported_op ".floor_div" do
+    specify do
+      a = tf.constant(2.0)
+      b = tf.constant(5.0)
+      f = tf.floor_div(a, b)
+      expect(sess.run(f)).to eq(0.0)
+
+      a = tf.constant(6.0)
+      b = tf.constant(5.0)
+      f = tf.floor_div(a, b)
+      expect(sess.run(f)).to eq(1.0)
+    end
+  end
+
   describe "randomization functions" do
     before do
       tf.set_random_seed(1234)

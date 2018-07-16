@@ -83,14 +83,22 @@ module TensorStream
       return false if x.shape.shape != y.shape.shape
       
       true
-     end
+    end
  
-     def shape_full_specified(tensor)
-       return false if tensor.shape.nil?
-       return false if tensor.shape.shape.nil?
- 
-       tensor.shape.shape.each { |s| return false if s.nil? }
-       true
-     end
+    def shape_full_specified(tensor)
+      return false if tensor.shape.nil?
+      return false if tensor.shape.shape.nil?
+
+      tensor.shape.shape.each { |s| return false if s.nil? }
+      true
+    end
+
+    def reduced_shape(input_shape, axes)
+      input_rank = i_op(:size, input_shape)
+      axes = (axes + input_rank) % input_rank
+      axes_shape = i_op(:shape, axes)
+      tf.dynamic_stitch([i_op(:range, 0, input_rank), axes],
+        [input_shape, i_op(:fill, axes_shape, 1)])
+    end
   end
 end

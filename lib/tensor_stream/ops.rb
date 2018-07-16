@@ -291,6 +291,20 @@ module TensorStream
     end
 
     ##
+    # Returns element-wise remainder of division.
+    def mod(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
+      _op(:mod, input_a, input_b, name: name)
+    end
+
+    ##
+    # Returns element-wise integer divistion.
+    def floor_div(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
+      _op(:floor_div, input_a, input_b, name: name)
+    end
+
+    ##
     # Returns x - y element-wise.
     #
     # This operation supports boradcasting

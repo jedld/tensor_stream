@@ -84,6 +84,15 @@ module TensorStream
             tf.reshape(tf.reduce_sum(tf.div(grad, y), rx), sx),
             tf.reshape(tf.reduce_sum(grad * tf.div(tf.div(-x, y), y),
                                   ry), sy)]
+        when :mod
+          sx = tf.shape(x)
+          sy = tf.shape(y)
+          rx, ry = _broadcast_gradient_args(sx, sy)
+          floor_xy = tf.floor_div(x, y)
+          gx = tf.reshape(tf.reduce_sum(grad, rx), sx)
+          gy = tf.reshape(tf.reduce_sum(grad * tf.negative(floor_xy), ry), sy)
+
+          [gx, gy]
         when :squared_difference
           sx = i_op(:shape, x)
           sy = i_op(:shape, y)

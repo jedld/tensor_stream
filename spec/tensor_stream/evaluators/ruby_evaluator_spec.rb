@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(79)
+      expect(described_class.ops.keys.size).to eq(81)
     end
 
     specify do
@@ -45,6 +45,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         eye
         fill
         floor
+        floor_div
         flow_dynamic_stitch
         flow_group
         glorot_uniform
@@ -60,6 +61,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         matmul
         max
         mean
+        mod
         mul
         negate
         no_op

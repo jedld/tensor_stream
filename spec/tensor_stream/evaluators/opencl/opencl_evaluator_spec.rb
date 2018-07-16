@@ -51,7 +51,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(63)
+      expect(described_class.ops.keys.size).to eq(65)
     end
 
     specify do
@@ -74,6 +74,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         equal
         exp
         floor
+        floor_div
         flow_group
         greater
         greater_equal
@@ -87,6 +88,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         matmul
         max
         mean
+        mod
         mul
         negate
         no_op

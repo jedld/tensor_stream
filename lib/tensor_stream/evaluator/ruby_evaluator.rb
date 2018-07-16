@@ -196,6 +196,20 @@ module TensorStream
         call_vector_op(:sub, a, b, context, ->(t, u) { t - u })
       end
 
+      register_op :mod, no_eval: true do |context, _tensor, inputs|
+        a, b = inputs
+        call_vector_op(:sub, a, b, context, ->(t, u) { t % u })
+      end
+
+      register_op :floor_div, no_eval: true do |context, tensor, inputs|
+        a, b = inputs
+        if fp_type?(tensor.data_type)
+          call_vector_op(:sub, a, b, context, ->(t, u) { (t / u).to_i.to_f })
+        else
+          call_vector_op(:sub, a, b, context, ->(t, u) { t / u })
+        end
+      end 
+
       register_op :mul, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:mul, a, b, context, ->(t, u) { t * u })

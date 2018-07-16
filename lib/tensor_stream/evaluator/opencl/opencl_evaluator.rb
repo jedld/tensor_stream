@@ -202,6 +202,7 @@ module TensorStream
         suffix = args.collect { |k,v| "#{k}.#{v}"}.join('.')
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}:#{object_id}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
+          raise "opencl kernel template for #{kernel} has not yet been defined" if filename.nil?
           source = File.read(filename)
           source = OpenclTemplateHelper.new(source).generate(args)
           # File.write("/tmp/#{kernel}.#{suffix}.cl", source)
@@ -285,9 +286,17 @@ module TensorStream
         end
       end
 
-      %i[max add div sub mul pow sigmoid_grad squared_difference].each do |op|
+      %i[max add div sub mod mul pow sigmoid_grad squared_difference].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
+        end
+      end
+
+      register_op :floor_div, noop: true do |context, tensor, inputs|
+        if fp_type?(tensor.data_type)
+          execute_2_operand_func('floor_div', tensor, inputs[0], inputs[1], context)
+        else
+          execute_2_operand_func('div', tensor, inputs[0], inputs[1], context)
         end
       end
 
