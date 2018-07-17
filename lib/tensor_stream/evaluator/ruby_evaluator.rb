@@ -601,9 +601,10 @@ module TensorStream
         get_broadcast_gradient_args(inputs[0], inputs[1])
       end
 
-      register_op :tile do |context, _tensor, inputs|
+      register_op :tile do |_context, _tensor, inputs|
         input, multiples = inputs
         rank = get_rank(input)
+
         raise '1D or higher tensor required' if rank.zero?
         raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
 
@@ -615,13 +616,12 @@ module TensorStream
         inputs.collect { |input| run(input, context) }
       end
 
-      register_op :softmax do |context, _tensor, inputs|
+      register_op :softmax do |_context, _tensor, inputs|
         softmax(inputs[0])
       end
 
       register_op :softmax_grad do |_context, _tensor, inputs|
         input, grad = inputs
-
         softmax_input = softmax(input)
         f_grad = softmax_grad(softmax_input)
         f_grad.transpose.each_with_index.collect do |row, index|

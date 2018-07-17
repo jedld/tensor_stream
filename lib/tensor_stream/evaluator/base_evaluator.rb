@@ -87,7 +87,7 @@ module TensorStream
       ##
       # gets all supported ops for this Evaluator class
       def self.ops
-        @ops ||={}
+        @ops ||= {}
       end
 
       def invoke(tensor, execution_context)

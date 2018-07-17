@@ -23,8 +23,8 @@ module TensorStream
 
     def self._propagate(grad, tensor, stop_tensor, nodes_to_compute, stop_gradients = [])
       return grad if stop_tensor.equal?(tensor)
-      return i_op(:zeros_like, tensor) if stop_gradients && _include?(stop_gradients, tensor)
-      return i_op(:zeros_like, tensor) unless tensor.is_a?(Operation)
+      return nil if stop_gradients && _include?(stop_gradients, tensor)
+      return nil unless tensor.is_a?(Operation)
 
       computed_op = _compute_derivative(tensor, grad)
 
@@ -178,7 +178,7 @@ module TensorStream
           y_cond = i_op(:cond, i_op(:zeros_like, x), i_op(:ones_like, x), pred: node.options[:pred])
           [x_cond * grad, y_cond * grad]
         when :mean
-          sum_grad = _sum_grad(x, y, grad)
+          sum_grad  = _sum_grad(x, y, grad)[0]
           input_shape = tf.shape(x)
           output_shape = tf.shape(node)
           factor = _safe_shape_div(tf.reduce_prod(input_shape), tf.reduce_prod(output_shape))
@@ -214,7 +214,7 @@ module TensorStream
     end
 
     def self._safe_shape_div(x, y)
-      x / tf.maximum(y, 1)
+      _op(:floor_div, x , tf.maximum(y, 1))
     end
 
     def self._sum_grad(x, y, grad)

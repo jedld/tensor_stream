@@ -1246,6 +1246,13 @@ supported_op ".sum" do
     expect(sess.run(tf.reduce_sum(x, -2))).to eq([2, 2, 2])
   end
 
+  specify "rank 0 tensor" do
+    c = tf.constant(2.0)
+    f = tf.reduce_sum(c)
+    g = tf.gradients(f, [c])
+    expect(sess.run(g)).to eq([1.0])
+  end
+
   it "rank > 2 tensor" do
     x = tf.constant([ [[1,1], [1,1]], [[1,1], [1,1]]])
     expect(sess.run(tf.reduce_sum(x))).to eq(8)
