@@ -304,6 +304,10 @@ module TensorStream
       _op(:floor_div, input_a, input_b, name: name)
     end
 
+    def range(start, limit, delta = 1, dtype: nil, name: 'range')
+      _op(:range, start, limit, delta, data_type: dtype, name: name)
+    end
+
     ##
     # Returns x - y element-wise.
     #

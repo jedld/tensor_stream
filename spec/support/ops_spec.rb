@@ -1171,6 +1171,26 @@ context "#broadcast_dimensions" do
   end
 end
 
+context ".reduced_shape" do
+  specify do
+    rs = tf.reduced_shape([2, 2], 0)
+    expect(sess.run(rs)).to eq([1, 2])
+  end
+
+  context ".reduced_shape" do
+    include TensorStream::OpHelper
+    it "returns the output shape of a tensor after reduction assuing keepdims= true" do
+      input = tf.constant([[2,3],[3,4]])
+      expect(sess.run(tf.reduced_shape(tf.shape(input), 0))).to eq([1, 2])
+    end
+
+    specify do
+      expect(sess.run(tf.reduced_shape([2, 3], 0))).to eq([1, 3])
+    end
+  end
+
+end
+
 context ".shape" do
   it "returns a 1D tensor representing shape of target tensor" do
     t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
@@ -1190,6 +1210,18 @@ context ".shape" do
     v = tf.constant([[1, 2, 3],[4, 5, 6]])
     shape = tf.shape(v, out_type: :float32)
     expect(sess.run(shape)).to eql([2.0, 3.0])
+  end
+end
+
+supported_op ".range" do
+  it "Creates a sequence of numbers that begins at start and extends by increments of delta up to but not including limit" do
+    range = tf.range(3, 18, 3)
+    expect(sess.run(range)).to eq([3, 6, 9, 12, 15])
+  end
+
+  specify do
+    range = tf.range(3, 1, -0.5)
+    expect(sess.run(range)).to eq([3, 2.5, 2, 1.5])
   end
 end
 
@@ -1433,18 +1465,6 @@ end
     end
 
     context "private ops" do
-      context ".reduced_shape" do
-        include TensorStream::OpHelper
-        it "returns the output shape of a tensor after reduction assuing keepdims= true" do
-          input = tf.constant([[2,3],[3,4]])
-          expect(sess.run(_op(:reduced_shape, tf.shape(input), 0))).to eq([1, 2])
-        end
-
-        specify do
-          expect(sess.run(_op(:reduced_shape, [2, 3], 0))).to eq([1, 3])
-        end
-      end
-
       context ".broadcast_gradient_args" do
         specify do
           sx, sy = tf.broadcast_gradient_args([], [])

@@ -219,7 +219,7 @@ module TensorStream
 
     def self._sum_grad(x, y, grad)
       input_shape = _op(:shape, x)
-      output_shape_kept_dims = _op(:reduced_shape, input_shape, y)
+      output_shape_kept_dims = tf.reduced_shape(input_shape, y)
       tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
       grad = _op(:reshape, grad, output_shape_kept_dims)
       [_op(:tile, grad, tile_scaling), nil ]

@@ -91,8 +91,11 @@ module TensorStream
       end
 
       def invoke(tensor, execution_context)
+        return eval_tensor(tensor, execution_context) unless tensor.is_a?(Operation)
+
         if self.class.ops.key?(tensor.operation.to_sym)
           op = self.class.ops[tensor.operation.to_sym]
+
           op_options = op[:options]
           resolved_inputs = tensor.inputs.map do |i|
             next if i.nil?

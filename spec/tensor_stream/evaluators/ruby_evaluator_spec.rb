@@ -74,9 +74,9 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         prod
         random_normal
         random_uniform
+        range
         rank
         reciprocal
-        reduced_shape
         reshape
         round
         sec

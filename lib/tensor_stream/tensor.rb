@@ -212,6 +212,8 @@ module TensorStream
         :int32
       elsif value.is_a?(Array)
         return detect_type(value[0])
+      elsif value.is_a?(Tensor)
+        value.data_type
       else
         :float32
       end

@@ -1,8 +1,8 @@
 module TensorStream
   # module that contains helper functions useful for ops
   module OpHelper
-    def _op(code, t_a, t_b = nil, options = {})
-      op = Operation.new(code.to_sym, t_a, t_b, options)
+    def _op(code, *args)
+      op = Operation.new(code.to_sym, *args)
       if !TensorStream.get_default_graph.get_dependency_scope.nil?
         i_op(:identity, op, TensorStream.get_default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
       else
@@ -94,10 +94,13 @@ module TensorStream
     end
 
     def reduced_shape(input_shape, axes)
+      input_shape = TensorStream.convert_to_tensor(input_shape)
+      axes = TensorStream.convert_to_tensor(axes)
       input_rank = i_op(:size, input_shape)
+      axes = TensorStream.range(0, input_rank) if axes.nil?
       axes = (axes + input_rank) % input_rank
       axes_shape = i_op(:shape, axes)
-      tf.dynamic_stitch([i_op(:range, 0, input_rank), axes],
+      TensorStream.dynamic_stitch([TensorStream.range(0, input_rank), axes],
         [input_shape, i_op(:fill, axes_shape, 1)])
     end
   end

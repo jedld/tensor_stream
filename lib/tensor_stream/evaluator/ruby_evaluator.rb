@@ -405,6 +405,25 @@ module TensorStream
         reduction(context, tensor, func)
       end
 
+      register_op :range do |context, tensor, inputs|
+        start, limit, delta = inputs
+        raise " delta !=0 " if delta.zero?
+        raise " Requires start <= limit when delta > 0" if (start > limit) && delta > 0
+        raise " Requires start >= limit when delta < 0" if (start < limit) && delta < 0
+        
+        
+        cur_step = start
+        r = []
+        Kernel.loop do
+          break if start == limit
+          break if (start < limit) && (cur_step >= limit)
+          break if (start > limit) && (cur_step <= limit)
+          r << cur_step
+          cur_step += delta
+        end
+        r
+      end
+
       register_op :tanh_grad, no_eval: true do |context, _tensor, inputs|
         call_op(:tanh_grad, inputs[0], context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
       end
@@ -580,20 +599,6 @@ module TensorStream
 
       register_op :broadcast_gradient_args do |_context, _tensor, inputs|
         get_broadcast_gradient_args(inputs[0], inputs[1])
-      end
-
-      register_op :reduced_shape do |_context, _tensor, inputs|
-        input_shape, axes = inputs
-        
-        next [] if axes.nil? # reduce to scalar
-        axes = [ axes ] unless axes.is_a?(Array)
-        next input_shape if axes.empty?
-
-        axes.each do |dimen|
-          input_shape[dimen] = 1
-        end
-
-        input_shape
       end
 
       register_op :tile do |context, _tensor, inputs|

@@ -854,6 +854,17 @@ module TensorStream
         end
       end
 
+      def _reduced_shape(input_shape, axes)
+        return [] if axes.nil? # reduce to scalar
+        axes = [ axes ] unless axes.is_a?(Array)
+        return input_shape if axes.empty?
+
+        axes.each do |dimen|
+          input_shape[dimen] = 1
+        end
+        input_shape
+      end
+
       def reduction(child_context, tensor, a, b, func)
         input = complete_eval(a, child_context)
         axis = read_final_result(complete_eval(b, child_context))
@@ -882,7 +893,7 @@ module TensorStream
           end
 
           if tensor.options[:keepdims]
-            new_shape = reduced_shape(input.shape.dup, axis)
+            new_shape = _reduced_shape(input.shape.dup, axis)
           end
 
           convert_to_opencl(value.flatten, new_shape, data_type: tensor.data_type, name: tensor.name)
