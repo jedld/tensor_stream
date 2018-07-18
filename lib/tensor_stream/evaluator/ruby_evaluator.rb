@@ -446,12 +446,13 @@ module TensorStream
         end
       end
 
-      register_op :cond do |context, tensor, inputs|
+      register_op :cond, noop: true do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
+
         if all_true?(pred)
-          inputs[0]
+          complete_eval(inputs[0], context)
         else
-          inputs[1]
+          complete_eval(inputs[1], context)
         end
       end
 
