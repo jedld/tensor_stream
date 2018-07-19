@@ -1471,10 +1471,10 @@ end
       specify "gradients 2D" do
         outputs = tf.constant([[0.1, 0.1, 0.8],[0.2, 0.7, 0.1]])
         sm = tf.nn.softmax(outputs)
-        g = tf.gradients(sm, [outputs])
+        f = tf.sin(sm)
+        g = tf.gradients(f, [outputs])
         result = sess.run(g)
-        expect(tr(result,7)).to eq([[-0.0049744 , -0.0049744 ,  0.00994875],
-          [ 0.00815855, -0.01734645,  0.00918788]])
+        expect(tr(result,7)).to eq([[[0.0115, 0.0115, -0.0231], [0.0082, -0.0173, 0.0092]]])
       end
     end
 

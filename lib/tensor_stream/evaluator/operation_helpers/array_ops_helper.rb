@@ -166,6 +166,18 @@ module TensorStream
       get_rank(value[0], rank + 1)
     end
 
+    def last_axis(arr)
+      all_items = []
+      if get_rank(arr) <=2
+        return arr
+      else
+        arr.each do |sub|
+          all_items += last_axis(sub)
+        end
+      end
+      all_items
+    end
+
     def softmax(arr)
       return arr if arr.empty?
 
@@ -184,7 +196,6 @@ module TensorStream
 
     def softmax_grad(arr)
       return arr if arr.empty?
-
       arr.each_with_index.collect do |input, index|
         if input.is_a?(Array)
           softmax_grad(input)

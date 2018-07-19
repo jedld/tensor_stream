@@ -624,14 +624,31 @@ module TensorStream
       register_op :softmax_grad do |_context, _tensor, inputs|
         input, grad = inputs
         softmax_input = softmax(input)
-        f_grad = softmax_grad(softmax_input)
-        f_grad.transpose.each_with_index.collect do |row, index|
-          sum = 0.0
-          row.each_with_index do |r, g_index|
-            sum += r * grad[g_index]
+        input_shape = shape_eval(input)
+
+        last_dimen_list = last_axis(softmax_input)
+        last_grad_list = last_axis(grad)
+
+        func = -> (list, last_grad) {
+          f_grad = softmax_grad(list)
+          f_grad.transpose.each_with_index.collect do |row, index|
+            sum = 0.0
+            row.each_with_index do |r, g_index|
+              sum += r * last_grad[g_index]
+            end
+            sum
           end
-          sum
+        }
+
+        if input_shape.size == 1
+          func.(last_dimen_list, last_grad_list)
+        else
+          arr = last_dimen_list.zip(last_grad_list).collect do |list, last_grad|
+            func.(list, last_grad)
+          end
+          TensorShape.reshape(arr.flatten, input_shape)
         end
+        
       end
 
       register_op :check_numerics do |context, tensor, inputs|
