@@ -156,7 +156,7 @@ module TensorStream
           -grad
         when :exp
           grad * node
-        when :identity
+        when :identity, :print
           grad
         when :sum
           _sum_grad(x, y, grad)
