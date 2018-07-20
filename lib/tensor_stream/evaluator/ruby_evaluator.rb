@@ -630,6 +630,7 @@ module TensorStream
         last_grad_list = last_axis(grad)
 
         func = -> (list, last_grad) {
+
           f_grad = softmax_grad(list)
           f_grad.transpose.each_with_index.collect do |row, index|
             sum = 0.0
@@ -651,6 +652,62 @@ module TensorStream
         
       end
 
+      register_op :softmax_cross_entropy_with_logits_v2 do |context, tensor, inputs|
+        last_dimen_list = last_axis(inputs[0])
+        input_shape = shape_eval(inputs[0])
+
+        func = -> (logits) {
+          c = logits.max
+          transformed_logits = logits.map { |l| l - c}
+          sum = transformed_logits.map { |x| Math.exp(x) }.reduce(:+)
+          transformed_logits.map { |x| (Math.log(sum) - x) }
+        }
+
+        if input_shape.size == 1
+          func.(last_dimen_list)
+        else
+          arr = last_dimen_list.collect do |list|
+            func.(list)
+          end
+          TensorShape.reshape(arr.flatten, input_shape)
+        end
+      end
+
+      register_op :softmax_cross_entropy_with_logits_v2_grad do |context, tensor, inputs|
+        last_dimen_list = last_axis(inputs[0])
+        passed_grads = last_axis(inputs[1])
+        input_shape = shape_eval(inputs[0])
+
+        func = -> (logits, grad) {
+          c = logits.max
+          transformed_logits = logits.map { |l| Math.exp(l - c) }
+          e_sum = transformed_logits.reduce(:+)
+          last_grad = transformed_logits.zip(grad).map { |x, y| -y / ( x / e_sum)  }
+
+          soft_max = transformed_logits.collect do |input|
+            input / e_sum
+          end
+  
+          f_grad = softmax_grad(soft_max)
+          f_grad.transpose.each_with_index.collect do |row, index|
+            sum = 0.0
+            row.each_with_index do |r, g_index|
+              sum += r * last_grad[g_index]
+            end
+            sum
+          end
+        }
+
+        if input_shape.size == 1
+          func.(last_dimen_list, passed_grads)
+        else
+          arr = last_dimen_list.zip(passed_grads).collect do |list, passed_grad|
+            func.(list, passed_grad)
+          end
+          TensorShape.reshape(arr.flatten, input_shape)
+        end
+      end
+
       register_op :check_numerics do |context, tensor, inputs|
         message = tensor.options[:message]
         f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
@@ -659,9 +716,14 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-
-        # puts tensor.name
         invoke(tensor, child_context).tap do |result|
+          # puts tensor.name
+          # if tensor.name.start_with?('softmax_cross_entropy_with_logits')
+          #   puts result.inspect
+          # end
+          # result.flatten.each do |a|
+          #   binding.pry if a.nan? || a.infinite?
+          # end if result.is_a?(Array)
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
             b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]

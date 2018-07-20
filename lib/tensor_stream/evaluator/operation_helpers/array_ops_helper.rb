@@ -181,16 +181,15 @@ module TensorStream
     def softmax(arr)
       return arr if arr.empty?
 
-      sum = if !arr[0].is_a?(Array)
-        arr.map { |a| Math.exp(a - arr.max) }.reduce(:+)
-      end
-
-      arr.collect do |input|
-        if input.is_a?(Array)
-          softmax(input)
-        else
-          Math.exp(input - arr.max) / sum
+      if !arr[0].is_a?(Array)
+        c = arr.max
+        arr = arr.map { |a| Math.exp(a - c) }
+        sum = arr.reduce(:+)
+        arr.collect do |input|
+          input / sum
         end
+      else
+        arr.collect { |input| softmax(input) }
       end
     end
 
