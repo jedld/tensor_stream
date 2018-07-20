@@ -655,19 +655,19 @@ module TensorStream
       register_op :softmax_cross_entropy_with_logits_v2 do |context, tensor, inputs|
         last_dimen_list = last_axis(inputs[0])
         input_shape = shape_eval(inputs[0])
-
-        func = -> (logits) {
+        labels = last_axis(inputs[1])
+        func = -> (logits, label) {
           c = logits.max
           transformed_logits = logits.map { |l| l - c}
           sum = transformed_logits.map { |x| Math.exp(x) }.reduce(:+)
-          transformed_logits.map { |x| (Math.log(sum) - x) }
+          transformed_logits.zip(label).map { |x, y| (Math.log(sum) - x) * y }
         }
 
         if input_shape.size == 1
-          func.(last_dimen_list)
+          func.(last_dimen_list, labels)
         else
-          arr = last_dimen_list.collect do |list|
-            func.(list)
+          arr = last_dimen_list.zip(labels).collect do |list, label|
+            func.(list, label)
           end
           TensorShape.reshape(arr.flatten, input_shape)
         end
@@ -675,34 +675,22 @@ module TensorStream
 
       register_op :softmax_cross_entropy_with_logits_v2_grad do |context, tensor, inputs|
         last_dimen_list = last_axis(inputs[0])
-        passed_grads = last_axis(inputs[1])
+        labels = last_axis(inputs[1])
+        passed_grads = last_axis(inputs[2])
         input_shape = shape_eval(inputs[0])
 
-        func = -> (logits, grad) {
+        func = -> (logits, label, grad) {
           c = logits.max
           transformed_logits = logits.map { |l| Math.exp(l - c) }
           e_sum = transformed_logits.reduce(:+)
-          last_grad = transformed_logits.zip(grad).map { |x, y| -y / ( x / e_sum)  }
-
-          soft_max = transformed_logits.collect do |input|
-            input / e_sum
-          end
-  
-          f_grad = softmax_grad(soft_max)
-          f_grad.transpose.each_with_index.collect do |row, index|
-            sum = 0.0
-            row.each_with_index do |r, g_index|
-              sum += r * last_grad[g_index]
-            end
-            sum
-          end
+          transformed_logits.zip(label).zip(grad).map { |(x, y), g|  (x / e_sum) * g  - y }
         }
 
         if input_shape.size == 1
-          func.(last_dimen_list, passed_grads)
+          func.(last_dimen_list, labels, passed_grads)
         else
-          arr = last_dimen_list.zip(passed_grads).collect do |list, passed_grad|
-            func.(list, passed_grad)
+          arr = last_dimen_list.zip(labels).zip(passed_grads).collect do | (list, label), passed_grad|
+            func.(list, label, passed_grad)
           end
           TensorShape.reshape(arr.flatten, input_shape)
         end

@@ -191,7 +191,7 @@ module TensorStream
           i_op(:softmax_grad, x, grad)
         when :softmax_cross_entropy_with_logits_v2
           # -grad * tf.reciprocal(i_op(:softmax, x))
-          i_op(:softmax_cross_entropy_with_logits_v2_grad, x, grad)
+          [i_op(:softmax_cross_entropy_with_logits_v2_grad, x, y, grad), nil]
           # i_op(:softmax_grad, x, -grad * tf.reciprocal(i_op(:softmax, x)))
         when :floor, :ceil
           # non differentiable

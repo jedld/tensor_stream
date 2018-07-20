@@ -11,8 +11,15 @@ module TensorStream
     end
 
     # same as op but with a marker that it was internal generated
-    def i_op(code, t_a, t_b = nil, options = {})
-      Operation.new(code.to_sym, t_a, t_b, options.merge(internal: true))
+    def i_op(code, *args)
+      options = if args.last.is_a?(Hash)
+        args.pop
+      else
+        {}
+      end
+      
+      args << options.merge(internal: true)
+      Operation.new(code.to_sym, *args)
     end
 
     def cons(value, options = {})

@@ -47,6 +47,8 @@ RSpec.describe TensorStream::NN do
       x = tf.constant([-2046.4904911315384, 2371.594564592362, -1920.025585664249, 266.06257844862205, 570.1462458227674, 2290.6715733914048, 1396.0319189271745, -2750.277642111798, 1758.5654697551304, 3116.9786057465503])
       label = tf.constant([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
       f = tf.nn.softmax_cross_entropy_with_logits_v2(logits: x, labels: label)
+      h = tf.nn.softmax(x)
+      expect(sess.run(h)).to eq([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
       g = tf.gradients(f, [x])
       expect(tr(sess.run(g))).to eq([[ 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0,  1.0]])
     end

@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(81)
+      expect(described_class.ops.keys.size).to eq(83)
     end
 
     specify do
@@ -88,6 +88,8 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         size
         slice
         softmax
+        softmax_cross_entropy_with_logits_v2
+        softmax_cross_entropy_with_logits_v2_grad
         softmax_grad
         sqrt
         square
