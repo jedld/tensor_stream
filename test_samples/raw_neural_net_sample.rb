@@ -13,7 +13,7 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
-require 'tensor_stream/evaluator/opencl_evaluator'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 require 'pry-byebug'
 
 tf = TensorStream
@@ -66,7 +66,7 @@ logits = neural_net(X, weights, biases)
 prediction = tf.nn.softmax(logits)
 
 # Define loss and optimizer
-loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
     logits: logits, labels: Y))
 
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate)
@@ -90,15 +90,14 @@ tf.session do |sess|
         
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         # Run optimization op (backprop)
-        puts "...."
+        puts "."
         sess.run(train_op, feed_dict: { X => batch_x, Y => batch_y })
-        puts "----"
         if step % display_step == 0 || step == 1
         # Calculate batch loss and accuracy
         loss, acc = sess.run([loss_op, accuracy], feed_dict: { X => batch_x, Y => batch_y})
-        print("Step " + str(step) + ", Minibatch Loss= " + \
-                "{:.4f}".format(loss) + ", Training Accuracy= " + \
-                "{:.3f}".format(acc))
+        print("Step " + step.to_s + ", Minibatch Loss= " + \
+                loss.to_s + ", Training Accuracy= " + \
+                acc.to_s)
         end
     end
 

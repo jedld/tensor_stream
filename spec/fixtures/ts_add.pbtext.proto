@@ -1,0 +1,700 @@
+node {
+  name: "Const"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 2
+          }
+        }
+        tensor_content: "\000\000\200?\000\000\300?"
+      }
+    }
+  }
+}
+node {
+  name: "Const_1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 2.0
+      }
+    }
+  }
+}
+node {
+  name: "add:0"
+  op: "Add"
+  input: "Const"
+  input: "Const_1"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/Shape/Const"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        tensor_content: "\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/Const"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 1.0
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/fill_1:0"
+  op: "Fill"
+  input: "gradient_wrt_Const/Shape/Const"
+  input: "gradient_wrt_Const/Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/Shape/Const"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        tensor_content: "\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/Shape/Const_1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 0
+          }
+        }
+        tensor_content: ""
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/broadcast_gradient_args_2:0"
+  op: "BroadcastGradientArgs"
+  input: "gradient_wrt_Const/add:0_grad/Shape/Const_1"
+  input: "gradient_wrt_Const/add:0_grad/Shape/Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/Const:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/index_3:0"
+  op: "Index"
+  input: "gradient_wrt_Const/add:0_grad/broadcast_gradient_args_2:0"
+  input: "gradient_wrt_Const/add:0_grad/Const:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/Const_1:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/index_4:0"
+  op: "Index"
+  input: "gradient_wrt_Const/add:0_grad/broadcast_gradient_args_2:0"
+  input: "gradient_wrt_Const/add:0_grad/Const_1:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/add/reduce_sum_x"
+  op: "Sum"
+  input: "gradient_wrt_Const/fill_1:0"
+  input: "gradient_wrt_Const/add:0_grad/index_3:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "keepdims"
+    value {
+       b: false
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/add:0_grad/add/reduce_sum_y"
+  op: "Sum"
+  input: "gradient_wrt_Const/fill_1:0"
+  input: "gradient_wrt_Const/add:0_grad/index_4:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "keepdims"
+    value {
+       b: false
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/ones_like_5:0"
+  op: "OnesLike"
+  input: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/mul_6:0"
+  op: "Mul"
+  input: "gradient_wrt_Const/add:0_grad/add/reduce_sum_x"
+  input: "gradient_wrt_Const/ones_like_5:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/Shape/Const_1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        tensor_content: "\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/truncate_7:0"
+  op: "Truncate"
+  input: "gradient_wrt_Const/mul_6:0"
+  input: "gradient_wrt_Const/Shape/Const_1"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const/truncate_7:0"
+  op: "Truncate"
+  input: "gradient_wrt_Const/mul_6:0"
+  input: "gradient_wrt_Const/Shape/Const_1"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/Shape/Const_1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 0
+          }
+        }
+        tensor_content: ""
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/Const"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 1.0
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/fill_8:0"
+  op: "Fill"
+  input: "gradient_wrt_Const_1/Shape/Const_1"
+  input: "gradient_wrt_Const_1/Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/Shape/Const"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        tensor_content: "\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/Shape/Const_1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 0
+          }
+        }
+        tensor_content: ""
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/broadcast_gradient_args_9:0"
+  op: "BroadcastGradientArgs"
+  input: "gradient_wrt_Const_1/add:0_grad/Shape/Const_1"
+  input: "gradient_wrt_Const_1/add:0_grad/Shape/Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/Const_2:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/index_10:0"
+  op: "Index"
+  input: "gradient_wrt_Const_1/add:0_grad/broadcast_gradient_args_9:0"
+  input: "gradient_wrt_Const_1/add:0_grad/Const_2:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/Const_3:0"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/index_11:0"
+  op: "Index"
+  input: "gradient_wrt_Const_1/add:0_grad/broadcast_gradient_args_9:0"
+  input: "gradient_wrt_Const_1/add:0_grad/Const_3:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/add/reduce_sum_x"
+  op: "Sum"
+  input: "gradient_wrt_Const_1/fill_8:0"
+  input: "gradient_wrt_Const_1/add:0_grad/index_10:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "keepdims"
+    value {
+       b: false
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/add:0_grad/add/reduce_sum_y"
+  op: "Sum"
+  input: "gradient_wrt_Const_1/fill_8:0"
+  input: "gradient_wrt_Const_1/add:0_grad/index_11:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "keepdims"
+    value {
+       b: false
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/ones_like_12:0"
+  op: "OnesLike"
+  input: "Const_1"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/mul_13:0"
+  op: "Mul"
+  input: "gradient_wrt_Const_1/add:0_grad/add/reduce_sum_y"
+  input: "gradient_wrt_Const_1/ones_like_12:0"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/Shape/Const_1_1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 0
+          }
+        }
+        tensor_content: ""
+      }
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/truncate_14:0"
+  op: "Truncate"
+  input: "gradient_wrt_Const_1/mul_13:0"
+  input: "gradient_wrt_Const_1/Shape/Const_1_1"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "gradient_wrt_Const_1/truncate_14:0"
+  op: "Truncate"
+  input: "gradient_wrt_Const_1/mul_13:0"
+  input: "gradient_wrt_Const_1/Shape/Const_1_1"
+  attr {
+    key: "T"
+    value {
+      dtype: DT_FLOAT
+    }
+  }
+  attr {
+    key: "internal"
+    value {
+       b: true
+    }
+  }
+}
+node {
+  name: "/flow_group_15:"
+  op: "FlowGroup"
+  input: "gradient_wrt_Const/truncate_7:0"
+  input: "gradient_wrt_Const_1/truncate_14:0"
+  attr {
+    key: "T"
+    value {
+      dtype: UKNOWN
+    }
+  }
+}
+versions {
+  producer: 26
+}

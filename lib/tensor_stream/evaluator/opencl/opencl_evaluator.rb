@@ -109,7 +109,9 @@ module TensorStream
             b
           end
         else
-          return buffer if buffer.nil? || buffer.buffer.size.zero?
+          return buffer if buffer.nil? 
+          return [] if buffer.buffer.nil?
+          return buffer if buffer.buffer.size.zero?
           _opencl_queue.enqueue_read_buffer(buffer.cl_buffer, buffer.buffer, event_wait_list: [buffer.op].compact)
         end
         _opencl_queue.finish
@@ -202,6 +204,7 @@ module TensorStream
         suffix = args.collect { |k,v| "#{k}.#{v}"}.join('.')
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}:#{object_id}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
+          raise "opencl kernel template for #{kernel} has not yet been defined" if filename.nil?
           source = File.read(filename)
           source = OpenclTemplateHelper.new(source).generate(args)
           # File.write("/tmp/#{kernel}.#{suffix}.cl", source)
@@ -251,13 +254,13 @@ module TensorStream
         execute_func('log', tensor, inputs[0], context)
       end
 
-      register_op :cond do |context, tensor, inputs|
+      register_op :cond, noop: true do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
 
         if all_true?(pred.buffer)
-          inputs[0]
+          complete_eval(inputs[0], context)
         else
-          inputs[1]
+          complete_eval(inputs[1], context)
         end
       end
 
@@ -285,9 +288,17 @@ module TensorStream
         end
       end
 
-      %i[max add div sub mul pow sigmoid_grad].each do |op|
+      %i[max add div sub mod mul pow sigmoid_grad squared_difference].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
+        end
+      end
+
+      register_op :floor_div, noop: true do |context, tensor, inputs|
+        if fp_type?(tensor.data_type)
+          execute_2_operand_func('floor_div', tensor, inputs[0], inputs[1], context)
+        else
+          execute_2_operand_func('div', tensor, inputs[0], inputs[1], context)
         end
       end
 
@@ -479,11 +490,12 @@ module TensorStream
       end
 
       register_op :broadcast_gradient_args, buffer: true do |_context, tensor, inputs|
-        wrap_opencl(get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a), data_type: inputs[0].data_type, name: tensor.name)
+        rx, ry = get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a)
+        [ wrap_opencl(rx, data_type: :int32, name: "#{tensor.name}"), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")]
       end
 
       register_op :shape do |_context, tensor, inputs|
-        wrap_opencl(inputs[0].shape, name: tensor.name, data_type: tensor.options[:out_type] || :float32)
+        wrap_opencl(inputs[0].shape, name: tensor.name, data_type: tensor.data_type)
       end
 
       register_op :reshape, buffer: true do |_context, _tensor, inputs|
@@ -502,6 +514,10 @@ module TensorStream
 
       register_op :flow_group do |_context, _tensor, inputs|
         inputs
+      end
+
+      register_op :size do |_context, tensor, inputs|
+        wrap_opencl(inputs[0].buffer.size, name: tensor.name, data_type: tensor.options[:out_type] || :int32)
       end
 
       %i[sum mean].each do |op|
@@ -534,8 +550,9 @@ module TensorStream
       end
 
       def eval_operation(tensor, child_context)
-        return @context[tensor.name] if @context.key?(tensor.name)
+
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
+        return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
          # puts tensor.name
         invoke(tensor, child_context).tap do |result|
@@ -559,8 +576,8 @@ module TensorStream
               value: result
             }
           end
-          @context[:_cache][cache_key] =  @context[cache_key] if tensor.is_const
-          @context[tensor.name] = result
+          @context[cache_key] = result
+          @context[:_cache][cache_key] = result if tensor.is_const
         end
       rescue EvaluatorExcecutionException => e
         raise e
@@ -628,6 +645,7 @@ module TensorStream
         a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
         dtype = tensor.data_type
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
+        return _create_result_buffer(dtype, [0], "out_#{tensor.name}") if result_shape == [0]
 
         output_buffer = _create_result_buffer(tensor.data_type, result_shape, "out_#{tensor.name}")
         a, b, prog, switch_operands = select_program(a, b, op_name)
@@ -799,8 +817,9 @@ module TensorStream
       end
 
       def _create_result_buffer(data_type, shape, name)
+        return OpenCLBuffer.new(data_type: data_type, shape: [0], buffer: nil, cl_buffer: nil) if shape == [0]
         @context[:_cache][:_cl_buffers]["_result_#{name}_#{shape.join('_')}:#{object_id}"] ||= begin
-          size = shape.empty? ? 1 : shape.reduce(:*)
+          size = shape.empty? || shape == [0] ? 1 : shape.reduce(:*)
           buffer =  allocate_narray_for_type(data_type, size)
           cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
           OpenCLBuffer.new(data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)
@@ -840,6 +859,17 @@ module TensorStream
         end
       end
 
+      def _reduced_shape(input_shape, axes)
+        return [] if axes.nil? # reduce to scalar
+        axes = [ axes ] unless axes.is_a?(Array)
+        return input_shape if axes.empty?
+
+        axes.each do |dimen|
+          input_shape[dimen] = 1
+        end
+        input_shape
+      end
+
       def reduction(child_context, tensor, a, b, func)
         input = complete_eval(a, child_context)
         axis = read_final_result(complete_eval(b, child_context))
@@ -853,7 +883,8 @@ module TensorStream
 
           if axis.is_a?(Array)
             axis.map{ |x| rank - x.abs }.sort.reverse.each do |x|
-              value = value.send(func, x)
+  
+              value = value.send(func, x.to_i)
             end
           else
             value = value.send(func, rank - axis.abs)
@@ -867,7 +898,7 @@ module TensorStream
           end
 
           if tensor.options[:keepdims]
-            new_shape = reduced_shape(input.shape.dup, axis)
+            new_shape = _reduced_shape(input.shape.dup, axis)
           end
 
           convert_to_opencl(value.flatten, new_shape, data_type: tensor.data_type, name: tensor.name)
@@ -946,17 +977,6 @@ module TensorStream
 
       def _rank_from_shape(shape)
         shape.is_a?(Array) ? shape.size : 0
-      end
-
-      def get_broadcast_gradient_args(input_a, input_b)
-        return [] if get_rank(input_b).zero? && get_rank(input_a).zero?
-        return nil if get_rank(input_b).zero?
-        # ruby scalar
-        if get_rank(input_a).zero?
-          _broadcast_gradient_op(input_b, input_a, 0, true)
-        elsif get_rank(input_a) > 0
-          _broadcast_gradient_op(input_a, input_b, 0)
-        end
       end
 
       def concat_array(values, axis)

@@ -69,10 +69,12 @@ module TensorStream
 
     def set_data_type(passed_data_type)
       case operation
+      when :fill
+        @inputs[1].data_type
       when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
         :boolean
       when :shape, :rank
-        :int32
+        options[:out_type] || :int32
       when :random_normal, :random_uniform, :glorot_uniform
         passed_data_type || :float32
       when :index
@@ -282,13 +284,25 @@ module TensorStream
     def propagate_consumer(consumer)
       super
       @inputs.compact.each do |input|
-        input.send(:propagate_consumer, consumer) if input.name != name
+        if input.is_a?(Array)
+          input.flatten.compact.each do |t|
+            t.send(:propagate_consumer, consumer) if t.is_a?(Tensor)
+          end
+        else
+          input.send(:propagate_consumer, consumer) if input.name != name
+        end
       end
     end
 
     def propagate_outputs
       @inputs.compact.each do |input|
-        input.send(:setup_output, self) if input.name != self.name
+        if input.is_a?(Array)
+          input.flatten.compact.each do |t|
+            t.send(:setup_output, self) if t.is_a?(Tensor)
+          end
+        else
+          input.send(:setup_output, self) if input.is_a?(Tensor) && (input.name != self.name)
+        end
       end
     end
 

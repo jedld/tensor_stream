@@ -86,6 +86,8 @@ class OpenclTemplateHelper
       '-'
     when 'mul'
       '*'
+    when 'mod'
+      '%'
     else
       raise "unsupported op #{op}"
     end

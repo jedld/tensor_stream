@@ -87,6 +87,11 @@ module TensorStream
       _op(:negate, self, nil)
     end
 
+    def %(other)
+      _a, other = TensorStream.check_data_types(self, other)
+      _op(:mod, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+    end
+
     def floor
       TensorStream.floor(self)
     end
@@ -207,6 +212,8 @@ module TensorStream
         :int32
       elsif value.is_a?(Array)
         return detect_type(value[0])
+      elsif value.is_a?(Tensor)
+        value.data_type
       else
         :float32
       end

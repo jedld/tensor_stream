@@ -79,7 +79,6 @@ module TensorStream
             @ops[op.to_sym] = { options: options, block: block }
           end
         else
-
           @ops[opcode.to_sym] = { options: options, block: block }
         end
       end
@@ -87,16 +86,24 @@ module TensorStream
       ##
       # gets all supported ops for this Evaluator class
       def self.ops
-        @ops ||={}
+        @ops ||= {}
       end
 
       def invoke(tensor, execution_context)
+        return eval_tensor(tensor, execution_context) unless tensor.is_a?(Operation)
+
         if self.class.ops.key?(tensor.operation.to_sym)
           op = self.class.ops[tensor.operation.to_sym]
+
           op_options = op[:options]
           resolved_inputs = tensor.inputs.map do |i|
             next if i.nil?
-            if @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
+
+            if i.is_a?(Array)
+              next i.collect { |sub_item| sub_item.is_a?(Tensor) ? invoke(sub_item, execution_context) : sub_item }
+            end
+
+            if !op_options[:noop] && @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
               cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"
               next @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
 
@@ -115,6 +122,28 @@ module TensorStream
       end
 
       protected
+
+      def get_broadcast_gradient_args(input_a, input_b)
+        return [[], []] if input_a == input_b
+
+        input_a_args = []
+        input_b_args = []
+        
+        input_a = input_b.size.times.map { |i| i < input_a.size ? input_a[i] : nil }.reverse if input_a.size < input_b.size
+        input_b = input_a.size.times.map { |i| i < input_b.size ? input_b[i] : nil }.reverse if input_a.size > input_b.size
+
+        input_a.reverse.zip(input_b.reverse).each_with_index do |item, index|
+          a, b = item
+ 
+          if a.nil? || b && (a < b)
+            input_a_args << input_b.size - index - 1
+          elsif b.nil? || a && (a > b)
+            input_b_args << input_a.size - index - 1
+          end
+        end
+
+        [input_a_args.reverse, input_b_args.reverse]
+      end
 
       ##
       # converts from a ruby Buffer object to the evaluator's native buffer format

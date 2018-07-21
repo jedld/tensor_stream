@@ -23,7 +23,7 @@ module TensorStream
       slice_tensor(input, start, target_shape)
     end
 
-    def reduced_shape(input_shape, axes)
+    def _reduced_shape(input_shape, axes)
       return [] if axes.nil? # reduce to scalar
       axes = [ axes ] unless axes.is_a?(Array)
       return input_shape if axes.empty?
@@ -166,25 +166,35 @@ module TensorStream
       get_rank(value[0], rank + 1)
     end
 
+    def last_axis(arr)
+      all_items = []
+      if get_rank(arr) <=2
+        return arr
+      else
+        arr.each do |sub|
+          all_items += last_axis(sub)
+        end
+      end
+      all_items
+    end
+
     def softmax(arr)
       return arr if arr.empty?
 
-      sum = if !arr[0].is_a?(Array)
-        arr.map { |a| Math.exp(a - arr.max) }.reduce(:+)
-      end
-
-      arr.collect do |input|
-        if input.is_a?(Array)
-          softmax(input)
-        else
-          Math.exp(input - arr.max) / sum
+      if !arr[0].is_a?(Array)
+        c = arr.max
+        arr = arr.map { |a| Math.exp(a - c) }
+        sum = arr.reduce(:+)
+        arr.collect do |input|
+          input / sum
         end
+      else
+        arr.collect { |input| softmax(input) }
       end
     end
 
     def softmax_grad(arr)
       return arr if arr.empty?
-
       arr.each_with_index.collect do |input, index|
         if input.is_a?(Array)
           softmax_grad(input)

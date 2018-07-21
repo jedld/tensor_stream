@@ -25,8 +25,7 @@ module TensorStream
         op.command_queue.finish
         self.dirty = false
       end
-
-      result = buffer.reshape(*shape.reverse).to_a
+      result = buffer.reshape(*shape.map { |s| s.to_i}.reverse).to_a
 
       if data_type == :boolean
         result = process_function_op(result, ->(a, _b) { a != 0 })

@@ -274,21 +274,12 @@ RSpec.describe TensorStream::MathGradients do
       expect(tr(biases_gradient2)).to eq([7.0, 7.0, 7.0, 7.0, 7.0])
      end
 
-     xit "computes for open ended shapes" do
-      x = tf.constant([
-          [1.0, 0.5, 4.0],
-        ])
+     it "computes for open ended shapes" do
+      x = tf.constant([[1.0, 0.5, 4.0]])
 
-      w = tf.constant([
-          [0.4, 0.2],
-          [0.1, 0.45],
-          [0.2, 4.0]
-      ])
+      w = tf.constant([[0.4, 0.2],[0.1, 0.45],[0.2, 4.0]])
 
-      w2 = tf.constant([
-        [0.3, 0.2],
-        [0.15, 0.45],
-      ])
+      w2 = tf.constant([[0.3, 0.2],[0.15, 0.45]])
 
       b= tf.constant([4.0, 5.0])
       b2= tf.constant([4.1, 5.1])
@@ -300,30 +291,10 @@ RSpec.describe TensorStream::MathGradients do
 
       a2 = tf.sin(matmul_layer_2_add)
 
-      g_matmul_layer_1 = tf.gradients(matmul_layer_1, [x, w])
-      g_sin_a = tf.gradients(a, [b])
-      g_matmul_layer_2 = tf.gradients(matmul_layer_2, [b])
-      g_matmul_layer_2_add = tf.gradients(matmul_layer_2_add, [b])
-
       g2 = tf.gradients(a2, [ b], name: 'final')
       final_result = sess.run(g2)
-      
-      # File.write('/home/jedld/workspace/tensor_stream/samples/gradient_sample.graphml', TensorStream::Graphml.new.get_string(g2, sess))
-      # expect(tr(s4)).to eq([[0.5121, -0.844]])
-      # expect(tr(s1)).to eq([[0.256, -0.5064]])
-      # expect(tr(sess.run(g_matmul_layer_2_add))).to eq([[0.256, -0.5064]])
-      # expect(sess.run(tf.cos(matmul_layer_2_add) * g_matmul_layer_2_add)).to eq([])
-      expect(final_result).to eq([[-0.06387595, -0.07775851]])
 
-      # expect(s).to eq(
-      #   [
-      #     [[-0.07124099, -0.10610479],
-      #      [-0.0356205 , -0.0530524 ],
-      #      [-0.28496397, -0.42441916]],
-
-      #      [-0.07124099, -0.10610479]
-      #   ])
-
+      expect(tr(final_result)).to eq([[-0.0639, -0.0778]])
      end
   end
 end

@@ -1,5 +1,5 @@
 module TensorStream
-  VERSION = '0.5.1'.freeze
+  VERSION = '0.6.0'.freeze
 
   def self.version
     VERSION

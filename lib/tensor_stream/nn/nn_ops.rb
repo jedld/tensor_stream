@@ -15,12 +15,16 @@ module TensorStream
     end
 
     def self.softmax_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
-      TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do |name|
+      softmax_cross_entropy_with_logits_v2(labels, logits, name)
+    end
+
+    def self.softmax_cross_entropy_with_logits_v2(labels: nil, logits: nil, name: nil)
+      TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do
         tf = TensorStream
         logits = tf.convert_to_tensor(logits, name: 'logits')
         labels = tf.convert_to_tensor(labels, name: 'labels')
         labels = tf.cast(labels, logits.dtype)
-        softmax_logits = -tf.log(softmax(logits)) * labels
+        softmax_logits = _op(:softmax_cross_entropy_with_logits_v2, logits, labels)
         tf.reduce_sum(softmax_logits, tf.rank(logits) - 1)
       end
     end

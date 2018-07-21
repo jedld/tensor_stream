@@ -71,7 +71,7 @@ module TensorStream
       end
       result = args.collect do |e|
         value = delegate_to_evaluator(e, context, {})
-        value.respond_to?(:to_ruby) ? value.to_ruby : value
+        recursive_eval(value)
       end
       result.size == 1 ? result.first : result
     end
@@ -121,6 +121,14 @@ module TensorStream
     end
 
     protected
+
+    def recursive_eval(value, depth = 2)
+      if value.is_a?(Array) && depth > 0
+        value.collect { |v| recursive_eval(v, depth - 1) }
+      else
+        value.respond_to?(:to_ruby) ? value.to_ruby : value
+      end
+    end
 
     def assign_evaluator(tensor)
       device = @evaluator_classes.map do |klass|

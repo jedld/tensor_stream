@@ -141,6 +141,10 @@ module TensorStream
       TensorStream::ControlFlow.new(:group, inputs, nil, name: name)
     end
 
+    def dynamic_stitch(indices, data, name: nil)
+      TensorStream::DynamicStitch.new(:dynamic_stitch, [indices, data], name: name)
+    end
+
     def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil)
       TensorStream::Variable.new(dtype || :float32, nil, shape, collections: collections, name: name, initializer: initializer, trainable: trainable)
     end
@@ -204,7 +208,7 @@ module TensorStream
         input_a = convert_to_tensor(input_a)
         input_b = convert_to_tensor(input_b)
       end
-
+      
       if norm_dtype(input_a.data_type) != norm_dtype(input_b.data_type)
         raise "Value Error: Tensor conversion requested dtype #{input_a.data_type} for tensor type #{input_b.data_type}" 
       end

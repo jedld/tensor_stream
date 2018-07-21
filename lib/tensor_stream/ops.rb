@@ -89,6 +89,9 @@ module TensorStream
     ##
     # This operation returns a 1-D integer tensor representing the shape of input
     def shape(input, name: nil, out_type: :int32)
+      return constant(shape_eval(input, out_type), dtype: out_type, name: name) if input.is_a?(Array)
+      return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}") if shape_full_specified(input)
+
       _op(:shape, input, nil, name: name, out_type: out_type)
     end
 
@@ -288,6 +291,24 @@ module TensorStream
     end
 
     ##
+    # Returns element-wise remainder of division.
+    def mod(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
+      _op(:mod, input_a, input_b, name: name)
+    end
+
+    ##
+    # Returns element-wise integer divistion.
+    def floor_div(input_a, input_b, name: nil)
+      input_a, input_b = check_data_types(input_a, input_b)
+      _op(:floor_div, input_a, input_b, name: name)
+    end
+
+    def range(start, limit, delta = 1, dtype: nil, name: 'range')
+      _op(:range, start, limit, delta, data_type: dtype, name: name)
+    end
+
+    ##
     # Returns x - y element-wise.
     #
     # This operation supports boradcasting
@@ -477,6 +498,19 @@ module TensorStream
     end
 
     ##
+    # Creates a tensor filled with a scalar value.
+    #
+    # This operation creates a tensor of shape dims and fills it with value.
+    #
+    # For example:
+    # Output tensor has shape [2, 3].
+    # fill([2, 3], 9) => [[9, 9, 9]
+     #                    [9, 9, 9]]
+    def fill(dims, value, name: nil)
+      _op(:fill, dims, value, name: name)
+    end
+
+    ##
     # Computes sigmoid of x element-wise.
     def sigmoid(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
@@ -511,6 +545,19 @@ module TensorStream
     # When run, reports an InvalidArgument error if tensor has any values that are not a number (NaN) or infinity (Inf). Otherwise, passes tensor as-is.
     def check_numerics(tensor, message, name: nil)
       _op(:check_numerics, tensor, nil, message: message, name: name)
+    end
+
+    def size(tensor, name: nil, out_type: :int32)
+      _op(:size, tensor, name: name, out_type: out_type)
+    end
+
+    def squared_difference(input_a, input_b, name: nil)
+      _op(:squared_difference, input_a, input_b, name: name)
+    end
+
+    def broadcast_gradient_args(shape_a, shape_b, name: nil)
+      op_result = _op(:broadcast_gradient_args, shape_a, shape_b, name: name)
+      [op_result[0], op_result[1]]
     end
   end
 end
