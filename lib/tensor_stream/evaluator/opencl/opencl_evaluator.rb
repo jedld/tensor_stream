@@ -548,8 +548,9 @@ module TensorStream
       end
 
       def eval_operation(tensor, child_context)
-        return @context[tensor.name] if @context.key?(tensor.name)
+
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
+        return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
          # puts tensor.name
         invoke(tensor, child_context).tap do |result|
@@ -573,8 +574,8 @@ module TensorStream
               value: result
             }
           end
-          @context[:_cache][cache_key] =  @context[cache_key] if tensor.is_const
-          @context[tensor.name] = result
+          @context[cache_key] = result
+          @context[:_cache][cache_key] = result if tensor.is_const
         end
       rescue EvaluatorExcecutionException => e
         raise e
