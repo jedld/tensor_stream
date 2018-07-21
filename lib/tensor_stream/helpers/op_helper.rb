@@ -17,7 +17,7 @@ module TensorStream
       else
         {}
       end
-      
+
       args << options.merge(internal: true)
       Operation.new(code.to_sym, *args)
     end

@@ -79,7 +79,6 @@ module TensorStream
             @ops[op.to_sym] = { options: options, block: block }
           end
         else
-
           @ops[opcode.to_sym] = { options: options, block: block }
         end
       end
@@ -104,7 +103,7 @@ module TensorStream
               next i.collect { |sub_item| sub_item.is_a?(Tensor) ? invoke(sub_item, execution_context) : sub_item }
             end
 
-            if @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
+            if !op_options[:noop] && @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
               cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"
               next @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
 
@@ -136,13 +135,9 @@ module TensorStream
         input_a.reverse.zip(input_b.reverse).each_with_index do |item, index|
           a, b = item
  
-          if a.nil?
+          if a.nil? || b && (a < b)
             input_a_args << input_b.size - index - 1
-          elsif b.nil?
-            input_b_args << input_a.size - index - 1
-          elsif (a < b)
-            input_a_args << input_b.size - index - 1
-          elsif (a > b)
+          elsif b.nil? || a && (a > b)
             input_b_args << input_a.size - index - 1
           end
         end

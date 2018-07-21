@@ -226,6 +226,7 @@ module TensorStream
       output_shape_kept_dims = tf.reduced_shape(input_shape, y)
       tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
       new_grad = _op(:reshape, grad, output_shape_kept_dims)
+
       grad = _op(:cond, _op(:fill, input_shape, grad) , _op(:tile, new_grad, tile_scaling), pred: _op(:rank, grad) == 0 )
 
       [grad, nil ]

@@ -25,7 +25,6 @@ module TensorStream
         op.command_queue.finish
         self.dirty = false
       end
-
       result = buffer.reshape(*shape.map { |s| s.to_i}.reverse).to_a
 
       if data_type == :boolean

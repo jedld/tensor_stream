@@ -857,6 +857,12 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(tr(sess.run(tf.add(a, b)))).to eq([3.0, 2.6])
     end
 
+    specify "rank 0 vs empty array" do
+      a = tf.constant([], dtype: :int32)
+      b = tf.constant(0)
+      expect(sess.run(a + b)).to eq([])
+    end
+
     specify "supports broadcasting" do
       a = tf.constant([1.0, 1.1])
       b = tf.constant(2.0)

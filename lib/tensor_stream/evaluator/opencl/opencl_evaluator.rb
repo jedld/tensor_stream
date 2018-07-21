@@ -109,7 +109,9 @@ module TensorStream
             b
           end
         else
-          return buffer if buffer.nil? || buffer.buffer.size.zero?
+          return buffer if buffer.nil? 
+          return [] if buffer.buffer.nil?
+          return buffer if buffer.buffer.size.zero?
           _opencl_queue.enqueue_read_buffer(buffer.cl_buffer, buffer.buffer, event_wait_list: [buffer.op].compact)
         end
         _opencl_queue.finish
@@ -252,13 +254,13 @@ module TensorStream
         execute_func('log', tensor, inputs[0], context)
       end
 
-      register_op :cond do |context, tensor, inputs|
+      register_op :cond, noop: true do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
 
         if all_true?(pred.buffer)
-          inputs[0]
+          complete_eval(inputs[0], context)
         else
-          inputs[1]
+          complete_eval(inputs[1], context)
         end
       end
 
@@ -493,7 +495,7 @@ module TensorStream
       end
 
       register_op :shape do |_context, tensor, inputs|
-        wrap_opencl(inputs[0].shape, name: tensor.name, data_type: tensor.options[:out_type] || :float32)
+        wrap_opencl(inputs[0].shape, name: tensor.name, data_type: tensor.data_type)
       end
 
       register_op :reshape, buffer: true do |_context, _tensor, inputs|
@@ -643,6 +645,7 @@ module TensorStream
         a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
         dtype = tensor.data_type
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
+        return _create_result_buffer(dtype, [0], "out_#{tensor.name}") if result_shape == [0]
 
         output_buffer = _create_result_buffer(tensor.data_type, result_shape, "out_#{tensor.name}")
         a, b, prog, switch_operands = select_program(a, b, op_name)
@@ -814,8 +817,9 @@ module TensorStream
       end
 
       def _create_result_buffer(data_type, shape, name)
+        return OpenCLBuffer.new(data_type: data_type, shape: [0], buffer: nil, cl_buffer: nil) if shape == [0]
         @context[:_cache][:_cl_buffers]["_result_#{name}_#{shape.join('_')}:#{object_id}"] ||= begin
-          size = shape.empty? ? 1 : shape.reduce(:*)
+          size = shape.empty? || shape == [0] ? 1 : shape.reduce(:*)
           buffer =  allocate_narray_for_type(data_type, size)
           cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
           OpenCLBuffer.new(data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)

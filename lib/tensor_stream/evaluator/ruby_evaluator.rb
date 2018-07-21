@@ -710,7 +710,6 @@ module TensorStream
           #   puts result.inspect
           # end
           # result.flatten.each do |a|
-          #   binding.pry if a.nan? || a.infinite?
           # end if result.is_a?(Array)
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
