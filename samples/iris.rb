@@ -1,5 +1,6 @@
 require "bundler/setup"
 require 'tensor_stream'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 # This neural network will predict the species of an iris based on sepal and petal size
 # Dataset: http://en.wikipedia.org/wiki/Iris_flower_data_set
@@ -47,65 +48,54 @@ x_test.each_with_index do |x, index|
   validation_cases << [x, y_test[index] ]
 end
 
-learning_rate = 0.1
-num_steps = 500
-batch_size = 128
-display_step = 100
 
-# Network Parameters
-n_hidden_1 = 4 # 1st layer number of neurons
-num_classes = 3 # MNIST total classes (0-9 digits)
-num_input = 4
-training_epochs = 100
 
-tf = TensorStream
-
-# tf Graph input
-x = tf.placeholder("float", shape: [nil, num_input], name: 'x')
-y = tf.placeholder("float", shape: [nil, num_classes], name: 'y')
-
-# Store layers weight & bias
-weights = {
-  h1: tf.variable(tf.random_normal([num_input, n_hidden_1]), name: 'h1'),
-  out: tf.variable(tf.random_normal([num_classes, num_classes]), name: 'out')
-}
-
-biases = {
-  b1: tf.variable(tf.random_normal([n_hidden_1]), name: 'b1'),
-  out: tf.variable(tf.random_normal([num_classes]), name: 'b_out')
-}
-
-# Create model
-def neural_net(x, weights, biases)
-    layer_1 = TensorStream.tanh(TensorStream.add(TensorStream.matmul(x, weights[:h1]), biases[:b1], name: 'layer1_add'))
-    # Output fully connected layer with a neuron for each class
-    TensorStream.sigmoid(TensorStream.matmul(layer_1, weights[:out]) + biases[:out])
+def init_weights(shape)
+  # Weight initialization
+  weights = TensorStream.random_normal(shape, stddev: 0.1)
+  TensorStream.variable(weights)
 end
 
-# Construct model
-logits = neural_net(x, weights, biases)
+def forwardprop(x, w_1, w_2)
+  # Forward-propagation.
+  # IMPORTANT: yhat is not softmax since TensorFlow's softmax_cross_entropy_with_logits() does that internally.
+  h  = TensorStream.nn.sigmoid(TensorStream.matmul(x, w_1))  # The \sigma function
+  TensorStream.matmul(h, w_2)  # The \varphi function
+end
 
-# Mean squared error
-cost = TensorStream.reduce_sum(TensorStream.pow(logits - y, 2)) / ( 2 * y_train.size)
-optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
+x_size = x_train[0].size
+y_size = y_train[0].size
+h_size = 256
+X = tf.placeholder(:float, shape: [nil, x_size])
+y = tf.placeholder(:float, shape: [nil, y_size])
 
-# Initialize the variables (i.e. assign their default value)
-init = TensorStream.global_variables_initializer()
+# Weight initializations
+w_1 = init_weights([x_size, h_size])
+w_2 = init_weights([h_size, y_size])
 
-TensorStream.session do |sess|
-  puts "init vars"
-  sess.run(init)
-  puts "Testing the untrained network..."
-  loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })
-  puts loss
-  puts "loss before training"
-  (0..training_epochs).each do |epoch|
-    x_train.zip(y_train).each do |t_x, t_y|
-      sess.run(optimizer, feed_dict: { x => [t_x], y => [t_y] })
-      loss = sess.run(cost, feed_dict: { x => [t_x], y => [t_y] })
-    end
-    puts "loss #{loss}"
+# Forward propagation
+yhat    = forwardprop(X, w_1, w_2)
+predict = tf.argmax(yhat, axis=1)
+
+# Backward propagation
+cost    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels: y, logits: yhat))
+updates =  TensorStream::Train::GradientDescentOptimizer.new(0.01).minimize(cost)
+
+# Run SGD
+sess = tf.session
+init = tf.global_variables_initializer
+sess.run(init)
+
+loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
+puts "Testing the untrained network..."
+puts loss
+(0..100).each do |epoch|
+  x_train.size.times do |i|
+    sess.run(updates, feed_dict: {X => [x_train[i]], y => [y_train[i]]})
+    loss = sess.run(cost, feed_dict: { X => [x_train[i]], y => [y_train[i]] })
   end
-  loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })
-  puts "loss after training #{loss}"
+  puts "epoch: #{epoch}, loss #{loss}"
 end
+
+loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
+puts "loss after training #{loss}"

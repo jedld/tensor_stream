@@ -532,7 +532,6 @@ module TensorStream
         matrix_a, matrix_b = inputs
         rank_a = get_rank(matrix_a)
         rank_b = get_rank(matrix_b)
-
         raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
         raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
 

@@ -11,11 +11,11 @@ module TensorStream
     end
 
     def self.sigmoid(input, name: nil)
-      TensorStream.sigmoid(input, name)
+      TensorStream.sigmoid(input, name: name)
     end
 
     def self.softmax_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
-      softmax_cross_entropy_with_logits_v2(labels, logits, name)
+      softmax_cross_entropy_with_logits_v2(labels: labels, logits: logits, name: name)
     end
 
     def self.softmax_cross_entropy_with_logits_v2(labels: nil, logits: nil, name: nil)
