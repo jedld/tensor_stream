@@ -9,6 +9,9 @@ AllCops:
 Style/StringLiterals:
   Enabled: false
 
+Layout/TrailingBlankLines:
+  Enabled: false
+
 Metrics/LineLength:
   Max: 200
 

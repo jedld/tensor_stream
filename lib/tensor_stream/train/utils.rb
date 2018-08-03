@@ -1,5 +1,6 @@
 module TensorStream
   module Train
+    # convenience methods used for training
     module Utils
       def create_global_step(graph = nil)
         target_graph = graph || TensorStream.get_default_graph
@@ -12,7 +13,6 @@ module TensorStream
                                                 trainable: false,
                                                 collections: [TensorStream::GraphKeys::GLOBAL_VARIABLES,
                                                               TensorStream::GraphKeys::GLOBAL_STEP])
-
       end
 
       def get_global_step(graph = nil)

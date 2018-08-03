@@ -1,3 +1,3 @@
 module TensorStream
-  class ValueError < Exception; end
+  class ValueError < RuntimeError; end
 end
