@@ -54,13 +54,13 @@ module TensorStream
         trainable: trainable
       }
       tensor = if value.is_a?(String)
-        TensorStream::Variable.new(dtype || :string, 0, [], common_options)
+        TensorStream::Variable.new(dtype || :string, 0, [], get_variable_scope, common_options)
       elsif value.is_a?(Integer)
-        TensorStream::Variable.new(dtype || :int32, 0, [], common_options)
+        TensorStream::Variable.new(dtype || :int32, 0, [], get_variable_scope, common_options)
       elsif value.is_a?(Float)
-        TensorStream::Variable.new(dtype || :float32, 0, [], common_options)
+        TensorStream::Variable.new(dtype || :float32, 0, [], get_variable_scope, common_options)
       else
-        TensorStream::Variable.new(dtype || :float32, 0, nil, common_options)
+        TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
       end
       op.inputs[0] = tensor
       tensor
@@ -68,16 +68,19 @@ module TensorStream
 
     def variable_scope(scope = nil, reuse: nil, initializer: nil)
       Thread.current[:tensor_stream_variable_scope] ||= []
-      Thread.current[:tensor_stream_variable_scope] << OpenStruct.new(name: scope, reuse: reuse, initializer: initializer)
+      variable_scope = VariableScope.new(name: scope, reuse: reuse, initializer: initializer)
+      Thread.current[:tensor_stream_variable_scope] << variable_scope
       scope_name = __v_scope_name
-      begin
-        if block_given?
+      if block_given?
+        begin
           TensorStream.get_default_graph.name_scope(scope) do
             yield(scope_name)
           end
+        ensure
+          Thread.current[:tensor_stream_variable_scope].pop
         end
-      ensure
-        Thread.current[:tensor_stream_variable_scope].pop
+      else
+        variable_scope
       end
     end
 
@@ -97,8 +100,8 @@ module TensorStream
     end
 
     def get_variable_scope
-      return nil unless Thread.current[:tensor_stream_variable_scope]
-      __v_scope_name
+      return VariableScope.new unless Thread.current[:tensor_stream_variable_scope]
+      Thread.current[:tensor_stream_variable_scope].last || VariableScope.new
     end
 
     def __v_scope_name
@@ -151,7 +154,7 @@ module TensorStream
     end
 
     def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil)
-      TensorStream::Variable.new(dtype || :float32, nil, shape, collections: collections, name: name, initializer: initializer, trainable: trainable)
+      get_variable_scope.get_variable(name, dtype: dtype, shape: shape, initializer: initializer, trainable: trainable, collections: collections)
     end
 
     def get_collection(name, options = {})
@@ -217,7 +220,7 @@ module TensorStream
       end
 
       if norm_dtype(input_a.data_type) != norm_dtype(input_b.data_type)
-        raise "Value Error: Tensor conversion requested dtype #{input_a.data_type} for tensor type #{input_b.data_type}"
+        raise TensorStream::ValueError, "Value Error: Tensor conversion requested dtype #{input_a.data_type} for tensor type #{input_b.data_type}"
       end
 
       [input_a, input_b]

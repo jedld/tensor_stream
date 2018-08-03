@@ -2,7 +2,7 @@ module TensorStream
   # Class that defines a TensorStream variable
   class Variable < Tensor
     attr_accessor :trainable, :options, :buffer
-    def initialize(data_type, rank, shape, options = {})
+    def initialize(data_type, rank, shape, variable_scope, options = {})
       setup_initial_state(options)
 
       @options = {
@@ -11,8 +11,8 @@ module TensorStream
       @rank = rank
       @value = nil
       @is_const = false
-      @name = [TensorStream.get_variable_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
-      @initalizer_tensor = options[:initializer] ? options[:initializer] : _variable_scope.initializer || TensorStream.glorot_uniform_initializer
+      @name = [ variable_scope.name, options[:name] || build_name].compact.reject(&:empty?).join('/')
+      @initalizer_tensor = options[:initializer] ? options[:initializer] : variable_scope.initializer || TensorStream.glorot_uniform_initializer
       if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
         shape = @initalizer_tensor.shape.shape
       end
@@ -65,14 +65,6 @@ module TensorStream
 
     def self.global_variables_initializer
       variables_initializer(TensorStream::GraphKeys::GLOBAL_VARIABLES)
-    end
-
-    private
-
-    def _variable_scope
-      return OpenStruct.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
-      scope = Thread.current[:tensor_stream_variable_scope].last
-      scope
     end
   end
 end

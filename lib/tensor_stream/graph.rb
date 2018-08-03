@@ -98,6 +98,10 @@ module TensorStream
       @nodes[name]
     end
 
+    def get_tensor_by_name(name)
+      get_node(name)
+    end
+
     def add_node!(name, node)
       @nodes[name] = node
       node
@@ -208,7 +212,7 @@ module TensorStream
     protected
 
     def _variable_scope
-      return OpenStruct.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
+      return VariableScope.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
       scope = Thread.current[:tensor_stream_variable_scope].last
       scope
     end
