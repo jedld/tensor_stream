@@ -41,6 +41,9 @@ module TensorStream
       end.flatten
     end
 
+    ##
+    # Creates a variable
+    # A variable maintains state across sessions
     def variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
       op = Operation.new(:assign, nil, value)
       common_options = {
@@ -125,6 +128,8 @@ module TensorStream
         TensorStream::Tensor.new(dtype || :int32, 0, shape || [], shared_options)
       elsif value.is_a?(String)
         TensorStream::Tensor.new(dtype || :string, 0, shape || [], shared_options)
+      elsif !!value == value
+        TensorStream::Tensor.new(dtype || :boolean, 0, shape || [], shared_options)
       elsif value.is_a?(Array)
         dimension = shape || shape_eval(value)
         rank = dimension.size
@@ -158,6 +163,8 @@ module TensorStream
       ref.assign(value, name: name)
     end
 
+    ##
+    # Inserts a placeholder for a tensor that will be always fed.
     def placeholder(dtype, shape: nil, name: nil)
       TensorStream::Placeholder.new(dtype, nil, shape, name: name)
     end
@@ -208,9 +215,9 @@ module TensorStream
         input_a = convert_to_tensor(input_a)
         input_b = convert_to_tensor(input_b)
       end
-      
+
       if norm_dtype(input_a.data_type) != norm_dtype(input_b.data_type)
-        raise "Value Error: Tensor conversion requested dtype #{input_a.data_type} for tensor type #{input_b.data_type}" 
+        raise "Value Error: Tensor conversion requested dtype #{input_a.data_type} for tensor type #{input_b.data_type}"
       end
 
       [input_a, input_b]

@@ -2,7 +2,7 @@ require "spec_helper"
 require 'benchmark'
 require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
-RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
+RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
   let(:tf) { TensorStream }
   let(:sess) { TensorStream.session([:opencl_evaluator, :ruby_evaluator]) }
   let(:instance) { described_class.new(sess, TensorStream::Evaluator::OpenclEvaluator.default_device, {})}
@@ -51,7 +51,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(65)
+      expect(described_class.ops.keys.size).to eq(66)
     end
 
     specify do
@@ -108,6 +108,8 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         size
         slice
         softmax
+        softmax_cross_entropy_with_logits_v2
+        softmax_cross_entropy_with_logits_v2_grad
         softmax_grad
         sqrt
         square
@@ -119,7 +121,6 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         tanh
         tanh_grad
         transpose
-        truncate
         where
       ])
     end

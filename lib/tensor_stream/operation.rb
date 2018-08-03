@@ -42,20 +42,6 @@ module TensorStream
       }
     end
 
-    def self.empty_matrix?(input)
-      if input.is_a?(Array)
-        input.each do |input|
-          if input.is_a?(Array)
-            return false unless empty_matrix?(input)
-          elsif input != 0 || input != 0.0
-            return false
-          end
-        end
-      end
-
-      true
-    end
-
     def infer_const
       return false if breakpoint
       case operation

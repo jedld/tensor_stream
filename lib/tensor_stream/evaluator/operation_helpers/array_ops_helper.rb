@@ -167,15 +167,11 @@ module TensorStream
     end
 
     def last_axis(arr)
-      all_items = []
-      if get_rank(arr) <=2
-        return arr
-      else
-        arr.each do |sub|
-          all_items += last_axis(sub)
-        end
+      return arr if get_rank(arr) <= 2
+
+      arr.inject([]).map do |sub, rows|
+        rows + last_axis(sub)
       end
-      all_items
     end
 
     def softmax(arr)

@@ -35,24 +35,24 @@ module TensorStream
     # ys and xs are each a Tensor or a list of tensors. grad_ys is a list of Tensor, holding the gradients received by the ys. The list must be the same length as ys.
     #
     # Arguments:
-    # +ys+     : A Tensor or list of tensors to be differentiated.
+    # +tensor_ys+ : A Tensor or list of tensors to be differentiated.
     # +wrt_xs+ : A Tensor or list of tensors to be used for differentiation.
-    # +stop_gradients+:  Optional. A Tensor or list of tensors not to differentiate through
-    def gradients(ys, wrt_xs, name: 'gradients', stop_gradients: nil)
-
+    # +stop_gradients+ :  Optional. A Tensor or list of tensors not to differentiate through
+    def gradients(tensor_ys, wrt_xs, name: 'gradients', stop_gradients: nil)
       gs = wrt_xs.collect do |x|
         stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
-        gradient_program_name = "grad_#{ys.name}_#{x.name}_#{stops}".to_sym
+        gradient_program_name = "grad_#{tensor_ys.name}_#{x.name}_#{stops}".to_sym
+        tensor_graph = tensor_ys.graph
 
-        tensor_program = if ys.graph.node_added?(gradient_program_name)
-                          ys.graph.get_node(gradient_program_name)
-                        else
-                          ys.graph.name_scope("gradient_wrt_#{x.name}") do
-                            derivative_ops = TensorStream::MathGradients.derivative(ys, x, graph: ys.graph,
-                              stop_gradients: stop_gradients)
-                            ys.graph.add_node!(gradient_program_name, derivative_ops)
-                          end
-                        end
+        tensor_program = if tensor_graph.node_added?(gradient_program_name)
+                           tensor_graph.get_node(gradient_program_name)
+                         else
+                           tensor_graph.name_scope("gradient_wrt_#{x.name}") do
+                             derivative_ops = TensorStream::MathGradients.derivative(tensor_ys, x, graph: tensor_graph,
+                                                                                                   stop_gradients: stop_gradients)
+                             tensor_graph.add_node!(gradient_program_name, derivative_ops)
+                           end
+                         end
         tensor_program
       end
       TensorStream.group(gs)
@@ -98,7 +98,9 @@ module TensorStream
     ##
     # Constructs a tensor by tiling a given tensor.
     #
-    # This operation creates a new tensor by replicating input multiples times. The output tensor's i'th dimension has input.dims(i) * multiples[i] elements, and the values of input are replicated multiples[i] times along the 'i'th dimension. For example, tiling [a b c d] by [2] produces [a b c d a b c d].
+    # This operation creates a new tensor by replicating input multiples times.
+    # The output tensor's i'th dimension has input.dims(i) * multiples[i] elements,
+    # and the values of input are replicated multiples[i] times along the 'i'th dimension. For example, tiling [a b c d] by [2] produces [a b c d a b c d].
     def tile(input, multiples, name: nil)
       _op(:tile, input, multiples, name: name)
     end
@@ -118,7 +120,9 @@ module TensorStream
     ##
     # The Glorot uniform initializer, also called Xavier uniform initializer.
     #
-    # It draws samples from a uniform distribution within [-limit, limit] where limit is sqrt(6 / (fan_in + fan_out)) where fan_in is the number of input units in the weight tensor and fan_out is the number of output units in the weight tensor.
+    # It draws samples from a uniform distribution within [-limit, limit]
+    # where limit is sqrt(6 / (fan_in + fan_out)) where fan_in is the number
+    # of input units in the weight tensor and fan_out is the number of output units in the weight tensor.
     def glorot_uniform_initializer(seed: nil, dtype: nil)
       TensorStream::Initializer.new(-> { _op(:glorot_uniform, nil, nil, seed: seed, data_type: dtype) })
     end
@@ -132,7 +136,9 @@ module TensorStream
     ##
     # Extracts a slice from a tensor.
     #
-    # This operation extracts a slice of size size from a tensor input starting at the location specified by begin. The slice size is represented as a tensor shape, where size[i] is the number of elements of the 'i'th dimension of input that you want to slice. The starting location (begin) for the slice is represented as an offset in each dimension of input. In other words, begin[i] is the offset into the 'i'th dimension of input that you want to slice from.
+    # This operation extracts a slice of size size from a tensor input starting at the location specified by begin.
+    # The slice size is represented as a tensor shape, where size[i] is the number of elements of the 'i'th dimension of input that you want to slice. The starting location (begin) for the slice is
+    # represented as an offset in each dimension of input. In other words, begin[i] is the offset into the 'i'th dimension of input that you want to slice from.
     def slice(input, start, size, name: nil)
       _op(:slice, input, start, size: size, name: name)
     end
@@ -188,7 +194,7 @@ module TensorStream
 
     ##
     # Returns the truth value of (x >= y) element-wise.
-    # 
+    #
     # This operation supports broadcasting
     def greater_equal(input_a, input_b, name: nil)
       input_a, input_b = check_data_types(input_a, input_b)
@@ -205,14 +211,17 @@ module TensorStream
     ##
     # Computes the mean of elements across dimensions of a tensor.
     def reduce_mean(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:mean, input_tensor, axis,  keepdims: keepdims, name: name)
+      _op(:mean, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
     ##
     # Computes the sum of elements across dimensions of a tensor.
     #
-    # Reduces input_tensor along the dimensions given in axis. Unless keepdims is true, the rank of the tensor is reduced by 1 for each entry in axis. If keepdims is true, the reduced dimensions are retained with length 1.
-    # If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned.
+    # Reduces input_tensor along the dimensions given in axis. Unless keepdims is true,
+    # the rank of the tensor is reduced by 1 for each entry in axis. If keepdims is true,
+    # the reduced dimensions are retained with length 1.
+    # If axis has no entries, all dimensions are reduced, and a tensor with a single element
+    # is returned.
     def reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
       _op(:sum, input_tensor, axis, keepdims: keepdims, name: name)
     end
@@ -220,7 +229,9 @@ module TensorStream
     ##
     # Computes the product of elements across dimensions of a tensor.
     #
-    # Reduces input_tensor along the dimensions given in axis. Unless keepdims is true, the rank of the tensor is reduced by 1 for each entry in axis. If keepdims is true, the reduced dimensions are retained with length 1.
+    # Reduces input_tensor along the dimensions given in axis. Unless keepdims is true, the rank of the
+    # tensor is reduced by 1 for each entry in axis. If keepdims is true, the reduced dimensions are
+    # retained with length 1.
     #
     # If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned.
     def reduce_prod(input, axis = nil, keepdims: false, name: nil)
@@ -378,14 +389,18 @@ module TensorStream
 
     ##
     # reates a tensor with all elements set to zero.
-    # Given a single tensor (tensor), this operation returns a tensor of the same type and shape as tensor with all elements set to zero. Optionally, you can use dtype to specify a new type for the returned tensor.
+    # Given a single tensor (tensor), this operation returns a tensor
+    # of the same type and shape as tensor with all elements set to zero.
+    # Optionally, you can use dtype to specify a new type for the returned tensor.
     def zeros_like(tensor, dtype: nil, name: nil)
       _op(:zeros_like, tensor, nil, data_type: dtype, name: name)
     end
 
     ##
     # Creates a tensor with all elements set to 1.
-    # Given a single tensor (tensor), this operation returns a tensor of the same type and shape as tensor with all elements set to 1. Optionally, you can specify a new type (dtype) for the returned tensor.
+    # Given a single tensor (tensor), this operation returns a
+    # tensor of the same type and shape as tensor with all elements set to 1.
+    # Optionally, you can specify a new type (dtype) for the returned tensor.
     def ones_like(tensor, dtype: nil, name: nil)
       _op(:ones_like, tensor, nil, data_type: dtype, name: name)
     end
@@ -505,7 +520,7 @@ module TensorStream
     # For example:
     # Output tensor has shape [2, 3].
     # fill([2, 3], 9) => [[9, 9, 9]
-     #                    [9, 9, 9]]
+    #                    [9, 9, 9]]
     def fill(dims, value, name: nil)
       _op(:fill, dims, value, name: name)
     end

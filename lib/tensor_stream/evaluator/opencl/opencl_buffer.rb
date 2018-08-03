@@ -1,10 +1,11 @@
 module TensorStream
+  # Buffer used by the OpenCL evaluator
   class OpenCLBuffer < Buffer
     include ArrayOpsHelper
 
     attr_accessor :shape, :buffer, :cl_buffer, :op
 
-    def initialize(data_type: , shape:, buffer:, cl_buffer:, op: nil, name: nil)
+    def initialize(data_type:, shape:, buffer:, cl_buffer:, op: nil, name: nil)
       @data_type = data_type
       @shape = shape
       @buffer = buffer
@@ -25,11 +26,9 @@ module TensorStream
         op.command_queue.finish
         self.dirty = false
       end
-      result = buffer.reshape(*shape.map { |s| s.to_i}.reverse).to_a
 
-      if data_type == :boolean
-        result = process_function_op(result, ->(a, _b) { a != 0 })
-      end
+      result = buffer.reshape(*shape.map(&:to_i).reverse).to_a
+      result = process_function_op(result, ->(a, _b) { a != 0 }) if data_type == :boolean
       result
     end
   end

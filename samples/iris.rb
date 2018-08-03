@@ -75,7 +75,7 @@ w_2 = init_weights([h_size, y_size])
 
 # Forward propagation
 yhat    = forwardprop(X, w_1, w_2)
-predict = tf.argmax(yhat, axis=1)
+predict = tf.argmax(yhat, 1)
 
 # Backward propagation
 cost    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels: y, logits: yhat))
@@ -89,6 +89,7 @@ sess.run(init)
 loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
 puts "Testing the untrained network..."
 puts loss
+start_time = Time.now
 (0..100).each do |epoch|
   x_train.size.times do |i|
     sess.run(updates, feed_dict: {X => [x_train[i]], y => [y_train[i]]})
@@ -99,3 +100,6 @@ end
 
 loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
 puts "loss after training #{loss}"
+loss = sess.run(cost, feed_dict: { X => x_test, y => y_test })
+puts "loss test data set #{loss}"
+puts("time elapsed ", Time.now.to_i - start_time.to_i)

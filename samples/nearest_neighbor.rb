@@ -42,8 +42,8 @@ tf.session(:opencl_evaluator) do |sess|
   Xte.size.times do |i|
     # Get nearest neighbor
     nn_index = sess.run(pred, feed_dict: {xtr => Xtr, xte => Xte[i]})
-    print("Test", i, "Prediction:",Ytr[nn_index].max, \
-            "True Class:", Yte[i].max)
+    print("Test ", i, "Prediction: ",Ytr[nn_index].max, \
+            "True Class: ", Yte[i].max, "\n")
     if Ytr[nn_index].max == Yte[i].max
       accuracy += 1.0/ Xte.size
     end

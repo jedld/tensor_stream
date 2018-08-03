@@ -100,6 +100,10 @@ module TensorStream
       TensorStream.ceil(self)
     end
 
+    def zero?
+      _op(:equal, self, TensorStream.constant(0, dtype: data_type, name: 'equal/is_zero?'))
+    end
+
     def ==(other)
       _a, other = TensorStream.check_data_types(self, other)
       _op(:equal, self, other)
@@ -145,6 +149,22 @@ module TensorStream
       _op(:matmul, self, other)
     end
 
+    ##
+    # Apply a reduction to tensor
+    def reduce(op_type)
+      reduce_op = case op_type.to_sym
+                  when :+
+                    :sum
+                  when :*
+                    :prod
+                  else
+                    raise "unsupported reduce op type #{op_type}"
+                  end
+      raise "blocks are not supported for tensors" if block_given?
+
+      _op(reduce_op, self, nil)
+    end
+
     def collect(&block)
       @value.collect(&block)
     end
@@ -154,7 +174,7 @@ module TensorStream
     end
 
     def op
-      is_const ? _op(:const, self, nil, name: self.name) : _op(:variable, self, nil, name: self.name)
+      is_const ? _op(:const, self, nil, name: name) : _op(:variable, self, nil, name: name)
     end
 
     def eval(options = {})
@@ -197,12 +217,12 @@ module TensorStream
       end
     end
 
-    def auto_math(tensor, name_only = false, max_depth = 99, _cur_depth = 0)
-      tensor.is_a?(Tensor) ? tensor.to_math(name_only, max_depth, _cur_depth) : tensor
+    def auto_math(tensor, name_only = false, max_depth = 99, cur_depth = 0)
+      tensor.is_a?(Tensor) ? tensor.to_math(name_only, max_depth, cur_depth) : tensor
     end
 
     def self.detect_type(value)
-      if !!value==value
+      if !!value == value
         :boolean
       elsif value.is_a?(String)
         :string
@@ -211,7 +231,7 @@ module TensorStream
       elsif value.is_a?(Integer)
         :int32
       elsif value.is_a?(Array)
-        return detect_type(value[0])
+        detect_type(value[0])
       elsif value.is_a?(Tensor)
         value.data_type
       else
@@ -229,9 +249,7 @@ module TensorStream
         end
       end
 
-      if dtype.is_a?(Hash)
-        dtype = dtype[:dtype]
-      end
+      dtype = dtype[:dtype] if dtype.is_a?(Hash)
 
       case dtype.to_sym
       when :float64, :float32, :float
@@ -257,7 +275,7 @@ module TensorStream
       end
     end
 
-    def breakpoint!(&block)
+    def breakpoint!(&_block)
       self
     end
 

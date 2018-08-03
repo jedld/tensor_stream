@@ -115,6 +115,10 @@ module TensorStream
     def delegate_to_evaluator(tensor_arr, session_context, context)
       arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
       result = arr.collect do |tensor|
+        if session_context[:_cache][:placement][tensor.name].nil?
+          session_context[:_cache][:placement][tensor.name] = assign_evaluator(tensor)
+        end
+
         session_context[:_cache][:placement][tensor.name][1].run_with_buffer(tensor, session_context, context)
       end
       result.size == 1 ? result.first : result

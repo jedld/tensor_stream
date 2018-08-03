@@ -1,4 +1,5 @@
 module TensorStream
+  # Evaluator base module
   module Evaluator
     class UnsupportedOp < Exception
       def initialize(tensor)
@@ -10,31 +11,36 @@ module TensorStream
       end
     end
 
+    # Evaluator base class
     class BaseEvaluator
-      def initialize(session, device, thread_pool: nil, log_intermediates: false)
+      def initialize(session, _device, thread_pool: nil, log_intermediates: false)
         @session = session
         @log_intermediates = log_intermediates
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
         @context[:compute_history] = [] if log_intermediates
       end
 
+      ##
+      # Query all supported devices
       def self.query_supported_devices
-        [Device.new("cpu", :cpu, self)]
+        [Device.new('cpu', :cpu, self)]
       end
 
       ##
       # Select the best device available in the system for this evaluator
       def self.default_device
-        Device.new("cpu", :cpu, self)
+        Device.new('cpu', :cpu, self)
       end
 
       ##
       # Selects the best device with the specified query, query can
       # be evaluator specific
-      def self.fetch_device(query = [])
-        Device.new("cpu", :cpu, self)
+      def self.fetch_device(_query = [])
+        Device.new('cpu', :cpu, self)
       end
 
+      ##
+      # Select device using uri
       def self.query_device(query)
         return default_device if query.nil? || query == :default
 
@@ -91,34 +97,30 @@ module TensorStream
 
       def invoke(tensor, execution_context)
         return eval_tensor(tensor, execution_context) unless tensor.is_a?(Operation)
+        raise UnsupportedOp.new(tensor), "op #{tensor.operation} is not yet supported" unless self.class.ops.key?(tensor.operation.to_sym)
 
-        if self.class.ops.key?(tensor.operation.to_sym)
-          op = self.class.ops[tensor.operation.to_sym]
+        op = self.class.ops[tensor.operation.to_sym]
+        op_options = op[:options]
+        resolved_inputs = tensor.inputs.map do |i|
+          next if i.nil?
 
-          op_options = op[:options]
-          resolved_inputs = tensor.inputs.map do |i|
-            next if i.nil?
-
-            if i.is_a?(Array)
-              next i.collect { |sub_item| sub_item.is_a?(Tensor) ? invoke(sub_item, execution_context) : sub_item }
-            end
-
-            if !op_options[:noop] && @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
-              cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"
-              next @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
-
-              result = @session.delegate_to_evaluator(i, @context, execution_context)
-              convert_from_buffer(i, result).tap do |buffer|
-                @context[:_cache][cache_key] = buffer if i.is_const
-              end
-            else
-              prepare_input(i, execution_context, op_options)
-            end
+          if i.is_a?(Array)
+            next i.collect { |sub_item| sub_item.is_a?(Tensor) ? invoke(sub_item, execution_context) : sub_item }
           end
-          instance_exec(execution_context, tensor, resolved_inputs, &op[:block])
-        else
-          raise UnsupportedOp.new(tensor)
+
+          if !op_options[:noop] && @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
+            cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"
+            next @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
+
+            result = @session.delegate_to_evaluator(i, @context, execution_context)
+            convert_from_buffer(i, result).tap do |buffer|
+              @context[:_cache][cache_key] = buffer if i.is_const
+            end
+          else
+            prepare_input(i, execution_context, op_options)
+          end
         end
+        instance_exec(execution_context, tensor, resolved_inputs, &op[:block])
       end
 
       protected
@@ -128,9 +130,9 @@ module TensorStream
 
         input_a_args = []
         input_b_args = []
-        
-        input_a = input_b.size.times.map { |i| i < input_a.size ? input_a[i] : nil }.reverse if input_a.size < input_b.size
-        input_b = input_a.size.times.map { |i| i < input_b.size ? input_b[i] : nil }.reverse if input_a.size > input_b.size
+
+        input_a = Array.new(input_b.size) { |i| i < input_a.size ? input_a[i] : nil }.reverse if input_a.size < input_b.size
+        input_b = Array.new(input_a.size) { |i| i < input_b.size ? input_b[i] : nil }.reverse if input_a.size > input_b.size
 
         input_a.reverse.zip(input_b.reverse).each_with_index do |item, index|
           a, b = item

@@ -6,6 +6,9 @@ AllCops:
     - tensor_stream.gemspec
     - Rakefile
 
+Style/StringLiterals:
+  Enabled: false
+
 Metrics/LineLength:
   Max: 200
 
@@ -20,6 +23,10 @@ Metrics/MethodLength:
 
 Metrics/CyclomaticComplexity:
   Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - lib/tensor_stream/math_gradients.rb
 
 Naming/AccessorMethodName:
   Exclude:

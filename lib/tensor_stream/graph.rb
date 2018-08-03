@@ -120,12 +120,12 @@ module TensorStream
       add_node(node)
     end
 
-    def control_dependencies(control_inputs = [], &block)
+    def control_dependencies(control_inputs = [])
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] ||= []
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Operation.new(:no_op, *control_inputs)
       begin
-        block.call
+        yield
       ensure
         Thread.current["ts_graph_#{object_id}"][:control_dependencies].pop
       end
