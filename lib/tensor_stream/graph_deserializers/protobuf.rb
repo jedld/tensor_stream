@@ -13,6 +13,7 @@ module TensorStream
       block = []
       node = {}
       node_attr = {}
+      dim = []
       state = :top
 
       f = File.new(pbfile, 'r')
@@ -75,7 +76,7 @@ module TensorStream
            
             if key == 'dtype'
               node_attr['value']['dtype'] = value.strip
-            elsif key = 'type'
+            elsif key === 'type'
               node_attr['value']['type'] = value.strip
             else
               node_attr['value'][key] = process_value(value.strip)
@@ -89,6 +90,7 @@ module TensorStream
         when :tensor_context
           if str == 'tensor_shape {'
             state = :tensor_shape_context
+            node_attr['value']['tensor']['shape'] = []
             next
           elsif str == '}'
             state = :value_context
@@ -114,6 +116,9 @@ module TensorStream
           if str == '}'
             state = :tensor_shape_context
             next
+          else
+            key, value = str.split(':')
+            node_attr['value']['tensor']['shape'] << value.strip.to_i
           end
         end
       end
