@@ -6,19 +6,32 @@ module TensorStream
     def initialize
     end
 
+    def load_from_string(buffer)
+      evaluate_lines(buffer.split("\n").map(&:strip))
+    end
+
     ##
     # parsers a protobuf file and spits out
     # a ruby hash
     def load(pbfile)
+      f = File.new(pbfile, 'r')
+      lines = []
+      while !f.eof? && (str = f.readline.strip)
+        lines << str
+      end
+      evaluate_lines(lines)
+    end
+
+    protected
+
+    def evaluate_lines(lines = [])
       block = []
       node = {}
       node_attr = {}
       dim = []
       state = :top
 
-      f = File.new(pbfile, 'r')
-
-      while (!f.eof? && str = f.readline.strip) do
+      lines.each do |str|
         case(state)
         when :top
           node['type'] = parse_node_name(str)
@@ -73,7 +86,6 @@ module TensorStream
             next
           else
             key, value = str.split(':')
-           
             if key == 'dtype'
               node_attr['value']['dtype'] = value.strip
             elsif key === 'type'
@@ -126,8 +138,6 @@ module TensorStream
       block
     end
 
-    protected
-
     def parse_node_name(str)
       name = str.split(' ')[0]
     end
@@ -146,7 +156,7 @@ module TensorStream
       'r' => "\x0d", 'e' => "\x1b", "\\\\" => "\x5c",
       "\"" => "\x22", "'" => "\x27"
     }
-  
+
     def unescape(str)
       # Escape all the things
       str.gsub(/\\(?:([#{UNESCAPES.keys.join}])|u([\da-fA-F]{4}))|\\0?x([\da-fA-F]{2})/) {

@@ -205,6 +205,19 @@ module TensorStream
       TensorStream::Pbtext.new.get_string(self)
     end
 
+    def self.parse_from_string(buffer)
+      graph = Graph.new
+      parsed_tree = TensorStream::Protobuf.new.load_from_string(buffer)
+      parsed_tree.each do |node|
+        if node['type'] == 'node'
+          if node['op'] == 'Const'
+
+          end
+        end
+      end
+      graph
+    end
+
     def graph_def_versions
       "producer: 26"
     end
