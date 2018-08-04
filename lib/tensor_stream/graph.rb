@@ -1,6 +1,8 @@
 module TensorStream
   # A class that defines a TensorStream graph
   class Graph
+    extend TensorStream::OpHelper
+
     attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants
 
     def initialize
@@ -207,11 +209,28 @@ module TensorStream
 
     def self.parse_from_string(buffer)
       graph = Graph.new
-      parsed_tree = TensorStream::Protobuf.new.load_from_string(buffer)
+      protobuf = TensorStream::Protobuf.new
+      parsed_tree = protobuf.load_from_string(buffer)
       parsed_tree.each do |node|
         if node['type'] == 'node'
           if node['op'] == 'Const'
+            #evaluate options
+            options = node['attributes'].map do |attribute|
+              attr_type, attr_value = attribute['value'].collect { |k, v| [k, v] }.flatten
 
+              if attr_type == 'tensor'
+                attr_value = protobuf.evaluate_tensor_node(attr_value)
+              elsif attr_type == 'type'
+                attr_value = protobuf.map_type_to_ts(attr_value)
+              end
+
+              [attribute['key'], attr_value]
+            end.to_h
+
+            options.merge!(name: node['name'], graph: graph)
+            value = options.delete('value')
+            shape = shape_eval(value)
+            TensorStream::Tensor.new(options['dtype'], shape.size, shape, options)
           end
         end
       end

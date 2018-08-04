@@ -24,22 +24,37 @@ module TensorStream
 
     def parse_value(value_node)
       if value_node['tensor']
-        unless value_node['tensor']['shape'].empty?
-          content = value_node['tensor']['tensor_content']
-          unpacked = eval(%Q{"#{content}"})
+        evaluate_tensor_node(value_node['tensor'])
+      end
+    end
 
-          if value_node['tensor']['dtype'] == 'DT_FLOAT'
-            TensorShape.reshape(unpacked.unpack('f*'), value_node['tensor']['shape'])
-          elsif value_node['tensor']['dtype'] == 'DT_INT32'
-            TensorShape.reshape(unpacked.unpack('l*'), value_node['tensor']['shape'])
-          end
-        else
-          if value_node['tensor']['dtype'] == 'DT_FLOAT'
-            value_node['tensor']['float_val'].to_f
-          elsif value_node['tensor']['dtype'] == 'DT_INT32'
-            value_node['tensor']['int_val'].to_i
-          end
+    def evaluate_tensor_node(node)
+      unless node['shape'].empty?
+        content = node['tensor_content']
+        unpacked = eval(%Q{"#{content}"})
+
+        if node['dtype'] == 'DT_FLOAT'
+          TensorShape.reshape(unpacked.unpack('f*'), node['shape'])
+        elsif node['dtype'] == 'DT_INT32'
+          TensorShape.reshape(unpacked.unpack('l*'), node['shape'])
         end
+      else
+        if node['dtype'] == 'DT_FLOAT'
+          node['float_val'].to_f
+        elsif node['dtype'] == 'DT_INT32'
+          node['int_val'].to_i
+        end
+      end
+    end
+
+    def map_type_to_ts(attr_value)
+      case(attr_value)
+      when 'DT_FLOAT'
+        :float32
+      when 'DT_INT32'
+        :int32
+      else
+        raise "unknown type #{attr_value}"
       end
     end
 
