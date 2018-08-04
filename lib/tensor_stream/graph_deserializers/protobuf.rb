@@ -22,6 +22,27 @@ module TensorStream
       evaluate_lines(lines)
     end
 
+    def parse_value(value_node)
+      if value_node['tensor']
+        unless value_node['tensor']['shape'].empty?
+          content = value_node['tensor']['tensor_content']
+          unpacked = eval(%Q{"#{content}"})
+
+          if value_node['tensor']['dtype'] == 'DT_FLOAT'
+            TensorShape.reshape(unpacked.unpack('f*'), value_node['tensor']['shape'])
+          elsif value_node['tensor']['dtype'] == 'DT_INT32'
+            TensorShape.reshape(unpacked.unpack('l*'), value_node['tensor']['shape'])
+          end
+        else
+          if value_node['tensor']['dtype'] == 'DT_FLOAT'
+            value_node['tensor']['float_val'].to_f
+          elsif value_node['tensor']['dtype'] == 'DT_INT32'
+            value_node['tensor']['int_val'].to_i
+          end
+        end
+      end
+    end
+
     protected
 
     def evaluate_lines(lines = [])
@@ -161,7 +182,7 @@ module TensorStream
       # Escape all the things
       str.gsub(/\\(?:([#{UNESCAPES.keys.join}])|u([\da-fA-F]{4}))|\\0?x([\da-fA-F]{2})/) {
         if $1
-          if $1 == '\\' then '\\' else UNESCAPES[$1] end
+          $1 == '\\' ? '\\' : UNESCAPES[$1]
         elsif $2 # escape \u0000 unicode
           ["#$2".hex].pack('U*')
         elsif $3 # escape \0xff or \xff
