@@ -104,6 +104,7 @@ module TensorStream
     end
 
     def get_tensor_by_name(name)
+      raise TensorStream::KeyError, "#{name} not found" unless @nodes.key?(name)
       get_node(name)
     end
 

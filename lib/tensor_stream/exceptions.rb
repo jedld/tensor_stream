@@ -1,3 +1,5 @@
 module TensorStream
-  class ValueError < RuntimeError; end
+  class TensorStreamError < RuntimeError; end
+  class KeyError < TensorStreamError; end
+  class ValueError < TensorStreamError; end
 end
