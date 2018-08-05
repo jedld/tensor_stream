@@ -11,8 +11,10 @@ module TensorStream
       @rank = rank
       @value = nil
       @is_const = false
-      @name = [ variable_scope.name, options[:name] || build_name].compact.reject(&:empty?).join('/')
-      @initalizer_tensor = options[:initializer] ? options[:initializer] : variable_scope.initializer || TensorStream.glorot_uniform_initializer
+      scope_name = variable_scope ? variable_scope.name : nil
+      variable_scope_initializer = variable_scope ? variable_scope.initializer : nil
+      @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join('/')
+      @initalizer_tensor = options[:initializer] ? options[:initializer] : variable_scope_initializer || TensorStream.glorot_uniform_initializer
       if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
         shape = @initalizer_tensor.shape.shape
       end

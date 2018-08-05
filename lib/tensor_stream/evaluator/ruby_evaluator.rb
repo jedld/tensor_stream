@@ -167,7 +167,7 @@ module TensorStream
         end
       end
 
-      register_op :flow_dynamic_stitch, noop: true do |_context, _tensor, inputs|
+      register_op %i[flow_dynamic_stitch dynamic_stitch], noop: true do |_context, _tensor, inputs|
         indexes, data = inputs
         merged = []
         merge_dynamic_stitch(merged, indexes, data)
@@ -179,7 +179,7 @@ module TensorStream
         Tensor.cast_dtype(input.flatten.size, tensor.options[:out_type])
       end
 
-      register_op :negate, no_eval: true do |context, _tensor, inputs|
+      register_op %i[neg negate], no_eval: true do |context, _tensor, inputs|
         call_vector_op(:negate, inputs[0], nil, context, ->(t, _u) { -t })
       end
 
@@ -193,12 +193,12 @@ module TensorStream
         call_vector_op(:sub, a, b, context, ->(t, u) { t - u })
       end
 
-      register_op :mod, no_eval: true do |context, _tensor, inputs|
+      register_op %i[floor_mod mod], no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:sub, a, b, context, ->(t, u) { t % u })
       end
 
-      register_op :floor_div, no_eval: true do |context, tensor, inputs|
+      register_op %i[floor_div real_div], no_eval: true do |context, tensor, inputs|
         a, b = inputs
         if fp_type?(tensor.data_type)
           call_vector_op(:sub, a, b, context, ->(t, u) { (t / u).to_i.to_f })
@@ -467,7 +467,7 @@ module TensorStream
         end
       end
 
-      register_op :where do |context, tensor, inputs|
+      register_op %i[select where] do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
         call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
       end
@@ -600,8 +600,14 @@ module TensorStream
         arr_pad(inputs[0], p, tensor.data_type)
       end
 
-      register_op :max, noop: true do |context, _tensor, inputs|
+      register_op %i[max maximum], noop: true do |context, _tensor, inputs|
         call_vector_op(:max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
+      end
+
+      register_op :apply_gradient_descent do |context, tensor, inputs|
+        target_var, learning_rate, delta = inputs
+        target_var.value = process_vector_math_op(target_var.value, delta, context, ->(t, u) { t - u * learning_rate })
+        target_var.value
       end
 
       register_op :broadcast_gradient_args do |_context, _tensor, inputs|

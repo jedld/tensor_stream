@@ -268,5 +268,11 @@ RSpec.describe TensorStream::Protobuf do
       expect(instance.parse_value(get_scalar_value(1.0, 'DT_FLOAT'))).to eq(1.0)
       expect(instance.parse_value(get_scalar_value(2, 'DT_INT32'))).to eq(2)
     end
+
+    specify "String list" do
+      instance.parse_value(
+
+      )
+    end
   end
 end

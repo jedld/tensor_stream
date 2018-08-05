@@ -37,12 +37,20 @@ module TensorStream
           TensorShape.reshape(unpacked.unpack('f*'), node['shape'])
         elsif node['dtype'] == 'DT_INT32'
           TensorShape.reshape(unpacked.unpack('l*'), node['shape'])
+        elsif node['dtype'] == 'DT_STRING'
+          node['string_val']
+        else
+          raise "unknown dtype #{node['dtype']}"
         end
       else
         if node['dtype'] == 'DT_FLOAT'
           node['float_val'].to_f
         elsif node['dtype'] == 'DT_INT32'
           node['int_val'].to_i
+        elsif node['dtype'] == 'DT_STRING'
+          node['string_val']
+        else
+          raise "unknown dtype #{node['dtype']}"
         end
       end
     end
@@ -53,9 +61,27 @@ module TensorStream
         :float32
       when 'DT_INT32'
         :int32
+      when 'DT_STRING'
+        :string
       else
         raise "unknown type #{attr_value}"
       end
+    end
+
+    def options_evaluator(node)
+      return {} if node['attributes'].nil?
+
+      node['attributes'].map do |attribute|
+        attr_type, attr_value = attribute['value'].collect { |k, v| [k, v] }.flatten(1)
+
+        if attr_type == 'tensor'
+          attr_value = evaluate_tensor_node(attr_value)
+        elsif attr_type == 'type'
+          attr_value = map_type_to_ts(attr_value)
+        end
+
+        [attribute['key'], attr_value]
+      end.to_h
     end
 
     protected
@@ -77,7 +103,7 @@ module TensorStream
           if str == 'attr {'
             state = :attr_context
             node_attr = {}
-            node['attributes']||=[]
+            node['attributes'] ||= []
             node['attributes'] << node_attr
             next
           elsif str == '}'
@@ -88,7 +114,7 @@ module TensorStream
           else
             key, value = str.split(':')
             if key == 'input'
-              node['input']||=[]
+              node['input'] ||= []
               node['input'] << process_value(value.strip)
             else
               node[key] = process_value(value.strip)
@@ -112,6 +138,7 @@ module TensorStream
             next
           elsif str == 'shape {'
             state = :shape_context
+            node_attr['value']['shape'] = []
             next
           elsif str == 'tensor {'
             state = :tensor_context
@@ -124,7 +151,7 @@ module TensorStream
             key, value = str.split(':')
             if key == 'dtype'
               node_attr['value']['dtype'] = value.strip
-            elsif key === 'type'
+            elsif key == 'type'
               node_attr['value']['type'] = value.strip
             else
               node_attr['value'][key] = process_value(value.strip)
@@ -145,7 +172,14 @@ module TensorStream
             next
           else
             key, value = str.split(':')
-            node_attr['value']['tensor'][key] = process_value(value.strip)
+            if node_attr['value']['tensor'][key] && !node_attr['value']['tensor'][key].is_a?(Array)
+              node_attr['value']['tensor'][key] = [node_attr['value']['tensor'][key]]
+              node_attr['value']['tensor'][key] << process_value(value.strip)
+            elsif node_attr['value']['tensor'][key]
+              node_attr['value']['tensor'][key] << process_value(value.strip)
+            else
+              node_attr['value']['tensor'][key] = process_value(value.strip)
+            end
           end
         when :tensor_shape_context
           if str == 'dim {'
@@ -159,6 +193,17 @@ module TensorStream
           if str == '}'
             state = :value_context
             next
+          elsif str == 'dim {'
+            state = :shape_dim_context
+            next
+          end
+        when :shape_dim_context
+          if str == '}'
+            state = :shape_context
+            next
+          else
+            key, value = str.split(':')
+            node_attr['value']['shape'] << value.strip.to_i
           end
         when :tensor_shape_dim_context
           if str == '}'
