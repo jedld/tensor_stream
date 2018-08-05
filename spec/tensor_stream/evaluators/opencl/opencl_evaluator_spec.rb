@@ -51,13 +51,14 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(66)
+      expect(described_class.ops.keys.size).to eq(69)
     end
 
     specify do
       expect(described_class.ops.keys.sort).to eq(%i[
         abs
         add
+        apply_gradient_descent
         argmax
         argmin
         assign
@@ -75,6 +76,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         exp
         floor
         floor_div
+        floor_mod
         flow_group
         greater
         greater_equal
@@ -97,6 +99,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         print
         prod
         rank
+        real_div
         reciprocal
         reshape
         round

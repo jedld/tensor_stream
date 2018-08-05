@@ -2,6 +2,8 @@ module TensorStream
   module Train
     # High Level implementation of the gradient descent algorithm
     class GradientDescentOptimizer
+      include TensorStream::OpHelper
+
       attr_accessor :learning_rate
 
       def initialize(learning_rate, _options = {})
@@ -18,7 +20,7 @@ module TensorStream
       # This is the second part of minimize(). It returns an Operation that applies gradients.
       def apply_gradients(grads_and_vars, global_step: nil)
         apply_ops = grads_and_vars.map do |grad, var|
-          var.assign_sub(grad * @learning_rate)
+          i_op(:apply_gradient_descent, var, TensorStream.cast(@learning_rate, grad.data_type), grad)
         end
 
         if global_step.nil?

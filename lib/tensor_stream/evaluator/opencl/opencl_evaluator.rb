@@ -275,13 +275,40 @@ module TensorStream
         assign_var(tensor, value, context)
       end
 
+      # Fast in place multiply subtract assign
+      register_op :apply_gradient_descent do |_context, tensor, inputs|
+        _target_var, learning_rate, delta = inputs
+
+        assign = tensor.inputs[0] || tensor
+
+        unless assign.buffer
+          value = read_final_result(buffer)
+          assign.buffer = convert_to_opencl(value, buffer.shape, data_type: tensor.data_type, name: assign.name)
+          assign.value = value
+        end
+
+        assign.buffer.dirty = true # force buffer copy when variable is read externally
+        output_buffer = assign.buffer
+
+        m, n = output_buffer.shape
+        work_group = [m || 1, n || 1]
+        cl_m = OpenCL::Int1.new(m || 1)
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event_wait_list = [assign.buffer.op, learning_rate.op, delta.op].compact # add dependency wait list
+        method_call = :"apply_gradient_#{output_buffer.data_type}"
+        event = _cl_program("apply_gradient", dtype: output_buffer.data_type).send(method_call, _opencl_queue, work_group, cl_m, cl_n, delta.cl_buffer, learning_rate.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
       %i[less less_equal greater greater_equal equal not_equal logical_and].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context, 'cond')
         end
       end
 
-      %i[max add div sub mod mul pow sigmoid_grad squared_difference].each do |op|
+      %i[max add real_div div sub floor_mod mod mul pow sigmoid_grad squared_difference].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
         end

@@ -607,6 +607,7 @@ module TensorStream
       register_op :apply_gradient_descent do |context, tensor, inputs|
         target_var, learning_rate, delta = inputs
         assign = tensor.inputs[0] || tensor
+
         assign.value = process_vector_math_op(target_var, delta, context, ->(t, u) { t - u * learning_rate })
         assign.value
       end

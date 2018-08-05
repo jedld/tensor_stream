@@ -36,6 +36,7 @@ module TensorStream
           op = underscore(node['op']).to_sym
           unless TensorStream::Evaluator::RubyEvaluator.ops.keys.include?(op)
             puts "warning unsupported op #{op}"
+            binding.pry
           end
           # map input tensor
           inputs = node['input'].map do |input|

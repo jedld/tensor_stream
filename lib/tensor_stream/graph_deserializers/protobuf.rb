@@ -137,6 +137,7 @@ module TensorStream
         when :value_context
           if str == 'list {'
             state = :list_context
+            node_attr['value'] = []
             next
           elsif str == 'shape {'
             state = :shape_context
@@ -163,6 +164,9 @@ module TensorStream
           if str == '}'
             state = :value_context
             next
+          else
+            key, value = str.split(':')
+            node_attr['value'] << { key => value}
           end
         when :tensor_context
           if str == 'tensor_shape {'
