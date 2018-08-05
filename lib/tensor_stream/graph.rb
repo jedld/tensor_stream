@@ -1,15 +1,14 @@
 module TensorStream
   # A class that defines a TensorStream graph
   class Graph
-
-
     attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants
 
     def initialize
       @eager_execution = false
       @nodes = {}
       @collections = {
-        :"#{GraphKeys::GLOBAL_VARIABLES}" => []
+        :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
+        :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
       }
       @constants = {}
     end
@@ -22,7 +21,8 @@ module TensorStream
       @random_seed = nil
       @nodes = {}
       @collections = {
-        :"#{GraphKeys::GLOBAL_VARIABLES}" => []
+        :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
+        :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
       }
       @constants = {}
     end
