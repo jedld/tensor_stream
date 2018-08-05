@@ -287,7 +287,7 @@ module TensorStream
 
     def setup_initial_state(options)
       @outputs = []
-      @graph = options[:graph] || TensorStream.get_default_graph
+      @graph = options[:__graph] || TensorStream.get_default_graph
       @source = format_source(caller_locations)
     end
 

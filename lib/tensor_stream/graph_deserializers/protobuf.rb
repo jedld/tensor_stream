@@ -78,6 +78,8 @@ module TensorStream
           attr_value = evaluate_tensor_node(attr_value)
         elsif attr_type == 'type'
           attr_value = map_type_to_ts(attr_value)
+        elsif attr_type == 'b'
+          attr_value = attr_value == 'true'
         end
 
         [attribute['key'], attr_value]

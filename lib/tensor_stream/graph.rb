@@ -1,11 +1,12 @@
 module TensorStream
   # A class that defines a TensorStream graph
   class Graph
-    attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants
+    attr_accessor :nodes, :node_keys, :collections, :eager_execution, :random_seed, :constants
 
     def initialize
       @eager_execution = false
       @nodes = {}
+      @node_keys = []
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
         :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
@@ -20,6 +21,7 @@ module TensorStream
       @op_counter = 0
       @random_seed = nil
       @nodes = {}
+      @node_keys = []
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
         :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
@@ -85,6 +87,7 @@ module TensorStream
                   end
 
       node.device = get_device_scope
+      @node_keys << node.name
       @nodes[node.name] = node
       @constants[node.name] = node if node.is_const
       node.send(:propagate_outputs)

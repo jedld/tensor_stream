@@ -17,8 +17,7 @@ module TensorStream
 
         options = protobuf.options_evaluator(node)
         options[:name] = node['name']
-
-        options[:graph] = @graph
+        options[:__graph] = @graph
         value = options.delete('value')
         options = symbolize_keys(options)
         case node['op']

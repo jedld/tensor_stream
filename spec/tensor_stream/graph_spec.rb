@@ -39,6 +39,7 @@ RSpec.describe TensorStream::Graph do
     specify do
       pbtext = File.read(File.join('spec','fixtures','linear_regression.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
+      expect(graph.as_graph_def).to eq(pbtext)
       expect(graph.nodes.keys.size).to eq(127)
 
       expect(graph.nodes.keys.sort).to eq([

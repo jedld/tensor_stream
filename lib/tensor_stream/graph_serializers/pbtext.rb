@@ -6,7 +6,8 @@ module TensorStream
     def get_string(tensor_or_graph, session = nil)
       graph = tensor_or_graph.is_a?(Tensor) ? tensor_or_graph.graph : tensor_or_graph
       @lines = []
-      graph.nodes.each do |k, node|
+      graph.node_keys.each do |k|
+        node = graph.get_tensor_by_name(k)
         @lines << "node {"
         @lines << "  name: #{node.name.to_json}"
         if node.is_a?(TensorStream::Operation)
@@ -16,16 +17,16 @@ module TensorStream
             @lines << "  input: #{input.name.to_json}"
           end
           # type
-          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
+          pb_attr('T', "type: #{sym_to_protobuf_type(node.data_type)}")
           process_options(node)
         elsif node.is_a?(TensorStream::Tensor) && node.is_const
           @lines << "  op: \"Const\""
           # type
-          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
+          pb_attr('T', "type: #{sym_to_protobuf_type(node.data_type)}")
           pb_attr('value', tensor_value(node))
         elsif node.is_a?(TensorStream::Variable)
           @lines << "  op: \"VariableV2\""
-          pb_attr('T', "dtype: #{sym_to_protobuf_type(node.data_type)}")
+          pb_attr('T', "type: #{sym_to_protobuf_type(node.data_type)}")
           pb_attr('shape', shape_buf(node, 'shape'))
           process_options(node)
         end
@@ -42,16 +43,16 @@ module TensorStream
     def process_options(node)
       return if node.options.nil?
       node.options.each do |k, v|
-        next if %w[name].include?(k.to_s)
+        next if %w[name].include?(k.to_s) || k.to_s.start_with?('__')
         @lines << "  attr {"
         @lines << "    key: \"#{k}\""
         @lines << "    value {"
         if (v.is_a?(TrueClass) || v.is_a?(FalseClass))
-          @lines << "       b: #{v.to_s}"
+          @lines << "      b: #{v.to_s}"
         elsif (v.is_a?(Integer))
-          @lines << "       int_val: #{v}"
+          @lines << "      int_val: #{v}"
         elsif (v.is_a?(Float))
-          @lines << "       float_val: #{v}"
+          @lines << "      float_val: #{v}"
         end
         @lines << "    }"
         @lines << "  }"
@@ -65,7 +66,7 @@ module TensorStream
     def pack_arr_int(int_arr)
       int_arr.flatten.pack('l*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
     end
-  
+
     def shape_buf(tensor, shape_type = 'tensor_shape')
       arr = []
       arr << "  #{shape_type} {"
@@ -77,6 +78,7 @@ module TensorStream
       arr << "  }"
       arr
     end
+
     def tensor_value(tensor)
       arr = []
       arr << "tensor {"
@@ -146,5 +148,4 @@ module TensorStream
       @lines << "  }"
     end
   end
-
 end
