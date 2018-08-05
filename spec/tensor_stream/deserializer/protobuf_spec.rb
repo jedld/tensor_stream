@@ -99,7 +99,7 @@ RSpec.describe TensorStream::Protobuf do
               },
               {
                  "key"   => "shape",
-                 "value" => {}
+                 "value" => {"shape"=>[]}
               },
               {
                  "key"   => "shared_name",
@@ -126,7 +126,7 @@ RSpec.describe TensorStream::Protobuf do
               },
               {
                  "key"   => "_class",
-                 "value" => {}
+                 "value"=>[{"s"=>" \"loc"}]
               },
               {
                  "key"   => "use_locking",
@@ -158,7 +158,7 @@ RSpec.describe TensorStream::Protobuf do
               },
               {
                  "key"   => "_class",
-                 "value" => {}
+                 "value"=>[{"s"=>" \"loc"}]
               }
            ]
         },
@@ -267,12 +267,6 @@ RSpec.describe TensorStream::Protobuf do
     specify "convets scaler tensor value to ruby" do
       expect(instance.parse_value(get_scalar_value(1.0, 'DT_FLOAT'))).to eq(1.0)
       expect(instance.parse_value(get_scalar_value(2, 'DT_INT32'))).to eq(2)
-    end
-
-    specify "String list" do
-      instance.parse_value(
-
-      )
     end
   end
 end

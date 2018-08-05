@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(90)
+      expect(described_class.ops.keys.size).to eq(92)
     end
 
     specify do
@@ -62,8 +62,8 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         log1p
         logical_and
         matmul
-        maximum
         max
+        maximum
         mean
         mod
         mul
@@ -84,7 +84,9 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         real_div
         reciprocal
         reshape
+        restore_v2
         round
+        save_v2
         sec
         select
         shape

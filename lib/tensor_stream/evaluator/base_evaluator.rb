@@ -101,6 +101,7 @@ module TensorStream
 
         op = self.class.ops[tensor.operation.to_sym]
         op_options = op[:options]
+
         resolved_inputs = tensor.inputs.map do |i|
           next if i.nil?
 
@@ -120,6 +121,7 @@ module TensorStream
             prepare_input(i, execution_context, op_options)
           end
         end
+
         instance_exec(execution_context, tensor, resolved_inputs, &op[:block])
       end
 
@@ -136,7 +138,7 @@ module TensorStream
 
         input_a.reverse.zip(input_b.reverse).each_with_index do |item, index|
           a, b = item
- 
+
           if a.nil? || b && (a < b)
             input_a_args << input_b.size - index - 1
           elsif b.nil? || a && (a > b)

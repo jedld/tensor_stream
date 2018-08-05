@@ -1,6 +1,7 @@
 require "spec_helper"
 require 'benchmark'
 require 'matrix'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Graph do
   let(:ts) { TensorStream }
@@ -41,7 +42,6 @@ RSpec.describe TensorStream::Graph do
       graph = TensorStream::Graph.parse_from_string(pbtext)
       # expect(graph.as_graph_def).to eq(pbtext)
       expect(graph.nodes.keys.size).to eq(127)
-
       expect(graph.nodes.keys.sort).to eq([
         "Add",
         "GradientDescent",
@@ -171,6 +171,16 @@ RSpec.describe TensorStream::Graph do
         "weight/initial_value",
         "weight/read"]
       )
+    end
+
+    specify "reload simple operation" do
+      pbtext = File.read(File.join('spec','fixtures','matmul_graph.pbtxt'))
+      graph = TensorStream::Graph.parse_from_string(pbtext)
+      tensor = graph.get_tensor_by_name("tanh_2")
+        graph.as_default do
+        sess = ts.session
+        expect(tr(sess.run(tensor))).to eq([[1.0, 1.0], [1.0, 1.0]])
+      end
     end
   end
 end

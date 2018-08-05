@@ -1,8 +1,113 @@
 node {
+  name: "c"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 5.0
+      }
+    }
+  }
+}
+node {
+  name: "c_1"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 6.0
+      }
+    }
+  }
+}
+node {
+  name: "nested/c"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 10.0
+      }
+    }
+  }
+}
+node {
+  name: "nested/inner/c"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 20.0
+      }
+    }
+  }
+}
+node {
+  name: "nested/d"
+  op: "Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 10.0
+      }
+    }
+  }
+}
+node {
   name: "Const"
   op: "Const"
   attr {
-    key: "dtype"
+    key: "T"
     value {
       type: DT_FLOAT
     }
@@ -14,13 +119,13 @@ node {
         dtype: DT_FLOAT
         tensor_shape {
           dim {
-            size: 1
+            size: 2
           }
           dim {
-            size: 3
+            size: 2
           }
         }
-        tensor_content: "\000\000\200?\000\000\000?\000\000\200@"
+        tensor_content: "\000\000\200?\000\000\000@\315\314\014@\000\000@@"
       }
     }
   }
@@ -29,7 +134,7 @@ node {
   name: "Const_1"
   op: "Const"
   attr {
-    key: "dtype"
+    key: "T"
     value {
       type: DT_FLOAT
     }
@@ -41,13 +146,13 @@ node {
         dtype: DT_FLOAT
         tensor_shape {
           dim {
-            size: 3
+            size: 2
           }
           dim {
             size: 2
           }
         }
-        tensor_content: "\315\314\314>\315\314L>\315\314\314=ff\346>\315\314L>\000\000\200@"
+        tensor_content: "\000\000\300?\315\314\014@\315\314\014@\000\000@@"
       }
     }
   }
@@ -56,200 +161,7 @@ node {
   name: "Const_2"
   op: "Const"
   attr {
-    key: "dtype"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        tensor_shape {
-          dim {
-            size: 2
-          }
-          dim {
-            size: 2
-          }
-        }
-        tensor_content: "\232\231\231>\315\314L>\232\231\031>ff\346>"
-      }
-    }
-  }
-}
-node {
-  name: "Const_3"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        tensor_shape {
-          dim {
-            size: 2
-          }
-        }
-        tensor_content: "\000\000\200@\000\000\240@"
-      }
-    }
-  }
-}
-node {
-  name: "Const_4"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        tensor_shape {
-          dim {
-            size: 2
-          }
-        }
-        tensor_content: "33\203@33\243@"
-      }
-    }
-  }
-}
-node {
-  name: "MatMul"
-  op: "MatMul"
-  input: "Const"
-  input: "Const_1"
-  attr {
     key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "transpose_a"
-    value {
-      b: false
-    }
-  }
-  attr {
-    key: "transpose_b"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "add"
-  op: "Add"
-  input: "MatMul"
-  input: "Const_3"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-}
-node {
-  name: "Sin"
-  op: "Sin"
-  input: "add"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-}
-node {
-  name: "MatMul_1"
-  op: "MatMul"
-  input: "Sin"
-  input: "Const_2"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "transpose_a"
-    value {
-      b: false
-    }
-  }
-  attr {
-    key: "transpose_b"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "add_1"
-  op: "Add"
-  input: "MatMul_1"
-  input: "Const_4"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-}
-node {
-  name: "Sin_1"
-  op: "Sin"
-  input: "add_1"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-}
-node {
-  name: "final/Shape"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 2
-          }
-        }
-        tensor_content: "\001\000\000\000\002\000\000\000"
-      }
-    }
-  }
-}
-node {
-  name: "final/grad_ys_0"
-  op: "Const"
-  attr {
-    key: "dtype"
     value {
       type: DT_FLOAT
     }
@@ -267,28 +179,10 @@ node {
   }
 }
 node {
-  name: "final/Fill"
-  op: "Fill"
-  input: "final/Shape"
-  input: "final/grad_ys_0"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "index_type"
-    value {
-      type: DT_INT32
-    }
-  }
-}
-node {
-  name: "final/Sin_1_grad/Cos"
-  op: "Cos"
-  input: "add_1"
-  input: "^final/Fill"
+  name: "matmul:0"
+  op: "Matmul"
+  input: "Const"
+  input: "Const_1"
   attr {
     key: "T"
     value {
@@ -297,165 +191,9 @@ node {
   }
 }
 node {
-  name: "final/Sin_1_grad/mul"
-  op: "Mul"
-  input: "final/Fill"
-  input: "final/Sin_1_grad/Cos"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-}
-node {
-  name: "final/add_1_grad/Shape"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 2
-          }
-        }
-        tensor_content: "\001\000\000\000\002\000\000\000"
-      }
-    }
-  }
-}
-node {
-  name: "final/add_1_grad/Shape_1"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 1
-          }
-        }
-        int_val: 2
-      }
-    }
-  }
-}
-node {
-  name: "final/add_1_grad/BroadcastGradientArgs"
-  op: "BroadcastGradientArgs"
-  input: "final/add_1_grad/Shape"
-  input: "final/add_1_grad/Shape_1"
-  attr {
-    key: "T"
-    value {
-      type: DT_INT32
-    }
-  }
-}
-node {
-  name: "final/add_1_grad/Sum"
-  op: "Sum"
-  input: "final/Sin_1_grad/mul"
-  input: "final/add_1_grad/BroadcastGradientArgs"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tidx"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "keep_dims"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "final/add_1_grad/Reshape"
-  op: "Reshape"
-  input: "final/add_1_grad/Sum"
-  input: "final/add_1_grad/Shape"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tshape"
-    value {
-      type: DT_INT32
-    }
-  }
-}
-node {
-  name: "final/add_1_grad/Sum_1"
-  op: "Sum"
-  input: "final/Sin_1_grad/mul"
-  input: "final/add_1_grad/BroadcastGradientArgs:1"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tidx"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "keep_dims"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "final/add_1_grad/Reshape_1"
-  op: "Reshape"
-  input: "final/add_1_grad/Sum_1"
-  input: "final/add_1_grad/Shape_1"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tshape"
-    value {
-      type: DT_INT32
-    }
-  }
-}
-node {
-  name: "final/MatMul_1_grad/MatMul"
-  op: "MatMul"
-  input: "final/add_1_grad/Reshape"
+  name: "add_1:0"
+  op: "Add"
+  input: "matmul:0"
   input: "Const_2"
   attr {
     key: "T"
@@ -463,212 +201,18 @@ node {
       type: DT_FLOAT
     }
   }
-  attr {
-    key: "transpose_a"
-    value {
-      b: false
-    }
-  }
-  attr {
-    key: "transpose_b"
-    value {
-      b: true
-    }
-  }
 }
 node {
-  name: "final/MatMul_1_grad/MatMul_1"
-  op: "MatMul"
-  input: "Sin"
-  input: "final/add_1_grad/Reshape"
+  name: "tanh_2:0"
+  op: "Tanh"
+  input: "add_1:0"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "transpose_a"
-    value {
-      b: true
-    }
-  }
-  attr {
-    key: "transpose_b"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "final/Sin_grad/Cos"
-  op: "Cos"
-  input: "add"
-  input: "^final/MatMul_1_grad/MatMul"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-}
-node {
-  name: "final/Sin_grad/mul"
-  op: "Mul"
-  input: "final/MatMul_1_grad/MatMul"
-  input: "final/Sin_grad/Cos"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-}
-node {
-  name: "final/add_grad/Shape"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 2
-          }
-        }
-        tensor_content: "\001\000\000\000\002\000\000\000"
-      }
-    }
-  }
-}
-node {
-  name: "final/add_grad/Shape_1"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_INT32
-        tensor_shape {
-          dim {
-            size: 1
-          }
-        }
-        int_val: 2
-      }
-    }
-  }
-}
-node {
-  name: "final/add_grad/BroadcastGradientArgs"
-  op: "BroadcastGradientArgs"
-  input: "final/add_grad/Shape"
-  input: "final/add_grad/Shape_1"
-  attr {
-    key: "T"
-    value {
-      type: DT_INT32
-    }
-  }
-}
-node {
-  name: "final/add_grad/Sum"
-  op: "Sum"
-  input: "final/Sin_grad/mul"
-  input: "final/add_grad/BroadcastGradientArgs"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tidx"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "keep_dims"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "final/add_grad/Reshape"
-  op: "Reshape"
-  input: "final/add_grad/Sum"
-  input: "final/add_grad/Shape"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tshape"
-    value {
-      type: DT_INT32
-    }
-  }
-}
-node {
-  name: "final/add_grad/Sum_1"
-  op: "Sum"
-  input: "final/Sin_grad/mul"
-  input: "final/add_grad/BroadcastGradientArgs:1"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tidx"
-    value {
-      type: DT_INT32
-    }
-  }
-  attr {
-    key: "keep_dims"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "final/add_grad/Reshape_1"
-  op: "Reshape"
-  input: "final/add_grad/Sum_1"
-  input: "final/add_grad/Shape_1"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "Tshape"
-    value {
-      type: DT_INT32
     }
   }
 }
 versions {
   producer: 26
 }
-

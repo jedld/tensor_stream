@@ -643,9 +643,10 @@ module TensorStream
         @context[cache_key] = if tensor.value.is_a?(Tensor)
                                 _run(tensor.value, child_context)
                               else
-                                wrap_opencl(tensor, name: tensor.name)
+                                 wrap_opencl(tensor, name: tensor.name)
                               end
-        @context[:_cache][cache_key] =  @context[cache_key] if tensor.is_const
+        @context[:_cache][cache_key] = @context[cache_key] if tensor.is_const
+        @context[cache_key]
       end
 
       private
