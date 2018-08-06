@@ -50,7 +50,7 @@ module TensorStream
                      else
                        @graph.get_tensor_by_name(input)
                      end
-            
+
             raise "tensor not found by name #{input}" if tensor.nil?
 
             tensor

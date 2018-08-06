@@ -271,11 +271,12 @@ module TensorStream
       super
       @inputs.compact.each do |input|
         if input.is_a?(Array)
-          input.flatten.compact.each do |t|
-            t.send(:propagate_consumer, consumer) if t.is_a?(Tensor)
+          input.flatten.compact.select { |t| t.is_a?(Tensor) }.each do |t|
+            next if t.consumers.include?(consumer.name)
+            t.send(:propagate_consumer, consumer)
           end
-        else
-          input.send(:propagate_consumer, consumer) if input.name != name
+        elsif input.name != name && !input.consumers.include?(consumer.name)
+          input.send(:propagate_consumer, consumer)
         end
       end
     end
