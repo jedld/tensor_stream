@@ -885,6 +885,13 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(tf.argmax(b, 0))).to eq(5)
       expect(sess.run(tf.argmax(b, 0, output_type: :float32))).to eql(5.0)
     end
+
+    specify "error checking for axis" do
+      x = tf.constant([1,2,3,4,5,6])
+      expect {
+        sess.run(tf.argmax(x, 1))
+      }.to raise_exception TensorStream::InvalidArgumentError
+    end
   end
 
   context ".add standard" do
