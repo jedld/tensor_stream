@@ -29,7 +29,7 @@ module TensorStream
     end
 
     def evaluate_tensor_node(node)
-      unless node['shape'].empty?
+      if !node['shape'].empty? && node['tensor_content']
         content = node['tensor_content']
         unpacked = eval(%Q{"#{content}"})
 
@@ -43,14 +43,21 @@ module TensorStream
           raise "unknown dtype #{node['dtype']}"
         end
       else
-        if node['dtype'] == 'DT_FLOAT'
-          node['float_val'].to_f
+
+        val = if node['dtype'] == 'DT_FLOAT'
+          node['float_val'] ? node['float_val'].to_f : []
         elsif node['dtype'] == 'DT_INT32'
-          node['int_val'].to_i
+          node['int_val'] ? node['int_val'].to_i : []
         elsif node['dtype'] == 'DT_STRING'
           node['string_val']
         else
           raise "unknown dtype #{node['dtype']}"
+        end
+
+        if node['shape'] == [1]
+          [val]
+        else
+          val
         end
       end
     end
@@ -61,8 +68,12 @@ module TensorStream
         :float32
       when 'DT_INT32'
         :int32
+      when 'DT_INT64'
+        :int64
       when 'DT_STRING'
         :string
+      when 'DT_BOOL'
+        :boolean
       else
         raise "unknown type #{attr_value}"
       end
@@ -114,7 +125,7 @@ module TensorStream
             node = {}
             next
           else
-            key, value = str.split(':')
+            key, value = str.split(':', 2)
             if key == 'input'
               node['input'] ||= []
               node['input'] << process_value(value.strip)
@@ -131,7 +142,7 @@ module TensorStream
             state = :node_context
             next
           else
-            key, value = str.split(':')
+            key, value = str.split(':', 2)
             node_attr[key] = process_value(value.strip)
           end
         when :value_context
@@ -151,7 +162,7 @@ module TensorStream
             state = :attr_context
             next
           else
-            key, value = str.split(':')
+            key, value = str.split(':', 2)
             if key == 'dtype'
               node_attr['value']['dtype'] = value.strip
             elsif key == 'type'
@@ -165,7 +176,7 @@ module TensorStream
             state = :value_context
             next
           else
-            key, value = str.split(':')
+            key, value = str.split(':', 2)
             node_attr['value'] << { key => value}
           end
         when :tensor_context
@@ -177,7 +188,7 @@ module TensorStream
             state = :value_context
             next
           else
-            key, value = str.split(':')
+            key, value = str.split(':', 2)
             if node_attr['value']['tensor'][key] && !node_attr['value']['tensor'][key].is_a?(Array)
               node_attr['value']['tensor'][key] = [node_attr['value']['tensor'][key]]
               node_attr['value']['tensor'][key] << process_value(value.strip)
@@ -208,7 +219,7 @@ module TensorStream
             state = :shape_context
             next
           else
-            key, value = str.split(':')
+            key, value = str.split(':', 2)
             node_attr['value']['shape'] << value.strip.to_i
           end
         when :tensor_shape_dim_context
@@ -216,7 +227,7 @@ module TensorStream
             state = :tensor_shape_context
             next
           else
-            key, value = str.split(':')
+            key, value = str.split(':', 2)
             node_attr['value']['tensor']['shape'] << value.strip.to_i
           end
         end

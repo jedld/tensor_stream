@@ -126,7 +126,7 @@ RSpec.describe TensorStream::Protobuf do
               },
               {
                  "key"   => "_class",
-                 "value"=>[{"s"=>" \"loc"}]
+                 "value"=>[{"s"=>" \"loc:@v1\""}]
               },
               {
                  "key"   => "use_locking",
@@ -158,7 +158,7 @@ RSpec.describe TensorStream::Protobuf do
               },
               {
                  "key"   => "_class",
-                 "value"=>[{"s"=>" \"loc"}]
+                 "value"=>[{"s"=>" \"loc:@v1\""}]
               }
            ]
         },

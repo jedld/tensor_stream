@@ -42,6 +42,8 @@ module TensorStream
                 eval_variable(tensor, child_context)
               elsif tensor.is_a?(Placeholder)
                 resolve_placeholder(tensor, child_context)
+              elsif tensor.is_a?(OutputGroup)
+                tensor.outputs[0]
               else
                 eval_tensor(tensor, child_context)
               end
@@ -63,9 +65,11 @@ module TensorStream
 
           tensor = tensor.map { |t| complete_eval(t, context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
 
-          return tensor if old_tensor.equal?(tensor)
-          return tensor unless tensor.is_a?(Tensor)
+          break if old_tensor.equal?(tensor)
+          break unless tensor.is_a?(Tensor)
         end
+        
+        tensor.is_a?(OutputGroup) ? tensor.outputs[0] : tensor
       end
 
       protected
@@ -101,7 +105,7 @@ module TensorStream
         inputs[0]
       end
 
-      register_op(:argmax) do |_context, tensor, inputs|
+      register_op(%i[argmax arg_max]) do |_context, tensor, inputs|
         axis = tensor.options[:axis] || 0
         get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
       end
@@ -146,7 +150,11 @@ module TensorStream
       register_op :index, no_eval: true do |_context, _tensor, inputs|
         f = inputs[0]
         index = inputs[1]
-        f[index]
+        if f.is_a?(OutputGroup)
+          f.outputs[index]
+        else
+          f[index]
+        end
       end
 
       register_op :slice do |context, tensor, inputs|
@@ -222,7 +230,7 @@ module TensorStream
         call_vector_op(:squared_difference, a, b, context, ->(t, u) { (t - u) * (t - u) })
       end
 
-      register_op :concat do |_context, tensor, inputs|
+      register_op %i[concat concat_v2] do |_context, tensor, inputs|
         concat_array(inputs[0], tensor.options[:axis])
       end
 
@@ -310,7 +318,7 @@ module TensorStream
         generate_vector(shape, generator: generator)
       end
 
-      register_op :random_normal, no_eval: true do |_context, tensor, _inputs|
+      register_op :random_standard_normal, no_eval: true do |_context, tensor, _inputs|
         seed = tensor.options[:seed]
         random = _get_randomizer(tensor, seed)
         r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
@@ -539,7 +547,7 @@ module TensorStream
         shape_eval(inputs[0], tensor.options[:out_type])
       end
 
-      register_op :matmul do |_context, tensor, inputs|
+      register_op :mat_mul do |_context, tensor, inputs|
         matrix_a, matrix_b = inputs
         rank_a = get_rank(matrix_a)
         rank_b = get_rank(matrix_b)
@@ -613,7 +621,8 @@ module TensorStream
       end
 
       register_op :broadcast_gradient_args do |_context, _tensor, inputs|
-        get_broadcast_gradient_args(inputs[0], inputs[1])
+        rx, ry = get_broadcast_gradient_args(inputs[0], inputs[1])
+        OutputGroup.new([rx, ry])
       end
 
       register_op :tile do |_context, _tensor, inputs|
@@ -672,7 +681,7 @@ module TensorStream
         end
       end
 
-      register_op :softmax_cross_entropy_with_logits_v2 do |_context, _tensor, inputs|
+      register_op %i[softmax_cross_entropy_with_logits_v2 softmax_cross_entropy_with_logits] do |_context, _tensor, inputs|
         last_dimen_list = last_axis(inputs[0])
         input_shape = shape_eval(inputs[0])
         labels = last_axis(inputs[1])

@@ -1,7 +1,7 @@
 require "spec_helper"
 require 'benchmark'
 require 'matrix'
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+# require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Graph do
   let(:ts) { TensorStream }
@@ -176,11 +176,29 @@ RSpec.describe TensorStream::Graph do
     specify "reload simple operation" do
       pbtext = File.read(File.join('spec','fixtures','matmul_graph.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
-      tensor = graph.get_tensor_by_name("tanh_2")
+      tensor = graph.get_tensor_by_name("tanh_2:0")
         graph.as_default do
         sess = ts.session
         expect(tr(sess.run(tensor))).to eq([[1.0, 1.0], [1.0, 1.0]])
       end
+    end
+
+    specify "reload gradient operation" do
+      pbtext = File.read(File.join('spec','fixtures','gradients.pbtxt'))
+      graph = TensorStream::Graph.parse_from_string(pbtext)
+      tensor_2 = graph.get_tensor_by_name("gradients/add_grad/Reshape_1")
+      tensor_1 =  graph.get_tensor_by_name("gradients/add_grad/Reshape")
+      graph.as_default do
+        sess = ts.session
+        expect(tr(sess.run(tensor_1))).to eq([[1, 1], [1, 1], [1, 1]])
+        expect(tr(sess.run(tensor_2))).to eq(6)
+      end
+    end
+
+    specify "complex" do
+      pbtext = File.read(File.join('spec','fixtures','neural_network.pbtxt'))
+      graph = TensorStream::Graph.parse_from_string(pbtext)
+      
     end
   end
 end

@@ -69,7 +69,7 @@ module TensorStream
     # Outputs random values from a normal distribution.
     def random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
       options = { shape: shape, dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
-      _op(:random_normal, nil, nil, options)
+      _op(:random_standard_normal, nil, nil, options)
     end
 
     ##
@@ -539,7 +539,7 @@ module TensorStream
                transpose_b: false,
                name: nil)
       input_a, input_b = check_data_types(input_a, input_b)
-      _op(:matmul, input_a, input_b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
+      _op(:mat_mul, input_a, input_b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
     end
 
     ##

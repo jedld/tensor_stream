@@ -45,7 +45,7 @@ module TensorStream
     def infer_const
       return false if breakpoint
       case operation
-      when :random_normal, :random_uniform, :glorot_uniform, :print
+      when :random_standard_normal, :random_uniform, :glorot_uniform, :print
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }
@@ -61,7 +61,7 @@ module TensorStream
         :boolean
       when :shape, :rank
         options[:out_type] || :int32
-      when :random_normal, :random_uniform, :glorot_uniform
+      when :random_standard_normal, :random_uniform, :glorot_uniform
         passed_data_type || :float32
       when :index
         if @inputs[0].is_a?(ControlFlow)
@@ -136,7 +136,7 @@ module TensorStream
         "gradient(#{sub_input})"
       when :stop_gradient
         sub_input
-      when :matmul
+      when :mat_mul
         "#{sub_input}.matmul(#{sub_input2})"
       when :eye
         "eye(#{sub_input})"
@@ -253,7 +253,7 @@ module TensorStream
         inputs[0].shape.shape
       when :shape
         return inputs[0].shape.shape ? [inputs[0].shape.shape.size] : nil
-      when :matmul
+      when :mat_mul
         shape1 = inputs[0].shape.shape.nil? ? nil : inputs[0].shape.shape[0]
         shape2 = inputs[1].shape.shape.nil? ? nil : inputs[1].shape.shape[1]
         return [shape1, shape2]

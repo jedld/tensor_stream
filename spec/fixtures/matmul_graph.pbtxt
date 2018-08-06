@@ -180,7 +180,7 @@ node {
 }
 node {
   name: "matmul:0"
-  op: "Matmul"
+  op: "MatMul"
   input: "Const"
   input: "Const_1"
   attr {

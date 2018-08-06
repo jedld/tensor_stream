@@ -102,6 +102,7 @@ module TensorStream
 
       def complete_eval(tensor, context)
         buffer = _run(tensor, context)
+
         if buffer.is_a?(Array)
           buffer = buffer.collect do |b|
             next b if b.buffer.size.zero?
@@ -109,6 +110,7 @@ module TensorStream
             b
           end
         else
+          return buffer.outputs[0] if buffer.is_a?(OutputGroup)
           return buffer if buffer.nil?
           return [] if buffer.buffer.nil?
           return buffer if buffer.buffer.size.zero?
@@ -327,7 +329,7 @@ module TensorStream
         execute_cond_func('where', tensor, pred, inputs[0], inputs[1], context)
       end
 
-      register_op :matmul do |_context, tensor, inputs|
+      register_op :mat_mul do |_context, tensor, inputs|
         a, b = inputs
 
         m = a.shape[0]
@@ -506,23 +508,27 @@ module TensorStream
         convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
       end
 
-      register_op :index, buffer: true do |_context, tensor, inputs|
-        a = inputs[0]
-        input_a = read_final_result(a)
-        index = read_final_result(inputs[1])
+      register_op :index, noop: true do |context, tensor, inputs|
+        a = _run(inputs[0], context)
+        index = read_final_result(_run(inputs[1], context))
 
-        if a.is_a?(Array)
-          a[index]
+        if a.is_a?(OutputGroup)
+          a.outputs[index]
         else
-          new_shape = a.shape.dup
-          new_shape.shift
-          convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
+          if a.is_a?(Array)
+            a[index]
+          else
+            new_shape = a.shape.dup
+            new_shape.shift
+            input_a = read_final_result(a)
+            convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
+          end
         end
       end
 
       register_op :broadcast_gradient_args, buffer: true do |_context, tensor, inputs|
         rx, ry = get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a)
-        [ wrap_opencl(rx, data_type: :int32, name: "#{tensor.name}"), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")]
+        OutputGroup.new([wrap_opencl(rx, data_type: :int32, name: "#{tensor.name}"), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")])
       end
 
       register_op :shape do |_context, tensor, inputs|

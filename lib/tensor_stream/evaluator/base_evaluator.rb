@@ -1,6 +1,13 @@
 module TensorStream
   # Evaluator base module
   module Evaluator
+    class OutputGroup
+      attr_accessor :outputs
+      def initialize(outputs = [])
+        @outputs = outputs
+      end
+    end
+
     class UnsupportedOp < Exception
       def initialize(tensor)
         @tensor = tensor
@@ -146,7 +153,7 @@ module TensorStream
           end
         end
 
-        [input_a_args.reverse, input_b_args.reverse]
+       [input_a_args.reverse, input_b_args.reverse]
       end
 
       ##

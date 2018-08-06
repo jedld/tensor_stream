@@ -141,12 +141,12 @@ module TensorStream
 
     def matmul(other)
       _a, other = TensorStream.check_data_types(self, other)
-      _op(:matmul, self, other)
+      _op(:mat_mul, self, other)
     end
 
     def dot(other)
       _a, other = TensorStream.check_data_types(self, other)
-      _op(:matmul, self, other)
+      _op(:mat_mul, self, other)
     end
 
     ##

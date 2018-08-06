@@ -96,7 +96,7 @@ module TensorStream
 
           [tf.reshape(tf.reduce_sum(x_grad, rx), sx),
            tf.reshape(-tf.reduce_sum(x_grad, ry), sy)]
-        when :matmul
+        when :mat_mul
           t_a = node.options[:transpose_a]
           t_b = node.options[:transpose_b]
 

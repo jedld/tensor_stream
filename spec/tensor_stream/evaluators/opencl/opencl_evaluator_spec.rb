@@ -87,7 +87,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         log
         log1p
         logical_and
-        matmul
+        mat_mul
         max
         mean
         mod

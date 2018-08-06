@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(92)
+      expect(described_class.ops.keys.size).to eq(95)
     end
 
     specify do
@@ -26,6 +26,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         abs
         add
         apply_gradient_descent
+        arg_max
         argmax
         argmin
         assign
@@ -37,6 +38,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         ceil
         check_numerics
         concat
+        concat_v2
         cond
         const
         cos
@@ -61,7 +63,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         log
         log1p
         logical_and
-        matmul
+        mat_mul
         max
         maximum
         mean
@@ -77,7 +79,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         pow
         print
         prod
-        random_normal
+        random_standard_normal
         random_uniform
         range
         rank
@@ -97,6 +99,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         size
         slice
         softmax
+        softmax_cross_entropy_with_logits
         softmax_cross_entropy_with_logits_v2
         softmax_cross_entropy_with_logits_v2_grad
         softmax_grad

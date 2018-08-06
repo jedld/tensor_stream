@@ -14,7 +14,7 @@ module TensorStream
       parsed_tree = protobuf.load_from_string(buffer)
       parsed_tree.each do |node|
         next unless node['type'] == 'node'
-
+        # puts "build #{node['name']}"
         options = protobuf.options_evaluator(node)
         options[:name] = node['name']
         options[:__graph] = @graph
@@ -43,7 +43,14 @@ module TensorStream
           inputs = node['input'].map do |input|
             input[0] = '' if input.start_with?('^')
 
-            tensor = @graph.get_tensor_by_name(input)
+            input_indexed, index = input.split(':')
+
+            tensor = if index && index.to_i > 0
+                       @graph.get_tensor_by_name(input_indexed)[index.to_i]
+                     else
+                       @graph.get_tensor_by_name(input)
+                     end
+            
             raise "tensor not found by name #{input}" if tensor.nil?
 
             tensor

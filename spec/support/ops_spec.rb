@@ -1006,7 +1006,7 @@ RSpec.shared_examples "standard ops evaluator" do
       @sess = tf.session
     end
 
-    supported_op ".random_normal" do
+    supported_op ".random_standard_normal" do
       [
         [[],    0.5011628459350929],
         [[1],   [0.5011628459350929] ],
