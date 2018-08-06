@@ -25,7 +25,7 @@ end
 def tr(t, places = 4)
   if t.is_a?(Array)
     return t.collect do |v|
-      tr(v)
+      tr(v, places)
     end
   end
 

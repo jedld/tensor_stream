@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(95)
+      expect(described_class.ops.keys.size).to eq(96)
     end
 
     specify do
@@ -62,6 +62,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         less_equal
         log
         log1p
+        log_softmax
         logical_and
         mat_mul
         max

@@ -51,7 +51,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(69)
+      expect(described_class.ops.keys.size).to eq(70)
     end
 
     specify do
@@ -86,6 +86,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         less_equal
         log
         log1p
+        log_softmax
         logical_and
         mat_mul
         max

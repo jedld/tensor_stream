@@ -68,7 +68,7 @@ module TensorStream
           break if old_tensor.equal?(tensor)
           break unless tensor.is_a?(Tensor)
         end
-        
+
         tensor.is_a?(OutputGroup) ? tensor.outputs[0] : tensor
       end
 
@@ -676,6 +676,27 @@ module TensorStream
         else
           arr = last_dimen_list.zip(last_grad_list).collect do |list, last_grad|
             func.call(list, last_grad)
+          end
+          TensorShape.reshape(arr.flatten, input_shape)
+        end
+      end
+
+      register_op :log_softmax do |_context, _tensor, inputs|
+        input_shape = shape_eval(inputs[0])
+        last_dimen_list = last_axis(inputs[0])
+
+        func = lambda { |logits|
+          c = logits.max
+          transformed_logits = logits.map { |l| l - c }
+          sum = transformed_logits.map { |x| Math.exp(x) }.reduce(:+)
+          transformed_logits.map { |x| x - Math.log(sum) }
+        }
+
+        if input_shape.size == 1
+          func.call(last_dimen_list)
+        else
+          arr = last_dimen_list.collect do |list|
+            func.call(list)
           end
           TensorShape.reshape(arr.flatten, input_shape)
         end

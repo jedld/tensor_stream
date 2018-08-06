@@ -399,6 +399,22 @@ module TensorStream
         output_buffer
       end
 
+      register_op :log_softmax do |_context, tensor, inputs|
+        a = inputs[0] # logits
+        event_wait_list = [a.op].compact
+        dtype = tensor.data_type
+        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+
+        m, n = a.shape
+        work_group = [m]
+        n = m if n.nil?
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event = _cl_program("log_softmax", dtype: dtype).send(:"log_softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
       register_op :softmax_cross_entropy_with_logits_v2 do |_context, tensor, inputs|
         a = inputs[0] # logits
         b = inputs[1] # labels

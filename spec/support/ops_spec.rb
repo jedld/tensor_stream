@@ -67,6 +67,14 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".log_softmax" do
+    specify "computes for the log softmax" do
+      logits = tf.constant([-2046.4904911315384, 2371.594564592362, -1920.025585664249, 266.06257844862205, 570.1462458227674, 2290.6715733914048, 1396.0319189271745, -2750.277642111798, 1758.5654697551304, 3116.9786057465503])
+      f = tf.nn.log_softmax(logits)
+      expect(tr(sess.run(f), 3)).to eq([-5163.469, -745.384, -5037.004, -2850.916, -2546.832, -826.307, -1720.947, -5867.256, -1358.413, 0.0])
+    end
+  end
+
   it "performs a linear regression" do
     learning_rate = 0.01
     training_epochs = 2
@@ -1524,7 +1532,7 @@ end
         f = tf.sin(sm)
         g = tf.gradients(f, [outputs])
         result = sess.run(g)
-        expect(tr(result,7)).to eq([[-0.005, -0.005, 0.0099]])
+        expect(tr(result,4)).to eq([[-0.005, -0.005, 0.0099]])
       end
 
       specify "gradients 2D" do
@@ -1533,7 +1541,7 @@ end
         f = tf.sin(sm)
         g = tf.gradients(f, [outputs])
         result = sess.run(g)
-        expect(tr(result,7)).to eq([[[0.0115, 0.0115, -0.0231], [0.0082, -0.0173, 0.0092]]])
+        expect(tr(result,4)).to eq([[[0.0115, 0.0115, -0.0231], [0.0082, -0.0173, 0.0092]]])
       end
     end
 
