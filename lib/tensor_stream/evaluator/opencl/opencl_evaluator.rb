@@ -316,7 +316,7 @@ module TensorStream
         end
       end
 
-      register_op :add_n do |context, tensor, inputs|
+      register_op :add_n do |_context, tensor, inputs|
         if inputs.size == 1
           inputs[0]
         else
@@ -342,6 +342,15 @@ module TensorStream
           output_buffer.op = a.op
           output_buffer
         end
+      end
+
+      register_op :expand_dims, buffer: true do |_context, tensor, inputs|
+        axis = inputs[1].buffer[0]
+        shape = inputs[0].shape.dup
+        axis = -axis if axis == shape.size
+        new_shape = shape.insert(axis, 1).compact
+        new_buf = inputs[0].buffer.reshape(*new_shape.reverse)
+        convert_to_opencl(new_buf, new_shape, data_type: inputs[0].data_type, name: tensor.name)
       end
 
       register_op :floor_div, noop: true do |context, tensor, inputs|

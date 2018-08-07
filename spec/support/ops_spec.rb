@@ -400,11 +400,10 @@ RSpec.shared_examples "standard ops evaluator" do
   supported_op ".expand_dims" do
     specify do
       t = tf.constant([1, 1])
-      expect(sess.run(tf.expand_dims(t, 0))).to eq([[1, 2]])
-      expect(sess.run(tf.expand_dims(t, 1))).to eq([[1], [2]])
+      expect(sess.run(tf.expand_dims(t, 0))).to eq([[1, 1]])
+      expect(sess.run(tf.expand_dims(t, 1))).to eq([[1], [1]])
       t = tf.constant(1)
       expect(sess.run(tf.expand_dims(t, 0))).to eq([1])
-
       t = tf.constant([[1, 1], [2, 2]])
       expect(sess.run(tf.expand_dims(t, 0))).to eq([[[1, 1], [2, 2]]])
     end

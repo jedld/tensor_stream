@@ -87,7 +87,7 @@ module TensorStream
     end
 
     def expand_dims(input, axis = nil, name: nil)
-      _op(:expand_dims, input, nil, axis: axis, name: name)
+      _op(:expand_dims, input, axis, name: name)
     end
 
     ##

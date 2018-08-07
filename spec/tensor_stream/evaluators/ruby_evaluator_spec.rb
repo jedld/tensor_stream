@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(98)
+      expect(described_class.ops.keys.size).to eq(99)
     end
 
     specify do
@@ -48,6 +48,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         dynamic_stitch
         equal
         exp
+        expand_dims
         eye
         fill
         floor

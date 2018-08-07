@@ -484,7 +484,15 @@ module TensorStream
       end
 
       register_op :expand_dims do |context, tensor, inputs|
+        val, axis = inputs
+        axis = axis.nil? ? 0 : axis
 
+        shape = shape_eval(val)
+        axis = -axis if axis == shape.size
+
+        new_shape = shape.dup.insert(axis, 1).compact
+
+        TensorShape.reshape([val].flatten, new_shape)
       end
 
       register_op :cond, noop: true do |context, tensor, inputs|
