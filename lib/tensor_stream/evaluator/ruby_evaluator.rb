@@ -200,6 +200,20 @@ module TensorStream
         call_vector_op(:add, a, b, context, ->(t, u) { t + u })
       end
 
+      register_op :add_n, no_eval: true do |context, _tensor, inputs|
+        if inputs.size == 1
+          complete_eval(inputs[0], context)
+        elsif inputs.size > 1
+
+          a = inputs.pop
+          until inputs.empty?
+            b = inputs.pop
+            a = call_vector_op(:add, a, b, context, ->(t, u) { t + u })
+          end
+          a
+        end
+      end
+
       register_op :sub, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:sub, a, b, context, ->(t, u) { t - u })

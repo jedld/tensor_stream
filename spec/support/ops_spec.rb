@@ -944,6 +944,25 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  supported_op ".add_n" do
+    specify "adds all inputs elementwise" do
+      a = tf.constant([1.0, 2.0, 3.0])
+      b = tf.constant([1.1, 2.0, 3.1])
+      c = tf.constant([0.0, 2.5, 6.5])
+
+      expect(tr(sess.run(tf.add_n([a])))).to eq([1.0, 2.0, 3.0])
+      expect(tr(sess.run(tf.add_n([a, b])))).to eq([2.1, 4.0, 6.1])
+      expect(tr(sess.run(tf.add_n([a, b, c])))).to eq([2.1, 6.5, 12.6])
+    end
+
+    specify "scalars" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.1)
+      c = tf.constant(2.5)
+      expect(tr(sess.run(tf.add_n([a, b, c])))).to eq(4.6)
+    end
+  end
+
   supported_op ".sub" do
     let(:a) { tf.constant([1.0, 2.0, 3.0])}
     let(:b) { tf.constant([0.1, 0.2, 0.3])}

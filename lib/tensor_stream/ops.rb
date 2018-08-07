@@ -293,6 +293,14 @@ module TensorStream
     end
 
     ##
+    # Adds all input tensors element-wise.
+    #
+    # Elements must all be the same shape and type
+    def add_n(inputs, name: nil)
+      _op(:add_n, *inputs, name: name)
+    end
+
+    ##
     # Returns x - y element-wise.
     #
     # This operation supports boradcasting

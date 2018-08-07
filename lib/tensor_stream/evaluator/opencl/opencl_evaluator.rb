@@ -316,6 +316,34 @@ module TensorStream
         end
       end
 
+      register_op :add_n do |context, tensor, inputs|
+        if inputs.size == 1
+          inputs[0]
+        else
+          m, n = inputs[0].shape
+          work_group = [m || 1, n || 1]
+          cl_m = OpenCL::Int1.new(m || 1)
+          cl_n = OpenCL::Int1.new(n || 1)
+          cl_switch = OpenCL::Int1.new(0)
+          dtype = tensor.data_type
+
+          output_buffer = _create_result_buffer(tensor.data_type, inputs[0].shape, "out_#{tensor.name}")
+          inputs_queue = inputs.dup
+          a = inputs_queue.pop
+          until inputs_queue.empty?
+            b = inputs_queue.pop
+            event_wait_list = [a.op, b.op].compact
+            method_call = :"add_#{a.data_type}_#{b.data_type}"
+            event = _cl_program('add', a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+            a = output_buffer
+            a.op = event
+          end
+
+          output_buffer.op = a.op
+          output_buffer
+        end
+      end
+
       register_op :floor_div, noop: true do |context, tensor, inputs|
         if fp_type?(tensor.data_type)
           execute_2_operand_func('floor_div', tensor, inputs[0], inputs[1], context)
