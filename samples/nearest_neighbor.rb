@@ -36,7 +36,7 @@ accuracy = 0.0
 init = tf.global_variables_initializer()
 
 # Start training
-tf.session(:opencl_evaluator) do |sess|
+tf.session do |sess|
   # Run the initializer
   sess.run(init)
   Xte.size.times do |i|
