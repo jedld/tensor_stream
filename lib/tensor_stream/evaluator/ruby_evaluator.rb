@@ -483,6 +483,10 @@ module TensorStream
         end
       end
 
+      register_op :expand_dims do |context, tensor, inputs|
+
+      end
+
       register_op :cond, noop: true do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
 

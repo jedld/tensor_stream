@@ -86,6 +86,10 @@ module TensorStream
       _op(:eye, num_rows, num_columns || num_rows, data_type: dtype, name: name)
     end
 
+    def expand_dims(input, axis = nil, name: nil)
+      _op(:expand_dims, input, nil, axis: axis, name: name)
+    end
+
     ##
     # This operation returns a 1-D integer tensor representing the shape of input
     def shape(input, name: nil, out_type: :int32)

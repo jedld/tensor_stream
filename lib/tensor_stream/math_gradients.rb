@@ -47,6 +47,8 @@ module TensorStream
         y = node.inputs[1] if node.inputs[1]
 
         case node.operation
+        when :add_n
+          return [grad] * node.inputs.size
         when :add
           return [grad, grad] if shapes_fully_specified_and_equal(x, y)
           sx = tf.shape(x, name: 'add/shape_x')

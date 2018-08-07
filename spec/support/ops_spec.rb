@@ -397,6 +397,19 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  supported_op ".expand_dims" do
+    specify do
+      t = tf.constant([1, 1])
+      expect(sess.run(tf.expand_dims(t, 0))).to eq([[1, 2]])
+      expect(sess.run(tf.expand_dims(t, 1))).to eq([[1], [2]])
+      t = tf.constant(1)
+      expect(sess.run(tf.expand_dims(t, 0))).to eq([1])
+
+      t = tf.constant([[1, 1], [2, 2]])
+      expect(sess.run(tf.expand_dims(t, 0))).to eq([[[1, 1], [2, 2]]])
+    end
+  end
+
   context ".gradients" do
     it "Constructs symbolic derivatives of sum of ys w.r.t. x in xs." do
       a = tf.constant(0.0)
@@ -960,6 +973,14 @@ RSpec.shared_examples "standard ops evaluator" do
       b = tf.constant(1.1)
       c = tf.constant(2.5)
       expect(tr(sess.run(tf.add_n([a, b, c])))).to eq(4.6)
+    end
+
+    specify "gradients" do
+      a = tf.constant([1.0, 2.0, 3.0])
+      b = tf.constant([1.1, 2.0, 3.1])
+      c = tf.constant([0.0, 2.5, 6.5])
+      g = tf.gradients(tf.add_n([a, b, c]), [a, b, c])
+      expect(sess.run(g)).to eq([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]])
     end
   end
 
