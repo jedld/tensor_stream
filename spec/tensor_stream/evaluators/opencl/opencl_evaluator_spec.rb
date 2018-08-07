@@ -19,6 +19,9 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
       device = described_class.query_device("/device:GPU:0")
       expect(device).to be
       expect(device.type).to eq(:gpu)
+      device = described_class.query_device("/gpu:0")
+      expect(device).to be
+      expect(device.type).to eq(:gpu)
     end
 
     context "tensor_stream convention" do

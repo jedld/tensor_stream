@@ -65,8 +65,8 @@ module TensorStream
 
             select_index = [devices.size - 1, select_index].min
             return devices[select_index]
-          elsif components[0] == 'cpu'
-            device_type = :cpu
+          elsif %w[cpu gpu].include?(components[0])
+            device_type = components[0].to_sym
             select_index = components[1].to_i
 
             devices = all_devices.select { |d| d.type == device_type.downcase.to_sym }
