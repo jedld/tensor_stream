@@ -127,8 +127,14 @@ RSpec.describe TensorStream::Tensor do
     it "returns the tensor's datatype" do
       a = TensorStream.constant(3.0, dtype: TensorStream::Types.int16)
       b = TensorStream.constant(3.0, dtype: TensorStream::Types.float32)
+      c = TensorStream.constant(3.0, dtype: TensorStream::Types.float64)
+      d = TensorStream.constant("Hello", dtype: TensorStream::Types.string)
+      e = TensorStream.constant(true, dtype: TensorStream::Types.boolean)
       expect(a.dtype).to eq(:int16)
       expect(b.dtype).to eq(:float32)
+      expect(c.dtype).to eq(:float64)
+      expect(d.dtype).to eq(:string)
+      expect(e.dtype).to eq(:boolean)
     end
   end
 

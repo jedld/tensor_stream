@@ -4,7 +4,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
   attr {
@@ -31,7 +31,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
   attr {
@@ -52,7 +52,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
   attr {
@@ -75,7 +75,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
 }
@@ -85,7 +85,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
   attr {
@@ -102,7 +102,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_INT32
+      type: DT_INT32
     }
   }
   attr {
@@ -126,7 +126,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_STRING
+      type: DT_STRING
     }
   }
   attr {
@@ -150,7 +150,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_STRING
+      type: DT_STRING
     }
   }
   attr {
@@ -180,7 +180,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
 }
@@ -192,7 +192,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
 }
@@ -202,7 +202,7 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_INT32
+      type: DT_INT32
     }
   }
   attr {
@@ -228,13 +228,13 @@ node {
   attr {
     key: "T"
     value {
-      dtype: DT_FLOAT
+      type: DT_FLOAT
     }
   }
   attr {
     key: "keepdims"
     value {
-       b: false
+      b: false
     }
   }
 }

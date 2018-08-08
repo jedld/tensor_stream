@@ -6,10 +6,10 @@ module TensorStream
 
     def initialize(operation, *args)
       options = if args.last.is_a?(Hash)
-        args.pop
-      else
-        {}
-      end
+                  args.pop
+                else
+                  {}
+                end
 
       inputs = args
 
@@ -42,24 +42,10 @@ module TensorStream
       }
     end
 
-    def self.empty_matrix?(input)
-      if input.is_a?(Array)
-        input.each do |input|
-          if input.is_a?(Array)
-            return false unless empty_matrix?(input)
-          elsif input != 0 || input != 0.0
-            return false
-          end
-        end
-      end
-
-      true
-    end
-
     def infer_const
       return false if breakpoint
       case operation
-      when :random_normal, :random_uniform, :glorot_uniform, :print
+      when :random_standard_normal, :random_uniform, :glorot_uniform, :print
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }
@@ -75,7 +61,7 @@ module TensorStream
         :boolean
       when :shape, :rank
         options[:out_type] || :int32
-      when :random_normal, :random_uniform, :glorot_uniform
+      when :random_standard_normal, :random_uniform, :glorot_uniform
         passed_data_type || :float32
       when :index
         if @inputs[0].is_a?(ControlFlow)
@@ -150,7 +136,7 @@ module TensorStream
         "gradient(#{sub_input})"
       when :stop_gradient
         sub_input
-      when :matmul
+      when :mat_mul
         "#{sub_input}.matmul(#{sub_input2})"
       when :eye
         "eye(#{sub_input})"
@@ -261,13 +247,13 @@ module TensorStream
         return TensorShape.fix_inferred_elements(new_shape, input_shape.reduce(:*))
       when :flow_group
         return []
-      when :zeros, :ones
+      when :zeros, :ones, :fill
         return inputs[0] ? inputs[0].value : options[:shape]
       when :zeros_like, :ones_like
         inputs[0].shape.shape
       when :shape
         return inputs[0].shape.shape ? [inputs[0].shape.shape.size] : nil
-      when :matmul
+      when :mat_mul
         shape1 = inputs[0].shape.shape.nil? ? nil : inputs[0].shape.shape[0]
         shape2 = inputs[1].shape.shape.nil? ? nil : inputs[1].shape.shape[1]
         return [shape1, shape2]
@@ -285,11 +271,12 @@ module TensorStream
       super
       @inputs.compact.each do |input|
         if input.is_a?(Array)
-          input.flatten.compact.each do |t|
-            t.send(:propagate_consumer, consumer) if t.is_a?(Tensor)
+          input.flatten.compact.select { |t| t.is_a?(Tensor) }.each do |t|
+            next if t.consumers.include?(consumer.name)
+            t.send(:propagate_consumer, consumer)
           end
-        else
-          input.send(:propagate_consumer, consumer) if input.name != name
+        elsif input.name != name && !input.consumers.include?(consumer.name)
+          input.send(:propagate_consumer, consumer)
         end
       end
     end

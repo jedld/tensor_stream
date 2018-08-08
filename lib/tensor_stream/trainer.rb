@@ -3,6 +3,8 @@ require 'tensor_stream/train/saver'
 
 module TensorStream
   module Trainer
+    extend TensorStream::Train::Utils
+
     def self.write_graph(graph, path, filename, as_text: true, serializer: TensorStream::Pbtext)
       raise "only supports as_text=true for now" unless as_text
       new_filename = File.join(path, filename)

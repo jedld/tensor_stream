@@ -86,8 +86,11 @@ tf.session do |sess|
     # Run the initializer
     sess.run(init)
 
+    print("Testing Accuracy:", \
+        sess.run(accuracy, feed_dict: { X => mnist.test.images,
+                                        Y => mnist.test.labels}))
+
     (1..num_steps+1).each do |step|
-        
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         # Run optimization op (backprop)
         puts "."

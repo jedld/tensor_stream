@@ -8,7 +8,7 @@ require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 def tr(t, places = 1)
   if t.is_a?(Array)
     return t.collect do |v|
-      tr(v)
+      tr(v, places)
     end
   end
 
@@ -59,6 +59,7 @@ pow_i = tf.pow(a_int, 3)
 matmul = tf.matmul(a, b)
 out_of_order = tf.matmul(a, b) + tf.matmul(a, c)
 softmax = tf.nn.softmax(a)
+add_n = tf.add_n([a,b,c,d])
 
 puts TensorStream::Evaluator.default_evaluators
 
@@ -68,6 +69,8 @@ puts `cat /proc/cpuinfo | grep "model name" | head -1`
 device = TensorStream::Evaluator::OpenclEvaluator.default_device.native_device
 puts "OpenCL device #{device.platform.to_s} #{device.name}"
 Benchmark.bmbm do |x|
+  x.report("pure ruby add_n          :") { 100.times do sess.run(add_n) end }
+  x.report("opencl ruby add_n        :") { 100.times do sess2.run(add_n) end }
   x.report("pure ruby ooo matmul     :") { 100.times do sess.run(out_of_order) end }
   x.report("opencl    ooo matmul     :") { 100.times do sess2.run(out_of_order) end }
   x.report("pure ruby softmax        :") { 100.times do sess.run(softmax) end }

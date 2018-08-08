@@ -5,7 +5,7 @@
     const int globalRow = get_global_id(0); // Row ID of C (0..M)
     const int globalCol = get_global_id(1); // Col ID of C (0..N)
 
-    C[globalRow * N + globalCol] = A[globalRow * N + globalCol] > B[globalRow * N + globalCol] ? A[globalRow * N + globalCol] : B[globalRow * N + globalCol];
+    C[globalRow * N + globalCol] = A[globalRow * N + globalCol] >= B[globalRow * N + globalCol] ? A[globalRow * N + globalCol] : B[globalRow * N + globalCol];
 }
 
  // 1D + Scalar floating point add op
@@ -15,9 +15,9 @@
     const int globalCol = get_global_id(1); // Col ID of C (0..N)
     
     if (switch_op == 0) {
-      C[globalRow * N + globalCol] = A[globalRow * N + globalCol] > B[0] ? A[globalRow * N + globalCol] : B[0];
+      C[globalRow * N + globalCol] = A[globalRow * N + globalCol] >= B[0] ? A[globalRow * N + globalCol] : B[0];
     } else {
-      C[globalRow * N + globalCol] = B[0] > A[globalRow * N + globalCol] ? B[0] : A[globalRow * N + globalCol];
+      C[globalRow * N + globalCol] = B[0] >= A[globalRow * N + globalCol] ? B[0] : A[globalRow * N + globalCol];
     }
 }
 
@@ -39,8 +39,8 @@
     }
 
     if (switch_op == 0) {
-      C[globalRow * N + globalCol] = A[globalRow * N + globalCol] > B[b_m_index * N2 + b_n_index] ? A[globalRow * N + globalCol] : B[b_m_index * N2 + b_n_index];
+      C[globalRow * N + globalCol] = A[globalRow * N + globalCol] >= B[b_m_index * N2 + b_n_index] ? A[globalRow * N + globalCol] : B[b_m_index * N2 + b_n_index];
     } else {
-      C[globalRow * N + globalCol] = B[b_m_index * N2 + b_n_index] > A[globalRow * N + globalCol] ? B[b_m_index * N2 + b_n_index] :  A[globalRow * N + globalCol];
+      C[globalRow * N + globalCol] = B[b_m_index * N2 + b_n_index] >= A[globalRow * N + globalCol] ? B[b_m_index * N2 + b_n_index] :  A[globalRow * N + globalCol];
     }
 }

@@ -2,6 +2,7 @@ module TensorStream
   # High level machine learning functions
   class NN
     extend TensorStream::OpHelper
+
     def self.softmax(logits, axis: nil, name: nil)
       _op(:softmax, logits, nil, axis: axis, name: name)
     end
@@ -29,8 +30,13 @@ module TensorStream
       end
     end
 
+    # Computes log softmax activations.
+    def self.log_softmax(logits, axis: -1, name: nil)
+      _op(:log_softmax, logits, axis: axis, name: name)
+    end
+
     def self.sigmoid_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
-      TensorStream.name_scope(name, default: 'logistic_loss', values: [logits, labels]) do |name|
+      TensorStream.name_scope(name, default: 'logistic_loss', values: [logits, labels]) do |_name|
         tf = TensorStream
         logits = tf.convert_to_tensor(logits, name: 'logits')
         labels = tf.convert_to_tensor(labels, name: 'labels')

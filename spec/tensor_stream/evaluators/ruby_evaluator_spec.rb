@@ -18,15 +18,21 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(83)
+      expect(described_class.ops.keys.size).to eq(103)
     end
 
     specify do
       expect(described_class.ops.keys.sort).to eq(%i[
         abs
+        acos
         add
+        add_n
+        apply_gradient_descent
+        arg_max
+        arg_min
         argmax
         argmin
+        asin
         assign
         assign_add
         assign_sub
@@ -36,16 +42,20 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         ceil
         check_numerics
         concat
+        concat_v2
         cond
         const
         cos
         div
+        dynamic_stitch
         equal
         exp
+        expand_dims
         eye
         fill
         floor
         floor_div
+        floor_mod
         flow_dynamic_stitch
         flow_group
         glorot_uniform
@@ -57,12 +67,17 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         less_equal
         log
         log1p
+        log_softmax
         logical_and
-        matmul
+        mat_mul
         max
+        maximum
         mean
+        min
+        minimum
         mod
         mul
+        neg
         negate
         no_op
         not_equal
@@ -72,14 +87,18 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         pow
         print
         prod
-        random_normal
+        random_standard_normal
         random_uniform
         range
         rank
+        real_div
         reciprocal
         reshape
+        restore_v2
         round
+        save_v2
         sec
+        select
         shape
         sigmoid
         sigmoid_grad
@@ -88,6 +107,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         size
         slice
         softmax
+        softmax_cross_entropy_with_logits
         softmax_cross_entropy_with_logits_v2
         softmax_cross_entropy_with_logits_v2_grad
         softmax_grad

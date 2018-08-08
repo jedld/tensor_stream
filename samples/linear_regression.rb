@@ -26,7 +26,7 @@ b = tf.variable(rand, name: "bias")
 pred = X * W + b
 
 # Mean squared error
-cost = tf.reduce_sum(tf.pow(pred - Y, 2)) / ( 2 * n_samples)
+cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 

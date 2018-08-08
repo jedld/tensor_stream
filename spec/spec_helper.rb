@@ -1,4 +1,7 @@
 require "bundler/setup"
+require 'simplecov'
+SimpleCov.start
+
 require "tensor_stream"
 require 'awesome_print'
 require 'pry-byebug'
@@ -14,13 +17,15 @@ RSpec.configure do |config|
   end
 end
 
+
+
 # Helper function to truncate floating point values (for testing)
 # truncation is done in tests since different machines return the last digits of
 # fp values differently
 def tr(t, places = 4)
   if t.is_a?(Array)
     return t.collect do |v|
-      tr(v)
+      tr(v, places)
     end
   end
 

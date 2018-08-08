@@ -1,13 +1,15 @@
 module TensorStream
   # A class that defines a TensorStream graph
   class Graph
-    attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants
+    attr_accessor :nodes, :node_keys, :collections, :eager_execution, :random_seed, :constants
 
     def initialize
       @eager_execution = false
       @nodes = {}
+      @node_keys = []
       @collections = {
-        :"#{GraphKeys::GLOBAL_VARIABLES}" => []
+        :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
+        :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
       }
       @constants = {}
     end
@@ -19,8 +21,10 @@ module TensorStream
       @op_counter = 0
       @random_seed = nil
       @nodes = {}
+      @node_keys = []
       @collections = {
-        :"#{GraphKeys::GLOBAL_VARIABLES}" => []
+        :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
+        :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
       }
       @constants = {}
     end
@@ -83,6 +87,7 @@ module TensorStream
                   end
 
       node.device = get_device_scope
+      @node_keys << node.name
       @nodes[node.name] = node
       @constants[node.name] = node if node.is_const
       node.send(:propagate_outputs)
@@ -96,6 +101,11 @@ module TensorStream
 
     def get_node(name)
       @nodes[name]
+    end
+
+    def get_tensor_by_name(name)
+      raise TensorStream::KeyError, "#{name} not found" unless @nodes.key?(name)
+      get_node(name)
     end
 
     def add_node!(name, node)
@@ -120,12 +130,12 @@ module TensorStream
       add_node(node)
     end
 
-    def control_dependencies(control_inputs = [], &block)
+    def control_dependencies(control_inputs = [])
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] ||= []
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Operation.new(:no_op, *control_inputs)
       begin
-        block.call
+        yield
       ensure
         Thread.current["ts_graph_#{object_id}"][:control_dependencies].pop
       end
@@ -201,6 +211,11 @@ module TensorStream
       TensorStream::Pbtext.new.get_string(self)
     end
 
+    def self.parse_from_string(buffer)
+      builder = TensorStream::GraphBuilder.new(Graph.new)
+      builder.build(buffer)
+    end
+
     def graph_def_versions
       "producer: 26"
     end
@@ -208,7 +223,7 @@ module TensorStream
     protected
 
     def _variable_scope
-      return OpenStruct.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
+      return VariableScope.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
       scope = Thread.current[:tensor_stream_variable_scope].last
       scope
     end

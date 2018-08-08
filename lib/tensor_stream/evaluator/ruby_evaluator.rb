@@ -31,9 +31,7 @@ module TensorStream
       include TensorStream::MathHelper
 
       def run(tensor, execution_context)
-        if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
-          return tensor.map { |t| run(t, execution_context) }
-        end
+        return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
 
         tensor = tensor.call if tensor.is_a?(Proc)
 
@@ -44,6 +42,8 @@ module TensorStream
                 eval_variable(tensor, child_context)
               elsif tensor.is_a?(Placeholder)
                 resolve_placeholder(tensor, child_context)
+              elsif tensor.is_a?(OutputGroup)
+                tensor.outputs[0]
               else
                 eval_tensor(tensor, child_context)
               end
@@ -65,9 +65,11 @@ module TensorStream
 
           tensor = tensor.map { |t| complete_eval(t, context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
 
-          return tensor if old_tensor.equal?(tensor)
-          return tensor unless tensor.is_a?(Tensor)
+          break if old_tensor.equal?(tensor)
+          break unless tensor.is_a?(Tensor)
         end
+
+        tensor.is_a?(OutputGroup) ? tensor.outputs[0] : tensor
       end
 
       protected
@@ -86,9 +88,8 @@ module TensorStream
 
       def eval_variable(tensor, child_context)
         value = tensor.read_value
-        if value.nil?
-          raise "variable #{tensor.name} not initalized"
-        end
+        raise "variable #{tensor.name} not initalized" if value.nil?
+
         eval_tensor(value, child_context).tap do |val|
           child_context[:returns] ||= {}
           child_context[:returns][:vars] ||= []
@@ -100,17 +101,21 @@ module TensorStream
         inputs
       end
 
-      register_op(:const) do |context, _tensor, inputs|
+      register_op(:const) do |_context, _tensor, inputs|
         inputs[0]
       end
 
-      register_op(:argmax) do |context, tensor, inputs|
+      register_op(%i[argmax arg_max]) do |_context, tensor, inputs|
         axis = tensor.options[:axis] || 0
+        rank = get_rank(inputs[0])
+        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
         get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
       end
 
-      register_op(:argmin) do |context, tensor, inputs|
+      register_op(%i[argmin arg_min]) do |_context, tensor, inputs|
         axis = tensor.options[:axis] || 0
+        rank = get_rank(inputs[0])
+        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
         get_op_with_axis(inputs[0], axis, 0, tensor.data_type, ->(a, b) { a < b })
       end
 
@@ -118,7 +123,7 @@ module TensorStream
         call_op(:cast, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
       end
 
-      register_op(:sign) do |context, tensor, inputs|
+      register_op(:sign) do |context, _tensor, inputs|
         func = lambda { |x, _b|
           if x.zero? || (x.is_a?(Float) && x.nan?)
             0
@@ -134,22 +139,26 @@ module TensorStream
         call_op(:sign, inputs[0], context, func)
       end
 
-      register_op(:logical_and) do |context, tensor, inputs|
+      register_op(:logical_and) do |context, _tensor, inputs|
         call_vector_op(:logical_and, inputs[0], inputs[1], context, ->(t, u) { t && u })
       end
 
-      register_op(:equal) do |context, tensor, inputs|
+      register_op(:equal) do |context, _tensor, inputs|
         call_vector_op(:equal, inputs[0], inputs[1], context, ->(t, u) { t == u })
       end
 
-      register_op(:not_equal) do |context, tensor, inputs|
+      register_op(:not_equal) do |context, _tensor, inputs|
         call_vector_op(:not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
-      register_op :index, no_eval: true do |context, tensor, inputs|
+      register_op :index, no_eval: true do |_context, _tensor, inputs|
         f = inputs[0]
         index = inputs[1]
-        f[index]
+        if f.is_a?(OutputGroup)
+          f.outputs[index]
+        else
+          f[index]
+        end
       end
 
       register_op :slice do |context, tensor, inputs|
@@ -170,7 +179,7 @@ module TensorStream
         end
       end
 
-      register_op :flow_dynamic_stitch, noop: true do |context, tensor, inputs|
+      register_op %i[flow_dynamic_stitch dynamic_stitch], noop: true do |_context, _tensor, inputs|
         indexes, data = inputs
         merged = []
         merge_dynamic_stitch(merged, indexes, data)
@@ -182,7 +191,7 @@ module TensorStream
         Tensor.cast_dtype(input.flatten.size, tensor.options[:out_type])
       end
 
-      register_op :negate, no_eval: true do |context, _tensor, inputs|
+      register_op %i[neg negate], no_eval: true do |context, _tensor, inputs|
         call_vector_op(:negate, inputs[0], nil, context, ->(t, _u) { -t })
       end
 
@@ -191,24 +200,38 @@ module TensorStream
         call_vector_op(:add, a, b, context, ->(t, u) { t + u })
       end
 
+      register_op :add_n, no_eval: true do |context, _tensor, inputs|
+        if inputs.size == 1
+          complete_eval(inputs[0], context)
+        elsif inputs.size > 1
+
+          a = inputs.pop
+          until inputs.empty?
+            b = inputs.pop
+            a = call_vector_op(:add, a, b, context, ->(t, u) { t + u })
+          end
+          a
+        end
+      end
+
       register_op :sub, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:sub, a, b, context, ->(t, u) { t - u })
       end
 
-      register_op :mod, no_eval: true do |context, _tensor, inputs|
+      register_op %i[floor_mod mod], no_eval: true do |context, _tensor, inputs|
         a, b = inputs
         call_vector_op(:sub, a, b, context, ->(t, u) { t % u })
       end
 
-      register_op :floor_div, no_eval: true do |context, tensor, inputs|
+      register_op %i[floor_div real_div], no_eval: true do |context, tensor, inputs|
         a, b = inputs
         if fp_type?(tensor.data_type)
           call_vector_op(:sub, a, b, context, ->(t, u) { (t / u).to_i.to_f })
         else
           call_vector_op(:sub, a, b, context, ->(t, u) { t / u })
         end
-      end 
+      end
 
       register_op :mul, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
@@ -225,55 +248,63 @@ module TensorStream
         call_vector_op(:squared_difference, a, b, context, ->(t, u) { (t - u) * (t - u) })
       end
 
-      register_op :concat do |_context, tensor, inputs|
+      register_op %i[concat concat_v2] do |_context, tensor, inputs|
         concat_array(inputs[0], tensor.options[:axis])
       end
 
-      register_op :round, no_eval: true do |context, tensor, inputs|
+      register_op :round, no_eval: true do |context, _tensor, inputs|
         call_op(:round, inputs[0], context, ->(t, _b) { t.round })
       end
 
-      register_op :abs, no_eval: true do |context, tensor, inputs|
+      register_op :abs, no_eval: true do |context, _tensor, inputs|
         call_op(:abs, inputs[0], context, ->(t, _b) { t.abs })
       end
 
-      register_op :tanh, no_eval: true do |context, tensor, inputs|
+      register_op :tanh, no_eval: true do |context, _tensor, inputs|
         call_op(:tanh, inputs[0], context, ->(t, _b) { Math.tanh(t) })
       end
 
-      register_op :tan, no_eval: true do |context, tensor, inputs|
+      register_op :tan, no_eval: true do |context, _tensor, inputs|
         call_op(:tan, inputs[0], context, ->(t, _b) { Math.tan(t) })
       end
 
-      register_op :sec, no_eval: true do |context, tensor, inputs|
+      register_op :sec, no_eval: true do |context, _tensor, inputs|
         call_op(:sec, inputs[0], context, ->(t, _b) { Math.sec(t) })
       end
 
-      register_op :sin, no_eval: true do |context, tensor, inputs|
+      register_op :sin, no_eval: true do |context, _tensor, inputs|
         call_op(:sin, inputs[0], context, ->(t, _b) { Math.sin(t) })
       end
 
-      register_op :cos, no_eval: true do |context, tensor, inputs|
+      register_op :asin, no_eval: true do |context, _tensor, inputs|
+        call_op(:asin, inputs[0], context, ->(t, _b) { Math.asin(t) })
+      end
+
+      register_op :acos, no_eval: true do |context, _tensor, inputs|
+        call_op(:acos, inputs[0], context, ->(t, _b) { Math.acos(t) })
+      end
+
+      register_op :cos, no_eval: true do |context, _tensor, inputs|
         call_op(:cos, inputs[0], context, ->(t, _b) { Math.cos(t) })
       end
 
-      register_op :log1p, no_eval: true do |context, tensor, inputs|
+      register_op :log1p, no_eval: true do |context, _tensor, inputs|
         call_op(:log1p, inputs[0], context, ->(t, _b) { Math.log(1 + t) })
       end
 
-      register_op :log, no_eval: true  do |context, tensor, inputs|
+      register_op :log, no_eval: true do |context, _tensor, inputs|
         call_op(:log, inputs[0], context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
       end
 
-      register_op :exp, no_eval: true  do |context, tensor, inputs|
+      register_op :exp, no_eval: true do |context, _tensor, inputs|
         call_op(:exp, inputs[0], context, ->(t, _b) { Math.exp(t) })
       end
 
-      register_op :sigmoid, no_eval: true  do |context, tensor, inputs|
+      register_op :sigmoid, no_eval: true do |context, _tensor, inputs|
         call_op(:sigmoid, inputs[0], context, ->(t, _b) { sigmoid(t) })
       end
 
-      register_op :sqrt, no_eval: true  do |context, tensor, inputs|
+      register_op :sqrt, no_eval: true do |context, _tensor, inputs|
         call_op(:sqrt, inputs[0], context, ->(t, _b) { Math.sqrt(t) })
       end
 
@@ -285,21 +316,21 @@ module TensorStream
         call_op(:ceil, inputs[0], context, ->(t, _b) { t.ceil })
       end
 
-      register_op :square, no_eval: true  do |context, tensor, inputs|
-        call_op(:square, inputs[0], context, ->(t, _b) {  t * t  })
+      register_op :square, no_eval: true do |context, _tensor, inputs|
+        call_op(:square, inputs[0], context, ->(t, _b) { t * t })
       end
 
-      register_op :reciprocal, no_eval: true  do |context, tensor, inputs|
-        call_op(:reciprocal, inputs[0], context,  ->(t, _b) { 1 / t })
+      register_op :reciprocal, no_eval: true do |context, _tensor, inputs|
+        call_op(:reciprocal, inputs[0], context, ->(t, _b) { 1 / t })
       end
 
-      register_op :stop_gradient, no_eval: true  do |_context, _tensor, inputs|
+      register_op :stop_gradient, no_eval: true do |_context, _tensor, inputs|
         inputs[0]
       end
 
       register_op :sigmoid_grad, no_eval: true do |context, _tensor, inputs|
         a, b = inputs
-        call_vector_op(:sigmoid_grad, a, b, context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t))} )
+        call_vector_op(:sigmoid_grad, a, b, context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t)) })
       end
 
       register_op :random_uniform, no_eval: true do |_context, tensor, _inputs|
@@ -313,7 +344,7 @@ module TensorStream
         generate_vector(shape, generator: generator)
       end
 
-      register_op :random_normal, no_eval: true do |_context, tensor, _inputs|
+      register_op :random_standard_normal, no_eval: true do |_context, tensor, _inputs|
         seed = tensor.options[:seed]
         random = _get_randomizer(tensor, seed)
         r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
@@ -345,18 +376,18 @@ module TensorStream
         generate_vector(shape, generator: generator)
       end
 
-      register_op :assign, noop: true do |context, tensor, inputs|
+      register_op :assign, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
         assign.value = complete_eval(tensor.inputs[1], context)
         assign.value
       end
 
-      register_op :assign_add, noop: true do |context, tensor, inputs|
+      register_op :assign_add, noop: true do |context, tensor, _inputs|
         tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
         tensor.inputs[0].value
       end
 
-      register_op :assign_sub, noop: true do |context, tensor, inputs|
+      register_op :assign_sub, noop: true do |context, tensor, _inputs|
         tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
         tensor.inputs[0].value
       end
@@ -378,7 +409,14 @@ module TensorStream
       end
 
       register_op :sum, noop: true do |context, tensor, _inputs|
-        c = fp_type?(tensor.data_type) ? 0.0 : 0
+        # axis = complete_eval(tensor.inputs[1], context)
+        # # fast path
+        # if axis.nil? && !tensor.options[:keepdims]
+        #   arr = complete_eval(tensor.inputs[0], context)
+        #   next arr unless arr.is_a?(Array)
+        #   next arr.flatten.reduce(:+)
+        # end
+
         func = lambda do |arr|
           reduced_val = arr[0]
           arr[1..arr.size].each do |v|
@@ -386,11 +424,19 @@ module TensorStream
           end
           reduced_val
         end
-   
+
         reduction(context, tensor, func)
       end
 
       register_op :prod, noop: true do |context, tensor, _inputs|
+        # axis = complete_eval(tensor.inputs[1], context)
+        # # fast path
+        # if axis.nil? && !tensor.options[:keepdims]
+        #   arr = complete_eval(tensor.inputs[0], context)
+        #   next arr unless arr.is_a?(Array)
+        #   next arr.flatten.reduce(:*)
+        # end
+
         c = fp_type?(tensor.data_type) ? 1.0 : 1
         func = lambda do |arr|
           return c if arr.nil?
@@ -405,13 +451,12 @@ module TensorStream
         reduction(context, tensor, func)
       end
 
-      register_op :range do |context, tensor, inputs|
+      register_op :range do |_context, _tensor, inputs|
         start, limit, delta = inputs
         raise " delta !=0 " if delta.zero?
         raise " Requires start <= limit when delta > 0" if (start > limit) && delta > 0
         raise " Requires start >= limit when delta < 0" if (start < limit) && delta < 0
-        
-        
+
         cur_step = start
         r = []
         Kernel.loop do
@@ -446,6 +491,18 @@ module TensorStream
         end
       end
 
+      register_op :expand_dims do |context, tensor, inputs|
+        val, axis = inputs
+        axis = axis.nil? ? 0 : axis
+
+        shape = shape_eval(val)
+        axis = -axis if axis == shape.size
+
+        new_shape = shape.dup.insert(axis, 1).compact
+
+        TensorShape.reshape([val].flatten, new_shape)
+      end
+
       register_op :cond, noop: true do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
 
@@ -456,7 +513,7 @@ module TensorStream
         end
       end
 
-      register_op :where do |context, tensor, inputs|
+      register_op %i[select where] do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
         call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
       end
@@ -481,7 +538,7 @@ module TensorStream
         call_vector_op(:greater_equal, a, b, context, ->(t, u) { t <= u })
       end
 
-      register_op :fill do |_context, tensor, inputs|
+      register_op :fill do |_context, _tensor, inputs|
         shape = inputs[0]
         value = inputs[1]
 
@@ -528,7 +585,7 @@ module TensorStream
         shape_eval(inputs[0], tensor.options[:out_type])
       end
 
-      register_op :matmul do |_context, tensor, inputs|
+      register_op :mat_mul do |_context, tensor, inputs|
         matrix_a, matrix_b = inputs
         rank_a = get_rank(matrix_a)
         rank_b = get_rank(matrix_b)
@@ -537,10 +594,6 @@ module TensorStream
 
         matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
         matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-
-        # handle matrix multiplication with constants like 1 or 0
-        matrix_a = matmul_const_transform(matrix_a, matrix_b, tensor)
-        matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
 
         # check matrix dimensions
         raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
@@ -593,12 +646,25 @@ module TensorStream
         arr_pad(inputs[0], p, tensor.data_type)
       end
 
-      register_op :max, noop: true do |context, _tensor, inputs|
+      register_op %i[max maximum], noop: true do |context, _tensor, inputs|
         call_vector_op(:max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
       end
 
+      register_op %i[min minimum], noop: true do |context, _tensor, inputs|
+        call_vector_op(:min, inputs[0], inputs[1], context, ->(t, u) { [t, u].min })
+      end
+
+      register_op :apply_gradient_descent do |context, tensor, inputs|
+        target_var, learning_rate, delta = inputs
+        assign = tensor.inputs[0] || tensor
+
+        assign.value = process_vector_math_op(target_var, delta, context, ->(t, u) { t - u * learning_rate })
+        assign.value
+      end
+
       register_op :broadcast_gradient_args do |_context, _tensor, inputs|
-        get_broadcast_gradient_args(inputs[0], inputs[1])
+        rx, ry = get_broadcast_gradient_args(inputs[0], inputs[1])
+        OutputGroup.new([rx, ry])
       end
 
       register_op :tile do |_context, _tensor, inputs|
@@ -620,6 +686,14 @@ module TensorStream
         softmax(inputs[0])
       end
 
+      register_op :save_v2 do |context, tensor, inputs|
+        prefix, tensor_names, shape_and_slices = inputs[0..3]
+      end
+
+      register_op :restore_v2 do |context, tensor, inputs|
+        prefix, tensor_names, shape_and_slices = inputs[0..3]
+      end
+
       register_op :softmax_grad do |_context, _tensor, inputs|
         input, grad = inputs
         softmax_input = softmax(input)
@@ -628,10 +702,9 @@ module TensorStream
         last_dimen_list = last_axis(softmax_input)
         last_grad_list = last_axis(grad)
 
-        func = -> (list, last_grad) {
-
+        func = lambda { |list, last_grad|
           f_grad = softmax_grad(list)
-          f_grad.transpose.each_with_index.collect do |row, index|
+          f_grad.transpose.each.collect do |row|
             sum = 0.0
             row.each_with_index do |r, g_index|
               sum += r * last_grad[g_index]
@@ -641,55 +714,75 @@ module TensorStream
         }
 
         if input_shape.size == 1
-          func.(last_dimen_list, last_grad_list)
+          func.call(last_dimen_list, last_grad_list)
         else
           arr = last_dimen_list.zip(last_grad_list).collect do |list, last_grad|
-            func.(list, last_grad)
+            func.call(list, last_grad)
           end
           TensorShape.reshape(arr.flatten, input_shape)
         end
-        
       end
 
-      register_op :softmax_cross_entropy_with_logits_v2 do |context, tensor, inputs|
+      register_op :log_softmax do |_context, _tensor, inputs|
+        input_shape = shape_eval(inputs[0])
+        last_dimen_list = last_axis(inputs[0])
+
+        func = lambda { |logits|
+          c = logits.max
+          transformed_logits = logits.map { |l| l - c }
+          sum = transformed_logits.map { |x| Math.exp(x) }.reduce(:+)
+          transformed_logits.map { |x| x - Math.log(sum) }
+        }
+
+        if input_shape.size == 1
+          func.call(last_dimen_list)
+        else
+          arr = last_dimen_list.collect do |list|
+            func.call(list)
+          end
+          TensorShape.reshape(arr.flatten, input_shape)
+        end
+      end
+
+      register_op %i[softmax_cross_entropy_with_logits_v2 softmax_cross_entropy_with_logits] do |_context, _tensor, inputs|
         last_dimen_list = last_axis(inputs[0])
         input_shape = shape_eval(inputs[0])
         labels = last_axis(inputs[1])
-        func = -> (logits, label) {
+        func = lambda { |logits, label|
           c = logits.max
-          transformed_logits = logits.map { |l| l - c}
+          transformed_logits = logits.map { |l| l - c }
           sum = transformed_logits.map { |x| Math.exp(x) }.reduce(:+)
           transformed_logits.zip(label).map { |x, y| (Math.log(sum) - x) * y }
         }
 
         if input_shape.size == 1
-          func.(last_dimen_list, labels)
+          func.call(last_dimen_list, labels)
         else
           arr = last_dimen_list.zip(labels).collect do |list, label|
-            func.(list, label)
+            func.call(list, label)
           end
           TensorShape.reshape(arr.flatten, input_shape)
         end
       end
 
-      register_op :softmax_cross_entropy_with_logits_v2_grad do |context, tensor, inputs|
+      register_op :softmax_cross_entropy_with_logits_v2_grad do |_context, _tensor, inputs|
         last_dimen_list = last_axis(inputs[0])
         labels = last_axis(inputs[1])
         passed_grads = last_axis(inputs[2])
         input_shape = shape_eval(inputs[0])
 
-        func = -> (logits, label, grad) {
+        func = lambda { |logits, label, grad|
           c = logits.max
           transformed_logits = logits.map { |l| Math.exp(l - c) }
           e_sum = transformed_logits.reduce(:+)
-          transformed_logits.zip(label).zip(grad).map { |(x, y), g|  (x / e_sum) * g  - y }
+          transformed_logits.zip(label).zip(grad).map { |(x, y), g| (x / e_sum) * g - y }
         }
 
         if input_shape.size == 1
-          func.(last_dimen_list, labels, passed_grads)
+          func.call(last_dimen_list, labels, passed_grads)
         else
-          arr = last_dimen_list.zip(labels).zip(passed_grads).collect do | (list, label), passed_grad|
-            func.(list, label, passed_grad)
+          arr = last_dimen_list.zip(labels).zip(passed_grads).collect do |(list, label), passed_grad|
+            func.call(list, label, passed_grad)
           end
           TensorShape.reshape(arr.flatten, input_shape)
         end
@@ -697,7 +790,10 @@ module TensorStream
 
       register_op :check_numerics do |context, tensor, inputs|
         message = tensor.options[:message]
-        f = ->(t, _b) { raise  "#{message} Invalid argument" if t.nan? || t.infinite?; t }
+        f = lambda { |t, _b|
+          raise "#{message} Invalid argument" if t.nan? || t.infinite?
+          t
+        }
         call_op(:check_numerics, inputs[0], context, f)
       end
 
@@ -731,17 +827,19 @@ module TensorStream
         end
       rescue EvaluatorExcecutionException => e
         raise e
+      rescue TensorStreamError => e
+        raise e
       rescue StandardError => e
-        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
+        # a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+        # b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         puts e.message
         puts e.backtrace.join("\n")
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
         # dtype_b = b.data_type if b
-        a = complete_eval(a, child_context)
-        b = complete_eval(b, child_context)
+        # a = complete_eval(a, child_context)
+        # b = complete_eval(b, child_context)
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
@@ -749,7 +847,7 @@ module TensorStream
         # dump_intermediates if @log_intermediates
         # File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
-        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
+        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       end
 
       def eval_tensor(tensor, child_context)
@@ -771,7 +869,7 @@ module TensorStream
         end
       end
 
-      def convert_from_buffer(tensor, result)
+      def convert_from_buffer(_tensor, result)
         result.buffer
       end
 
@@ -818,14 +916,14 @@ module TensorStream
         return val if axis && axis.is_a?(Array) && axis.empty?
 
         axis = if axis.nil?
-          nil
-        elsif axis.is_a?(Array)
-          return val if axis.empty?
+                 nil
+               elsif axis.is_a?(Array)
+                 return val if axis.empty?
 
-          axis.map { |a| a < 0 ? rank - a.abs : a }
-        else
-          axis < 0 ? rank - axis.abs : axis
-        end
+                 axis.map { |a| a < 0 ? rank - a.abs : a }
+               else
+                 axis < 0 ? rank - axis.abs : axis
+               end
 
         reduce_axis(0, axis, val, keep_dims, func)
       end
@@ -852,17 +950,6 @@ module TensorStream
           end
         else
           value.nil? ? arr : value
-        end
-      end
-
-      def matmul_const_transform(mat, mat_b, tensor)
-        if !mat.is_a?(Array)
-          compat_shape = shape_eval(mat_b).reverse
-          func = -> { tensor.data_type == :int32 ? mat.to_i : mat.to_f }
-
-          generate_vector(compat_shape, generator: func)
-        else
-          mat
         end
       end
 
@@ -897,22 +984,6 @@ module TensorStream
         # else
         #   vector_op(eval_a, eval_b, op)
         # end
-      end
-
-      # determine possible reduction axis to be used
-      def _broadcast_gradient_op(vector_shape1, vector_shape2, level)
-        va_rank = _rank_from_shape(vector_shape1)
-        vb_rank = _rank_from_shape(vector_shape2)
-        return [] if vector_shape1 == vector_shape2 # same shape so no reductions
-
-        shape2_r = vector_shape2.reverse
-
-        vector_shape1.reverse.each_with_index.collect do |s, index|
-          next va_rank - index - 1 if index >= shape2_r.size
-          next nil if shape2_r[index] == s
-          next nil if shape2_r[index] > s
-          va_rank - index - 1
-        end.compact
       end
 
       def _rank_from_shape(shape)
@@ -967,10 +1038,10 @@ module TensorStream
           reduced_val = r[0]
           if r.size > 1
             reduced_val = f.call(r[0..val.size])
-          elsif r.size == 0
+          elsif r.empty?
             reduced_val = f.call(nil)
           end
-          keep_dims ? [ reduced_val ] : reduced_val
+          keep_dims ? [reduced_val] : reduced_val
         else
           r
         end
@@ -1037,7 +1108,7 @@ module TensorStream
       def dump_intermediates
         arr = []
         arr << "============== start ==================="
-        @context[:compute_history].each_with_index do |history, index|
+        @context[:compute_history].each_with_index do |history, _index|
           arr << "------------------------------------"
           arr << history[:name]
           arr << "#{history[:type]} #{history[:shape]}"
@@ -1049,10 +1120,10 @@ module TensorStream
         end
         arr << "============== end ====================="
         str = arr.join("\n")
-        File.write("/tmp/intermediates.txt", str)
+        File.write('/tmp/intermediates.txt', str)
       end
     end
   end
 end
 
-TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::RubyEvaluator, "ruby")
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::RubyEvaluator, 'ruby')

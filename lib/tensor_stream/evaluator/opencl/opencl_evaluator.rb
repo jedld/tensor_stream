@@ -102,6 +102,7 @@ module TensorStream
 
       def complete_eval(tensor, context)
         buffer = _run(tensor, context)
+
         if buffer.is_a?(Array)
           buffer = buffer.collect do |b|
             next b if b.buffer.size.zero?
@@ -109,7 +110,8 @@ module TensorStream
             b
           end
         else
-          return buffer if buffer.nil? 
+          return buffer.outputs[0] if buffer.is_a?(OutputGroup)
+          return buffer if buffer.nil?
           return [] if buffer.buffer.nil?
           return buffer if buffer.buffer.size.zero?
           _opencl_queue.enqueue_read_buffer(buffer.cl_buffer, buffer.buffer, event_wait_list: [buffer.op].compact)
@@ -148,13 +150,6 @@ module TensorStream
 
       def _create_opencl_context(opencl_device)
         @opencl_context = OpenCL.create_context(opencl_device)
-      end
-
-      def choose_best_device
-        @best_device ||= begin
-          devices = OpenclEvaluator.query_devices_with_score
-          devices.sort { |a| a[1] }.reverse.first
-        end
       end
 
       def self.query_devices_with_score
@@ -282,16 +277,80 @@ module TensorStream
         assign_var(tensor, value, context)
       end
 
+      # Fast in place multiply subtract assign
+      register_op :apply_gradient_descent do |_context, tensor, inputs|
+        _target_var, learning_rate, delta = inputs
+
+        assign = tensor.inputs[0] || tensor
+
+        unless assign.buffer
+          value = read_final_result(buffer)
+          assign.buffer = convert_to_opencl(value, buffer.shape, data_type: tensor.data_type, name: assign.name)
+          assign.value = value
+        end
+
+        assign.buffer.dirty = true # force buffer copy when variable is read externally
+        output_buffer = assign.buffer
+
+        m, n = output_buffer.shape
+        work_group = [m || 1, n || 1]
+        cl_m = OpenCL::Int1.new(m || 1)
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event_wait_list = [assign.buffer.op, learning_rate.op, delta.op].compact # add dependency wait list
+        method_call = :"apply_gradient_#{output_buffer.data_type}"
+        event = _cl_program("apply_gradient", dtype: output_buffer.data_type).send(method_call, _opencl_queue, work_group, cl_m, cl_n, delta.cl_buffer, learning_rate.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
       %i[less less_equal greater greater_equal equal not_equal logical_and].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context, 'cond')
         end
       end
 
-      %i[max add div sub mod mul pow sigmoid_grad squared_difference].each do |op|
+      %i[max min add real_div div sub floor_mod mod mul pow sigmoid_grad squared_difference].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
         end
+      end
+
+      register_op :add_n do |_context, tensor, inputs|
+        if inputs.size == 1
+          inputs[0]
+        else
+          m, n = inputs[0].shape
+          work_group = [m || 1, n || 1]
+          cl_m = OpenCL::Int1.new(m || 1)
+          cl_n = OpenCL::Int1.new(n || 1)
+          cl_switch = OpenCL::Int1.new(0)
+          dtype = tensor.data_type
+
+          output_buffer = _create_result_buffer(tensor.data_type, inputs[0].shape, "out_#{tensor.name}")
+          inputs_queue = inputs.dup
+          a = inputs_queue.pop
+          until inputs_queue.empty?
+            b = inputs_queue.pop
+            event_wait_list = [a.op, b.op].compact
+            method_call = :"add_#{a.data_type}_#{b.data_type}"
+            event = _cl_program('add', a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+            a = output_buffer
+            a.op = event
+          end
+
+          output_buffer.op = a.op
+          output_buffer
+        end
+      end
+
+      register_op :expand_dims, buffer: true do |_context, tensor, inputs|
+        axis = inputs[1].buffer[0]
+        shape = inputs[0].shape.dup
+        axis = -axis if axis == shape.size
+        new_shape = shape.insert(axis, 1).compact
+        new_buf = inputs[0].buffer.reshape(*new_shape.reverse)
+        convert_to_opencl(new_buf, new_shape, data_type: inputs[0].data_type, name: tensor.name)
       end
 
       register_op :floor_div, noop: true do |context, tensor, inputs|
@@ -307,7 +366,7 @@ module TensorStream
         execute_cond_func('where', tensor, pred, inputs[0], inputs[1], context)
       end
 
-      register_op :matmul do |_context, tensor, inputs|
+      register_op :mat_mul do |_context, tensor, inputs|
         a, b = inputs
 
         m = a.shape[0]
@@ -355,7 +414,7 @@ module TensorStream
         end
       end
 
-      %i[sign exp tan sin cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round floor ceil].each do |op|
+      %i[sign exp tan acos asin sin cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round floor ceil].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_func(op.to_s, tensor, inputs[0], context)
         end
@@ -373,6 +432,57 @@ module TensorStream
         cl_n = OpenCL::Int1.new(n || 1)
 
         event = _cl_program("softmax", dtype: dtype).send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
+      register_op :log_softmax do |_context, tensor, inputs|
+        a = inputs[0] # logits
+        event_wait_list = [a.op].compact
+        dtype = tensor.data_type
+        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+
+        m, n = a.shape
+        work_group = [m]
+        n = m if n.nil?
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event = _cl_program("log_softmax", dtype: dtype).send(:"log_softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
+      register_op :softmax_cross_entropy_with_logits_v2 do |_context, tensor, inputs|
+        a = inputs[0] # logits
+        b = inputs[1] # labels
+        event_wait_list = [a.op, b.op].compact
+        dtype = tensor.data_type
+        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+
+        m, n = a.shape
+        work_group = [m]
+        n = m if n.nil?
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event = _cl_program("softmax_cross", dtype: dtype).send(:"softmax_cross_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = event
+        output_buffer
+      end
+
+      register_op :softmax_cross_entropy_with_logits_v2_grad do |_context, tensor, inputs|
+        a = inputs[0] # logits
+        b = inputs[1] # labels
+        c = inputs[2] # grads
+        event_wait_list = [a.op, b.op, c.op].compact
+        dtype = tensor.data_type
+        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
+
+        m, n = a.shape
+        work_group = [m]
+        n = m if n.nil?
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event = _cl_program("softmax_cross_grad", dtype: dtype).send(:"softmax_cross_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, b.cl_buffer, c.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer.op = event
         output_buffer
       end
@@ -417,30 +527,6 @@ module TensorStream
         end
       end
 
-      register_op :truncate do |_context, tensor, inputs|
-        a, b = inputs
-        if a.shape.size.zero?
-          a
-        else
-          input_b = read_final_result(b)
-          if a.shape == input_b
-            a
-          else
-            input_a = read_final_result(a)
-            if input_b == []
-              if a.buffer.size == 1
-                a.shape = input_b
-                a
-              else
-                wrap_opencl(a.buffer[0], data_type: a.data_type, name: tensor.name)
-              end
-            else
-              wrap_opencl(truncate(input_a, input_b), data_type: a.data_type, name: tensor.name)
-            end
-          end
-        end
-      end
-
       register_op :print do |context, tensor, inputs|
         a, b = inputs
         input_b = complete_eval(b, context)
@@ -475,23 +561,27 @@ module TensorStream
         convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
       end
 
-      register_op :index, buffer: true do |_context, tensor, inputs|
-        a = inputs[0]
-        input_a = read_final_result(a)
-        index = read_final_result(inputs[1])
+      register_op :index, noop: true do |context, tensor, inputs|
+        a = _run(inputs[0], context)
+        index = read_final_result(_run(inputs[1], context))
 
-        if a.is_a?(Array)
-          a[index]
+        if a.is_a?(OutputGroup)
+          a.outputs[index]
         else
-          new_shape = a.shape.dup
-          new_shape.shift
-          convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
+          if a.is_a?(Array)
+            a[index]
+          else
+            new_shape = a.shape.dup
+            new_shape.shift
+            input_a = read_final_result(a)
+            convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
+          end
         end
       end
 
       register_op :broadcast_gradient_args, buffer: true do |_context, tensor, inputs|
         rx, ry = get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a)
-        [ wrap_opencl(rx, data_type: :int32, name: "#{tensor.name}"), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")]
+        OutputGroup.new([wrap_opencl(rx, data_type: :int32, name: "#{tensor.name}"), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")])
       end
 
       register_op :shape do |_context, tensor, inputs|
@@ -537,6 +627,9 @@ module TensorStream
 
       register_op :argmin, buffer: true do |_context, tensor, inputs|
         axis = tensor.options[:axis] || 0
+        rank = inputs[0].shape.size
+        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
+
         arr = inputs[0].buffer.reshape(*inputs[0].shape.reverse).to_a
         op = get_op_with_axis(arr, axis, 0, inputs[0].data_type, ->(a, b) { a < b })
         convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
@@ -544,6 +637,9 @@ module TensorStream
 
       register_op :argmax, buffer: true do |_context, tensor, inputs|
         axis = tensor.options[:axis] || 0
+        rank = inputs[0].shape.size
+        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
+
         arr = inputs[0].buffer.reshape(*inputs[0].shape.reverse).to_a
         op = get_op_with_axis(arr, axis, 0, inputs[0].data_type, ->(a, b) { a > b })
         convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
@@ -559,7 +655,7 @@ module TensorStream
           # puts "#{tensor.to_math(true,1)} = #{read_final_result(complete_eval(result, child_context))}"
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-            b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]    
+            b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
             a = read_final_result(complete_eval(a, child_context))
             b = read_final_result(complete_eval(b, child_context))
             result = read_final_result(complete_eval(result, child_context))
@@ -580,6 +676,8 @@ module TensorStream
           @context[:_cache][cache_key] = result if tensor.is_const
         end
       rescue EvaluatorExcecutionException => e
+        raise e
+      rescue TensorStreamError => e
         raise e
       rescue StandardError => e
         _opencl_queue.finish # dump queue
@@ -614,7 +712,8 @@ module TensorStream
                               else
                                 wrap_opencl(tensor, name: tensor.name)
                               end
-        @context[:_cache][cache_key] =  @context[cache_key] if tensor.is_const
+        @context[:_cache][cache_key] = @context[cache_key] if tensor.is_const
+        @context[cache_key]
       end
 
       private
@@ -625,11 +724,11 @@ module TensorStream
 
         if assign.buffer
           # buffer = type_cast(buffer, assign.data_type, name: "#{tensor.name}/cast_#{tensor.name}_#{tensor.data_type}")
-          if assign.buffer.cl_buffer != buffer.cl_buffer
-            assign.buffer.op = _opencl_queue.enqueue_copy_buffer(buffer.cl_buffer, assign.buffer.cl_buffer, event_wait_list: [buffer.op, assign.buffer.op])
-          else
-            assign.buffer.op = buffer.op
-          end
+          assign.buffer.op = if assign.buffer.cl_buffer != buffer.cl_buffer
+                               _opencl_queue.enqueue_copy_buffer(buffer.cl_buffer, assign.buffer.cl_buffer, event_wait_list: [buffer.op, assign.buffer.op])
+                             else
+                               buffer.op
+                             end
         else
           value = read_final_result(buffer)
           assign.buffer = convert_to_opencl(value, buffer.shape, data_type: tensor.data_type, name: assign.name)
@@ -660,12 +759,12 @@ module TensorStream
         method_call = :"#{prog}_#{a.data_type}_#{b.data_type}"
         event = if prog == "#{op_name}_b"
           cl_m_b, cl_n_b = if b.shape.size == 2
-            [ OpenCL::Int1.new(b.shape[0]), OpenCL::Int1.new(b.shape[1]) ]
-          elsif b.shape.size == 1
-            [ OpenCL::Int1.new(1), OpenCL::Int1.new(b.shape[0]) ]
-          else
-            raise "rank > 2 not supported!"
-          end
+                             [OpenCL::Int1.new(b.shape[0]), OpenCL::Int1.new(b.shape[1])]
+                           elsif b.shape.size == 1
+                             [OpenCL::Int1.new(1), OpenCL::Int1.new(b.shape[0])]
+                           else
+                             raise "rank > 2 not supported!"
+                           end
           _cl_program("#{prog_name || op_name}", a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         else
           _cl_program("#{prog_name || op_name}", a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
@@ -691,7 +790,7 @@ module TensorStream
         cl_n = OpenCL::Int1.new(n || 1)
 
         event_wait_list = [a.op, b.op, p.op].compact # add dependency wait list
-        output_buffer.op = _cl_program("#{op_name}", dtype: dtype).send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, p.cl_buffer, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        output_buffer.op = _cl_program(op_name.to_s, dtype: dtype).send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, p.cl_buffer, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer
       end
 
@@ -706,7 +805,7 @@ module TensorStream
         cl_m = OpenCL::Int1.new(m || 1)
         cl_n = OpenCL::Int1.new(n || 1)
 
-        event = _cl_program("#{op_name}", dtype: dtype).send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        event = _cl_program(op_name.to_s, dtype: dtype).send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer.op = event
         output_buffer
       end
@@ -741,60 +840,58 @@ module TensorStream
 
       def wrap_opencl(tensor, data_type: nil, name: nil)
         value, shape = if tensor.is_a?(Tensor)
-          [tensor.value, tensor.shape.shape]
-        else
-          [tensor , shape_eval(tensor)]
-        end
+                         [tensor.value, tensor.shape.shape]
+                       else
+                         [tensor, shape_eval(tensor)]
+                       end
 
         convert_to_opencl(value, shape, data_type: data_type || tensor.data_type, name: name)
       end
 
       def convert_to_opencl(value, shape, data_type: nil, name: nil)
-        if !value.is_a?(Array) && !value.is_a?(NArray)
-          value = [value]
-        end
+        value = [value] if !value.is_a?(Array) && !value.is_a?(NArray)
 
         cache_key = "_cl_object_#{name}:#{shape.join('_')}:#{object_id}"
-        cl_object =  if name && @context[:_cache][cache_key]
+        cl_object = if name && @context[:_cache][cache_key]
                       @context[:_cache][cache_key]
-                     else
-                       narray_size = shape.reduce(:*) || 1
+                    else
+                      narray_size = shape.reduce(:*) || 1
 
-                       buffer = if value.is_a?(NArray)
-                                  value
-                                else
-                                  allocate_narray_for_type(data_type, narray_size)
-                                end
+                      buffer = if value.is_a?(NArray)
+                                 value
+                               else
+                                 allocate_narray_for_type(data_type, narray_size)
+                               end
 
-                       cl_buffer_size = shape.empty? ? 1 : shape.reduce(:*)
+                      cl_buffer_size = shape.empty? ? 1 : shape.reduce(:*)
 
-                       cl_buffer = if !value.flatten.empty?
-                        cl_buffer_size = 1 if cl_buffer_size.zero?
-                        _opencl_context.create_buffer(cl_buffer_size * buffer.element_size)
-                       else
-                        nil
-                       end
+                      cl_buffer = unless value.flatten.empty?
+                                    cl_buffer_size = 1 if cl_buffer_size.zero?
+                                    _opencl_context.create_buffer(cl_buffer_size * buffer.element_size)
+                                  end
 
-                       @context[:_cache][cache_key] = OpenCLBuffer.new(name: name, data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)
-                     end
+                      @context[:_cache][cache_key] = OpenCLBuffer.new(name: name, data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)
+                    end
 
         if value.is_a?(Array)
           value.flatten.each_with_index do |element, index|
-            if element.is_a?(Tensor)
-              cl_object.buffer[index] = read_final_result(complete_eval(element, {}))
-            else
-              cl_object.buffer[index] = ( data_type == :boolean ? ( element ? 1 : 0 ) : Tensor.cast_dtype(element, data_type))
-            end
+            cl_object.buffer[index] = if element.is_a?(Tensor)
+                                        read_final_result(complete_eval(element, {}))
+                                      elsif data_type == :boolean
+                                        element ? 1 : 0
+                                      else
+                                        Tensor.cast_dtype(element, data_type)
+                                      end
           end
         elsif value.is_a?(NArray)
           cl_object.buffer = value
+        elsif data_type == :boolean
+          cl_object.buffer[0] = element ? 1 : 0
         else
-          cl_object.buffer[0] = ( data_type == :boolean ? ( element ? 1 : 0 )  : Tensor.cast_dtype(value, data_type))
+          cl_object.buffer[0] = Tensor.cast_dtype(value, data_type)
         end
 
-        write_op = if cl_object.cl_buffer && !value.nil? && (!value.is_a?(Array) || !value.empty?)
-          _opencl_queue.enqueue_write_buffer(cl_object.cl_buffer, cl_object.buffer)
-        end
+        write_op = _opencl_queue.enqueue_write_buffer(cl_object.cl_buffer, cl_object.buffer) if cl_object.cl_buffer && !value.nil? && (!value.is_a?(Array) || !value.empty?)
         cl_object.op = write_op
         cl_object
       end
@@ -861,7 +958,7 @@ module TensorStream
 
       def _reduced_shape(input_shape, axes)
         return [] if axes.nil? # reduce to scalar
-        axes = [ axes ] unless axes.is_a?(Array)
+        axes = [axes] unless axes.is_a?(Array)
         return input_shape if axes.empty?
 
         axes.each do |dimen|
@@ -882,8 +979,7 @@ module TensorStream
           rank = input.shape.size - 1
 
           if axis.is_a?(Array)
-            axis.map{ |x| rank - x.abs }.sort.reverse.each do |x|
-  
+            axis.map { |x| rank - x.abs }.sort.reverse_each do |x|
               value = value.send(func, x.to_i)
             end
           else
@@ -891,75 +987,21 @@ module TensorStream
           end
 
           new_shape = if value.is_a?(NArray)
-            value.shape.reverse
-          else
-            value = [value]
-            []
-          end
+                        value.shape.reverse
+                      else
+                        value = [value]
+                        []
+                      end
 
-          if tensor.options[:keepdims]
-            new_shape = _reduced_shape(input.shape.dup, axis)
-          end
+          new_shape = _reduced_shape(input.shape.dup, axis) if tensor.options[:keepdims]
 
           convert_to_opencl(value.flatten, new_shape, data_type: tensor.data_type, name: tensor.name)
         end
       end
 
-      def arr_pad(arr, paddings, data_type = :float32, rank = 0)
-        raise "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
-
-        before = paddings[rank][0]
-        after = paddings[rank][1]
-        pad_value = fp_type?(data_type) ? 0.0 : 0
-        if arr[0].is_a?(Array)
-          next_dim_elem = arr.collect { |a| arr_pad(a, paddings, data_type, rank + 1) }
-          padding = deep_dup_array(next_dim_elem[0], pad_value)
-          Array.new(before) { padding } + next_dim_elem + Array.new(after) { padding }
-        else
-          Array.new(before) { pad_value } + arr + Array.new(after) { pad_value }
-        end
-      end
-
-      def deep_dup_array(arr, value = nil)
-        if arr.is_a?(Array)
-          arr.dup.collect do |a|
-            deep_dup_array(a, value)
-          end
-        else
-          value.nil? ? arr : value
-        end
-      end
-
-      def matmul_const_transform(mat, mat_b, tensor)
-        if !mat.is_a?(Array)
-          compat_shape = shape_eval(mat_b).reverse
-          func = -> { tensor.data_type == :int32 ? mat.to_i : mat.to_f }
-
-          generate_vector(compat_shape, generator: func)
-        else
-          mat
-        end
-      end
-
-      # determine possible reduction axis to be used
-      def _broadcast_gradient_op(vector_shape1, vector_shape2, level)
-        va_rank = _rank_from_shape(vector_shape1)
-        vb_rank = _rank_from_shape(vector_shape2)
-        return [] if vector_shape1 == vector_shape2 # same shape so no reductions
-
-        shape2_r = vector_shape2.reverse
-
-        vector_shape1.reverse.each_with_index.collect do |s, index|
-          next va_rank - index - 1 if index >= shape2_r.size
-          next nil if shape2_r[index] == s
-          next nil if shape2_r[index] > s
-          va_rank - index - 1
-        end.compact
-      end
-
       # selects variants of cl programs depending on input
       def select_program(input_a, input_b, op)
-        return [input_a, input_b, "#{op}", 0] if input_a.shape == input_b.shape
+        return [input_a, input_b, op.to_s, 0] if input_a.shape == input_b.shape
 
         return [input_b, input_a, "#{op}_c", 1] if input_a.shape.empty? || input_a.shape.reduce(:*) == 1 # A is scalar?
         return [input_a, input_b, "#{op}_c", 0] if input_b.shape.empty? || input_a.shape.reduce(:*) == 1 # B is scalar?
@@ -979,26 +1021,6 @@ module TensorStream
         shape.is_a?(Array) ? shape.size : 0
       end
 
-      def concat_array(values, axis)
-        combined_array = values.shift
-        axis = get_rank(combined_array) - 1 if axis == -1
-
-        values.each do |v|
-          combined_array = concat(combined_array, v, axis)
-        end
-        combined_array
-      end
-
-      def concat(a, b, axis)
-        if axis.zero?
-          a + b
-        else
-          a.each_with_index.collect do |i, index|
-            concat(i, b[index], axis - 1)
-          end
-        end
-      end
-
       def resolve_placeholder(placeholder, _execution_context = {})
         return nil if placeholder.nil?
 
@@ -1014,43 +1036,6 @@ module TensorStream
         Tensor.cast_dtype(var, placeholder.data_type)
       end
 
-      def reduce_axis(current_axis, axis, val, keep_dims, f = ->(a, b) { a + b })
-        return val unless val.is_a?(Array)
-
-        r = val.collect do |v|
-          reduce_axis(current_axis + 1, axis, v, keep_dims, f)
-        end
-
-        should_reduce_axis = axis.nil? || (axis.is_a?(Array) && axis.include?(current_axis)) || (current_axis == axis)
-
-        if should_reduce_axis
-          reduced_val = r[0]
-          if r.size > 1
-            reduced_val = f.call(r[0..val.size])
-          elsif r.size.zero?
-            reduced_val = f.call(nil)
-          end
-          keep_dims ? [ reduced_val ] : reduced_val
-        else
-          r
-        end
-      end
-
-      # handle 3 tensor math operations
-      def call_3way_vector_op(v_a, v_b, v_c, child_context, op = ->(a, b, c) { a + b + c })
-        return op.call(v_a, v_b, v_c) unless v_a.is_a?(Array)
-
-        v_a.each_with_index.collect do |v1, index|
-          v2 = v_b[index]
-          v3 = v_c[index]
-          if v1.is_a?(Array)
-            call_3way_vector_op(v1, v2, v3, child_context, op)
-          else
-            op.call(v1, v2, v3)
-          end
-        end
-      end
-
       def all_true?(arr)
         if arr.is_a?(Array) || arr.is_a?(NArray)
           arr.each do |a|
@@ -1060,56 +1045,6 @@ module TensorStream
         end
 
         arr != 0
-      end
-
-      def generate_vector(shape, dtype: :float32, generator:)
-        if shape.is_a?(Integer)
-          Array.new(shape) do
-            generator.call
-          end
-        elsif shape.size > 1
-          Array.new(shape[0]) do
-            generate_vector(shape[1..shape.size], generator: generator, dtype: dtype)
-          end
-        elsif shape.size == 1
-          Array.new(shape[0]) do
-            generator.call
-          end
-        elsif shape.size.zero?
-          generator.call
-        end
-      end
-
-      def _get_randomizer(tensor, seed)
-        if tensor.graph.random_seed && seed
-          Random.new(tensor.graph.random_seed ^ seed)
-        elsif tensor.graph.random_seed
-          @session.randomizer[tensor.graph.object_id] ||= Random.new(tensor.graph.random_seed)
-          @session.randomizer[tensor.graph.object_id]
-        elsif seed
-          @session.randomizer[tensor.operation] ||= Random.new(seed)
-          @session.randomizer[tensor.operation]
-        else
-          Random.new
-        end
-      end
-
-      def dump_intermediates
-        arr = []
-        arr << "============== start ==================="
-        @context[:compute_history].each_with_index do |history, index|
-          arr << "------------------------------------"
-          arr << history[:name]
-          arr << "#{history[:type]} #{history[:shape]}"
-          arr << history[:source]
-          arr << history[:description]
-          arr << ""
-          arr << history[:value].to_json
-          arr << "------------------------------------"
-        end
-        arr << "============== end ====================="
-        str = arr.join("\n")
-        File.write("/tmp/intermediates.txt", str)
       end
     end
   end

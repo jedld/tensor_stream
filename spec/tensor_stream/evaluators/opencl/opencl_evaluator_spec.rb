@@ -19,6 +19,9 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
       device = described_class.query_device("/device:GPU:0")
       expect(device).to be
       expect(device.type).to eq(:gpu)
+      device = described_class.query_device("/gpu:0")
+      expect(device).to be
+      expect(device.type).to eq(:gpu)
     end
 
     context "tensor_stream convention" do
@@ -51,15 +54,19 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(65)
+      expect(described_class.ops.keys.size).to eq(75)
     end
 
     specify do
       expect(described_class.ops.keys.sort).to eq(%i[
         abs
+        acos
         add
+        add_n
+        apply_gradient_descent
         argmax
         argmin
+        asin
         assign
         assign_add
         assign_sub
@@ -73,8 +80,10 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         div
         equal
         exp
+        expand_dims
         floor
         floor_div
+        floor_mod
         flow_group
         greater
         greater_equal
@@ -84,10 +93,12 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         less_equal
         log
         log1p
+        log_softmax
         logical_and
-        matmul
+        mat_mul
         max
         mean
+        min
         mod
         mul
         negate
@@ -97,6 +108,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         print
         prod
         rank
+        real_div
         reciprocal
         reshape
         round
@@ -108,6 +120,8 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         size
         slice
         softmax
+        softmax_cross_entropy_with_logits_v2
+        softmax_cross_entropy_with_logits_v2_grad
         softmax_grad
         sqrt
         square
@@ -119,7 +133,6 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         tanh
         tanh_grad
         transpose
-        truncate
         where
       ])
     end

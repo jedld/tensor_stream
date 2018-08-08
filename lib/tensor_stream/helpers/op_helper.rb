@@ -13,10 +13,10 @@ module TensorStream
     # same as op but with a marker that it was internal generated
     def i_op(code, *args)
       options = if args.last.is_a?(Hash)
-        args.pop
-      else
-        {}
-      end
+                  args.pop
+                else
+                  {}
+                end
 
       args << options.merge(internal: true)
       Operation.new(code.to_sym, *args)
@@ -45,32 +45,6 @@ module TensorStream
       arr
     end
 
-    def dtype_eval(rank, value, data_type = nil)
-      dtype = if data_type.nil?
-        Tensor.detect_type(value[0])
-      else
-       data_type
-      end
-
-      rank += 1 if dtype == :array
-
-      [dtype, rank, value[0], value.size]
-    end
-
-    def val_to_dtype(value)
-      if value.is_a?(String)
-        :string
-      elsif value.is_a?(Float)
-        :float32
-      elsif value.is_a?(Integer)
-        :int32
-      elsif value.is_a?(Array)
-        :array
-      else
-        :float32
-      end
-    end
-
     def fp_type?(type)
       TensorStream::Ops::FLOATING_POINT_TYPES.include?(type)
     end
@@ -88,10 +62,10 @@ module TensorStream
     def shapes_fully_specified_and_equal(x, y)
       return false if !shape_full_specified(x) || !shape_full_specified(y)
       return false if x.shape.shape != y.shape.shape
-      
+
       true
     end
- 
+
     def shape_full_specified(tensor)
       return false if tensor.shape.nil?
       return false if tensor.shape.shape.nil?
@@ -108,7 +82,7 @@ module TensorStream
       axes = (axes + input_rank) % input_rank
       axes_shape = i_op(:shape, axes)
       TensorStream.dynamic_stitch([TensorStream.range(0, input_rank), axes],
-        [input_shape, i_op(:fill, axes_shape, 1)])
+                                  [input_shape, i_op(:fill, axes_shape, 1)])
     end
   end
 end
