@@ -276,6 +276,14 @@ module TensorStream
         call_op(:sin, inputs[0], context, ->(t, _b) { Math.sin(t) })
       end
 
+      register_op :asin, no_eval: true do |context, _tensor, inputs|
+        call_op(:asin, inputs[0], context, ->(t, _b) { Math.asin(t) })
+      end
+
+      register_op :acos, no_eval: true do |context, _tensor, inputs|
+        call_op(:acos, inputs[0], context, ->(t, _b) { Math.acos(t) })
+      end
+
       register_op :cos, no_eval: true do |context, _tensor, inputs|
         call_op(:cos, inputs[0], context, ->(t, _b) { Math.cos(t) })
       end
@@ -640,6 +648,10 @@ module TensorStream
 
       register_op %i[max maximum], noop: true do |context, _tensor, inputs|
         call_vector_op(:max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
+      end
+
+      register_op %i[min minimum], noop: true do |context, _tensor, inputs|
+        call_vector_op(:min, inputs[0], inputs[1], context, ->(t, u) { [t, u].min })
       end
 
       register_op :apply_gradient_descent do |context, tensor, inputs|

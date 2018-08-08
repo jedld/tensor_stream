@@ -57,6 +57,22 @@ module TensorStream
 
           [tf.reshape(tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x'), sx),
            tf.reshape(tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y'), sy)]
+        when :asin
+          tf.control_dependencies([grad]) do
+            x2 = tf.square(x)
+            one = tf.constant(1, dtype: grad.data_type)
+            den = tf.sqrt(tf.subtract(one, x2))
+            inv = tf.reciprocal(den)
+            grad * inv
+          end
+        when :acos
+          tf.control_dependencies([grad]) do
+            x2 = tf.square(x)
+            one = tf.constant(1, dtype: grad.data_type)
+            den = tf.sqrt(tf.subtract(one, x2))
+            inv = tf.reciprocal(den)
+            -grad * inv
+          end
         when :sub
           return [grad, -grad] if shapes_fully_specified_and_equal(x, y)
 
@@ -139,9 +155,9 @@ module TensorStream
         when :cos
           -grad * tf.sin(x)
         when :max
-          x_mask = tf.where(x > y, tf.ones_like(x), tf.zeros_like(y))
-          y_mask = tf.where(x < y, tf.zeros_like(x), tf.ones_like(y))
-          [x_mask * grad, y_mask * grad]
+          _min_or_max_grad(node.inputs, grad, ->(x, y) { tf.greater_equal(x, y) } )
+        when :min
+          _min_or_max_grad(node.inputs, grad, ->(x, y) { tf.less_equal(x, y) } )
         when :tan
           secx = tf.reciprocal(tf.cos(x))
           secx2 = tf.square(secx)
@@ -152,6 +168,8 @@ module TensorStream
           grad * node
         when :identity, :print
           grad
+        when :sign
+          tf.zeros(tf.shape(x), dtype: x.data_type)
         when :sum
           _sum_grad(x, y, grad)
         when :reciprocal
@@ -181,6 +199,9 @@ module TensorStream
           grad * tf.reciprocal(i_cons(1, dtype: grad.data_type) + x)
         when :sigmoid
           i_op(:sigmoid_grad, x, grad)
+        when :sigmoid_grad
+          gb = grad * y
+          [gb - 2.0 * gb * x, i_op(:sigmoid_grad, x, grad)]
         when :softmax
           i_op(:softmax_grad, x, grad)
         when :softmax_cross_entropy_with_logits_v2
@@ -191,7 +212,7 @@ module TensorStream
         when :zeros_like
           # non differentiable
           nil
-        when :argmin, :argmax
+        when :argmin, :argmax, :floor_div
           # non differentiable
           [nil, nil]
         else
@@ -229,11 +250,21 @@ module TensorStream
       false
     end
 
-    def self._min_or_max_grad(operation, grad)
-      y = operation
-      indicators = tf.cast(tf.equal(y, operation.inputs[0]), grad.data_type)
-      num_selected = tf.reduce_sum(indicators, operation.inputs[1])
-      _safe_shape_div(indicators, num_selected) * grad
+    def self._min_or_max_grad(inputs, grad, selector_op)
+      x = inputs[0]
+      y = inputs[1]
+      gdtype = grad.data_type
+      sx = tf.shape(x)
+      sy = tf.shape(y)
+      gradshape = tf.shape(grad)
+      zeros = tf.zeros(gradshape, dtype: gdtype)
+      xmask = selector_op.call(x, y)
+      rx, ry = _broadcast_gradient_args(sx, sy)
+      xgrad = tf.where(xmask, grad, zeros, name: 'x')
+      ygrad = tf.where(xmask, zeros, grad, name: 'y')
+      gx = tf.reshape(tf.reduce_sum(xgrad, rx), sx)
+      gy = tf.reshape(tf.reduce_sum(ygrad, ry), sy)
+      [gx, gy]
     end
 
     def self._include?(arr, obj)

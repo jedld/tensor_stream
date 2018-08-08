@@ -71,7 +71,7 @@ module TensorStream
       return shape if shape.empty?
 
       current_size = shape.inject(1) { |product, n| n > 0 ? product * n : product }
-      inferred_size = total_size / current_size
+      inferred_size = total_size.nil? ? nil : total_size / current_size
       shape.map { |s| s == -1 ? inferred_size : s }
     end
   end

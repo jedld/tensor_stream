@@ -305,6 +305,20 @@ module TensorStream
     end
 
     ##
+    # Computes asin of input element-wise
+    def asin(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:asin, input, name: name)
+    end
+
+    ##
+    # Computes acos of input element-wise
+    def acos(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:acos, input, name: name)
+    end
+
+    ##
     # Returns x - y element-wise.
     #
     # This operation supports boradcasting
@@ -352,10 +366,22 @@ module TensorStream
     ##
     # Returns the max of x and y (i.e. x > y ? x : y) element-wise.
     def maximum(input_a, input_b, name: nil)
+      max(input_a, input_b, name: name)
+    end
+
+    ##
+    # Returns the min of x and y (i.e. x < y ? x : y) element-wise.
+    def min(input_a, input_b, name: nil)
       check_allowed_types(input_a, NUMERIC_TYPES)
       check_allowed_types(input_b, NUMERIC_TYPES)
       input_a, input_b = check_data_types(input_a, input_b)
-      max(input_a, input_b, name: name)
+      _op(:min, input_a, input_b, name: name)
+    end
+
+    ##
+    # Returns the min of x and y (i.e. x < y ? x : y) element-wise.
+    def minimum(input_a, input_b, name: nil)
+      min(input_a, input_b, name: name)
     end
 
     ##

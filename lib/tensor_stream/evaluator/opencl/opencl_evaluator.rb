@@ -310,7 +310,7 @@ module TensorStream
         end
       end
 
-      %i[max add real_div div sub floor_mod mod mul pow sigmoid_grad squared_difference].each do |op|
+      %i[max min add real_div div sub floor_mod mod mul pow sigmoid_grad squared_difference].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
         end
@@ -414,7 +414,7 @@ module TensorStream
         end
       end
 
-      %i[sign exp tan sin cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round floor ceil].each do |op|
+      %i[sign exp tan acos asin sin cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round floor ceil].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_func(op.to_s, tensor, inputs[0], context)
         end

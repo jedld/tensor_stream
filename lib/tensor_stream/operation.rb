@@ -6,10 +6,10 @@ module TensorStream
 
     def initialize(operation, *args)
       options = if args.last.is_a?(Hash)
-        args.pop
-      else
-        {}
-      end
+                  args.pop
+                else
+                  {}
+                end
 
       inputs = args
 
@@ -247,7 +247,7 @@ module TensorStream
         return TensorShape.fix_inferred_elements(new_shape, input_shape.reduce(:*))
       when :flow_group
         return []
-      when :zeros, :ones
+      when :zeros, :ones, :fill
         return inputs[0] ? inputs[0].value : options[:shape]
       when :zeros_like, :ones_like
         inputs[0].shape.shape

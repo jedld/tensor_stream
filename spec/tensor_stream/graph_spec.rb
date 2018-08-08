@@ -198,7 +198,7 @@ RSpec.describe TensorStream::Graph do
     specify "complex" do
       pbtext = File.read(File.join('spec','fixtures','neural_network.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
-      
+
     end
   end
 end

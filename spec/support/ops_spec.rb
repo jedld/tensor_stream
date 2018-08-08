@@ -531,7 +531,25 @@ RSpec.shared_examples "standard ops evaluator" do
       b = tf.constant([1.0, 3.0])
       d = tf.constant([3.0, 1.1])
       g = tf.gradients(tf.max(b,d), [b, d])
-      expect(sess.run(g)).to eq([[0.0, 1.0], [0.0, 1.0]])
+      expect(sess.run(g)).to eq([[0.0, 1.0], [1.0, 0.0]])
+    end
+  end
+
+  supported_op ".min" do
+    it "returns the maximum of two tensors" do
+      a = tf.constant(1.0)
+      b = tf.constant([1.0, 3.0])
+      d = tf.constant([3.0, 1.1])
+      c = tf.constant(2.1)
+      expect(tr(sess.run(tf.min(a,c)))).to eq(1.0)
+      expect(tr(sess.run(tf.min(b,d)))).to eq([1.0, 1.1])
+    end
+
+    it "computes for the gradient" do
+      b = tf.constant([1.0, 3.0])
+      d = tf.constant([3.0, 1.1])
+      g = tf.gradients(tf.min(b,d), [b, d])
+      expect(sess.run(g)).to eq([[1.0, 0.0], [0.0, 1.0]])
     end
   end
 
@@ -714,6 +732,12 @@ RSpec.shared_examples "standard ops evaluator" do
 
       expect(sess.run(tf.sign(a))).to eq([[1, 1], [-1, 1], [1, -1]])
       expect(sess.run(tf.sign(b))).to eq(-1.0)
+    end
+
+    specify "gradients" do
+      a = tf.constant([[1,2],[-1, 2], [3,-3]])
+      g = tf.gradients(tf.sign(a), [a])
+      expect(sess.run(g)).to eq([[[0, 0], [0, 0], [0, 0]]])
     end
   end
 
@@ -1196,6 +1220,34 @@ RSpec.shared_examples "standard ops evaluator" do
       supported_op ".#{func}" do
         let(:x) { tf.constant(0.1) }
         let(:y) {  tf.constant([[1.1, 2.1], [2.1, 3.0]]) }
+        let(:f_x) { tf.send(func,x) }
+        let(:f_y) { tf.send(func,y) }
+
+        specify "scalar #{func} value" do
+          expect(tr(sess.run(f_x))).to eq(scalar)
+        end
+
+        specify "matrix #{func} values" do
+          expect(tr(sess.run(f_y))).to eq(matrix)
+        end
+
+        specify "gradient #{func} values" do
+          grad = tf.gradients(f_x, [x]).first
+          grad_2 = tf.gradients(f_y, [y]).first
+
+          expect(tr(sess.run(grad))).to eq(tr(gradient))
+          expect(tr(sess.run(grad_2))).to eq(tr(gradient2))
+        end
+      end
+    end
+
+    [
+      [:asin, 0.2014,   [[0.5236, 0.1002], [0.1002, 0.3047]],  1.0206, [[1.1547, 1.005], [1.005, 1.0483]]                      ],
+      [:acos, 1.3694,   [[1.0472, 1.4706], [1.4706, 1.2661]],  -1.0206, [[-1.1547, -1.005], [-1.005, -1.0483]]                     ],
+    ].each do |func, scalar, matrix, gradient, gradient2|
+      supported_op ".#{func}" do
+        let(:x) { tf.constant(0.2) }
+        let(:y) {  tf.constant([[0.5, 0.1], [0.1, 0.3]]) }
         let(:f_x) { tf.send(func,x) }
         let(:f_y) { tf.send(func,y) }
 
