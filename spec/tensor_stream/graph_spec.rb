@@ -177,7 +177,7 @@ RSpec.describe TensorStream::Graph do
       pbtext = File.read(File.join('spec','fixtures','matmul_graph.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
       tensor = graph.get_tensor_by_name("tanh_2:0")
-        graph.as_default do
+      graph.as_default do
         sess = ts.session
         expect(tr(sess.run(tensor))).to eq([[1.0, 1.0], [1.0, 1.0]])
       end

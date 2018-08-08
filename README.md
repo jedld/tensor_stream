@@ -15,6 +15,7 @@ The goal of this gem is to have a high performance machine learning and compute 
 - Provision to use your own opcode evaluator (opencl, sciruby and tensorflow backends planned)
 - Goal is to be as close to TensorFlow in behavior but with some freedom to add ruby specific enhancements (with lots of test cases)
 - eager execution (experimental)
+- (08-08-2018) Load pbtext files from tensorflow (Graph.parse_from_string)
 
 Since this is a pure ruby implementation for now, performance is not there yet. However it should be a good enough environment to learn about tensorflow and experiment with some models.
 
@@ -254,6 +255,44 @@ end
 Note that the OpenCL evaluator provides speedup if you are using large tensors, tensors that are only using scalars like the linear regression sample will actually be slower.
 
 samples/nearest_neighbor.rb contains a sample that uses opencl.
+
+## Export Import Models from tensorflow
+
+Experimental support for parsing and exporting pbtext files are supported:
+
+Exporting
+
+```ruby
+a = ts.constant([1.0, 1.0])
+b = ts.constant([1.5, 1.5])
+f = a + b
+
+File.write('my_model.pbtext', f.graph.as_graph_def)
+```
+
+Importing (Experimental)
+
+Note that not all tensorflow ops are supported, warnings will be showed
+if a certain operation is not supported yet.
+
+
+```ruby
+  pbtext = File.read(File.join('linear_regression.pbtxt'))
+
+  # create a graph from pbtext file
+  graph = TensorStream::Graph.parse_from_string(pbtext)
+
+  # reference a tensor by name from the created graph,
+  # for example you have a tensor named out
+  tensor = graph.get_tensor_by_name("out")
+
+  # set graph as default and do operations on it
+  graph.as_default do
+    sess = ts.session
+    expect(tr(sess.run(tensor))).to eq([[1.0, 1.0], [1.0, 1.0]])
+  end
+
+```
 
 # Visualization
 
