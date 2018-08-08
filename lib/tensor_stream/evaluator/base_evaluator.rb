@@ -8,7 +8,7 @@ module TensorStream
       end
     end
 
-    class UnsupportedOp < Exception
+    class UnsupportedOp < RuntimeError
       def initialize(tensor)
         @tensor = tensor
       end
@@ -153,16 +153,16 @@ module TensorStream
           end
         end
 
-       [input_a_args.reverse, input_b_args.reverse]
+        [input_a_args.reverse, input_b_args.reverse]
       end
 
       ##
       # converts from a ruby Buffer object to the evaluator's native buffer format
-      def convert_from_buffer(tensor, result)
+      def convert_from_buffer(_tensor, _result)
         raise "need implementation"
       end
 
-      def prepare_input(tensor, context, options = {})
+      def prepare_input(_tensor, _context, _options = {})
         raise "need implementation"
       end
     end

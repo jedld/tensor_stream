@@ -232,7 +232,7 @@ module TensorStream
 
         axis = inputs[1].is_a?(Tensor) ? inputs[1].value : inputs[1]
 
-        axis = [ axis ] unless axis.is_a?(Array)
+        axis = [axis] unless axis.is_a?(Array)
         return input_shape.each_with_index.map do |s, index|
           next nil if axis.include?(index)
           s
@@ -259,9 +259,7 @@ module TensorStream
         return [shape1, shape2]
       else
         return inputs[0].shape.shape if inputs.size == 1
-        if inputs.size == 2 && inputs[0] && inputs[1]
-          return TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape)
-        end
+        return TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape) if inputs.size == 2 && inputs[0] && inputs[1]
       end
 
       nil
@@ -287,8 +285,8 @@ module TensorStream
           input.flatten.compact.each do |t|
             t.send(:setup_output, self) if t.is_a?(Tensor)
           end
-        else
-          input.send(:setup_output, self) if input.is_a?(Tensor) && (input.name != self.name)
+        elsif input.is_a?(Tensor) && (input.name != name)
+          input.send(:setup_output, self)
         end
       end
     end

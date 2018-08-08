@@ -6,11 +6,11 @@ module TensorStream
       start_index = start.shift
       dimen_size = start_index + size.shift
 
-      input[start_index...dimen_size].collect do |input|
-        if input.is_a?(Array)
-          slice_tensor(input, start.dup, size.dup)
+      input[start_index...dimen_size].collect do |item|
+        if item.is_a?(Array)
+          slice_tensor(item, start.dup, size.dup)
         else
-          input
+          item
         end
       end
     end
@@ -25,7 +25,7 @@ module TensorStream
 
     def _reduced_shape(input_shape, axes)
       return [] if axes.nil? # reduce to scalar
-      axes = [ axes ] unless axes.is_a?(Array)
+      axes = [axes] unless axes.is_a?(Array)
       return input_shape if axes.empty?
 
       axes.each do |dimen|
@@ -72,8 +72,8 @@ module TensorStream
       d = dims.shift
 
       if input.is_a?(Array) && (get_rank(input) - 1) == dims.size
-        row_to_dup = input.collect do |input|
-          broadcast_dimensions(input, dims.dup)
+        row_to_dup = input.collect do |item|
+          broadcast_dimensions(item, dims.dup)
         end
 
         row_to_dup + Array.new(d) { row_to_dup }.flatten(1)

@@ -491,7 +491,7 @@ module TensorStream
         end
       end
 
-      register_op :expand_dims do |context, tensor, inputs|
+      register_op :expand_dims do |_context, _tensor, inputs|
         val, axis = inputs
         axis = axis.nil? ? 0 : axis
 
@@ -687,11 +687,11 @@ module TensorStream
       end
 
       register_op :save_v2 do |context, tensor, inputs|
-        prefix, tensor_names, shape_and_slices = inputs[0..3]
+        # prefix, tensor_names, shape_and_slices = inputs[0..3]
       end
 
       register_op :restore_v2 do |context, tensor, inputs|
-        prefix, tensor_names, shape_and_slices = inputs[0..3]
+        # prefix, tensor_names, shape_and_slices = inputs[0..3]
       end
 
       register_op :softmax_grad do |_context, _tensor, inputs|

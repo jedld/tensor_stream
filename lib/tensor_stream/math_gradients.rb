@@ -155,9 +155,9 @@ module TensorStream
         when :cos
           -grad * tf.sin(x)
         when :max
-          _min_or_max_grad(node.inputs, grad, ->(x, y) { tf.greater_equal(x, y) } )
+          _min_or_max_grad(node.inputs, grad, ->(a, b) { tf.greater_equal(a, b) })
         when :min
-          _min_or_max_grad(node.inputs, grad, ->(x, y) { tf.less_equal(x, y) } )
+          _min_or_max_grad(node.inputs, grad, ->(a, b) { tf.less_equal(a, b) })
         when :tan
           secx = tf.reciprocal(tf.cos(x))
           secx2 = tf.square(secx)

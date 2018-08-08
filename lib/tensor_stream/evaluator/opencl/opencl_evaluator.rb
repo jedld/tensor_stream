@@ -30,6 +30,7 @@ module TensorStream
     ## PURE ruby evaluator used for testing and development
     class OpenclEvaluator < BaseEvaluator
       attr_accessor :retain
+      attr_reader :opencl_device
 
       include TensorStream::OpHelper
       include TensorStream::ArrayOpsHelper
@@ -51,20 +52,20 @@ module TensorStream
 
       def self.fetch_device(query = [])
         devices = query_devices_with_score
-        platform_devices = devices.select { |d| d[0].platform.to_s.gsub(' ','_').downcase =~ /#{query[0].downcase}/ }
+        platform_devices = devices.select { |d| d[0].platform.to_s.tr(' ', '_').downcase =~ /#{query[0].downcase}/ }
         opencl_to_device(platform_devices[[query[1].to_i, platform_devices.size - 1].min])
       end
 
       def self.opencl_to_device(d)
         device = d[0]
         index = d[3]
-        platform_name = device.platform.name.gsub(' ', '_').downcase
+        platform_name = device.platform.name.tr(' ', '_').downcase
         uri = [platform_name, index].join(':')
 
         device_type = device.type.to_s == 'GPU' ? :gpu : :cpu
 
-        OpenclDevice.new(uri, device_type, self).tap do |d|
-          d.native_device = device
+        OpenclDevice.new(uri, device_type, self).tap do |devide|
+          devide.native_device = device
         end
       end
 
@@ -120,10 +121,6 @@ module TensorStream
         buffer
       end
 
-      def opencl_device
-        @opencl_device
-      end
-
       protected
 
       def prepare_input(tensor, context, options = {})
@@ -163,9 +160,7 @@ module TensorStream
               score += 4
             end
 
-            if d.platform.name == 'NVIDIA CUDA'
-              score += 1000
-            end
+            score += 1000 if d.platform.name == 'NVIDIA CUDA'
 
             score += d.max_compute_units
             score += d.max_clock_frequency
@@ -196,7 +191,7 @@ module TensorStream
       end
 
       def _cl_program(kernel, args = {})
-        suffix = args.collect { |k,v| "#{k}.#{v}"}.join('.')
+        suffix = args.collect { |k, v| "#{k}.#{v}" }.join('.')
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}:#{object_id}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           raise "opencl kernel template for #{kernel} has not yet been defined" if filename.nil?
@@ -236,7 +231,7 @@ module TensorStream
         res
       end
 
-      def eval_variable(tensor, child_context)
+      def eval_variable(tensor, _child_context)
         raise "variable #{tensor.name} not initalized" if tensor.value.nil? && (tensor.buffer.nil? || !tensor.buffer.dirty)
         tensor.buffer = wrap_opencl(tensor, name: tensor.name) if tensor.buffer.nil?
         tensor.buffer
@@ -522,8 +517,8 @@ module TensorStream
           input_a = read_final_result(complete_eval(a, context))
           input_b = read_final_result(complete_eval(b, context))
           b_a, b_b = broadcast(input_a, input_b)
-          [ wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
-            wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
+          [wrap_opencl(b_a, data_type: a.data_type, name: "#{tensor.name}_a"),
+           wrap_opencl(b_b, data_type: a.data_type, name: "#{tensor.name}_b")]
         end
       end
 
@@ -567,21 +562,19 @@ module TensorStream
 
         if a.is_a?(OutputGroup)
           a.outputs[index]
+        elsif a.is_a?(Array)
+          a[index]
         else
-          if a.is_a?(Array)
-            a[index]
-          else
-            new_shape = a.shape.dup
-            new_shape.shift
-            input_a = read_final_result(a)
-            convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
-          end
+          new_shape = a.shape.dup
+          new_shape.shift
+          input_a = read_final_result(a)
+          convert_to_opencl(input_a[index], new_shape, data_type: a.data_type, name: tensor.name)
         end
       end
 
       register_op :broadcast_gradient_args, buffer: true do |_context, tensor, inputs|
         rx, ry = get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a)
-        OutputGroup.new([wrap_opencl(rx, data_type: :int32, name: "#{tensor.name}"), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")])
+        OutputGroup.new([wrap_opencl(rx, data_type: :int32, name: tensor.name), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")])
       end
 
       register_op :shape do |_context, tensor, inputs|
@@ -592,14 +585,13 @@ module TensorStream
         arr = inputs[0]
         new_shape = read_final_result(inputs[1])
 
-        if new_shape.size.zero? && arr.buffer.size == 1
-          arr.shape = new_shape
-          arr
-        else
-          new_shape = TensorShape.fix_inferred_elements(new_shape, arr.buffer.size)
-          arr.shape = new_shape
-          arr
-        end
+        arr.shape = if new_shape.size.zero? && arr.buffer.size == 1
+                      new_shape
+                    else
+                      TensorShape.fix_inferred_elements(new_shape, arr.buffer.size)
+                    end
+
+        arr
       end
 
       register_op :flow_group do |_context, _tensor, inputs|
@@ -646,11 +638,10 @@ module TensorStream
       end
 
       def eval_operation(tensor, child_context)
-
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
-         # puts tensor.name
+        # puts tensor.name
         invoke(tensor, child_context).tap do |result|
           # puts "#{tensor.to_math(true,1)} = #{read_final_result(complete_eval(result, child_context))}"
           if tensor.breakpoint
@@ -698,7 +689,7 @@ module TensorStream
         # File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
 
         # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
-        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true,1)} defined at #{tensor.source}"
+        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       end
 
       def eval_tensor(tensor, child_context)
@@ -757,18 +748,19 @@ module TensorStream
         event_wait_list = [a.op, b.op].compact # add dependency wait list
 
         method_call = :"#{prog}_#{a.data_type}_#{b.data_type}"
+        prog_name ||= op_name
         event = if prog == "#{op_name}_b"
-          cl_m_b, cl_n_b = if b.shape.size == 2
-                             [OpenCL::Int1.new(b.shape[0]), OpenCL::Int1.new(b.shape[1])]
-                           elsif b.shape.size == 1
-                             [OpenCL::Int1.new(1), OpenCL::Int1.new(b.shape[0])]
-                           else
-                             raise "rank > 2 not supported!"
-                           end
-          _cl_program("#{prog_name || op_name}", a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        else
-          _cl_program("#{prog_name || op_name}", a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        end
+                  cl_m_b, cl_n_b = if b.shape.size == 2
+                                     [OpenCL::Int1.new(b.shape[0]), OpenCL::Int1.new(b.shape[1])]
+                                   elsif b.shape.size == 1
+                                     [OpenCL::Int1.new(1), OpenCL::Int1.new(b.shape[0])]
+                                   else
+                                     raise "rank > 2 not supported!"
+                                   end
+                  _cl_program(prog_name, a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+                else
+                  _cl_program(prog_name, a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+                end
 
         output_buffer.op = event
         output_buffer
