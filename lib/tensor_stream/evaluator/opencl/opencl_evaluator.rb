@@ -121,6 +121,27 @@ module TensorStream
         buffer
       end
 
+      def self.query_devices_with_score
+        OpenCL.platforms.flat_map do |p|
+
+          p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
+            score = 0
+            if d.type.to_s == 'CPU'
+              score += 1
+            elsif d.type.to_s == 'GPU'
+              score += 4
+            end
+
+            score += 1000 if d.platform.name == 'NVIDIA CUDA'
+
+            score += d.max_compute_units
+            score += d.max_clock_frequency
+
+            [d, score, p.name, index]
+          end
+        end
+      end
+
       protected
 
       def prepare_input(tensor, context, options = {})
@@ -147,27 +168,6 @@ module TensorStream
 
       def _create_opencl_context(opencl_device)
         @opencl_context = OpenCL.create_context(opencl_device)
-      end
-
-      def self.query_devices_with_score
-        OpenCL.platforms.flat_map do |p|
-
-          p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
-            score = 0
-            if d.type.to_s == 'CPU'
-              score += 1
-            elsif d.type.to_s == 'GPU'
-              score += 4
-            end
-
-            score += 1000 if d.platform.name == 'NVIDIA CUDA'
-
-            score += d.max_compute_units
-            score += d.max_clock_frequency
-
-            [d, score, p.name, index]
-          end
-        end
       end
 
       def create_command_queue
@@ -369,8 +369,15 @@ module TensorStream
         v = b.shape[0]
         k = a.shape[1]
 
-        m, k = [a.shape[1], a.shape[0]] if tensor.options[:transpose_a]
-        n, v = [b.shape[0], b.shape[1]] if tensor.options[:transpose_b]
+        if tensor.options[:transpose_a]
+          m = a.shape[1]
+          k = a.shape[0]
+        end
+
+        if tensor.options[:transpose_b]
+          n = b.shape[0]
+          v = b.shape[1]
+        end
 
         result_shape = [m, n]
 
