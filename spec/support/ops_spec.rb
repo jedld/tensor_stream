@@ -889,6 +889,27 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  supported_op ".gather" do
+    context "Gather slices from params axis axis according to indices." do
+      specify "scalars" do
+        param = tf.constant([1,2,3,4,5,6])
+        indexes = tf.constant([5,4,3,2,1,0])
+        f = tf.gather(param, indexes)
+        expect(sess.run(f)).to eq([6, 5, 4, 3, 2, 1])
+      end
+
+      specify "vectors" do
+        param = tf.constant([[1,2,3,4,5,6], [7,8,9,10,11,12]])
+        indexes = tf.constant([1])
+        f = tf.gather(param, indexes)
+        expect(sess.run(f)).to eq([[ 7, 8, 9, 10, 11, 12]])
+        ndexes = tf.constant([0,1])
+        f = tf.gather(param, indexes)
+        expect(sess.run(f)).to eq([[1,2,3,4,5,6], [7,8,9,10,11,12]])
+      end
+    end
+  end
+
   supported_op ".argmin" do
     it "Returns the index with the smallest value across axes of a tensor. " do
       a = tf.constant([
@@ -1475,7 +1496,7 @@ supported_op ".reduce_prod" do
     expect(sess.run(tf.reduce_prod(y, 1))).to eq([1.0, 1.0])
   end
 
-  xspecify "computes the gradients properly" do
+  specify "computes the gradients properly" do
     a = tf.constant([[1,2,3],[4,5,6]])
     op = tf.reduce_prod(a)
     expect(sess.run(tf.gradients(op,[a]))).to eq([[720, 360, 240],[180, 144, 120]])

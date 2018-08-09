@@ -221,15 +221,15 @@ module TensorStream
 
       register_op %i[floor_mod mod], no_eval: true do |context, _tensor, inputs|
         a, b = inputs
-        call_vector_op(:sub, a, b, context, ->(t, u) { t % u })
+        call_vector_op(:mod, a, b, context, ->(t, u) { t % u })
       end
 
-      register_op %i[floor_div real_div], no_eval: true do |context, tensor, inputs|
+      register_op %i[floor_div], no_eval: true do |context, tensor, inputs|
         a, b = inputs
         if fp_type?(tensor.data_type)
-          call_vector_op(:sub, a, b, context, ->(t, u) { (t / u).to_i.to_f })
+          call_vector_op(:div, a, b, context, ->(t, u) { (t / u).to_i.to_f })
         else
-          call_vector_op(:sub, a, b, context, ->(t, u) { t / u })
+          call_vector_op(:div, a, b, context, ->(t, u) { t / u })
         end
       end
 
@@ -622,7 +622,7 @@ module TensorStream
         get_rank(inputs[0])
       end
 
-      register_op :div, noop: true do |context, _tensor, inputs|
+      register_op %i[div real_div], noop: true do |context, _tensor, inputs|
         process_vector_math_op(inputs[0], inputs[1], context, ->(t, u) { t / u })
       end
 

@@ -105,6 +105,14 @@ module TensorStream
           gy = tf.reshape(tf.reduce_sum(grad * tf.negative(floor_xy), ry), sy)
 
           [gx, gy]
+        when :prod
+          input_shape = tf.shape(x)
+          reduction_indices = tf.reshape(y, [-1])
+          output_shape_kept_dims = tf.reduced_shape(input_shape, op.inputs[1])
+          tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
+          grad = tf.reshape(grad, output_shape_kept_dims)
+          grad = tf.tile(grad, tile_scaling)
+
         when :squared_difference
           sx = i_op(:shape, x)
           sy = i_op(:shape, y)
