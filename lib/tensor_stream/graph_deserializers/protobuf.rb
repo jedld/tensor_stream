@@ -23,15 +23,15 @@ module TensorStream
     end
 
     def parse_value(value_node)
-      if value_node['tensor']
-        evaluate_tensor_node(value_node['tensor'])
-      end
+      return unless value_node['tensor']
+
+      evaluate_tensor_node(value_node['tensor'])
     end
 
     def evaluate_tensor_node(node)
       if !node['shape'].empty? && node['tensor_content']
         content = node['tensor_content']
-        unpacked = eval(%Q{"#{content}"})
+        unpacked = eval(%Q("#{content}"))
 
         if node['dtype'] == 'DT_FLOAT'
           TensorShape.reshape(unpacked.unpack('f*'), node['shape'])
@@ -45,14 +45,14 @@ module TensorStream
       else
 
         val = if node['dtype'] == 'DT_FLOAT'
-          node['float_val'] ? node['float_val'].to_f : []
-        elsif node['dtype'] == 'DT_INT32'
-          node['int_val'] ? node['int_val'].to_i : []
-        elsif node['dtype'] == 'DT_STRING'
-          node['string_val']
-        else
-          raise "unknown dtype #{node['dtype']}"
-        end
+                node['float_val'] ? node['float_val'].to_f : []
+              elsif node['dtype'] == 'DT_INT32'
+                node['int_val'] ? node['int_val'].to_i : []
+              elsif node['dtype'] == 'DT_STRING'
+                node['string_val']
+              else
+                raise "unknown dtype #{node['dtype']}"
+              end
 
         if node['shape'] == [1]
           [val]
@@ -83,7 +83,7 @@ module TensorStream
       return {} if node['attributes'].nil?
 
       node['attributes'].map do |attribute|
-        attr_type, attr_value = attribute['value'].collect { |k, v| [k, v] }.flatten(1)
+        attr_type, attr_value = attribute['value'].flat_map { |k, v| [k, v] }
 
         if attr_type == 'tensor'
           attr_value = evaluate_tensor_node(attr_value)
@@ -103,11 +103,10 @@ module TensorStream
       block = []
       node = {}
       node_attr = {}
-      dim = []
       state = :top
 
       lines.each do |str|
-        case(state)
+        case state
         when :top
           node['type'] = parse_node_name(str)
           state = :node_context
@@ -177,7 +176,7 @@ module TensorStream
             next
           else
             key, value = str.split(':', 2)
-            node_attr['value'] << { key => value}
+            node_attr['value'] << { key => value }
           end
         when :tensor_context
           if str == 'tensor_shape {'
@@ -219,7 +218,7 @@ module TensorStream
             state = :shape_context
             next
           else
-            key, value = str.split(':', 2)
+            _key, value = str.split(':', 2)
             node_attr['value']['shape'] << value.strip.to_i
           end
         when :tensor_shape_dim_context
@@ -237,7 +236,7 @@ module TensorStream
     end
 
     def parse_node_name(str)
-      name = str.split(' ')[0]
+      str.split(' ')[0]
     end
 
     def process_value(value)
@@ -253,19 +252,19 @@ module TensorStream
       'n' => "\x0a", 'v' => "\x0b", 'f' => "\x0c",
       'r' => "\x0d", 'e' => "\x1b", "\\\\" => "\x5c",
       "\"" => "\x22", "'" => "\x27"
-    }
+    }.freeze
 
     def unescape(str)
       # Escape all the things
-      str.gsub(/\\(?:([#{UNESCAPES.keys.join}])|u([\da-fA-F]{4}))|\\0?x([\da-fA-F]{2})/) {
+      str.gsub(/\\(?:([#{UNESCAPES.keys.join}])|u([\da-fA-F]{4}))|\\0?x([\da-fA-F]{2})/) do
         if $1
           $1 == '\\' ? '\\' : UNESCAPES[$1]
         elsif $2 # escape \u0000 unicode
-          ["#$2".hex].pack('U*')
+          ["#{$2}".hex].pack('U*')
         elsif $3 # escape \0xff or \xff
           [$3].pack('H2')
         end
-      }
+      end
     end
   end
 end

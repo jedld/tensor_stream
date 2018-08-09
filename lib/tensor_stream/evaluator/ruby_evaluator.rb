@@ -800,12 +800,6 @@ module TensorStream
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         invoke(tensor, child_context).tap do |result|
-          # puts tensor.name
-          # if tensor.name.start_with?('softmax_cross_entropy_with_logits')
-          #   puts result.inspect
-          # end
-          # result.flatten.each do |a|
-          # end if result.is_a?(Array)
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
             b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
@@ -826,9 +820,9 @@ module TensorStream
           @context[tensor.name] = result
         end
       rescue EvaluatorExcecutionException => e
-        raise e
+        raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       rescue TensorStreamError => e
-        raise e
+        raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       rescue StandardError => e
         # a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
         # b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]

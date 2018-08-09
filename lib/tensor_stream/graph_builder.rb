@@ -36,9 +36,8 @@ module TensorStream
           TensorStream::Placeholder.new(options[:dtype] || options[:T], nil, shape, options)
         else
           op = underscore(node['op']).to_sym
-          unless TensorStream::Evaluator::RubyEvaluator.ops.keys.include?(op)
-            puts "warning unsupported op #{op}"
-          end
+          puts "warning unsupported op #{op}" unless TensorStream::Evaluator::RubyEvaluator.ops.key?(op)
+
           # map input tensor
           inputs = node['input'].map do |input|
             input[0] = '' if input.start_with?('^')

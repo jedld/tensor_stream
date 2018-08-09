@@ -6,13 +6,12 @@ module TensorStream
         target_graph = graph || TensorStream.get_default_graph
         raise TensorStream::ValueError, '"global_step" already exists.' unless get_global_step(target_graph).nil?
 
-        TensorStream.variable_scope.get_variable(
-          TensorStream::GraphKeys::GLOBAL_STEP, shape: [],
-                                                dtype: :int64,
-                                                initializer: TensorStream.zeros_initializer,
-                                                trainable: false,
-                                                collections: [TensorStream::GraphKeys::GLOBAL_VARIABLES,
-                                                              TensorStream::GraphKeys::GLOBAL_STEP])
+        TensorStream.variable_scope.get_variable(TensorStream::GraphKeys::GLOBAL_STEP, shape: [],
+                                                                                       dtype: :int64,
+                                                                                       initializer: TensorStream.zeros_initializer,
+                                                                                       trainable: false,
+                                                                                       collections: [TensorStream::GraphKeys::GLOBAL_VARIABLES,
+                                                                                                     TensorStream::GraphKeys::GLOBAL_STEP])
       end
 
       def get_global_step(graph = nil)

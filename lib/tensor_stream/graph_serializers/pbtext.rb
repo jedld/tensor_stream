@@ -47,11 +47,11 @@ module TensorStream
         @lines << "  attr {"
         @lines << "    key: \"#{k}\""
         @lines << "    value {"
-        if (v.is_a?(TrueClass) || v.is_a?(FalseClass))
-          @lines << "      b: #{v.to_s}"
-        elsif (v.is_a?(Integer))
+        if v.is_a?(TrueClass) || v.is_a?(FalseClass)
+          @lines << "      b: #{v}"
+        elsif v.is_a?(Integer)
           @lines << "      int_val: #{v}"
-        elsif (v.is_a?(Float))
+        elsif v.is_a?(Float)
           @lines << "      float_val: #{v}"
         end
         @lines << "    }"
@@ -60,21 +60,23 @@ module TensorStream
     end
 
     def pack_arr_float(float_arr)
-      float_arr.flatten.pack('f*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
+      float_arr.flatten.pack('f*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr }.join
     end
 
     def pack_arr_int(int_arr)
-      int_arr.flatten.pack('l*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr  }.join
+      int_arr.flatten.pack('l*').bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr }.join
     end
 
     def shape_buf(tensor, shape_type = 'tensor_shape')
       arr = []
       arr << "  #{shape_type} {"
-      tensor.shape.shape.each do |dim|
-        arr << "    dim {"
-        arr << "      size: #{dim}"
-        arr << "    }"
-      end if tensor.shape.shape
+      if tensor.shape.shape
+        tensor.shape.shape.each do |dim|
+          arr << "    dim {"
+          arr << "      size: #{dim}"
+          arr << "    }"
+        end
+      end
       arr << "  }"
       arr
     end
@@ -102,14 +104,14 @@ module TensorStream
         end
       else
         val_type = if TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
-          "int_val"
-        elsif TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
-          "float_val"
-        elsif tensor.data_type == :string
-          "string_val"
-        else
-          "val"
-        end
+                     "int_val"
+                   elsif TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
+                     "float_val"
+                   elsif tensor.data_type == :string
+                     "string_val"
+                   else
+                     "val"
+                   end
         arr << "  #{val_type}: #{tensor.value.to_json}"
       end
       arr << "}"
