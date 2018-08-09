@@ -746,9 +746,39 @@ RSpec.shared_examples "standard ops evaluator" do
       tf.program do |tf|
         x = tf.constant([[1, 2, 3], [4, 5, 6]])
         t = tf.transpose(x)
-
         expect(sess.run(t)).to eq([[1, 4], [2, 5], [3, 6]])
       end
+    end
+
+    specify "perm" do
+      x = tf.constant([[1, 2, 3], [4, 5, 6]])
+      t = tf.transpose(x, perm: [0, 1])
+      expect(sess.run(t)).to eq([[1, 2, 3], [4, 5, 6]])
+    end
+
+    specify "multidimensional" do
+      x = tf.constant([[[ 1,  2,  3],[ 4,  5,  6]],[[ 7,  8,  9],[10, 11, 12]]])
+      op = tf.transpose(x)
+      expect(sess.run(op)).to eq([[[ 1,  7],
+        [ 4, 10]],
+       [[ 2,  8],
+        [ 5, 11]],
+       [[ 3,  9],
+        [ 6, 12]]])
+
+      op = tf.transpose(x, perm: [0, 2, 1])
+      expect(sess.run(op)).to eq([[[ 1,  4],
+        [ 2,  5],
+        [ 3,  6]],
+       [[ 7, 10],
+        [ 8, 11],
+        [ 9, 12]]])
+
+      op = tf.transpose(x, perm: [0, 1, 2])
+      expect(sess.run(op)).to eq([[[ 1,  2,  3],
+        [ 4,  5,  6]],
+       [[ 7,  8,  9],
+        [10, 11, 12]]])
     end
   end
 
@@ -903,10 +933,27 @@ RSpec.shared_examples "standard ops evaluator" do
         indexes = tf.constant([1])
         f = tf.gather(param, indexes)
         expect(sess.run(f)).to eq([[ 7, 8, 9, 10, 11, 12]])
-        ndexes = tf.constant([0,1])
+        indexes = tf.constant([0,1])
         f = tf.gather(param, indexes)
         expect(sess.run(f)).to eq([[1,2,3,4,5,6], [7,8,9,10,11,12]])
       end
+
+      specify "matrices" do
+        param = tf.constant([[1, 2, 3], [ 4, 5, 6], [7, 8, 9]])
+        indexes = tf.constant([ [1, 2]])
+        f = tf.gather(param, indexes)
+      end
+    end
+  end
+
+  supported_op ".setdiff1d" do
+    specify do
+      x = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+      y = tf.constant([1.0, 3.0, 5.0])
+      out, idx = tf.setdiff1d(x, y)
+      expect(sess.run(out, idx)).to eq([[2.0, 4.0, 6.0], [1, 3, 5]])
+      out, idx = tf.setdiff1d(x, y, index_dtype: :float32)
+      expect(sess.run(out, idx)).to eql([[2.0, 4.0, 6.0], [1.0, 3.0, 5.0]])
     end
   end
 
@@ -1478,7 +1525,7 @@ supported_op ".squared_difference" do
   end
 end
 
-supported_op ".reduce_prod" do
+supported_op ".prod" do
   it "computes the sum of elements across dimensions of a tensor." do
     x = tf.constant([[2, 1, 2], [2, 1, 2]])
     expect(sess.run(tf.reduce_prod(x))).to eq(16)
@@ -1488,7 +1535,7 @@ supported_op ".reduce_prod" do
     expect(sess.run(tf.reduce_prod(x, [0, 1]))).to eq(16)
   end
 
-  xit "reduceing an empty array" do #fails for opencl
+  it "reduceing an empty array" do #fails for opencl
     x = tf.constant([])
     y = tf.constant([[], []])
     expect(sess.run(tf.reduce_prod(x))).to eq(1.0)
@@ -1500,6 +1547,35 @@ supported_op ".reduce_prod" do
     a = tf.constant([[1,2,3],[4,5,6]])
     op = tf.reduce_prod(a)
     expect(sess.run(tf.gradients(op,[a]))).to eq([[720, 360, 240],[180, 144, 120]])
+  end
+end
+
+supported_op ".cumprod" do
+  let(:x) { tf.constant([2, 3, 4, 5, 6]) }
+
+  specify do
+    op = tf.cumprod(x)
+    expect(sess.run(op)).to eq([2, 6, 24, 120, 720])
+  end
+
+  specify "reverse" do
+    op = tf.cumprod(x, reverse: true)
+    expect(sess.run(op)).to eq([720, 360, 120, 30, 6])
+  end
+
+  specify "exclusive" do
+    op = tf.cumprod(x, exclusive: true)
+    expect(sess.run(op)).to eq([1, 2, 6, 24, 120])
+    op = tf.cumprod(x, exclusive: true, reverse: true)
+    expect(sess.run(op)).to eq([360, 120, 30, 6, 1])
+  end
+end
+
+supported_op ".invert_permutation" do
+  specify do
+    x = tf.constant([3, 4, 0, 2, 1])
+    op = tf.invert_permutation(x)
+    expect(sess.run(op)).to eq([2, 4, 3, 0, 1])
   end
 end
 

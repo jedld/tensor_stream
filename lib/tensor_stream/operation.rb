@@ -240,6 +240,7 @@ module TensorStream
       when :reshape
         new_shape = inputs[1] && inputs[1].value ? inputs[1].value : nil
         return nil if new_shape.nil?
+        return nil if inputs[0].shape.nil?
 
         input_shape = inputs[0].shape.shape
         return new_shape if input_shape.nil?

@@ -612,5 +612,27 @@ module TensorStream
       op_result = _op(:broadcast_gradient_args, shape_a, shape_b, name: name)
       [op_result[0], op_result[1]]
     end
+
+    ##
+    # Gather slices from params and axis according to indices.
+    #
+    def gather(params, indices, validate_indices: nil,
+                                name: nil,
+                                axis: 0)
+      _op(:gather, params, indices, validate_indices: validate_indices, name: name, axis: axis)
+    end
+
+    def setdiff1d(x, y, index_dtype: :int32, name: nil)
+      result = _op(:setdiff1d, x, y, index_dtype: index_dtype, name: name)
+      [result[0], result[1]]
+    end
+
+    def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)
+      _op(:cumprod, x, axis: axis, exclusive: exclusive, reverse: reverse, name: name)
+    end
+
+    def invert_permutation(x, name: nil)
+      _op(:invert_permutation, x, name: name)
+    end
   end
 end

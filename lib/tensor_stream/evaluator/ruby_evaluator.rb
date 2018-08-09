@@ -186,6 +186,58 @@ module TensorStream
         merged
       end
 
+      register_op :gather do |context, tensor, inputs|
+        params, indexes = inputs
+        gather(params, indexes)
+      end
+
+      register_op :setdiff1d do |context, tensor, inputs|
+        input, remove = inputs
+        idx = []
+        out = []
+        input.each_with_index do |x, index|
+          next if remove.include?(x)
+          out << x
+          idx << index
+        end
+        idx = idx.map { |i| Tensor.cast_dtype(i, tensor.options[:index_dtype]) } unless tensor.options[:index_dtype] == :int32
+        OutputGroup.new([out, idx])
+      end
+
+      register_op :cumprod do |context, tensor, inputs|
+        x = inputs[0]
+        c = fp_type?(tensor.data_type) ? 1.0 : 1
+        reverse_option = tensor.options[:reverse]
+        exclusive = tensor.options[:exclusive]
+
+        func = lambda do |arr|
+          return c if arr.nil?
+          count = arr.size
+
+
+          arr = arr.reverse if reverse_option
+          arr = [1] + arr if exclusive
+
+          start_prod = arr[0]
+          mapped = arr[1...count].map do |v|
+            start_prod = vector_op(start_prod, v, ->(a, b) { a * b })
+          end
+
+          arr = [arr[0]] + mapped
+          reverse_option ? arr.reverse : arr
+        end
+        reduction(context, tensor, func)
+      end
+
+      register_op :invert_permutation do |context, tensor, inputs|
+        input = inputs[0]
+        output = input.dup
+        input.size.times.each do |index|
+          output[input[index]] = index
+        end
+        output
+      end
+
       register_op :size do |_context, tensor, inputs|
         input = inputs[0]
         Tensor.cast_dtype(input.flatten.size, tensor.options[:out_type])

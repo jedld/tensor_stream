@@ -205,5 +205,15 @@ module TensorStream
         end
       end
     end
+
+    def gather(params, indexes)
+      indexes.collect do |index|
+        if index.is_a?(Array)
+          gather(params, index)
+        else
+          params[index]
+        end
+      end
+    end
   end
 end
