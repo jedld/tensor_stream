@@ -47,11 +47,11 @@ module TensorStream
         @lines << "  attr {"
         @lines << "    key: \"#{k}\""
         @lines << "    value {"
-        if (v.is_a?(TrueClass) || v.is_a?(FalseClass))
-          @lines << "      b: #{v.to_s}"
-        elsif (v.is_a?(Integer))
+        if v.is_a?(TrueClass) || v.is_a?(FalseClass)
+          @lines << "      b: #{v}"
+        elsif v.is_a?(Integer)
           @lines << "      int_val: #{v}"
-        elsif (v.is_a?(Float))
+        elsif v.is_a?(Float)
           @lines << "      float_val: #{v}"
         end
         @lines << "    }"

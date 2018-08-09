@@ -189,7 +189,7 @@ module TensorStream
           input_buf << "</node>"
         end
 
-        if !add_to_group(groups, input.name, input_buf)
+        unless add_to_group(groups, input.name, input_buf)
           if input.is_a?(Variable)
             add_to_group(groups, "variable/#{input.name}", input_buf)
           else
@@ -205,7 +205,7 @@ module TensorStream
     end
 
     def _gml_string(str)
-      str.gsub('/','-')
+      str.tr('/', '-')
     end
 
     def output_edge(input, tensor, arr_buf, index = 0)
@@ -215,22 +215,20 @@ module TensorStream
 
       arr_buf << "<y:PolyLineEdge>"
       arr_buf << "<y:EdgeLabel >"
-      if !@last_session_context.empty?
-        arr_buf << "<![CDATA[  #{_val(input)}  ]]>"
-      else
-        if input.shape.shape.nil?
-          arr_buf << "<![CDATA[ #{input.data_type.to_s} ? ]]>"
-        else
-          arr_buf << "<![CDATA[ #{input.data_type.to_s} #{input.shape.shape.empty? ? 'scalar' : input.shape.shape.to_json}  ]]>"
-        end
-      end
+      arr_buf << if !@last_session_context.empty?
+                   "<![CDATA[  #{_val(input)}  ]]>"
+                 elsif input.shape.shape.nil?
+                   "<![CDATA[ #{input.data_type} ? ]]>"
+                 else
+                   "<![CDATA[ #{input.data_type} #{input.shape.shape.empty? ? 'scalar' : input.shape.shape.to_json}  ]]>"
+                 end
       arr_buf << "</y:EdgeLabel >"
       arr_buf << "<y:Arrows source=\"none\" target=\"standard\"/>"
-      if index == 0
-        arr_buf << "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
-      else
-        arr_buf << "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
-      end
+      arr_buf << if index.zero?
+                  "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
+                 else
+                   "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
+                 end
       arr_buf << "</y:PolyLineEdge>"
       arr_buf << "</data>"
       arr_buf << "</edge>"
