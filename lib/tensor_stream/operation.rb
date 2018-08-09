@@ -204,7 +204,7 @@ module TensorStream
               "#{operation}(#{sub_input})" if sub_input
               "#{operation}(#{sub_input}, #{sub_input2})" if sub_input && sub_input2
             end
-      ["\n",(_cur_depth + 1).times.collect { ' ' }, out].flatten.join
+      ["\n", Array.new(_cur_depth + 1) { ' ' }, out].flatten.join
     end
 
     def run

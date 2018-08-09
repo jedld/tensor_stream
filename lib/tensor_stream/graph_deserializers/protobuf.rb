@@ -23,9 +23,9 @@ module TensorStream
     end
 
     def parse_value(value_node)
-      if value_node['tensor']
-        evaluate_tensor_node(value_node['tensor'])
-      end
+      return unless value_node['tensor']
+
+      evaluate_tensor_node(value_node['tensor'])
     end
 
     def evaluate_tensor_node(node)
@@ -83,7 +83,7 @@ module TensorStream
       return {} if node['attributes'].nil?
 
       node['attributes'].map do |attribute|
-        attr_type, attr_value = attribute['value'].collect { |k, v| [k, v] }.flatten(1)
+        attr_type, attr_value = attribute['value'].flat_map { |k, v| [k, v] }
 
         if attr_type == 'tensor'
           attr_value = evaluate_tensor_node(attr_value)
@@ -107,7 +107,7 @@ module TensorStream
       state = :top
 
       lines.each do |str|
-        case(state)
+        case state
         when :top
           node['type'] = parse_node_name(str)
           state = :node_context
@@ -177,7 +177,7 @@ module TensorStream
             next
           else
             key, value = str.split(':', 2)
-            node_attr['value'] << { key => value}
+            node_attr['value'] << { key => value }
           end
         when :tensor_context
           if str == 'tensor_shape {'
@@ -257,7 +257,7 @@ module TensorStream
 
     def unescape(str)
       # Escape all the things
-      str.gsub(/\\(?:([#{UNESCAPES.keys.join}])|u([\da-fA-F]{4}))|\\0?x([\da-fA-F]{2})/) {
+      str.gsub(/\\(?:([#{UNESCAPES.keys.join}])|u([\da-fA-F]{4}))|\\0?x([\da-fA-F]{2})/) do
         if $1
           $1 == '\\' ? '\\' : UNESCAPES[$1]
         elsif $2 # escape \u0000 unicode
@@ -265,7 +265,7 @@ module TensorStream
         elsif $3 # escape \0xff or \xff
           [$3].pack('H2')
         end
-      }
+      end
     end
   end
 end

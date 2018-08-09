@@ -54,14 +54,14 @@ module TensorStream
         trainable: trainable
       }
       tensor = if value.is_a?(String)
-        TensorStream::Variable.new(dtype || :string, 0, [], get_variable_scope, common_options)
-      elsif value.is_a?(Integer)
-        TensorStream::Variable.new(dtype || :int32, 0, [], get_variable_scope, common_options)
-      elsif value.is_a?(Float)
-        TensorStream::Variable.new(dtype || :float32, 0, [], get_variable_scope, common_options)
-      else
-        TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
-      end
+                 TensorStream::Variable.new(dtype || :string, 0, [], get_variable_scope, common_options)
+               elsif value.is_a?(Integer)
+                 TensorStream::Variable.new(dtype || :int32, 0, [], get_variable_scope, common_options)
+               elsif value.is_a?(Float)
+                 TensorStream::Variable.new(dtype || :float32, 0, [], get_variable_scope, common_options)
+               else
+                 TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
+               end
       op.inputs[0] = tensor
       tensor
     end
@@ -115,8 +115,8 @@ module TensorStream
       session
     end
 
-    def program(&block)
-      block.call(self)
+    def program
+      yield self
     end
 
     def layers

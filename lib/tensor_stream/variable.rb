@@ -14,10 +14,9 @@ module TensorStream
       scope_name = variable_scope ? variable_scope.name : nil
       variable_scope_initializer = variable_scope ? variable_scope.initializer : nil
       @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join('/')
-      @initalizer_tensor = options[:initializer] ? options[:initializer] : variable_scope_initializer || TensorStream.glorot_uniform_initializer
-      if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
-        shape = @initalizer_tensor.shape.shape
-      end
+      @initalizer_tensor = options[:initializer] || variable_scope_initializer || TensorStream.glorot_uniform_initializer
+      shape = @initalizer_tensor.shape.shape if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
+
       @shape = TensorShape.new(shape, rank)
       @trainable = options.fetch(:trainable, true)
       @graph.add_variable(self, options)
@@ -40,10 +39,7 @@ module TensorStream
     end
 
     def read_value
-      if buffer
-        @value = buffer.to_ruby
-      end
-
+      @value = buffer.to_ruby if buffer
       @value
     end
 
