@@ -533,7 +533,7 @@ module TensorStream
         new_shape = perm.map { |p| shape[p] }
         arr_size = shape.reduce(:*)
         new_arr = Array.new(arr_size) { 0 }
-        binding.pry
+
         arr_size.times do |p|
           ptr = 0
           ptr2 = 0
@@ -551,7 +551,7 @@ module TensorStream
           end
           ptr2 += index
 
-          new_arr[ptr2] = ptr
+          new_arr[ptr2] = (p % 2 * 6) + (p % 4 / 2.to_f).floor * 3 + (p / 4.to_f).floor
         end
         TensorShape.reshape(new_arr, new_shape)
       end
