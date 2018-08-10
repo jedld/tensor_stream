@@ -759,12 +759,11 @@ RSpec.shared_examples "standard ops evaluator" do
     specify "multidimensional" do
       x = tf.constant([[[ 1,  2,  3],[ 4,  5,  6]],[[ 7,  8,  9],[10, 11, 12]]])
       op = tf.transpose(x)
-      expect(sess.run(op)).to eq([[[ 1,  7],
-        [ 4, 10]],
-       [[ 2,  8],
-        [ 5, 11]],
-       [[ 3,  9],
-        [ 6, 12]]])
+      expect(sess.run(op)).to eq([
+        [[ 1,  7],[ 4, 10]],
+        [[ 2,  8],[ 5, 11]],
+        [[ 3,  9],[ 6, 12]]
+      ])
 
       op = tf.transpose(x, perm: [0, 2, 1])
       expect(sess.run(op)).to eq([[[ 1,  4],

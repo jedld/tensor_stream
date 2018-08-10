@@ -525,8 +525,35 @@ module TensorStream
         call_op(:tanh_grad, inputs[0], context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
       end
 
-      register_op :transpose do |_context, _tensor, inputs|
-        inputs[0].transpose
+      register_op :transpose do |_context, tensor, inputs|
+        arr = inputs[0].flatten
+        shape = shape_eval(inputs[0])
+        rank = get_rank(inputs[0])
+        perm = tensor.options[:perm] || (0...rank).to_a.reverse
+        new_shape = perm.map { |p| shape[p] }
+        arr_size = shape.reduce(:*)
+        new_arr = Array.new(arr_size) { 0 }
+        binding.pry
+        arr_size.times do |p|
+          ptr = 0
+          ptr2 = 0
+          index = p
+
+          shape[0..shape.size - 1].each do |s|
+            ptr += (s / (index + 1) * s) * index
+            index = index % s
+          end
+
+          index = p
+          new_shape[0..new_shape.size-1].each do |s|
+            ptr2 += (index / s) * s
+            index = index % s
+          end
+          ptr2 += index
+
+          new_arr[ptr2] = ptr
+        end
+        TensorShape.reshape(new_arr, new_shape)
       end
 
       register_op :eye do |_context, tensor, inputs|
