@@ -266,6 +266,7 @@ module TensorStream
         perm = inputs[1] || (0...rank).to_a.reverse
         return perm.map { |p| inputs[0].shape.shape[p] }
       else
+        return nil if inputs[0].nil?
         return inputs[0].shape.shape if inputs.size == 1
         return TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape) if inputs.size == 2 && inputs[0] && inputs[1]
       end

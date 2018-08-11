@@ -767,6 +767,13 @@ RSpec.shared_examples "standard ops evaluator" do
       op = tf.transpose(x, [0, 1, 2])
       expect(sess.run(op)).to eq([[[ 0,  1,  2], [ 3,  4,  5]],[[ 6,  7,  8],[ 9, 10, 11]]])
     end
+
+    specify "gradients" do
+      x = tf.constant([[1, 2, 3], [4, 5, 6]])
+      t = tf.transpose(x)
+      g = tf.gradients(t, [x])
+      expect(sess.run(g)).to eq([[[1, 1, 1], [1, 1, 1]]])
+    end
   end
 
   supported_op ".zeros" do
@@ -1299,6 +1306,7 @@ RSpec.shared_examples "standard ops evaluator" do
     [
       [:asin, 0.2014,   [[0.5236, 0.1002], [0.1002, 0.3047]],  1.0206, [[1.1547, 1.005], [1.005, 1.0483]]                      ],
       [:acos, 1.3694,   [[1.0472, 1.4706], [1.4706, 1.2661]],  -1.0206, [[-1.1547, -1.005], [-1.005, -1.0483]]                     ],
+      [:atan,  0.1974,  [[0.4636, 0.0997], [0.0997, 0.2915]],  0.9615, [[0.8, 0.9901], [0.9901, 0.9174]]                     ],
     ].each do |func, scalar, matrix, gradient, gradient2|
       supported_op ".#{func}" do
         let(:x) { tf.constant(0.2) }

@@ -319,6 +319,13 @@ module TensorStream
     end
 
     ##
+    # Computes atan of input element-wise
+    def atan(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:atan, input, name: name)
+    end
+
+    ##
     # Returns x - y element-wise.
     #
     # This operation supports boradcasting

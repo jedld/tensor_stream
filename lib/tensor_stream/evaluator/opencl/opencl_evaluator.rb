@@ -875,6 +875,8 @@ module TensorStream
                                  allocate_narray_for_type(data_type, narray_size)
                                end
 
+                      return nil if buffer.nil?
+
                       cl_buffer_size = shape.empty? ? 1 : shape.reduce(:*)
 
                       cl_buffer = unless value.flatten.empty?
@@ -920,6 +922,8 @@ module TensorStream
           NArray.sint(narray_size)
         when :boolean
           NArray.sint(narray_size)
+        when :unknown
+          nil
         else
           raise "unsupported type #{data_type}"
         end

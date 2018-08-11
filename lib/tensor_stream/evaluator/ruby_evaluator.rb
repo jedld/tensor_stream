@@ -229,12 +229,12 @@ module TensorStream
         reduction(context, tensor, func)
       end
 
-      register_op :invert_permutation do |context, tensor, inputs|
+      register_op :invert_permutation do |_context, _tensor, inputs|
         input = inputs[0]
         output = input.dup
         input.size.times.each do |index|
           output[input[index]] = index
-        end
+        end unless input.nil?
         output
       end
 
@@ -318,6 +318,10 @@ module TensorStream
 
       register_op :tan, no_eval: true do |context, _tensor, inputs|
         call_op(:tan, inputs[0], context, ->(t, _b) { Math.tan(t) })
+      end
+
+      register_op :atan, no_eval: true do |context, _tensor, inputs|
+        call_op(:atan, inputs[0], context, ->(t, _b) { Math.atan(t) })
       end
 
       register_op :sec, no_eval: true do |context, _tensor, inputs|
