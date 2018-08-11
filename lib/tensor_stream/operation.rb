@@ -258,6 +258,13 @@ module TensorStream
         shape1 = inputs[0].shape.shape.nil? ? nil : inputs[0].shape.shape[0]
         shape2 = inputs[1].shape.shape.nil? ? nil : inputs[1].shape.shape[1]
         return [shape1, shape2]
+      when :transpose
+        return nil if inputs[0].shape.shape.nil?
+        return nil if options[:perm].is_a?(Tensor)
+
+        rank = inputs[0].shape.shape.size
+        perm = options[:perm] || (0...rank).to_a.reverse
+        return perm.map { |p| inputs[0].shape.shape[p] }
       else
         return inputs[0].shape.shape if inputs.size == 1
         return TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape) if inputs.size == 2 && inputs[0] && inputs[1]

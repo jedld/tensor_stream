@@ -215,5 +215,38 @@ module TensorStream
         end
       end
     end
+
+    # general case transposition with flat arrays
+    def transpose_with_perm(arr, new_arr, shape, new_shape, perm)
+      arr_size = shape.reduce(:*)
+      divisors = shape.dup.drop(1).reverse.inject([1]) do |a, s|
+        a << s * a.reduce(:*)
+      end.reverse
+
+      multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+        a << s * a.reduce(:*)
+      end.reverse
+
+      arr_size.times do |p|
+        ptr = p
+        index = []
+        divisors.each_with_object(index) do |div, a|
+          a << (ptr / div.to_f).floor
+          ptr = ptr % div
+        end
+
+        # remap based on perm
+        remaped = perm.map { |x| index[x] }
+
+        ptr2 = 0
+        multipliers.each_with_index do |m, idx|
+          ptr2 += remaped[idx] * m
+        end
+
+        new_arr[ptr2] = arr[p]
+      end
+
+      [new_arr, new_shape]
+    end
   end
 end

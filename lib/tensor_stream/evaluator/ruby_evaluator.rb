@@ -526,34 +526,18 @@ module TensorStream
       end
 
       register_op :transpose do |_context, tensor, inputs|
-        arr = inputs[0].flatten
         shape = shape_eval(inputs[0])
         rank = get_rank(inputs[0])
-        perm = tensor.options[:perm] || (0...rank).to_a.reverse
-        new_shape = perm.map { |p| shape[p] }
-        arr_size = shape.reduce(:*)
-        new_arr = Array.new(arr_size) { 0 }
-
-        arr_size.times do |p|
-          ptr = 0
-          ptr2 = 0
-          index = p
-
-          shape[0..shape.size - 1].each do |s|
-            ptr += (s / (index + 1) * s) * index
-            index = index % s
-          end
-
-          index = p
-          new_shape[0..new_shape.size-1].each do |s|
-            ptr2 += (index / s) * s
-            index = index % s
-          end
-          ptr2 += index
-
-          new_arr[ptr2] = (p % 2 * 6) + (p % 4 / 2.to_f).floor * 3 + (p / 4.to_f).floor
+        if rank == 2 && tensor.options[:perm].nil? # use native transpose for general case
+          inputs[0].transpose
+        else
+          arr = inputs[0].flatten
+          perm = tensor.options[:perm] || (0...rank).to_a.reverse
+          new_shape = perm.map { |p| shape[p] }
+          new_arr = Array.new(shape.reduce(:*)) { 0 }
+          transpose_with_perm(arr, new_arr, shape, new_shape, perm)
+          TensorShape.reshape(new_arr, new_shape)
         end
-        TensorShape.reshape(new_arr, new_shape)
       end
 
       register_op :eye do |_context, tensor, inputs|

@@ -559,8 +559,21 @@ module TensorStream
 
       register_op :transpose, buffer: true do |_context, tensor, inputs|
         t_param = Array.new(inputs[0].shape.size) { |index| index }.reverse
-        transposed = inputs[0].buffer.reshape(*inputs[0].shape.reverse).transpose(*t_param)
-        convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
+        if inputs[0].shape.size == 2 && tensor.options[:perm].nil?
+          transposed = inputs[0].buffer.reshape(*inputs[0].shape.reverse).transpose(*t_param)
+          convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
+        else
+          rank = inputs[0].shape.size
+          perm = tensor.options[:perm] || (0...rank).to_a.reverse
+          new_shape = perm.map { |p| inputs[0].shape[p] }
+
+          output_buffer = _create_result_buffer(tensor.data_type, new_shape, tensor.name)
+          transpose_with_perm(inputs[0].buffer, output_buffer.buffer, inputs[0].shape, new_shape, perm)
+
+          write_op = _opencl_queue.enqueue_write_buffer(output_buffer.cl_buffer, output_buffer.buffer)
+          output_buffer.op = write_op
+          output_buffer
+        end
       end
 
       register_op :index, noop: true do |context, tensor, inputs|
