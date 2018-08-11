@@ -528,11 +528,12 @@ module TensorStream
       register_op :transpose do |_context, tensor, inputs|
         shape = shape_eval(inputs[0])
         rank = get_rank(inputs[0])
-        if rank == 2 && tensor.options[:perm].nil? # use native transpose for general case
+        perm = inputs[1] || (0...rank).to_a.reverse
+        if rank == 2 && perm.nil? # use native transpose for general case
           inputs[0].transpose
         else
           arr = inputs[0].flatten
-          perm = tensor.options[:perm] || (0...rank).to_a.reverse
+
           new_shape = perm.map { |p| shape[p] }
           new_arr = Array.new(shape.reduce(:*)) { 0 }
           transpose_with_perm(arr, new_arr, shape, new_shape, perm)
@@ -733,7 +734,6 @@ module TensorStream
       register_op :tile do |_context, _tensor, inputs|
         input, multiples = inputs
         rank = get_rank(input)
-
         raise '1D or higher tensor required' if rank.zero?
         raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
 
@@ -863,6 +863,8 @@ module TensorStream
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         invoke(tensor, child_context).tap do |result|
+          # puts "ruby: #{tensor.name}"
+
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
             b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
@@ -887,16 +889,17 @@ module TensorStream
       rescue TensorStreamError => e
         raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       rescue StandardError => e
-        # a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-        # b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
+
+        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         puts e.message
         puts e.backtrace.join("\n")
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
         # dtype_b = b.data_type if b
-        # a = complete_eval(a, child_context)
-        # b = complete_eval(b, child_context)
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a

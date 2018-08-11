@@ -559,14 +559,15 @@ module TensorStream
 
       register_op :transpose, buffer: true do |_context, tensor, inputs|
         t_param = Array.new(inputs[0].shape.size) { |index| index }.reverse
-        if inputs[0].shape.size == 2 && tensor.options[:perm].nil?
+
+        if inputs[0].shape.size == 2 && inputs[1].nil?
           transposed = inputs[0].buffer.reshape(*inputs[0].shape.reverse).transpose(*t_param)
-          convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
+          res = convert_to_opencl(transposed.flatten, transposed.shape.reverse, data_type: inputs[0].data_type, name: tensor.name)
+          res
         else
           rank = inputs[0].shape.size
-          perm = tensor.options[:perm] || (0...rank).to_a.reverse
-          new_shape = perm.map { |p| inputs[0].shape[p] }
-
+          perm = inputs[1].nil? ? (0...rank).to_a.reverse : inputs[1].buffer
+          new_shape = perm.map { |p| inputs[0].shape[p] }.to_a
           output_buffer = _create_result_buffer(tensor.data_type, new_shape, tensor.name)
           transpose_with_perm(inputs[0].buffer, output_buffer.buffer, inputs[0].shape, new_shape, perm)
 
@@ -601,17 +602,17 @@ module TensorStream
         wrap_opencl(inputs[0].shape, name: tensor.name, data_type: tensor.data_type)
       end
 
-      register_op :reshape, buffer: true do |_context, _tensor, inputs|
+      register_op :reshape, buffer: true do |_context, tensor, inputs|
         arr = inputs[0]
         new_shape = read_final_result(inputs[1])
 
-        arr.shape = if new_shape.size.zero? && arr.buffer.size == 1
-                      new_shape
-                    else
-                      TensorShape.fix_inferred_elements(new_shape, arr.buffer.size)
-                    end
+        shape = if new_shape.size.zero? && arr.buffer.size == 1
+                  new_shape
+                else
+                  TensorShape.fix_inferred_elements(new_shape, arr.buffer.size)
+                end
 
-        arr
+        convert_to_opencl(arr.buffer, shape, data_type: arr.data_type, name: tensor.name)
       end
 
       register_op :flow_group do |_context, _tensor, inputs|
@@ -630,6 +631,7 @@ module TensorStream
 
       register_op :prod, noop: true do |context, tensor, inputs|
         input_a = complete_eval(inputs[0], context)
+
         if input_a.buffer.empty?
           convert_to_opencl([1.0], [], data_type: inputs[0].data_type, name: tensor.name)
         else
@@ -755,7 +757,6 @@ module TensorStream
         dtype = tensor.data_type
         result_shape = TensorShape.infer_shape(a.shape, b.shape)
         return _create_result_buffer(dtype, [0], "out_#{tensor.name}") if result_shape == [0]
-
         output_buffer = _create_result_buffer(tensor.data_type, result_shape, "out_#{tensor.name}")
         a, b, prog, switch_operands = select_program(a, b, op_name)
         m, n = result_shape
@@ -925,12 +926,12 @@ module TensorStream
       end
 
       def _create_result_buffer(data_type, shape, name)
-        return OpenCLBuffer.new(data_type: data_type, shape: [0], buffer: nil, cl_buffer: nil) if shape == [0]
+        return OpenCLBuffer.new(name: name, data_type: data_type, shape: [0], buffer: nil, cl_buffer: nil) if shape == [0]
         @context[:_cache][:_cl_buffers]["_result_#{name}_#{shape.join('_')}:#{object_id}"] ||= begin
           size = shape.empty? || shape == [0] ? 1 : shape.reduce(:*)
           buffer =  allocate_narray_for_type(data_type, size)
           cl_buffer = _opencl_context.create_buffer(buffer.size * buffer.element_size)
-          OpenCLBuffer.new(data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer)
+          OpenCLBuffer.new(data_type: data_type, shape: shape, buffer: buffer, cl_buffer: cl_buffer, name: name)
         end
       end
 

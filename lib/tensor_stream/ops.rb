@@ -582,8 +582,8 @@ module TensorStream
 
     ##
     # Transposes a. Permutes the dimensions according to perm.
-    def transpose(tensor, perm: nil, name: 'transpose')
-      _op(:transpose, tensor, nil, perm: perm, name: name)
+    def transpose(tensor, perm = nil, name: 'transpose')
+      _op(:transpose, tensor, perm, name: name)
     end
 
     ##

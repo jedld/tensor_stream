@@ -260,10 +260,10 @@ module TensorStream
         return [shape1, shape2]
       when :transpose
         return nil if inputs[0].shape.shape.nil?
-        return nil if options[:perm].is_a?(Tensor)
+        return nil if inputs[1].is_a?(Tensor)
 
         rank = inputs[0].shape.shape.size
-        perm = options[:perm] || (0...rank).to_a.reverse
+        perm = inputs[1] || (0...rank).to_a.reverse
         return perm.map { |p| inputs[0].shape.shape[p] }
       else
         return inputs[0].shape.shape if inputs.size == 1

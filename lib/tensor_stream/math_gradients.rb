@@ -107,8 +107,9 @@ module TensorStream
           [gx, gy]
         when :prod
           input_shape = tf.shape(x)
-          y = tf.range(0, tf.rank(input_shape)) if y.nil?
+          y = tf.range(0, tf.rank(x)) if y.nil?
           reduction_indices = tf.reshape(y, [-1])
+
           output_shape_kept_dims = tf.reduced_shape(input_shape, y)
           tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
           grad = tf.reshape(grad, output_shape_kept_dims)
@@ -122,22 +123,23 @@ module TensorStream
             other, _ = tf.setdiff1d(idx, reduced)
 
             [ tf.concat([reduced, other], 0),
-              tf.reduce_prod(tf.gather(input_shape, reduced)), 
+              tf.reduce_prod(tf.gather(input_shape, reduced)),
               tf.reduce_prod(tf.gather(input_shape, other)) ]
           end
 
-          permuted = tf.transpose(x, perm: perm)
+          permuted = tf.transpose(x, perm)
           permuted_shape = tf.shape(permuted)
+
           reshaped = tf.reshape(permuted, [reduced_num, other_num])
-      
+
           # Calculate product, leaving out the current entry
           left = tf.cumprod(reshaped, axis: 0, exclusive: true)
           right = tf.cumprod(reshaped, axis: 0, exclusive: true, reverse: true)
           y = tf.reshape(left * right, permuted_shape)
-      
+
           # Invert the transpose and reshape operations.
           # Make sure to set the statically known shape information through a reshape.
-          out = grad * tf.transpose(y, perm: tf.invert_permutation(perm))
+          out = grad * tf.transpose(y, tf.invert_permutation(perm))
           [tf.reshape(out, input_shape, name: 'prod'), nil]
         when :squared_difference
           sx = i_op(:shape, x)

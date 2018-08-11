@@ -69,6 +69,7 @@ module TensorStream
 
     def self.fix_inferred_elements(shape, total_size)
       return shape if shape.empty?
+      return nil if shape[0].is_a?(Tensor)
 
       current_size = shape.inject(1) { |product, n| n > 0 ? product * n : product }
       inferred_size = total_size.nil? ? nil : total_size / current_size

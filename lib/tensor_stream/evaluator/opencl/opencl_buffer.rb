@@ -28,8 +28,7 @@ module TensorStream
       end
 
       result = buffer.reshape(*shape.map(&:to_i).reverse).to_a
-      result = process_function_op(result, ->(a, _b) { a != 0 }) if data_type == :boolean
-      result
+      data_type == :boolean ? process_function_op(result, ->(a, _b) { a != 0 }) : result
     end
   end
 end
