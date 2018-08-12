@@ -82,6 +82,8 @@ module TensorStream
             inv = ts.reciprocal(ts.add(one, x2))
             grad * inv
           end
+        when :fill
+          [nil, ts.reduce_sum(grad)]
         when :sub
           return [grad, -grad] if shapes_fully_specified_and_equal(x, y)
 
@@ -215,6 +217,13 @@ module TensorStream
           grad
         when :sign
           ts.zeros(ts.shape(x), dtype: x.data_type)
+        when :tile
+          input_shape = ts.shape(x)
+          split_shape = ts.reshape(ts.transpose(ts.stack([y, input_shape])), [-1])
+          axes = ts.range(0, ts.size(split_shape), 2)
+          input_grad = ts.reduce_sum(ts.reshape(grad, split_shape), axes)
+
+          [input_grad, nil]
         when :sum
           _sum_grad(x, y, grad)
         when :reciprocal

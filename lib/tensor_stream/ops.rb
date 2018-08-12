@@ -629,6 +629,10 @@ module TensorStream
       _op(:gather, params, indices, validate_indices: validate_indices, name: name, axis: axis)
     end
 
+    def stack(values, axis: 0, name: 'stack')
+      _op(:stack, *values, axis: axis, name: name)
+    end
+
     def setdiff1d(x, y, index_dtype: :int32, name: nil)
       result = _op(:setdiff1d, x, y, index_dtype: index_dtype, name: name)
       [result[0], result[1]]

@@ -508,6 +508,49 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(tf.tile(a,[2, 1]))).to eq([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
       expect(sess.run(tf.tile(a,[1, 2]))).to eq([[1, 2, 3, 4, 1, 2, 3, 4], [1, 2, 3, 4, 1, 2, 3, 4]])
     end
+
+    specify "gradients" do
+      a = tf.constant([[1, 2, 3, 4], [1, 2, 3, 4]])
+      op = tf.tile(a, [1, 2])
+      g = tf.gradients(op, [a])
+      expect(sess.run(g)).to eq([[[2, 2, 2, 2], [2, 2, 2, 2]]])
+    end
+  end
+
+  supported_op ".stack" do
+    specify do
+      x = tf.constant([0, 3])
+      y = tf.constant([1, 4])
+      z = tf.constant([2, 5])
+      expect(sess.run(tf.stack([x, y, z]))).to eq([[0, 3], [1, 4], [2, 5]])
+      expect(sess.run(tf.stack([x, y, z], axis: 1))).to eq([[0, 1, 2], [3, 4, 5]])
+    end
+
+    specify "scalar" do
+      x = tf.constant(1)
+      y = tf.constant(2)
+      z = tf.constant(3)
+      expect(sess.run(tf.stack([x,y,z]))).to eq([1, 2, 3])
+    end
+
+    specify "rank = 2" do
+      x = tf.constant([[0, 1],[2, 3]])
+      y = tf.constant([[4, 5],[6, 7]])
+      z = tf.constant([[8, 9],[10, 11]])
+      expect(sess.run(tf.stack([x, y, z]))).to eq([[[ 0,  1],[ 2,  3]],[[ 4,  5],[ 6,  7]],[[ 8,  9],[10, 11]]]) # [3, 2, 2]
+      expect(sess.run(tf.stack([x, y, z], axis: 1))).to eq([[[ 0,  1],[ 4,  5],[ 8,  9]],[[ 2,  3],[ 6,  7],[10, 11]]]) # [2, 3, 2]
+      expect(sess.run(tf.stack([x, y, z], axis: 2))).to eq([[[ 0,  4,  8],[ 1,  5,  9]],[[ 2,  6, 10],[ 3,  7, 11]]]) # [2, 2, 3]
+      expect(sess.run(tf.stack([x, y, z], axis: -1))).to eq([[[ 0,  4,  8],[ 1,  5,  9]],[[ 2,  6, 10],[ 3,  7, 11]]]) # [2, 2, 3]
+    end
+
+    specify "rank = 3" do
+      x = tf.constant([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
+      y = tf.constant([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+      expect(sess.run(tf.stack([x, y]))).to eq([[[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[[8, 9], [10, 11]], [[12, 13], [14, 15]]]])
+      expect(sess.run(tf.stack([x, y], axis: 1))).to eq([[[[0, 1], [2, 3]], [[8, 9], [10, 11]]], [[[4, 5], [6, 7]], [[12, 13], [14, 15]]]])
+      expect(sess.run(tf.stack([x, y], axis: 2))).to eq([[[[0, 1], [8, 9]], [[2, 3], [10, 11]]], [[[4, 5], [12, 13]], [[6, 7], [14, 15]]]])
+      expect(sess.run(tf.stack([x, y], axis: 3))).to eq([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
+    end
   end
 
   context "combination of functions" do

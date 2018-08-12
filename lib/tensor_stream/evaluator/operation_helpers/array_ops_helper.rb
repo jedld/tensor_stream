@@ -220,11 +220,11 @@ module TensorStream
     def transpose_with_perm(arr, new_arr, shape, new_shape, perm)
       arr_size = shape.reduce(:*)
       divisors = shape.dup.drop(1).reverse.inject([1]) do |a, s|
-        a << s * a.reduce(:*)
+        a << s * a.last
       end.reverse
 
       multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
-        a << s * a.reduce(:*)
+        a << s * a.last
       end.reverse
 
       arr_size.times do |p|

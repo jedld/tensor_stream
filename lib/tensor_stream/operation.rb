@@ -259,12 +259,24 @@ module TensorStream
         shape2 = inputs[1].shape.shape.nil? ? nil : inputs[1].shape.shape[1]
         return [shape1, shape2]
       when :transpose
-        return nil if inputs[0].shape.shape.nil?
+        return nil unless shape_full_specified(inputs[0])
         return nil if inputs[1].is_a?(Tensor)
 
         rank = inputs[0].shape.shape.size
         perm = inputs[1] || (0...rank).to_a.reverse
         return perm.map { |p| inputs[0].shape.shape[p] }
+      when :stack
+        return nil unless shape_full_specified(inputs[0])
+
+        axis = options[:axis] || 0
+        new_shape = [inputs.size]
+        inputs[0].shape.shape.inject(new_shape) { |ns, s| ns << s }
+        rank = inputs[0].shape.shape.size + 1
+        axis = rank + axis if axis < 0
+        rotated_shape = Array.new(axis + 1) { new_shape.shift }
+        rotated_shape.rotate! + new_shape
+      when :tile
+        nil
       else
         return nil if inputs[0].nil?
         return inputs[0].shape.shape if inputs.size == 1

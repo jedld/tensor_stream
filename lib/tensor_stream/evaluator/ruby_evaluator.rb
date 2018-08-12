@@ -448,6 +448,54 @@ module TensorStream
         tensor.inputs[0].value
       end
 
+      register_op :stack do |_context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        shape = shape_eval(inputs[0])
+        rank = shape.size + 1
+        elem_size = shape.empty? ? 1 : shape.reduce(:*)
+        output_buffer = Array.new(inputs.size * elem_size) { 0 }
+        new_shape = [inputs.size]
+        shape.inject(new_shape) { |ns, s| ns << s }
+
+        divisors = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          a << s * a.last
+        end.reverse
+
+        axis = rank + axis if axis < 0
+        rotated_shape = Array.new(axis + 1) { new_shape.shift }
+        new_shape = rotated_shape.rotate! + new_shape
+
+        multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          a << s * a.last
+        end.reverse
+
+        inputs.each_with_index do |input, index|
+          raw_input = input.is_a?(Array) ? input.flatten : [input]
+          start = index * divisors.first
+
+          raw_input.each_with_index do |x, index2|
+            index_map = []
+            ptr = start + index2
+            divisors.each_with_object(index_map) do |div, a|
+              a << (ptr / div.to_f).floor
+              ptr = ptr % div
+            end
+
+            rotated_index = Array.new(axis + 1) { index_map.shift }
+            index_map = rotated_index.rotate! + index_map
+
+            ptr2 = 0
+            multipliers.each_with_index do |m, idx|
+              ptr2 += index_map[idx] * m
+            end
+
+            output_buffer[ptr2] = x
+          end
+        end
+
+        TensorShape.reshape(output_buffer, new_shape)
+      end
+
       register_op :mean, noop: true do |context, tensor, _inputs|
         c = fp_type?(tensor.data_type) ? 0.0 : 0
         func = lambda do |arr|
