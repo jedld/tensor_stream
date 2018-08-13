@@ -2,9 +2,10 @@ module TensorStream
   # Evaluator base module
   module Evaluator
     class OutputGroup
-      attr_accessor :outputs
-      def initialize(outputs = [])
+      attr_accessor :outputs, :data_types
+      def initialize(outputs = [], data_types = [])
         @outputs = outputs
+        @data_types = data_types
       end
     end
 

@@ -201,7 +201,7 @@ module TensorStream
           idx << index
         end
         idx = idx.map { |i| Tensor.cast_dtype(i, tensor.options[:index_dtype]) } unless tensor.options[:index_dtype] == :int32
-        OutputGroup.new([out, idx])
+        OutputGroup.new([out, idx], tensor.inputs.map(&:data_type))
       end
 
       register_op :cumprod do |context, tensor, inputs|
@@ -301,7 +301,7 @@ module TensorStream
       end
 
       register_op %i[concat concat_v2] do |_context, tensor, inputs|
-        concat_array(inputs[0], tensor.options[:axis])
+        concat_array(inputs, tensor.options[:axis])
       end
 
       register_op :round, no_eval: true do |context, _tensor, inputs|
@@ -778,9 +778,9 @@ module TensorStream
         assign.value
       end
 
-      register_op :broadcast_gradient_args do |_context, _tensor, inputs|
+      register_op :broadcast_gradient_args do |_context, tensor, inputs|
         rx, ry = get_broadcast_gradient_args(inputs[0], inputs[1])
-        OutputGroup.new([rx, ry])
+        OutputGroup.new([rx, ry], tensor.inputs.map(&:data_type))
       end
 
       register_op :tile do |_context, _tensor, inputs|

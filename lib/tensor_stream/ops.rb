@@ -245,7 +245,7 @@ module TensorStream
     ##
     # Concatenates tensors along one dimension.
     def concat(values, axis, name: 'concat')
-      _op(:concat, values, nil, axis: axis, name: name)
+      _op(:concat, *values, axis: axis, name: name)
     end
 
     ##

@@ -97,8 +97,14 @@ module TensorStream
         end
       end
 
+      # buffer comes from non-opencl evaluator
       def convert_from_buffer(tensor, result)
-        convert_to_opencl([result.buffer].flatten, shape_eval(result.buffer), data_type: result.data_type, name: tensor.name)
+        if result.buffer.is_a?(TensorStream::Evaluator::OutputGroup)
+          converted_outputs = result.buffer.outputs.zip(result.buffer.data_types).map { |output, data_type| convert_to_opencl([output].flatten, shape_eval(output), data_type: data_type, name: tensor.name) }
+          TensorStream::Evaluator::OutputGroup.new(converted_outputs, result.buffer.data_types)
+        else
+          convert_to_opencl([result.buffer].flatten, shape_eval(result.buffer), data_type: result.data_type, name: tensor.name)
+        end
       end
 
       def complete_eval(tensor, context)
@@ -635,7 +641,7 @@ module TensorStream
 
       register_op :broadcast_gradient_args, buffer: true do |_context, tensor, inputs|
         rx, ry = get_broadcast_gradient_args(inputs[0].buffer.to_a, inputs[1].buffer.to_a)
-        OutputGroup.new([wrap_opencl(rx, data_type: :int32, name: tensor.name), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")])
+        OutputGroup.new([wrap_opencl(rx, data_type: :int32, name: tensor.name), wrap_opencl(ry, data_type: :int32, name: "#{tensor.name}:1")], tensor.inputs.map(&:data_type))
       end
 
       register_op :shape do |_context, tensor, inputs|
@@ -703,7 +709,7 @@ module TensorStream
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
-
+        # puts "opencl: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
