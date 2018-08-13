@@ -54,7 +54,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(75)
+      expect(described_class.ops.keys.size).to eq(76)
     end
 
     specify do
@@ -126,6 +126,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         sqrt
         square
         squared_difference
+        stack
         stop_gradient
         sub
         sum

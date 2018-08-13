@@ -551,6 +551,15 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(tf.stack([x, y], axis: 2))).to eq([[[[0, 1], [8, 9]], [[2, 3], [10, 11]]], [[[4, 5], [12, 13]], [[6, 7], [14, 15]]]])
       expect(sess.run(tf.stack([x, y], axis: 3))).to eq([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
     end
+
+    xspecify "gradients" do
+      x = tf.constant([[0, 1],[2, 3]])
+      y = tf.constant([[4, 5],[6, 7]])
+      z = tf.constant([[8, 9],[10, 11]])
+      f = tf.stack([x, y, z])
+      g = tf.gradients(f, [x, y, z])
+      expect(sess.run(g)).to eq([])
+    end
   end
 
   context "combination of functions" do

@@ -191,7 +191,7 @@ module TensorStream
       end
 
       def _cl_program(kernel, args = {})
-        suffix = args.collect { |k, v| "#{k}.#{v}" }.join('.')
+        suffix = args.collect { |k, v| "#{k}.#{escape_arg_content(v)}" }.join('.')
         @context[:_cache]["_opencl_kernel_#{kernel}.#{suffix}:#{object_id}"] ||= begin
           filename = %w[cl.erb cl].map { |ext| cl_template_path(kernel, ext) }.find { |n| File.exist?(n) }
           raise "opencl kernel template for #{kernel} has not yet been defined" if filename.nil?
@@ -204,6 +204,13 @@ module TensorStream
           puts "OpenCL Compile error: #{program.build_log}"
           raise e
         end
+      end
+
+      def escape_arg_content(value)
+        return value.tr(' ','_') if value.is_a?(String)
+        return value.join('-') if value.is_a?(Array)
+
+        value
       end
 
       def _run(tensor, execution_context)
@@ -292,7 +299,7 @@ module TensorStream
         cl_m = OpenCL::Int1.new(m || 1)
         cl_n = OpenCL::Int1.new(n || 1)
 
-        event_wait_list = [assign.buffer.op, learning_rate.op, delta.op].compact # add dependency wait list
+        event_wait_list = build_event_wait_list([assign.buffer, learning_rate, delta])
         method_call = :"apply_gradient_#{output_buffer.data_type}"
         event = _cl_program("apply_gradient", dtype: output_buffer.data_type).send(method_call, _opencl_queue, work_group, cl_m, cl_n, delta.cl_buffer, learning_rate.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer.op = event
@@ -327,7 +334,7 @@ module TensorStream
           a = inputs_queue.pop
           until inputs_queue.empty?
             b = inputs_queue.pop
-            event_wait_list = [a.op, b.op].compact
+            event_wait_list = build_event_wait_list([a, b])
             method_call = :"add_#{a.data_type}_#{b.data_type}"
             event = _cl_program('add', a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
             a = output_buffer
@@ -395,8 +402,8 @@ module TensorStream
 
         transpose_a = OpenCL::Int1.new(tensor.options[:transpose_a] ? 1 : 0)
         transpose_b = OpenCL::Int1.new(tensor.options[:transpose_b] ? 1 : 0)
-
-        output_buffer.op = _cl_program('gemm', dtype: dtype).send(:"gemm_#{dtype}", _opencl_queue, result_shape, cl_m, cl_n, cl_k, transpose_a, transpose_b, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer)
+        event_wait_list = build_event_wait_list(inputs)
+        output_buffer.op = _cl_program('gemm', dtype: dtype).send(:"gemm_#{dtype}", _opencl_queue, result_shape, cl_m, cl_n, cl_k, transpose_a, transpose_b, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer
       end
 
@@ -408,12 +415,45 @@ module TensorStream
           cl_m = OpenCL::Int1.new(m || 1)
           cl_n = OpenCL::Int1.new(n || 1)
           work_group = [m || 1, n || 1]
-
-          buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: tensor.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer)
+          event_wait_list = build_event_wait_list(inputs)
+          buffer.op = _cl_program("cast", source_dt: a.data_type, target_dt: tensor.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
           buffer
         else
           a
         end
+      end
+
+      register_op :stack do |_context, tensor, inputs|
+        axis = tensor.options[:axis] || 0
+        shape = inputs[0].shape
+        rank = shape.size + 1
+        elem_size = shape.empty? ? 1 : shape.reduce(:*)
+
+        new_shape = [inputs.size]
+        shape.inject(new_shape) { |ns, s| ns << s }
+
+        divisors = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          a << s * a.last
+        end.reverse
+
+        axis = rank + axis if axis < 0
+        rotated_shape = Array.new(axis + 1) { new_shape.shift }
+        new_shape = rotated_shape.rotate! + new_shape
+
+        output_buffer = _create_result_buffer(tensor.data_type, new_shape, tensor.name)
+        multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          a << s * a.last
+        end.reverse
+
+        cl_n = OpenCL::Int1.new(elem_size)
+        work_group = [elem_size]
+        event_wait_list = build_event_wait_list(inputs)
+        ops = inputs.each_with_index.map do |input, index|
+          cl_index = OpenCL::Int1.new(index)
+          _cl_program("pack", data_type: tensor.data_type, divisors: divisors, multipliers: multipliers, axis: axis).pack(_opencl_queue, work_group, cl_n, cl_index, input.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+        end
+        output_buffer.op = ops
+        output_buffer
       end
 
       %i[sign exp tan acos asin sin cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round floor ceil].each do |op|
@@ -424,7 +464,7 @@ module TensorStream
 
       register_op :softmax do |_context, tensor, inputs|
         a = inputs[0]
-        event_wait_list = [a.op].compact
+        event_wait_list = build_event_wait_list(inputs)
         dtype = tensor.data_type
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
@@ -440,7 +480,7 @@ module TensorStream
 
       register_op :log_softmax do |_context, tensor, inputs|
         a = inputs[0] # logits
-        event_wait_list = [a.op].compact
+        event_wait_list = build_event_wait_list(inputs)
         dtype = tensor.data_type
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
@@ -457,7 +497,7 @@ module TensorStream
       register_op :softmax_cross_entropy_with_logits_v2 do |_context, tensor, inputs|
         a = inputs[0] # logits
         b = inputs[1] # labels
-        event_wait_list = [a.op, b.op].compact
+        event_wait_list = build_event_wait_list(inputs)
         dtype = tensor.data_type
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
@@ -475,7 +515,7 @@ module TensorStream
         a = inputs[0] # logits
         b = inputs[1] # labels
         c = inputs[2] # grads
-        event_wait_list = [a.op, b.op, c.op].compact
+        event_wait_list = build_event_wait_list(inputs)
         dtype = tensor.data_type
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
@@ -492,7 +532,7 @@ module TensorStream
       register_op :softmax_grad do |_context, tensor, inputs|
         a, grad = inputs
 
-        event_wait_list = [a.op].compact
+        event_wait_list = build_event_wait_list(inputs)
         dtype = tensor.data_type
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
@@ -736,8 +776,9 @@ module TensorStream
 
         if assign.buffer
           # buffer = type_cast(buffer, assign.data_type, name: "#{tensor.name}/cast_#{tensor.name}_#{tensor.data_type}")
+          event_wait_list = build_event_wait_list([buffer, assign.buffer])
           assign.buffer.op = if assign.buffer.cl_buffer != buffer.cl_buffer
-                               _opencl_queue.enqueue_copy_buffer(buffer.cl_buffer, assign.buffer.cl_buffer, event_wait_list: [buffer.op, assign.buffer.op])
+                               _opencl_queue.enqueue_copy_buffer(buffer.cl_buffer, assign.buffer.cl_buffer, event_wait_list: event_wait_list)
                              else
                                buffer.op
                              end
@@ -765,7 +806,7 @@ module TensorStream
         cl_n = OpenCL::Int1.new(n || 1)
         cl_switch = OpenCL::Int1.new(switch_operands) # no need to switch for addition
 
-        event_wait_list = [a.op, b.op].compact # add dependency wait list
+        event_wait_list = build_event_wait_list([a, b]) # add dependency wait list
 
         method_call = :"#{prog}_#{a.data_type}_#{b.data_type}"
         prog_name ||= op_name
@@ -801,14 +842,14 @@ module TensorStream
         cl_m = OpenCL::Int1.new(m || 1)
         cl_n = OpenCL::Int1.new(n || 1)
 
-        event_wait_list = [a.op, b.op, p.op].compact # add dependency wait list
+        event_wait_list = build_event_wait_list([a, b, p]) # add dependency wait list
         output_buffer.op = _cl_program(op_name.to_s, dtype: dtype).send(:"#{op_name}_#{dtype}", _opencl_queue, work_group, cl_m, cl_n, p.cl_buffer, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer
       end
 
       def execute_func(op_name, tensor, a, child_context)
         a = _run(a, child_context)
-        event_wait_list = [a.op].compact
+        event_wait_list = build_event_wait_list([a])
         dtype = tensor.data_type
         output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
 
@@ -826,7 +867,7 @@ module TensorStream
         return [a, b] if a.data_type == b.data_type
         m, n = b.shape
         work_group = [m || 1, n || 1]
-        event_wait_list = [b.op].compact
+        event_wait_list = build_event_wait_list([b])
         buffer = _create_result_buffer(b.data_type, b.shape, name)
 
         cl_m = OpenCL::Int1.new(m || 1)
@@ -1035,6 +1076,10 @@ module TensorStream
 
       def _rank_from_shape(shape)
         shape.is_a?(Array) ? shape.size : 0
+      end
+
+      def build_event_wait_list(inputs)
+        inputs.compact.map(&:op).flatten
       end
 
       def resolve_placeholder(placeholder, _execution_context = {})
