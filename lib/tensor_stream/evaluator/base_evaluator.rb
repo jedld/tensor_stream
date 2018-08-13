@@ -112,12 +112,13 @@ module TensorStream
 
         resolved_inputs = tensor.inputs.map do |i|
           next if i.nil?
+          next i if op_options[:noop]
 
           if i.is_a?(Array)
             next i.collect { |sub_item| sub_item.is_a?(Tensor) ? invoke(sub_item, execution_context) : sub_item }
           end
 
-          if !op_options[:noop] && @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
+          if @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
             cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"
             next @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
 

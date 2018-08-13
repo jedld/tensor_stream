@@ -18,7 +18,9 @@ require 'pry-byebug'
 
 tf = TensorStream
 # Import MNIST data
+puts "downloading minst data"
 mnist = Mnist.read_data_sets('/tmp/data', one_hot: true)
+puts "downloading finished"
 
 # Parameters
 learning_rate = 0.1
@@ -82,13 +84,13 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, :float32))
 init = tf.global_variables_initializer
 
 # Start training
-tf.session do |sess|
+tf.session(log_device_placement: true) do |sess|
     # Run the initializer
     sess.run(init)
 
-    print("Testing Accuracy:", \
-        sess.run(accuracy, feed_dict: { X => mnist.test.images,
-                                        Y => mnist.test.labels}))
+    # print("Testing Accuracy:", \
+    #     sess.run(accuracy, feed_dict: { X => mnist.test.images,
+    #                                     Y => mnist.test.labels}))
 
     (1..num_steps+1).each do |step|
         batch_x, batch_y = mnist.train.next_batch(batch_size)

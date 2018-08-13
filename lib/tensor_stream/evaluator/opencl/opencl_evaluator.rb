@@ -429,6 +429,19 @@ module TensorStream
         end
       end
 
+      register_op :check_numerics do |context, tensor, inputs|
+        a = inputs[0]
+        buffer = _create_result_buffer(:int16, [], tensor.name)
+        m, n = a.shape
+        cl_m = OpenCL::Int1.new(m || 1)
+        cl_n = OpenCL::Int1.new(n || 1)
+        work_group = [m || 1, n || 1]
+        event_wait_list = build_event_wait_list(inputs)
+
+        buffer.op = _cl_program("check_numerics", data_type: tensor.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
+        a.buffer
+      end
+
       register_op :stack do |_context, tensor, inputs|
         axis = tensor.options[:axis] || 0
         shape = inputs[0].shape
@@ -709,7 +722,7 @@ module TensorStream
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
-        # puts "opencl: #{tensor.name}"
+        puts "opencl: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]

@@ -179,7 +179,7 @@ module TensorStream
         end
       end
 
-      register_op %i[flow_dynamic_stitch dynamic_stitch], noop: true do |_context, _tensor, inputs|
+      register_op %i[flow_dynamic_stitch dynamic_stitch] do |_context, _tensor, inputs|
         indexes, data = inputs
         merged = []
         merge_dynamic_stitch(merged, indexes, data)
@@ -906,7 +906,7 @@ module TensorStream
       register_op :check_numerics do |context, tensor, inputs|
         message = tensor.options[:message]
         f = lambda { |t, _b|
-          raise "#{message} Invalid argument" if t.nan? || t.infinite?
+          raise TensorStream::InvalidArgumentError, "#{message} Invalid argument" if t.nan? || t.infinite?
           t
         }
         call_op(:check_numerics, inputs[0], context, f)
@@ -914,8 +914,8 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
+        puts "ruby: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
-          # puts "ruby: #{tensor.name}"
 
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
