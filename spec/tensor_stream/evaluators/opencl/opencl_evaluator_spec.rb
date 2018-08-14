@@ -54,7 +54,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(76)
+      expect(described_class.ops.keys.size).to eq(77)
     end
 
     specify do
@@ -81,6 +81,7 @@ RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
         equal
         exp
         expand_dims
+        fill
         floor
         floor_div
         floor_mod

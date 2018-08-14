@@ -361,6 +361,23 @@ module TensorStream
         convert_to_opencl(new_buf, new_shape, data_type: inputs[0].data_type, name: tensor.name)
       end
 
+      register_op :fill, buffer: true do |_context, tensor, inputs|
+        shape = inputs[0]
+        value = inputs[1]
+
+        narray_size = shape.buffer.to_a.reduce(:*) || 1
+        cl_buffer = get_cached_buffer(tensor.name, shape.buffer.to_a)
+
+        buffer = if cl_buffer
+                    cl_buffer.buffer
+                 else
+                   allocate_narray_for_type(tensor.data_type, narray_size)
+                 end
+
+        buffer.fill!(value.buffer[0])
+        convert_to_opencl(buffer, shape.buffer.to_a, data_type: tensor.data_type, name: tensor.name)
+      end
+
       register_op :floor_div, noop: true do |context, tensor, inputs|
         if fp_type?(tensor.data_type)
           execute_2_operand_func('floor_div', tensor, inputs[0], inputs[1], context)
@@ -722,7 +739,7 @@ module TensorStream
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
-        puts "opencl: #{tensor.name}"
+        # puts "opencl: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
@@ -918,6 +935,11 @@ module TensorStream
                        end
 
         convert_to_opencl(value, shape, data_type: data_type || tensor.data_type, name: name)
+      end
+
+      def get_cached_buffer(name, shape)
+        cache_key = "_cl_object_#{name}:#{shape.join('_')}:#{object_id}"
+        @context[:_cache][cache_key]
       end
 
       def convert_to_opencl(value, shape, data_type: nil, name: nil)

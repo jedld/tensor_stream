@@ -26,7 +26,7 @@ puts "downloading finished"
 learning_rate = 0.1
 num_steps = 500
 batch_size = 128
-display_step = 100
+display_step = 5
 
 # Network Parameters
 n_hidden_1 = 256 # 1st layer number of neurons
@@ -84,7 +84,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, :float32))
 init = tf.global_variables_initializer
 
 # Start training
-tf.session(log_device_placement: true) do |sess|
+tf.session do |sess|
     # Run the initializer
     sess.run(init)
 

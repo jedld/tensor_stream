@@ -1,6 +1,6 @@
 require "bundler/setup"
 require 'tensor_stream'
-# require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 # This neural network will predict the species of an iris based on sepal and petal size
 # Dataset: http://en.wikipedia.org/wiki/Iris_flower_data_set
@@ -94,6 +94,7 @@ start_time = Time.now
   x_train.size.times do |i|
     sess.run(updates, feed_dict: {X => [x_train[i]], y => [y_train[i]]})
   end
+
   loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
   puts "epoch: #{epoch}, loss #{loss}"
 end

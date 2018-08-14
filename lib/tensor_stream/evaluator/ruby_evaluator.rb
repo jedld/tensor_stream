@@ -139,16 +139,16 @@ module TensorStream
         call_op(:sign, inputs[0], context, func)
       end
 
-      register_op(:logical_and) do |context, _tensor, inputs|
-        call_vector_op(:logical_and, inputs[0], inputs[1], context, ->(t, u) { t && u })
+      register_op(:logical_and) do |context, tensor, inputs|
+        call_vector_op(tensor, :logical_and, inputs[0], inputs[1], context, ->(t, u) { t && u })
       end
 
-      register_op(:equal) do |context, _tensor, inputs|
-        call_vector_op(:equal, inputs[0], inputs[1], context, ->(t, u) { t == u })
+      register_op(:equal) do |context, tensor, inputs|
+        call_vector_op(tensor, :equal, inputs[0], inputs[1], context, ->(t, u) { t == u })
       end
 
-      register_op(:not_equal) do |context, _tensor, inputs|
-        call_vector_op(:not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
+      register_op(:not_equal) do |context, tensor, inputs|
+        call_vector_op(tensor, :not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
       register_op :index, no_eval: true do |_context, _tensor, inputs|
@@ -243,16 +243,16 @@ module TensorStream
         Tensor.cast_dtype(input.flatten.size, tensor.options[:out_type])
       end
 
-      register_op %i[neg negate], no_eval: true do |context, _tensor, inputs|
-        call_vector_op(:negate, inputs[0], nil, context, ->(t, _u) { -t })
+      register_op %i[neg negate], no_eval: true do |context, tensor, inputs|
+        call_vector_op(tensor, :negate, inputs[0], nil, context, ->(t, _u) { -t })
       end
 
-      register_op :add, no_eval: true do |context, _tensor, inputs|
+      register_op :add, no_eval: true do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:add, a, b, context, ->(t, u) { t + u })
+        call_vector_op(tensor, :add, a, b, context, ->(t, u) { t + u })
       end
 
-      register_op :add_n, no_eval: true do |context, _tensor, inputs|
+      register_op :add_n, no_eval: true do |context, tensor, inputs|
         if inputs.size == 1
           complete_eval(inputs[0], context)
         elsif inputs.size > 1
@@ -260,44 +260,44 @@ module TensorStream
           a = inputs.pop
           until inputs.empty?
             b = inputs.pop
-            a = call_vector_op(:add, a, b, context, ->(t, u) { t + u })
+            a = call_vector_op(tensor, :add, a, b, context, ->(t, u) { t + u })
           end
           a
         end
       end
 
-      register_op :sub, no_eval: true do |context, _tensor, inputs|
+      register_op :sub, no_eval: true do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:sub, a, b, context, ->(t, u) { t - u })
+        call_vector_op(tensor, :sub, a, b, context, ->(t, u) { t - u })
       end
 
-      register_op %i[floor_mod mod], no_eval: true do |context, _tensor, inputs|
+      register_op %i[floor_mod mod], no_eval: true do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:mod, a, b, context, ->(t, u) { t % u })
+        call_vector_op(tensor, :mod, a, b, context, ->(t, u) { t % u })
       end
 
       register_op %i[floor_div], no_eval: true do |context, tensor, inputs|
         a, b = inputs
         if fp_type?(tensor.data_type)
-          call_vector_op(:div, a, b, context, ->(t, u) { (t / u).to_i.to_f })
+          call_vector_op(tensor, :div, a, b, context, ->(t, u) { (t / u).to_i.to_f })
         else
-          call_vector_op(:div, a, b, context, ->(t, u) { t / u })
+          call_vector_op(tensor, :div, a, b, context, ->(t, u) { t / u })
         end
       end
 
-      register_op :mul, no_eval: true do |context, _tensor, inputs|
+      register_op :mul, no_eval: true do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:mul, a, b, context, ->(t, u) { t * u })
+        call_vector_op(tensor, :mul, a, b, context, ->(t, u) { t * u })
       end
 
-      register_op :pow, no_eval: true do |context, _tensor, inputs|
+      register_op :pow, no_eval: true do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:pow, a, b, context, ->(t, u) { t**u })
+        call_vector_op(tensor, :pow, a, b, context, ->(t, u) { t**u })
       end
 
-      register_op :squared_difference, no_eval: true do |context, _tensor, inputs|
+      register_op :squared_difference, no_eval: true do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:squared_difference, a, b, context, ->(t, u) { (t - u) * (t - u) })
+        call_vector_op(tensor, :squared_difference, a, b, context, ->(t, u) { (t - u) * (t - u) })
       end
 
       register_op %i[concat concat_v2] do |_context, tensor, inputs|
@@ -384,9 +384,9 @@ module TensorStream
         inputs[0]
       end
 
-      register_op :sigmoid_grad, no_eval: true do |context, _tensor, inputs|
+      register_op :sigmoid_grad, no_eval: true do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:sigmoid_grad, a, b, context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t)) })
+        call_vector_op(tensor, :sigmoid_grad, a, b, context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t)) })
       end
 
       register_op :random_uniform, no_eval: true do |_context, tensor, _inputs|
@@ -434,17 +434,17 @@ module TensorStream
 
       register_op :assign, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
-        assign.value = complete_eval(tensor.inputs[1], context)
+        assign.value = global_eval(tensor, tensor.inputs[1], context)
         assign.value
       end
 
       register_op :assign_add, noop: true do |context, tensor, _inputs|
-        tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
+        tensor.inputs[0].value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
         tensor.inputs[0].value
       end
 
       register_op :assign_sub, noop: true do |context, tensor, _inputs|
-        tensor.inputs[0].value = process_vector_math_op(tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
+        tensor.inputs[0].value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
         tensor.inputs[0].value
       end
 
@@ -620,12 +620,12 @@ module TensorStream
       end
 
       register_op :cond, noop: true do |context, tensor, inputs|
-        pred = complete_eval(tensor.options[:pred], context)
+        pred = global_eval(tensor, tensor.options[:pred], context)
 
         if all_true?(pred)
-          complete_eval(inputs[0], context)
+          global_eval(tensor, inputs[0], context)
         else
-          complete_eval(inputs[1], context)
+          global_eval(tensor, inputs[1], context)
         end
       end
 
@@ -634,24 +634,24 @@ module TensorStream
         call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
       end
 
-      register_op :less do |context, _tensor, inputs|
+      register_op :less do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:less, a, b, context, ->(t, u) { t < u })
+        call_vector_op(tensor, :less, a, b, context, ->(t, u) { t < u })
       end
 
-      register_op :greater do |context, _tensor, inputs|
+      register_op :greater do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:greater, a, b, context, ->(t, u) { t > u })
+        call_vector_op(tensor, :greater, a, b, context, ->(t, u) { t > u })
       end
 
-      register_op :greater_equal do |context, _tensor, inputs|
+      register_op :greater_equal do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:greater_equal, a, b, context, ->(t, u) { t >= u })
+        call_vector_op(tensor, :greater_equal, a, b, context, ->(t, u) { t >= u })
       end
 
-      register_op :less_equal do |context, _tensor, inputs|
+      register_op :less_equal do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(:greater_equal, a, b, context, ->(t, u) { t <= u })
+        call_vector_op(tensor, :greater_equal, a, b, context, ->(t, u) { t <= u })
       end
 
       register_op :fill do |_context, _tensor, inputs|
@@ -738,8 +738,8 @@ module TensorStream
         get_rank(inputs[0])
       end
 
-      register_op %i[div real_div], noop: true do |context, _tensor, inputs|
-        process_vector_math_op(inputs[0], inputs[1], context, ->(t, u) { t / u })
+      register_op %i[div real_div], noop: true do |context, tensor, inputs|
+        process_vector_math_op(tensor, inputs[0], inputs[1], context, ->(t, u) { t / u })
       end
 
       register_op :reshape do |_context, _tensor, inputs|
@@ -762,19 +762,19 @@ module TensorStream
         arr_pad(inputs[0], p, tensor.data_type)
       end
 
-      register_op %i[max maximum], noop: true do |context, _tensor, inputs|
-        call_vector_op(:max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
+      register_op %i[max maximum], noop: true do |context, tensor, inputs|
+        call_vector_op(tensor, :max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
       end
 
-      register_op %i[min minimum], noop: true do |context, _tensor, inputs|
-        call_vector_op(:min, inputs[0], inputs[1], context, ->(t, u) { [t, u].min })
+      register_op %i[min minimum], noop: true do |context, tensor, inputs|
+        call_vector_op(tensor, :min, inputs[0], inputs[1], context, ->(t, u) { [t, u].min })
       end
 
       register_op :apply_gradient_descent do |context, tensor, inputs|
         target_var, learning_rate, delta = inputs
         assign = tensor.inputs[0] || tensor
 
-        assign.value = process_vector_math_op(target_var, delta, context, ->(t, u) { t - u * learning_rate })
+        assign.value = process_vector_math_op(tensor, target_var, delta, context, ->(t, u) { t - u * learning_rate })
         assign.value
       end
 
@@ -793,8 +793,8 @@ module TensorStream
         tile.nil? ? [] : tile
       end
 
-      register_op :flow_group, noop: true do |context, _tensor, inputs|
-        inputs.collect { |input| run(input, context) }
+      register_op :flow_group, noop: true do |context, tensor, inputs|
+        inputs.collect { |input| global_eval(tensor, input, context) }
       end
 
       register_op :softmax do |_context, _tensor, inputs|
@@ -914,7 +914,7 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        puts "ruby: #{tensor.name}"
+        # puts "ruby: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
 
           if tensor.breakpoint
@@ -1021,9 +1021,9 @@ module TensorStream
       end
 
       def reduction(child_context, tensor, func)
-        val = complete_eval(tensor.inputs[0], child_context)
-        axis = complete_eval(tensor.inputs[1], child_context)
-        keep_dims = complete_eval(tensor.options[:keepdims], child_context)
+        val = global_eval(tensor, tensor.inputs[0], child_context)
+        axis = global_eval(tensor, tensor.inputs[1], child_context)
+        keep_dims = global_eval(tensor, tensor.options[:keepdims], child_context)
         rank = get_rank(val)
         return val if axis && axis.is_a?(Array) && axis.empty?
 
@@ -1072,15 +1072,15 @@ module TensorStream
         TensorStream.send(op.to_sym, a)
       end
 
-      def call_vector_op(op, a, b, child_context, func)
-        process_vector_math_op(a, b, child_context, func)
+      def call_vector_op(tensor, op, a, b, child_context, func)
+        process_vector_math_op(tensor, a, b, child_context, func)
       rescue FullEvalNotPossible
         TensorStream.send(op.to_sym, a, b)
       end
 
-      def process_vector_math_op(a, b,  child_context, op)
-        eval_a = complete_eval(a, child_context) unless a.nil?
-        eval_b = complete_eval(b, child_context) unless b.nil?
+      def process_vector_math_op(tensor, a, b,  child_context, op)
+        eval_a = global_eval(tensor, a, child_context) unless a.nil?
+        eval_b = global_eval(tensor, b, child_context) unless b.nil?
 
         raise FullEvalNotPossible.new, "full eval not possible for #{a.name}" if eval_a.is_a?(Tensor) || eval_b.is_a?(Tensor)
 
