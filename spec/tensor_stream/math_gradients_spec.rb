@@ -1,9 +1,18 @@
 require "spec_helper"
 require 'benchmark'
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::MathGradients do
   let(:tf) { TensorStream }
   let(:sess) { tf.session(:ruby_evaluator) }
+
+  before(:each) do
+    TensorStream::Tensor.reset_counters
+    TensorStream::Operation.reset_counters
+    tf.reset_default_graph
+    sess.clear_session_cache
+  end
+
   context "addition" do
     it "handles shape differences, rank 2 vs 1" do
       a = tf.constant([[1, 2],[3, 4],[5, 6]])
@@ -296,5 +305,123 @@ RSpec.describe TensorStream::MathGradients do
 
       expect(tr(final_result)).to eq([[-0.0639, -0.0778]])
      end
+
+     it "softmax with variables" do
+        sess =tf.session([:ruby_evaluator])
+        batch_x = [
+          [0.686274, 0.10196, 0.6509, 1.0, 0.9686, 0.49803, 0.0, 0.0, 0.0, 0.0],
+          [0.543244, 0.10123, 0.4509, 0.0, 0.6986, 0.39803, 1.0, 0.0, 0.0, 0.0]
+        ]
+
+        batch_y = [
+          [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+        ]
+
+        num_input = 10
+        num_classes = 10
+        n_hidden_1 = 4 # 1st layer number of neurons
+        n_hidden_2 = 4 # 2nd layer number of neurons
+
+        X = tf.placeholder(:float, shape: [nil, num_input])
+        Y = tf.placeholder(:float, shape: [nil, num_classes])
+        
+
+        h1_init = tf.constant([[0.5937, 0.2343, 1.4332, 0.4395],
+                  [-1.0227, -0.6915, 1.2367, 0.3452],
+                  [-0.5675, 1.0374, 1.0429, 0.8839],
+                  [-0.1066, -0.0469, -1.6317, -1.4836],
+                  [0.7835, -3.0105, 1.713, -0.4536],
+                  [-0.3076, 1.3662, -0.6537, 0.0905],
+                  [-0.2459, 0.2243, -2.7048, 0.848],
+                  [0.3589, 0.3542, -0.0959, -1.327],
+                  [-0.4685, 0.0844, 0.2794, 2.1275],
+                  [-1.0733, 0.6189, 0.845, 0.033]])
+
+        h2_init = tf.constant([[0.5012, 1.302, -1.6217, 0.669], [0.1494, -0.7837, -0.2978, 1.7745], [1.9727, -0.5312, -0.7391, 0.9187], [-0.6412, -1.4434, -0.8801, 0.9343]])
+        h3_init = tf.constant([[0.5012, 1.302, -1.6217, 0.669, 0.1494, -0.7837, -0.2978, 1.7745, 1.9727, -0.5312],
+          [-0.7391, 0.9187, -0.6412, -1.4434, -0.8801, 0.9343, -0.1665, -0.0032, 0.2959, -2.0488],
+          [-0.9135, 1.0376, 0.8537, 0.4376, 1.3255, -0.5921, -1.4081, 1.0614, -0.5283, 1.1832],
+          [0.7285, -0.7844, 0.1793, -0.5275, -0.4426, -1.4976, 0.4433, 2.2317, -2.0479, 0.7791]])
+
+
+        b1_init = tf.constant([0.1494, -0.7837, -0.2978, 1.7745])
+
+        b2_init = tf.constant([1.9727, -0.5312, -0.7391, 0.9187])
+        out_init = tf.constant([-0.6412, -1.4434, -0.8801, 0.9343, -0.1665, -0.0032, 0.2959, -2.0488, -0.9135, 1.0376])
+
+
+        h1 = tf.variable(h1_init, dtype: :float, name: 'h1')
+        h2 = tf.variable(h2_init, dtype: :float, name: 'h2')
+        h3 = tf.variable(h3_init, dtype: :float, name: 'out')
+    
+        b1 = tf.variable(b1_init, dtype: :float, name: 'b1')
+        b2 = tf.variable(b2_init, dtype: :float, name: 'b2')
+        out = tf.variable(out_init, dtype: :float, name: 'out2')
+        
+        layer_1 = tf.add(tf.matmul(X, h1), b1)
+        # Hidden fully connected layer with 256 neurons
+        layer_2 = tf.add(tf.matmul(layer_1, h2), b2)
+        # Output fully connected layer with a neuron for each class
+        logits = tf.matmul(layer_2, h3) + out
+        prediction = tf.nn.softmax(logits)
+        loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+          logits: logits, labels: Y))
+        optimizer = TensorStream::Train::GradientDescentOptimizer.new(0.01)
+        train_op = optimizer.minimize(loss_op)
+        init = tf.global_variables_initializer
+        sess.run(init)
+
+        expect(tr(h1.read_value)).to eq(
+          [[0.5937, 0.2343, 1.4332, 0.4395],
+          [-1.0227, -0.6915, 1.2367, 0.3452],
+          [-0.5675, 1.0374, 1.0429, 0.8839],
+          [-0.1066, -0.0469, -1.6317, -1.4836],
+          [0.7835, -3.0105, 1.713, -0.4536],
+          [-0.3076, 1.3662, -0.6537, 0.0905],
+          [-0.2459, 0.2243, -2.7048, 0.848],
+          [0.3589, 0.3542, -0.0959, -1.327],
+          [-0.4685, 0.0844, 0.2794, 2.1275],
+          [-1.0733, 0.6189, 0.845, 0.033]])
+
+        op = sess.run(train_op, feed_dict: { X => batch_x, Y => batch_y })
+
+        expect(tr(h1.read_value)).to eq(
+          [[0.6077, 0.2256, 1.4079, 0.4435],
+            [-1.0202, -0.6927, 1.2331, 0.346],
+            [-0.5556, 1.0289, 1.0186, 0.8871],
+            [-0.1031, -0.0632, -1.6727, -1.4852],
+            [0.8018, -3.0231, 1.677, -0.4485],
+            [-0.2974, 1.3599, -0.672, 0.0935],
+            [-0.2247, 0.2289, -2.6995, 0.8574],
+            [0.3589, 0.3542, -0.0959, -1.327],
+            [-0.4685, 0.0844, 0.2794, 2.1275],
+            [-1.0733, 0.6189, 0.845, 0.033]])
+
+        expect(tr(h2.read_value)).to eq([[0.4904, 1.3072, -1.6269, 0.6668], [0.1928, -0.8053, -0.2725, 1.7826], [1.9528, -0.5233, -0.7353, 0.9118], [-0.6607, -1.4304, -0.9163, 0.9359]])
+
+
+        expect(tr(h3.read_value)).to eq([[0.5019, 1.302, -1.6217, 0.6692, 0.1494, -0.7461, -0.3078, 1.7745, 1.954, -0.5293],
+          [-0.7376, 0.9187, -0.6411, -1.4429, -0.8801, 0.9366, -0.1869, -0.0032, 0.2948, -2.045],
+          [-0.912, 1.0376, 0.8538, 0.4381, 1.3255, -0.618, -1.4284, 1.0614, -0.5154, 1.187],
+          [0.7283, -0.7844, 0.1793, -0.5276, -0.4426, -1.5068, 0.4466, 2.2317, -2.0433, 0.7785]])
+
+        expect(tr(b1.read_value)).to eq([0.1742, -0.7954, -0.3335, 1.7824])
+        expect(tr(b2.read_value)).to eq([1.9533, -0.5211, -0.7535, 0.9158])
+        expect(tr(out.read_value)).to eq([-0.6417, -1.4434, -0.8801, 0.9341, -0.1665, 0.0068, 0.303, -2.0488, -0.9185, 1.0363])
+        
+        op = sess.run(train_op, feed_dict: { X => batch_x, Y => batch_y })
+ 
+        expect(tr(h1.read_value)).to eq([[ 0.60318136  0.2325898   1.3983581   0.44835272]
+            [-1.0209237  -0.6918234   1.2315441   0.34648237]
+            [-0.55965984  1.0359951   1.0097896   0.89239955]
+            [-0.10696249 -0.04671911 -1.6832634  -1.4694314 ]
+            [ 0.7956616  -3.0126836   1.6637564  -0.44099614]
+            [-0.30065134  1.364946   -0.67898095  0.09691834]
+            [-0.22798887  0.22092332 -2.7037969   0.8463969 ]
+            [ 0.3589      0.3542     -0.0959     -1.327     ]
+            [-0.4685      0.0844      0.2794      2.1275    ]
+            [-1.0733      0.6189      0.845       0.033     ]])
+    end
   end
 end

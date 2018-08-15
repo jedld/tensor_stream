@@ -914,7 +914,7 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        puts "ruby: #{tensor.name}"
+        # puts "ruby: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
 
           if tensor.breakpoint

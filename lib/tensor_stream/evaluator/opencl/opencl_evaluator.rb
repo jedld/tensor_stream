@@ -726,7 +726,7 @@ module TensorStream
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
-        puts "opencl: #{tensor.name}"
+        # puts "opencl: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
