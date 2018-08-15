@@ -248,7 +248,7 @@ module TensorStream
           input_shape = ts.shape(x)
           output_shape = ts.shape(node)
           factor = _safe_shape_div(ts.reduce_prod(input_shape), ts.reduce_prod(output_shape))
-          ts.div(sum_grad, ts.cast(factor, sum_grad.data_type))
+          [ts.div(sum_grad, ts.cast(factor, sum_grad.data_type)), nil]
         when :log1p
           grad * ts.reciprocal(i_cons(1, dtype: grad.data_type) + x)
         when :sigmoid

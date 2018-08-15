@@ -113,7 +113,7 @@ module TensorStream
         if buffer.is_a?(Array)
           buffer = buffer.collect do |b|
             next b if b.buffer.size.zero?
-            _opencl_queue.enqueue_read_buffer(b.cl_buffer, b.buffer, event_wait_list: [b.op].compact)
+            _opencl_queue.enqueue_read_buffer(b.cl_buffer, b.buffer, event_wait_list: build_event_wait_list([b]))
             b
           end
         else
@@ -121,7 +121,7 @@ module TensorStream
           return buffer if buffer.nil?
           return [] if buffer.buffer.nil?
           return buffer if buffer.buffer.size.zero?
-          _opencl_queue.enqueue_read_buffer(buffer.cl_buffer, buffer.buffer, event_wait_list: [buffer.op].compact)
+          _opencl_queue.enqueue_read_buffer(buffer.cl_buffer, buffer.buffer, event_wait_list: build_event_wait_list([buffer]))
         end
         _opencl_queue.finish
         buffer
@@ -129,7 +129,6 @@ module TensorStream
 
       def self.query_devices_with_score
         OpenCL.platforms.flat_map do |p|
-
           p.devices.select { |d| d.available > 0 }.each_with_index.collect do |d, index|
             score = 0
             if d.type.to_s == 'CPU'
@@ -178,6 +177,7 @@ module TensorStream
 
       def create_command_queue
         supported_proprties = opencl_device.queue_properties.names
+
         properties = []
         properties << OpenCL::CommandQueue::PROFILING_ENABLE if supported_proprties.include?('PROFILING_ENABLE')
         properties << OpenCL::CommandQueue::OUT_OF_ORDER_EXEC_MODE_ENABLE if supported_proprties.include?('OUT_OF_ORDER_EXEC_MODE_ENABLE')
@@ -369,7 +369,7 @@ module TensorStream
         cl_buffer = get_cached_buffer(tensor.name, shape.buffer.to_a)
 
         buffer = if cl_buffer
-                    cl_buffer.buffer
+                   cl_buffer.buffer
                  else
                    allocate_narray_for_type(tensor.data_type, narray_size)
                  end
@@ -444,19 +444,6 @@ module TensorStream
         else
           a
         end
-      end
-
-      register_op :check_numerics do |context, tensor, inputs|
-        a = inputs[0]
-        buffer = _create_result_buffer(:int16, [], tensor.name)
-        m, n = a.shape
-        cl_m = OpenCL::Int1.new(m || 1)
-        cl_n = OpenCL::Int1.new(n || 1)
-        work_group = [m || 1, n || 1]
-        event_wait_list = build_event_wait_list(inputs)
-
-        buffer.op = _cl_program("check_numerics", data_type: tensor.data_type).cast(_opencl_queue, work_group, cl_m, cl_n, a.cl_buffer, buffer.cl_buffer, event_wait_list: event_wait_list)
-        a.buffer
       end
 
       register_op :stack do |_context, tensor, inputs|
@@ -586,7 +573,7 @@ module TensorStream
         name = tensor.options[:name]
 
         a.buffer.each do |input|
-          raise "#{name} Invalid Argument" if input.nan? || input.infinite?
+          raise TensorStream::InvalidArgumentError, "#{name} Invalid Argument" if input.nan? || input.infinite?
         end
         a
       end
@@ -739,7 +726,7 @@ module TensorStream
         cache_key = "#{tensor.graph.object_id}_opencl_#{tensor.name}:#{object_id}"
         return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
         return @context[cache_key] if @context.key?(cache_key)
-        # puts "opencl: #{tensor.name}"
+        puts "opencl: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
@@ -764,8 +751,10 @@ module TensorStream
           @context[:_cache][cache_key] = result if tensor.is_const
         end
       rescue EvaluatorExcecutionException => e
+        _opencl_queue.finish # dump queue
         raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       rescue TensorStreamError => e
+        _opencl_queue.finish # dump queue
         raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       rescue StandardError => e
         _opencl_queue.finish # dump queue

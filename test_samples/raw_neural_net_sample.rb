@@ -96,7 +96,9 @@ tf.session do |sess|
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         # Run optimization op (backprop)
         puts "."
+
         sess.run(train_op, feed_dict: { X => batch_x, Y => batch_y })
+
         if step % display_step == 0 || step == 1
         # Calculate batch loss and accuracy
         loss, acc = sess.run([loss_op, accuracy], feed_dict: { X => batch_x, Y => batch_y})

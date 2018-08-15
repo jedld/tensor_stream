@@ -446,7 +446,7 @@ RSpec.shared_examples "standard ops evaluator" do
 
       b = tf.constant([[0.0, 0.0, 1.0],[Float::NAN, 1.0, 3.1]])
       d = tf.check_numerics(b, "b")
-      expect { sess.run(d) }.to raise_exception
+      expect { sess.run(d) }.to raise_exception TensorStream::InvalidArgumentError
     end
   end
 
