@@ -1,4 +1,5 @@
 module TensorStream
+  # Parses pbtext files and loads it as a graph
   class Pbtext < TensorStream::Serializer
     include TensorStream::StringHelper
     include TensorStream::OpHelper

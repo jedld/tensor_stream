@@ -6,6 +6,10 @@ AllCops:
     - tensor_stream.gemspec
     - Rakefile
 
+Naming/AccessorMethodName:
+  Exclude:
+    - lib/tensor_stream/utils.rb
+
 Style/StringLiterals:
   Enabled: false
 
@@ -82,3 +86,4 @@ Style/TrailingCommaInHashLiteral:
 Naming/UncommunicativeMethodParamName:
   Exclude:
     - lib/tensor_stream/evaluator/ruby_evaluator.rb
+    - lib/tensor_stream/ops.rb

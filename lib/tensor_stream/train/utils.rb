@@ -18,11 +18,11 @@ module TensorStream
         target_graph = graph || TensorStream.get_default_graph
         global_step_tensors = target_graph.get_collection(TensorStream::GraphKeys::GLOBAL_STEP)
         global_step_tensor = if global_step_tensors.nil? || global_step_tensors.empty?
-                                begin
-                                  target_graph.get_tensor_by_name('global_step:0')
-                                rescue TensorStream::KeyError
-                                  nil
-                                end
+                               begin
+                                 target_graph.get_tensor_by_name('global_step:0')
+                               rescue TensorStream::KeyError
+                                 nil
+                               end
                              elsif global_step_tensors.size == 1
                                global_step_tensors[0]
                              else

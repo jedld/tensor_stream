@@ -87,11 +87,11 @@ module TensorStream
       end
     end
 
-    def to_math(name_only = false, max_depth = 99, _cur_depth = 0)
+    def to_math(name_only = false, max_depth = 99, cur_depth = 0)
       return @name if max_depth.zero?
 
-      sub_input = auto_math(inputs[0], name_only, max_depth - 1, _cur_depth + 1)
-      sub_input2 = auto_math(inputs[1], name_only, max_depth - 1, _cur_depth + 1) if inputs[1]
+      sub_input = auto_math(inputs[0], name_only, max_depth - 1, cur_depth + 1)
+      sub_input2 = auto_math(inputs[1], name_only, max_depth - 1, cur_depth + 1) if inputs[1]
 
       out = case operation
             when :argmax
@@ -151,7 +151,7 @@ module TensorStream
             when :ones_like
               "ones_like(#{sub_input})"
             when :flow_group
-              "flow_group(#{inputs.collect { |i| auto_math(i, name_only, max_depth - 1, _cur_depth) }.join(',')})"
+              "flow_group(#{inputs.collect { |i| auto_math(i, name_only, max_depth - 1, cur_depth) }.join(',')})"
             when :zeros
               "zeros(#{sub_input})"
             when :reshape
@@ -159,7 +159,7 @@ module TensorStream
             when :rank
               "#{sub_input}.rank"
             when :cond
-              "(#{auto_math(options[:pred], name_only, max_depth - 1, _cur_depth)} ? #{sub_input} : #{sub_input2})"
+              "(#{auto_math(options[:pred], name_only, max_depth - 1, cur_depth)} ? #{sub_input} : #{sub_input2})"
             when :less
               "#{sub_input} < #{sub_input2}"
             when :less_equal
@@ -191,7 +191,7 @@ module TensorStream
             when :zeros_like
               "zeros_like(#{sub_input})"
             when :where
-              "where(#{auto_math(options[:pred], name_only, max_depth - 1, _cur_depth)}, #{sub_input}, #{sub_input2})"
+              "where(#{auto_math(options[:pred], name_only, max_depth - 1, cur_depth)}, #{sub_input}, #{sub_input2})"
             when :max
               "max(#{sub_input},#{sub_input2})"
             when :cast
@@ -204,7 +204,7 @@ module TensorStream
               "#{operation}(#{sub_input})" if sub_input
               "#{operation}(#{sub_input}, #{sub_input2})" if sub_input && sub_input2
             end
-      ["\n", Array.new(_cur_depth + 1) { ' ' }, out].flatten.join
+      ["\n", Array.new(cur_depth + 1) { ' ' }, out].flatten.join
     end
 
     def run

@@ -259,7 +259,8 @@ module TensorStream
         when :softmax
           i_op(:softmax_grad, x, grad)
         when :softmax_cross_entropy_with_logits_v2
-          [i_op(:softmax_cross_entropy_with_logits_v2_grad, x, y, grad), nil]
+          output = node
+          [_broadcast_mul(grad, output[1]), nil]
         when :floor, :ceil
           # non differentiable
           nil
@@ -271,6 +272,8 @@ module TensorStream
           [nil, nil]
         when :transpose
           return [ts.transpose(grad, ts.invert_permutation(y)), nil]
+        when :index
+          grad
         else
           raise "no derivative op for #{node.operation}"
         end
@@ -321,6 +324,11 @@ module TensorStream
       gx = ts.reshape(ts.reduce_sum(xgrad, rx), sx)
       gy = ts.reshape(ts.reduce_sum(ygrad, ry), sy)
       [gx, gy]
+    end
+
+    def self._broadcast_mul(vec, mat)
+      vec = ts.expand_dims(vec, -1)
+      vec * mat
     end
 
     def self._include?(arr, obj)

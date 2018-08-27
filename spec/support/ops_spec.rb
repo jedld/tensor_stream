@@ -1310,6 +1310,24 @@ RSpec.shared_examples "standard ops evaluator" do
 
       expect(tr(sess.run(g))).to eq([[[2.0585, -2.0806, -2.0806], [2.0585, -2.0806, -2.0806]], [[3.7695, -0.7275, -4.5557], [-5.8735, 0.031, 5.907], [-7.5516, 0.0398, 7.5947]]])
     end
+
+    specify "gradients2" do
+      a = tf.constant([[1.1, 2.2], [1.2, 1.5]])
+      h2 = tf.constant([[1.0, 5.45], [2.4, 5.6]])
+      h3 = tf.constant([[1.1, 2.2], [2.1, 0.6]])
+      b2 =  tf.constant([[4.0, 0.5], [0.4, 0.2]])
+      out = tf.constant([[2.0, 1.4], [7.1, 1.2]])
+      labels = tf.constant([[1.0, 0.0], [1.0, 0.0]])
+      layer_2 = tf.add(tf.matmul(a, h2), b2)
+      logits = tf.matmul(layer_2, h3) + out
+      cross = tf.nn.softmax_cross_entropy_with_logits_v2(logits: logits, labels: labels)
+      loss = tf.reduce_mean(cross)
+      g = tf.gradients(loss, [h3, h2])
+      g2 = tf.gradients(cross, [h3, h2])
+      expect(tr(sess.run(cross))).to eq([0.0, 0.0])
+      expect(tr(sess.run(loss))).to eq(0.0)
+      expect(tr(sess.run(g))).to eq([[[0.0, 0.0], [0.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
+    end
   end
 
   context "math functions" do

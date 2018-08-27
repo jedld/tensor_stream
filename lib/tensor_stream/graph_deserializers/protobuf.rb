@@ -226,7 +226,7 @@ module TensorStream
             state = :tensor_shape_context
             next
           else
-            key, value = str.split(':', 2)
+            _key, value = str.split(':', 2)
             node_attr['value']['tensor']['shape'] << value.strip.to_i
           end
         end

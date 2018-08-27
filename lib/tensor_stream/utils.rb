@@ -184,6 +184,8 @@ module TensorStream
       TensorStream.get_default_graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
     end
 
+    ##
+    # Sets random seed to use for the default graph
     def set_random_seed(seed)
       TensorStream.get_default_graph.random_seed = seed
     end

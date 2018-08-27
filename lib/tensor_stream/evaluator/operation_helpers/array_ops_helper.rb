@@ -248,5 +248,52 @@ module TensorStream
 
       [new_arr, new_shape]
     end
+
+    def reduce_axis(current_axis, axis, val, keep_dims, f)
+      return val unless val.is_a?(Array)
+
+      r = val.collect do |v|
+        reduce_axis(current_axis + 1, axis, v, keep_dims, f)
+      end
+
+      should_reduce_axis = axis.nil? || (axis.is_a?(Array) && axis.include?(current_axis)) || (current_axis == axis)
+
+      if should_reduce_axis
+        reduced_val = r[0]
+        if r.size > 1
+          reduced_val = f.call(r[0..val.size])
+        elsif r.empty?
+          reduced_val = f.call(nil)
+        end
+        keep_dims ? [reduced_val] : reduced_val
+      else
+        r
+      end
+    end
+
+    def reduce(val, axis, keep_dims, func = nil)
+      rank = get_rank(val)
+      return val if axis && axis.is_a?(Array) && axis.empty?
+
+      func = lambda do |arr|
+        reduced_val = arr[0]
+        arr[1..arr.size].each do |v|
+          reduced_val = vector_op(reduced_val, v, ->(t, u) { t + u })
+        end
+        reduced_val
+      end if func.nil?
+
+      axis = if axis.nil?
+               nil
+             elsif axis.is_a?(Array)
+               return val if axis.empty?
+
+               axis.map { |a| a < 0 ? rank - a.abs : a }
+             else
+               axis < 0 ? rank - axis.abs : axis
+             end
+
+      reduce_axis(0, axis, val, keep_dims, func)
+    end
   end
 end

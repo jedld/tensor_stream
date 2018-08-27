@@ -186,12 +186,12 @@ module TensorStream
         merged
       end
 
-      register_op :gather do |context, tensor, inputs|
+      register_op :gather do |_context, _tensor, inputs|
         params, indexes = inputs
         gather(params, indexes)
       end
 
-      register_op :setdiff1d do |context, tensor, inputs|
+      register_op :setdiff1d do |_context, tensor, inputs|
         input, remove = inputs
         idx = []
         out = []
@@ -859,24 +859,36 @@ module TensorStream
         end
       end
 
-      register_op %i[softmax_cross_entropy_with_logits_v2 softmax_cross_entropy_with_logits] do |_context, _tensor, inputs|
+      register_op %i[softmax_cross_entropy_with_logits_v2 softmax_cross_entropy_with_logits] do |_context, tensor, inputs|
         last_dimen_list = last_axis(inputs[0])
         input_shape = shape_eval(inputs[0])
+        rank = input_shape.size - 1
         labels = last_axis(inputs[1])
         func = lambda { |logits, label|
           c = logits.max
           transformed_logits = logits.map { |l| l - c }
           sum = transformed_logits.map { |x| Math.exp(x) }.reduce(:+)
-          transformed_logits.zip(label).map { |x, y| (Math.log(sum) - x) * y }
+          losses = transformed_logits.zip(label).map { |x, y| (Math.log(sum) - x) * y }
+          probs = transformed_logits.zip(label).map  { |x, y| (Math.exp(x) / sum) - y }
+          [losses, probs]
         }
 
         if input_shape.size == 1
-          func.call(last_dimen_list, labels)
+          loss, prob = func.call(last_dimen_list, labels)
+          loss = reduce(loss, rank, false)
+          OutputGroup.new([loss, prob], [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
         else
-          arr = last_dimen_list.zip(labels).collect do |list, label|
-            func.call(list, label)
+          losses = []
+          backprobs = []
+          arr = last_dimen_list.zip(labels).each do |list, label|
+            loss, prob = func.call(list, label)
+            losses << loss
+            backprobs << prob
           end
-          TensorShape.reshape(arr.flatten, input_shape)
+          reshaped_losses = TensorShape.reshape(losses.flatten, input_shape)
+          reshaped_backprops = TensorShape.reshape(backprobs.flatten, input_shape)
+          reshaped_losses = reduce(reshaped_losses, rank, false)
+          OutputGroup.new([reshaped_losses, reshaped_backprops], [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
         end
       end
 
@@ -1024,20 +1036,7 @@ module TensorStream
         val = global_eval(tensor, tensor.inputs[0], child_context)
         axis = global_eval(tensor, tensor.inputs[1], child_context)
         keep_dims = global_eval(tensor, tensor.options[:keepdims], child_context)
-        rank = get_rank(val)
-        return val if axis && axis.is_a?(Array) && axis.empty?
-
-        axis = if axis.nil?
-                 nil
-               elsif axis.is_a?(Array)
-                 return val if axis.empty?
-
-                 axis.map { |a| a < 0 ? rank - a.abs : a }
-               else
-                 axis < 0 ? rank - axis.abs : axis
-               end
-
-        reduce_axis(0, axis, val, keep_dims, func)
+        reduce(val, axis, keep_dims, func)
       end
 
       def arr_pad(arr, paddings, data_type = :float32, rank = 0)
@@ -1135,28 +1134,6 @@ module TensorStream
 
         return var unless placeholder.is_a?(Tensor)
         Tensor.cast_dtype(var, placeholder.data_type)
-      end
-
-      def reduce_axis(current_axis, axis, val, keep_dims, f = ->(a, b) { a + b })
-        return val unless val.is_a?(Array)
-
-        r = val.collect do |v|
-          reduce_axis(current_axis + 1, axis, v, keep_dims, f)
-        end
-
-        should_reduce_axis = axis.nil? || (axis.is_a?(Array) && axis.include?(current_axis)) || (current_axis == axis)
-
-        if should_reduce_axis
-          reduced_val = r[0]
-          if r.size > 1
-            reduced_val = f.call(r[0..val.size])
-          elsif r.empty?
-            reduced_val = f.call(nil)
-          end
-          keep_dims ? [reduced_val] : reduced_val
-        else
-          r
-        end
       end
 
       # handle 3 tensor math operations

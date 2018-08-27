@@ -843,9 +843,13 @@ module TensorStream
                                    else
                                      raise "rank > 2 not supported!"
                                    end
-                  _cl_program(prog_name, a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+                  _cl_program(prog_name, a: a.data_type, b: b.data_type, dtype: dtype).
+                    send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_m_b, cl_n_b,
+                         cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
                 else
-                  _cl_program(prog_name, a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
+                  _cl_program(prog_name, a: a.data_type, b: b.data_type, dtype: dtype).
+                    send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch,
+                         a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
                 end
 
         output_buffer.op = event
