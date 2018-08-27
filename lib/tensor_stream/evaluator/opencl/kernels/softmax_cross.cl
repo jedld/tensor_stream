@@ -1,9 +1,10 @@
+
 // First naive implementation
 % c_dtype = dtype_to_c_type(dtype)
 __kernel void softmax_cross_<%= dtype %>(const int N,
                       const __global <%= c_dtype %>* A,
                       const __global <%= c_dtype %>* L,
-                      __global <%= c_dtype %>* C) {
+                      __global <%= c_dtype %>* C, __global <%= c_dtype %>* P) {
 
     // Get the index of the current element to be processed
     const int globalRow = get_global_id(0); // Row ID of C (0..M)
@@ -23,5 +24,9 @@ __kernel void softmax_cross_<%= dtype %>(const int N,
     // Store the result
     for (int k=0; k < N; k++) {
       C[globalRow*N + k] = (log(acc) - (A[globalRow*N + k] - max)) * L[globalRow*N + k];
+    }
+
+    for (int k=0; k < N; k++) {
+      P[globalRow*N + k] = (exp(A[globalRow*N + k] - max) / acc) - L[globalRow*N + k];
     }
 }
