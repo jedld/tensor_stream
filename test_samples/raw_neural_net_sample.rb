@@ -9,6 +9,8 @@ Links:
 
 Author: Aymeric Damien
 Project: https://github.com/aymericdamien/TensorFlow-Examples/
+
+The mnist-learn gem is required as well as an OpenCL compatible device with drivers correctly installed
 """
 require "bundler/setup"
 require 'tensor_stream'
@@ -23,8 +25,9 @@ mnist = Mnist.read_data_sets('/tmp/data', one_hot: true)
 puts "downloading finished"
 
 # Parameters
-learning_rate = 0.1
-num_steps = 500
+learning_rate = 0.001
+momentum = 0.005
+num_steps = 100
 batch_size = 128
 display_step = 5
 
@@ -71,7 +74,7 @@ prediction = tf.nn.softmax(logits)
 loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
     logits: logits, labels: Y))
 
-optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate)
+optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true)
 train_op = optimizer.minimize(loss_op)
 
 # Evaluate model
@@ -88,28 +91,24 @@ tf.session do |sess|
     # Run the initializer
     sess.run(init)
 
-    # print("Testing Accuracy:", \
-    #     sess.run(accuracy, feed_dict: { X => mnist.test.images,
-    #                                     Y => mnist.test.labels}))
+    print("Testing Accuracy:", \
+        sess.run(accuracy, feed_dict: { X => mnist.test.images,
+                                        Y => mnist.test.labels}))
 
     (1..num_steps+1).each do |step|
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         # Run optimization op (backprop)
-        puts "."
         sess.run(train_op, feed_dict: { X => batch_x, Y => batch_y })
         if step % display_step == 0 || step == 1
-        # Calculate batch loss and accuracy
-        loss, acc = sess.run([loss_op, accuracy], feed_dict: { X => batch_x, Y => batch_y})
-        print("Step " + step.to_s + ", Minibatch Loss= " + \
-                loss.to_s + ", Training Accuracy= " + \
-                acc.to_s)
+            # Calculate batch loss and accuracy
+            loss, acc = sess.run([loss_op, accuracy], feed_dict: { X => batch_x, Y => batch_y})
+            print("\nStep " + step.to_s + ", Minibatch Loss= " + \
+                    loss.to_s + ", Training Accuracy= " + \
+                    acc.to_s)
         end
     end
-
-    print("Optimization Finished!")
-
-    # Calculate accuracy for MNIST test images
-    print("Testing Accuracy:", \
-        sess.run(accuracy, feed_dict: {  X => mnist.test.images,
+    print("\nOptimization Finished!")
+    print("\nTesting Accuracy after optimization:", \
+        sess.run(accuracy, feed_dict: { X => mnist.test.images,
                                         Y => mnist.test.labels}))
 end
