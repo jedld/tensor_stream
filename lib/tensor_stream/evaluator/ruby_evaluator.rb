@@ -812,7 +812,8 @@ module TensorStream
       end
 
       register_op :flow_group, noop: true do |context, tensor, inputs|
-        inputs.collect { |input| global_eval(tensor, input, context) }
+        inputs.each { |input| global_eval(tensor, input, context) }
+        nil # no output
       end
 
       register_op :softmax do |_context, _tensor, inputs|

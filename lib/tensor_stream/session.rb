@@ -71,7 +71,7 @@ module TensorStream
         value = delegate_to_evaluator(e, context, {})
         recursive_eval(value)
       end
-      result.size == 1 ? result.first : result
+      args.size == 1 ? result.first : result
     end
 
     def list_devices
@@ -111,16 +111,25 @@ module TensorStream
     end
 
     def delegate_to_evaluator(tensor_arr, session_context, context)
-      arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
-      result = arr.collect do |tensor|
-        session_context[:_cache][:placement][tensor.name] = assign_evaluator(tensor) if session_context[:_cache][:placement][tensor.name].nil?
-
-        session_context[:_cache][:placement][tensor.name][1].run_with_buffer(tensor, session_context, context)
+      if tensor_arr.is_a?(Array)
+        tensor_arr.collect do |tensor|
+          if tensor.is_a?(Array)
+            delegate_to_evaluator(tensor, session_context, context)
+          else
+            run_with_session_context(tensor, session_context, context)
+          end
+        end
+      else
+        run_with_session_context(tensor_arr, session_context, context)
       end
-      result.size == 1 ? result.first : result
     end
 
     protected
+
+    def run_with_session_context(tensor, session_context, context)
+      session_context[:_cache][:placement][tensor.name] = assign_evaluator(tensor) if session_context[:_cache][:placement][tensor.name].nil?
+      session_context[:_cache][:placement][tensor.name][1].run_with_buffer(tensor, session_context, context)
+    end
 
     def recursive_eval(value, depth = 2)
       if value.is_a?(Array) && depth > 0
@@ -151,7 +160,7 @@ module TensorStream
     def prepare_evaluators(tensor_arr, context)
       context[:_cache][:placement] ||= {}
 
-      tensor_arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
+      tensor_arr = tensor_arr.is_a?(Array) ? tensor_arr.flatten : [tensor_arr]
       tensor_arr.each do |tensor|
         next if context[:_cache][:placement][tensor.name]
 

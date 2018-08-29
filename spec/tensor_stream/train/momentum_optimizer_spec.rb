@@ -89,6 +89,6 @@ RSpec.describe TensorStream::Train::MomentumOptimizer do
       optimizer = described_class.new(learning_rate, momentum)
       expect { optimizer.compute_gradients(pred, var_list: x) }.to raise_error
       expect { optimizer.compute_gradients(pred, var_list: [x]) }.to raise_error
-      expect(optimizer.compute_gradients(pred, var_list: [m]).map { |g, v| g.name}).to eq(["index_24:0"])
+      expect(optimizer.compute_gradients(pred, var_list: [m]).map { |g, v| g.name}).to eq(["gradient_wrt_Variable:0/mul_3:0_grad/reshape_19:0"])
   end
 end

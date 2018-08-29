@@ -55,7 +55,8 @@ module TensorStream
                          end
         tensor_program
       end
-      TensorStream.group(gs)
+
+      gs
     end
 
     ##

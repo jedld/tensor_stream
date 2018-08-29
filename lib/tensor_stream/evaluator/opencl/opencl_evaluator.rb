@@ -107,9 +107,8 @@ module TensorStream
         end
       end
 
-      def complete_eval(tensor, context)
+      def enqueue_buffer_read(tensor, context)
         buffer = _run(tensor, context)
-
         if buffer.is_a?(Array)
           buffer = buffer.collect do |b|
             next b if b.buffer.size.zero?
@@ -122,7 +121,12 @@ module TensorStream
           return [] if buffer.buffer.nil?
           return buffer if buffer.buffer.size.zero?
           _opencl_queue.enqueue_read_buffer(buffer.cl_buffer, buffer.buffer, event_wait_list: build_event_wait_list([buffer]))
+          buffer
         end
+      end
+
+      def complete_eval(tensor, context)
+        buffer = enqueue_buffer_read(tensor, context)
         _opencl_queue.finish
         buffer
       end
@@ -713,8 +717,9 @@ module TensorStream
         convert_to_opencl(arr.buffer, shape, data_type: arr.data_type, name: tensor.name)
       end
 
-      register_op :flow_group do |_context, _tensor, inputs|
-        inputs
+      register_op :flow_group do |context, _tensor, inputs|
+        _opencl_queue.finish
+        nil
       end
 
       register_op :size do |_context, tensor, inputs|
