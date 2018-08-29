@@ -338,7 +338,7 @@ ruby 2.4
 $ ruby -v
 ruby 2.4.0p0 (2016-12-24 revision 57164) [x86_64-linux]
 $ ruby samples/linear_regression.rb
-495 seconds 1000 epochs
+495 seconds 10000 epochs
 ```
 
 ruby 2.6.0-preview2
