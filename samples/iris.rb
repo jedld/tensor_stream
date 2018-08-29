@@ -66,8 +66,8 @@ end
 x_size = x_train[0].size
 y_size = y_train[0].size
 h_size = 256
-X = tf.placeholder(:float, shape: [nil, x_size])
-y = tf.placeholder(:float, shape: [nil, y_size])
+X = tf.placeholder(:float32, shape: [nil, x_size])
+y = tf.placeholder(:float32, shape: [nil, y_size])
 
 # Weight initializations
 w_1 = init_weights([x_size, h_size])
@@ -79,13 +79,14 @@ predict = tf.argmax(yhat, 1)
 
 # Backward propagation
 cost    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels: y, logits: yhat))
-updates =  TensorStream::Train::MomentumOptimizer.new(0.01, 0.1, use_nesterov: true).minimize(cost)
+updates =  TensorStream::Train::MomentumOptimizer.new(0.01, 0.5, use_nesterov: true).minimize(cost)
 
 # Run SGD
 sess = tf.session
 init = tf.global_variables_initializer
 sess.run(init)
-
+loss = sess.run(cost, feed_dict: { X => x_test, y => y_test })
+puts "loss test data set #{loss}"
 loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
 puts "Testing the untrained network..."
 puts loss
