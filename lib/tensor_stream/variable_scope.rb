@@ -1,15 +1,21 @@
 module TensorStream
   class VariableScope
     attr_accessor :name, :reuse, :initializer
+    attr_reader :used_names
 
-    def initialize(name: '', reuse: nil, initializer: nil)
+    def initialize(name: nil, reuse: nil, initializer: nil)
       @name = name
       @reuse = reuse
       @initializer = initializer
+      @used_names = []
     end
 
     def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil, validate_shape: false)
       TensorStream::Variable.new(dtype || :float32, nil, shape, self, collections: collections, name: name, initializer: initializer, trainable: trainable)
+    end
+
+    def register_name(name)
+      @used_names << name unless @used_names.include?(name)
     end
   end
 end

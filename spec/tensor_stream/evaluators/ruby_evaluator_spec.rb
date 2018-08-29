@@ -27,6 +27,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         acos
         add
         add_n
+        apply_adam
         apply_gradient_descent
         apply_momentum
         arg_max
@@ -115,7 +116,6 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         softmax
         softmax_cross_entropy_with_logits
         softmax_cross_entropy_with_logits_v2
-        softmax_cross_entropy_with_logits_v2_grad
         softmax_grad
         sqrt
         square

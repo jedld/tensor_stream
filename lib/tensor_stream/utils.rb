@@ -66,9 +66,25 @@ module TensorStream
       tensor
     end
 
-    def variable_scope(scope = nil, reuse: nil, initializer: nil)
-      Thread.current[:tensor_stream_variable_scope] ||= []
+    ##
+    # Defines a variable context manager
+    def variable_scope(scope = nil, default_name = nil, reuse: nil, initializer: nil)
+      Thread.current[:tensor_stream_variable_scope] ||= [ VariableScope.new ]
+
+      # uniquenifier
+      if scope.nil? && default_name
+        same_names = get_variable_scope.used_names.select { |s| s.start_with?(default_name) }
+        new_name = default_name
+        index = 1
+        while same_names.include?(new_name)
+          new_name = "#{default_name}_#{index}"
+          index += 1
+        end
+        scope = new_name
+      end
+
       variable_scope = VariableScope.new(name: scope, reuse: reuse, initializer: initializer)
+      get_variable_scope.register_name(scope || "")
       Thread.current[:tensor_stream_variable_scope] << variable_scope
       scope_name = __v_scope_name
       if block_given?
@@ -100,8 +116,13 @@ module TensorStream
     end
 
     def get_variable_scope
-      return VariableScope.new unless Thread.current[:tensor_stream_variable_scope]
-      Thread.current[:tensor_stream_variable_scope].last || VariableScope.new
+      if !Thread.current[:tensor_stream_variable_scope]
+        variable_scope = VariableScope.new
+        Thread.current[:tensor_stream_variable_scope] = [variable_scope]
+        return variable_scope
+      end
+
+      Thread.current[:tensor_stream_variable_scope].last
     end
 
     def __v_scope_name

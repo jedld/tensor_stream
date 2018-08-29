@@ -12,6 +12,7 @@ module TensorStream
         @use_locking = use_locking
         raise TensorStream::ValueError, "Must specify the optimizer name" unless @name
         @slots = {}
+        @non_slots = {}
       end
 
       def minimize(loss, var_list: nil, grad_loss: nil, global_step: nil, name: nil)
@@ -86,7 +87,7 @@ module TensorStream
         # no implementation
       end
 
-      def apply_dense(grad, var)
+      def apply_dense(_grad, _var)
         raise TensorStream::NotImplementedError, "not implemented"
       end
 
@@ -95,7 +96,7 @@ module TensorStream
       #
       # Args:
       #   var: Variable - A Variable object
-      #   slot_name: string - Name fot the slot
+      #   slot_name: string - Name for the slot
       #   op_name: string - Name to use when scoping the Variable that needs to be created
       def zeros_slot(var, slot_name, op_name)
         named_slots = slot_dict(slot_name)
@@ -123,6 +124,28 @@ module TensorStream
 
       def var_key(var)
         [var.op.graph, var.op.name]
+      end
+
+      def get_non_slot_variable(name, graph: nil)
+        non_slot = @non_slots.fetch([name, graph], nil)
+        non_slot
+      end
+
+      def call_if_callable(param)
+        param.kind_of?(Proc) ? param.call : param
+      end
+
+
+      def create_non_slot_variable(initial_value, name, colocate_with)
+        graph = colocate_with.graph
+
+        key = [name, graph]
+        v = @non_slots.fetch(key, nil)
+        if v.nil?
+          v = TensorStream.variable(initial_value, name: name, trainable: false)
+          @non_slots[key] = v
+        end
+        v
       end
     end
   end

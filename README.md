@@ -17,7 +17,20 @@ The goal of this gem is to have a high performance machine learning and compute 
 - eager execution (experimental)
 - (08-08-2018) Load pbtext files from tensorflow (Graph.parse_from_string)
 
-Since this is a pure ruby implementation for now, performance is not there yet. However it should be a good enough environment to learn about tensorflow and experiment with some models.
+## Compatibility
+
+TensorStream comes with a pure ruby and OpenCL implementation out of the box. The pure ruby implementation
+is known to work with most ruby implementations including TruffleRuby, JRuby as well as jit enabled versions of mri (ruby-2.6.0).
+
+OpenCL is supported only on mri implementations of ruby. This can be enabled by including the OpenCL evaluator (Make sure you have OpenCL drivers installed correctly on your system):
+
+```ruby
+require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+```
+
+OpenCL is basically a requirement for deep learning and image processing tasks as the ruby implementation is too slow even with jit speedups using latest ruby implementations.
+
+OpenCL kernels used by tensorstream can be found at tensor_stream/lib/evaluator/opencl/kernels. These are non specific and should work with any device that supports OpenCL including intel GPUs and CPUs, as well as GPUs from Nvidia and AMD.
 
 ## Installation
 
@@ -72,6 +85,8 @@ pred = X * W + b
 # Mean squared error
 cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 
+# optimizer =  TensorStream::Train::MomentumOptimizer.new(0.01, 0.5, use_nesterov: true).minimize(cost)
+# optimizer =  TensorStream::Train::AdamOptimizer.new.minimize(cost)
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)
@@ -383,8 +398,6 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/tensor_stream. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
-
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-

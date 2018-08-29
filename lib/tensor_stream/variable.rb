@@ -40,7 +40,7 @@ module TensorStream
       init_op
     end
 
-    def assign(value, name: nil)
+    def assign(value, name: nil, use_locking: false)
       _a, value = TensorStream.check_data_types(self, value)
       _op(:assign, self, value, name: name)
     end

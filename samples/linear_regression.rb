@@ -1,8 +1,8 @@
-require "bundler/setup"
-require 'tensor_stream'
-require 'benchmark'
+# Linear Regression sample, using SGD and auto-differentiation
 
-tf = TensorStream
+require 'tensor_stream'
+
+tf = TensorStream # use tf to make it look like TensorFlow
 
 learning_rate = 0.01
 momentum = 0.5
@@ -29,7 +29,9 @@ pred = X * W + b
 # Mean squared error
 cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 
-# optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum).minimize(cost)
+# Other possible Optimizers
+# optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true).minimize(cost)
+# optimizer = TensorStream::Train::AdamOptimizer.new(learning_rate).minimize(cost)
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)

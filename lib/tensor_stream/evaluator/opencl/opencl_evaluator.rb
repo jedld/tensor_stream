@@ -343,6 +343,48 @@ module TensorStream
                          learning_rate.cl_buffer, momentum.cl_buffer, output_buffer.cl_buffer,
                          assign_acc.buffer.cl_buffer, event_wait_list: event_wait_list)
         output_buffer.op = event
+        assign_acc.buffer.op = event
+        output_buffer
+      end
+
+      # Adam optimization algorithm
+      register_op :apply_adam do |_context, tensor, inputs|
+        _target_var, _m, _v, beta1_power, beta2_power, lr_t, beta1_t, beta2_t, epsilon_t, grad = inputs
+
+        assign = tensor.inputs[0] || tensor
+        assign_m = tensor.inputs[1]
+        assign_v = tensor.inputs[2]
+
+        # mark variable buffers as dirty
+        assign.buffer.dirty = true # force buffer copy when variable is read externally
+        assign_m.buffer.dirty = true # force buffer copy when variable is read externally
+        assign_v.buffer.dirty = true # force buffer copy when variable is read externally
+
+        output_buffer = assign.buffer
+
+        m, n = output_buffer.shape
+        work_group = [m || 1, n || 1]
+        cl_m = OpenCL::Int1.new(m || 1)
+        cl_n = OpenCL::Int1.new(n || 1)
+
+        event_wait_list = build_event_wait_list(inputs)
+        method_call = :"apply_adam_#{output_buffer.data_type}"
+        event = _cl_program("apply_adam", dtype: output_buffer.data_type)
+                            .send(method_call, _opencl_queue, work_group, cl_m, cl_n,
+                                  grad.cl_buffer,
+                                  lr_t.cl_buffer,
+                                  beta1_power.cl_buffer,
+                                  beta2_power.cl_buffer,
+                                  beta1_t.cl_buffer,
+                                  beta2_t.cl_buffer,
+                                  epsilon_t.cl_buffer,
+                                  assign_m.buffer.cl_buffer,
+                                  assign.buffer.cl_buffer,
+                                  assign_v.buffer.cl_buffer,
+                                  event_wait_list: event_wait_list)
+        output_buffer.op = event
+        assign_m.buffer.op = event
+        assign_v.buffer.op = event
         output_buffer
       end
 

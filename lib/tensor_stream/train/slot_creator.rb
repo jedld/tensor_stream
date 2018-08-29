@@ -23,7 +23,7 @@ module TensorStream
       #
       # Returns: A `Variable` object
       def create_slot(primary, val, name, colocate_with_primary: true)
-        TensorStream.variable_scope(primary.op.name + "/" + name) do
+        TensorStream.variable_scope(nil, primary.op.name + "/" + name) do
           if colocate_with_primary
             TensorStream.colocate_with(primary) do
               return create_slot_var(primary, val, "")

@@ -3,7 +3,6 @@ require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Train::MomentumOptimizer do
   let(:ts) { TensorStream }
-  let(:sess) { TensorStream.session([:opencl_evaluator, :ruby_evaluator]) }
   let(:momentum) { 1.0 }
   let(:learning_rate) { 0.01 }
 
@@ -13,67 +12,73 @@ RSpec.describe TensorStream::Train::MomentumOptimizer do
     ts.reset_default_graph
   end
 
-  [true, false].each do |use_nesterov|
+  [[:opencl_evaluator, :ruby_evaluator], [:ruby_evaluator]].each do |evaluator|
 
-    let(:expect_values) do
-      # use_nesterov => { rank => expected }
-      {
-        false => { 0 => 0.3261, 1 => [0.3261, 0.1925] },
-        true => { 0 => 0.9526, 1 =>  [0.9526, 0.5724] },
-      }
-    end
+    context "evaluator #{evaluator.join(',')}" do
+      let(:sess) { TensorStream.session(evaluator) }
+      [true, false].each do |use_nesterov|
 
-    context "use nesterov = #{use_nesterov}" do
-      specify "rank 0" do
-        n_samples = 5
+        let(:expect_values) do
+          # use_nesterov => { rank => expected }
+          {
+            false => { 0 => 0.3261, 1 => [0.3261, 0.1925] },
+            true => { 0 => 0.9526, 1 =>  [0.9526, 0.5724] },
+          }
+        end
 
-        m = ts.variable(0.0, dtype: :float32)
-        b = ts.variable(0.0, dtype: :float32)
-        global_step = ts.variable(0, trainable: false)
-        x = ts.placeholder(:float32)
-        y = ts.placeholder(:float32)
+        context "use nesterov = #{use_nesterov}" do
+          specify "rank 0" do
+            n_samples = 5
 
-        pred = m * x + b
+            m = ts.variable(0.0, dtype: :float32)
+            b = ts.variable(0.0, dtype: :float32)
+            global_step = ts.variable(0, trainable: false)
+            x = ts.placeholder(:float32)
+            y = ts.placeholder(:float32)
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+            pred = m * x + b
 
-        optimizer = described_class.new(learning_rate, momentum, use_nesterov: use_nesterov).minimize(cost, global_step: global_step)
+            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
 
-        init = ts.global_variables_initializer()
+            optimizer = described_class.new(learning_rate, momentum, use_nesterov: use_nesterov).minimize(cost, global_step: global_step)
 
-        sess.run(init)
+            init = ts.global_variables_initializer()
 
-        expect(m.read_value).to eq(0.0)
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-        expect(tr(m.read_value)).to eq(expect_values[use_nesterov][0])
-        expect(sess.run(global_step)).to eq(2)
-      end
+            sess.run(init)
 
-      specify "rank 1" do
-        n_samples = 5
+            expect(m.read_value).to eq(0.0)
+            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+            expect(tr(m.read_value)).to eq(expect_values[use_nesterov][0])
+            expect(sess.run(global_step)).to eq(2)
+          end
 
-        m = ts.variable([0.0, 0.0], dtype: :float32)
-        b = ts.variable([0.0, 0.0], dtype: :float32)
-        global_step = ts.variable(0, trainable: false)
-        x = ts.placeholder(:float32)
-        y = ts.placeholder(:float32)
+          specify "rank 1" do
+            n_samples = 5
 
-        pred = m * x + b
+            m = ts.variable([0.0, 0.0], dtype: :float32)
+            b = ts.variable([0.0, 0.0], dtype: :float32)
+            global_step = ts.variable(0, trainable: false)
+            x = ts.placeholder(:float32)
+            y = ts.placeholder(:float32)
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+            pred = m * x + b
 
-        optimizer = described_class.new(learning_rate, momentum, use_nesterov: use_nesterov).minimize(cost, global_step: global_step)
+            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
 
-        init = ts.global_variables_initializer()
+            optimizer = described_class.new(learning_rate, momentum, use_nesterov: use_nesterov).minimize(cost, global_step: global_step)
 
-        sess.run(init)
+            init = ts.global_variables_initializer()
 
-        expect(m.read_value).to eq([0.0, 0.0])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
-        expect(tr(m.read_value)).to eq(expect_values[use_nesterov][1])
-        expect(sess.run(global_step)).to eq(2)
+            sess.run(init)
+
+            expect(m.read_value).to eq([0.0, 0.0])
+            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            expect(tr(m.read_value)).to eq(expect_values[use_nesterov][1])
+            expect(sess.run(global_step)).to eq(2)
+          end
+        end
       end
     end
   end

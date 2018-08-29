@@ -2,7 +2,7 @@ require "spec_helper"
 require 'benchmark'
 require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
-RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
+RSpec.describe TensorStream::Evaluator::OpenclEvaluator do
   let(:tf) { TensorStream }
   let(:sess) { TensorStream.session([:opencl_evaluator, :ruby_evaluator]) }
   let(:instance) { described_class.new(sess, TensorStream::Evaluator::OpenclEvaluator.default_device, {})}
@@ -54,7 +54,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(79)
+      expect(described_class.ops.keys.size).to eq(80)
     end
 
     specify do
@@ -63,6 +63,7 @@ RSpec.xdescribe TensorStream::Evaluator::OpenclEvaluator do
         acos
         add
         add_n
+        apply_adam
         apply_gradient_descent
         apply_momentum
         argmax

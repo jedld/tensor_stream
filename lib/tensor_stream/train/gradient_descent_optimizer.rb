@@ -6,8 +6,9 @@ module TensorStream
 
       attr_accessor :learning_rate
 
-      def initialize(learning_rate, _options = {})
+      def initialize(learning_rate, use_locking: false, name: "GradientDescent")
         @learning_rate = learning_rate
+        super(name: name, use_locking: use_locking)
       end
 
       protected

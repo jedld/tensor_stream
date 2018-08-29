@@ -12,11 +12,9 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 
 The mnist-learn gem is required as well as an OpenCL compatible device with drivers correctly installed
 """
-require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
 require 'tensor_stream/evaluator/opencl/opencl_evaluator'
-require 'pry-byebug'
 
 tf = TensorStream
 # Import MNIST data
@@ -26,7 +24,7 @@ puts "downloading finished"
 
 # Parameters
 learning_rate = 0.001
-momentum = 0.005
+momentum = 0.01
 num_steps = 100
 batch_size = 128
 display_step = 5
@@ -38,20 +36,20 @@ num_input = 784 # MNIST data input (img shape: 28*28)
 num_classes = 10 # MNIST total classes (0-9 digits)
 
 # tf Graph input
-X = tf.placeholder(:float32, shape: [nil, num_input])
-Y = tf.placeholder(:float32, shape: [nil, num_classes])
+X = tf.placeholder(:float64, shape: [nil, num_input])
+Y = tf.placeholder(:float64, shape: [nil, num_classes])
 
 # Store layers weight & bias
 weights = {
-    'h1' => tf.variable(tf.random_normal([num_input, n_hidden_1]), dtype: :float32, name: 'h1'),
-    'h2' => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), dtype: :float32, name: 'h2'),
-    'out' => tf.variable(tf.random_normal([n_hidden_2, num_classes]), dtype: :float32, name: 'out')
+    'h1' => tf.variable(tf.random_normal([num_input, n_hidden_1]), dtype: :float64, name: 'h1'),
+    'h2' => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), dtype: :float64, name: 'h2'),
+    'out' => tf.variable(tf.random_normal([n_hidden_2, num_classes]), dtype: :float64, name: 'out')
 }
 
 biases = {
-    'b1' => tf.variable(tf.random_normal([n_hidden_1]), dtype: :float32, name: 'b1'),
-    'b2' => tf.variable(tf.random_normal([n_hidden_2]), dtype: :float32, name: 'b2'),
-    'out' => tf.variable(tf.random_normal([num_classes]), dtype: :float32, name: 'out2')
+    'b1' => tf.variable(tf.random_normal([n_hidden_1]), dtype: :float64, name: 'b1'),
+    'b2' => tf.variable(tf.random_normal([n_hidden_2]), dtype: :float64, name: 'b2'),
+    'out' => tf.variable(tf.random_normal([num_classes]), dtype: :float64, name: 'out2')
 }
 
 
