@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2018-08-29
+### Added
+- [TRAINING] Added new supported optimizer, MomentumOptimizer loosely based on tensorflow's implementation (with nesterov support)
+- [NEW OP] fill, stack, atan, cumprod, gather, invert_permutation, setdiff1d
+
+### Fixes
+- Fixed device delegator where it does not pick the correct evaluator to use in some cases
+- [GRADIENTS] Properly implement gradient computation for prod, tile, transpose
+- Fixed gradient computation for softmax_cross_entropy_with_logits_v2 (now based on tensorflow's implementation)
+
 ## [0.7.0] - 2018-08-08
 ### Added
 - [NEW OP] expand_dims, min, acos, asin, add_n
