@@ -28,7 +28,6 @@ RSpec.describe TensorStream::Train::GradientDescentOptimizer do
 
         init = ts.global_variables_initializer()
 
-        sess = ts.session
         sess.run(init)
 
         expect(m.read_value).to eq(0.0)
@@ -56,7 +55,6 @@ RSpec.describe TensorStream::Train::GradientDescentOptimizer do
 
         init = ts.global_variables_initializer()
 
-        sess = ts.session
         sess.run(init)
 
         expect(m.read_value).to eq([0.0, 0.0])

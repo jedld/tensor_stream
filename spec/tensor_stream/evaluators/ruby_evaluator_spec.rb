@@ -18,7 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(103)
+      expect(described_class.ops.keys.size).to eq(111)
     end
 
     specify do
@@ -28,6 +28,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         add
         add_n
         apply_gradient_descent
+        apply_momentum
         arg_max
         arg_min
         argmax
@@ -36,6 +37,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         assign
         assign_add
         assign_sub
+        atan
         broadcast_gradient_args
         broadcast_transform
         cast
@@ -46,6 +48,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         cond
         const
         cos
+        cumprod
         div
         dynamic_stitch
         equal
@@ -58,11 +61,13 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         floor_mod
         flow_dynamic_stitch
         flow_group
+        gather
         glorot_uniform
         greater
         greater_equal
         identity
         index
+        invert_permutation
         less
         less_equal
         log
@@ -99,6 +104,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         save_v2
         sec
         select
+        setdiff1d
         shape
         sigmoid
         sigmoid_grad
@@ -114,6 +120,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         sqrt
         square
         squared_difference
+        stack
         stop_gradient
         sub
         sum
@@ -123,6 +130,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         tile
         transpose
         truncate
+        variable
         where
         zeros
         zeros_like])

@@ -87,124 +87,124 @@ module TensorStream
       end
     end
 
-    def to_math(name_only = false, max_depth = 99, _cur_depth = 0)
+    def to_math(name_only = false, max_depth = 99, cur_depth = 0)
       return @name if max_depth.zero?
 
-      sub_input = auto_math(inputs[0], name_only, max_depth - 1, _cur_depth + 1)
-      sub_input2 = auto_math(inputs[1], name_only, max_depth - 1, _cur_depth + 1) if inputs[1]
+      sub_input = auto_math(inputs[0], name_only, max_depth - 1, cur_depth + 1)
+      sub_input2 = auto_math(inputs[1], name_only, max_depth - 1, cur_depth + 1) if inputs[1]
 
       out = case operation
-      when :argmax
-        "argmax(#{sub_input},#{options[:axis]})"
-      when :negate
-        "-#{sub_input}"
-      when :index
-        "#{sub_input}[#{sub_input2}]"
-      when :slice
-        "#{sub_input}[#{sub_input2}]"
-      when :assign_sub
-        "(#{inputs[0] ? inputs[0].name : 'self'} -= #{auto_math(inputs[1], name_only, 1)})"
-      when :assign_add
-        "(#{inputs[0] ? inputs[0].name : 'self'} += #{auto_math(inputs[1], name_only, 1)})"
-      when :assign
-        "(#{inputs[0] ? inputs[0].name : 'self'} = #{auto_math(inputs[1], name_only, 1)})"
-      when :sin, :cos, :tanh
-        "#{operation}(#{sub_input})"
-      when :add
-        "(#{sub_input} + #{sub_input2})"
-      when :sub
-        "(#{sub_input} - #{sub_input2})"
-      when :pow
-        "(#{sub_input}^#{sub_input2})"
-      when :div
-        "(#{sub_input} / #{sub_input2})"
-      when :mul
-        if auto_math(inputs[0]) == 1
-          sub_input2
-        elsif auto_math(inputs[1]) == 1
-          sub_input
-        else
-          "(#{sub_input} * #{sub_input2})"
-        end
-      when :sum
-        "sum(|#{sub_input}|,  axis=#{sub_input2})"
-      when :mean
-        "mean(|#{sub_input}|, axis=#{sub_input2})"
-      when :prod
-        "prod(|#{sub_input}|,  axis=#{sub_input2})"
-      when :gradients
-        "gradient(#{sub_input})"
-      when :stop_gradient
-        sub_input
-      when :mat_mul
-        "#{sub_input}.matmul(#{sub_input2})"
-      when :eye
-        "eye(#{sub_input})"
-      when :transpose
-        "transpose(#{sub_input})"
-      when :shape
-        "#{sub_input}.shape"
-      when :exp
-        "e^#{sub_input})"
-      when :ones
-        "ones(#{sub_input})"
-      when :ones_like
-        "ones_like(#{sub_input})"
-      when :flow_group
-        "flow_group(#{inputs.collect { |i| auto_math(i, name_only, max_depth - 1, _cur_depth) }.join(',')})"
-      when :zeros
-        "zeros(#{sub_input})"
-      when :reshape
-        "reshape(#{sub_input},#{sub_input2})"
-      when :rank
-        "#{sub_input}.rank"
-      when :cond
-        "(#{auto_math(options[:pred], name_only, max_depth - 1, _cur_depth)} ? #{sub_input} : #{sub_input2})"
-      when :less
-        "#{sub_input} < #{sub_input2}"
-      when :less_equal
-        "#{sub_input} <= #{sub_input2}"
-      when :greater
-        "#{sub_input} > #{sub_input2}"
-      when :greater_equal
-        "#{sub_input} >= #{sub_input2}"
-      when :square
-        "#{sub_input}\u00B2"
-      when :log
-        "log(#{sub_input})"
-      when :identity
-        "identity(#{sub_input})"
-      when :print
-        "print(#{sub_input})"
-      when :pad
-        "pad(#{sub_input},#{auto_math(options[:paddings])})"
-      when :equal
-        "#{sub_input} == #{sub_input2}"
-      when :not_equal
-        "#{sub_input} != #{sub_input2}"
-      when :logical_and
-        "#{sub_input} && #{sub_input2}"
-      when :sqrt
-        "sqrt(#{sub_input})"
-      when :log1p
-        "log1p(#{sub_input})"
-      when :zeros_like
-        "zeros_like(#{sub_input})"
-      when :where
-        "where(#{auto_math(options[:pred], name_only, max_depth - 1, _cur_depth)}, #{sub_input}, #{sub_input2})"
-      when :max
-        "max(#{sub_input},#{sub_input2})"
-      when :cast
-        "cast(#{sub_input}, #{data_type})"
-      when :broadcast_transform
-        "broadcast_transform(#{sub_input},#{sub_input2})"
-      when :broadcast_gradient_args
-        "broadcast_transform(#{sub_input},#{sub_input2})"
-      else
-        "#{operation}(#{sub_input})" if sub_input
-        "#{operation}(#{sub_input}, #{sub_input2})" if sub_input && sub_input2
-      end
-      ["\n",(_cur_depth + 1).times.collect { ' ' }, out].flatten.join
+            when :argmax
+              "argmax(#{sub_input},#{options[:axis]})"
+            when :negate
+              "-#{sub_input}"
+            when :index
+              "#{sub_input}[#{sub_input2}]"
+            when :slice
+              "#{sub_input}[#{sub_input2}]"
+            when :assign_sub
+              "(#{inputs[0] ? inputs[0].name : 'self'} -= #{auto_math(inputs[1], name_only, 1)})"
+            when :assign_add
+              "(#{inputs[0] ? inputs[0].name : 'self'} += #{auto_math(inputs[1], name_only, 1)})"
+            when :assign
+              "(#{inputs[0] ? inputs[0].name : 'self'} = #{auto_math(inputs[1], name_only, 1)})"
+            when :sin, :cos, :tanh
+              "#{operation}(#{sub_input})"
+            when :add
+              "(#{sub_input} + #{sub_input2})"
+            when :sub
+              "(#{sub_input} - #{sub_input2})"
+            when :pow
+              "(#{sub_input}^#{sub_input2})"
+            when :div
+              "(#{sub_input} / #{sub_input2})"
+            when :mul
+              if auto_math(inputs[0]) == 1
+                sub_input2
+              elsif auto_math(inputs[1]) == 1
+                sub_input
+              else
+                "(#{sub_input} * #{sub_input2})"
+              end
+            when :sum
+              "sum(|#{sub_input}|,  axis=#{sub_input2})"
+            when :mean
+              "mean(|#{sub_input}|, axis=#{sub_input2})"
+            when :prod
+              "prod(|#{sub_input}|,  axis=#{sub_input2})"
+            when :gradients
+              "gradient(#{sub_input})"
+            when :stop_gradient
+              sub_input
+            when :mat_mul
+              "#{sub_input}.matmul(#{sub_input2})"
+            when :eye
+              "eye(#{sub_input})"
+            when :transpose
+              "transpose(#{sub_input})"
+            when :shape
+              "#{sub_input}.shape"
+            when :exp
+              "e^#{sub_input})"
+            when :ones
+              "ones(#{sub_input})"
+            when :ones_like
+              "ones_like(#{sub_input})"
+            when :flow_group
+              "flow_group(#{inputs.collect { |i| auto_math(i, name_only, max_depth - 1, cur_depth) }.join(',')})"
+            when :zeros
+              "zeros(#{sub_input})"
+            when :reshape
+              "reshape(#{sub_input},#{sub_input2})"
+            when :rank
+              "#{sub_input}.rank"
+            when :cond
+              "(#{auto_math(options[:pred], name_only, max_depth - 1, cur_depth)} ? #{sub_input} : #{sub_input2})"
+            when :less
+              "#{sub_input} < #{sub_input2}"
+            when :less_equal
+              "#{sub_input} <= #{sub_input2}"
+            when :greater
+              "#{sub_input} > #{sub_input2}"
+            when :greater_equal
+              "#{sub_input} >= #{sub_input2}"
+            when :square
+              "#{sub_input}\u00B2"
+            when :log
+              "log(#{sub_input})"
+            when :identity
+              "identity(#{sub_input})"
+            when :print
+              "print(#{sub_input})"
+            when :pad
+              "pad(#{sub_input},#{auto_math(options[:paddings])})"
+            when :equal
+              "#{sub_input} == #{sub_input2}"
+            when :not_equal
+              "#{sub_input} != #{sub_input2}"
+            when :logical_and
+              "#{sub_input} && #{sub_input2}"
+            when :sqrt
+              "sqrt(#{sub_input})"
+            when :log1p
+              "log1p(#{sub_input})"
+            when :zeros_like
+              "zeros_like(#{sub_input})"
+            when :where
+              "where(#{auto_math(options[:pred], name_only, max_depth - 1, cur_depth)}, #{sub_input}, #{sub_input2})"
+            when :max
+              "max(#{sub_input},#{sub_input2})"
+            when :cast
+              "cast(#{sub_input}, #{data_type})"
+            when :broadcast_transform
+              "broadcast_transform(#{sub_input},#{sub_input2})"
+            when :broadcast_gradient_args
+              "broadcast_transform(#{sub_input},#{sub_input2})"
+            else
+              "#{operation}(#{sub_input})" if sub_input
+              "#{operation}(#{sub_input}, #{sub_input2})" if sub_input && sub_input2
+            end
+      ["\n", Array.new(cur_depth + 1) { ' ' }, out].flatten.join
     end
 
     def run
@@ -232,7 +232,7 @@ module TensorStream
 
         axis = inputs[1].is_a?(Tensor) ? inputs[1].value : inputs[1]
 
-        axis = [ axis ] unless axis.is_a?(Array)
+        axis = [axis] unless axis.is_a?(Array)
         return input_shape.each_with_index.map do |s, index|
           next nil if axis.include?(index)
           s
@@ -240,6 +240,7 @@ module TensorStream
       when :reshape
         new_shape = inputs[1] && inputs[1].value ? inputs[1].value : nil
         return nil if new_shape.nil?
+        return nil if inputs[0].shape.nil?
 
         input_shape = inputs[0].shape.shape
         return new_shape if input_shape.nil?
@@ -257,11 +258,29 @@ module TensorStream
         shape1 = inputs[0].shape.shape.nil? ? nil : inputs[0].shape.shape[0]
         shape2 = inputs[1].shape.shape.nil? ? nil : inputs[1].shape.shape[1]
         return [shape1, shape2]
+      when :transpose
+        return nil unless shape_full_specified(inputs[0])
+        return nil if inputs[1].is_a?(Tensor)
+
+        rank = inputs[0].shape.shape.size
+        perm = inputs[1] || (0...rank).to_a.reverse
+        return perm.map { |p| inputs[0].shape.shape[p] }
+      when :stack
+        return nil unless shape_full_specified(inputs[0])
+
+        axis = options[:axis] || 0
+        new_shape = [inputs.size]
+        inputs[0].shape.shape.inject(new_shape) { |ns, s| ns << s }
+        rank = inputs[0].shape.shape.size + 1
+        axis = rank + axis if axis < 0
+        rotated_shape = Array.new(axis + 1) { new_shape.shift }
+        rotated_shape.rotate! + new_shape
+      when :tile
+        nil
       else
+        return nil if inputs[0].nil?
         return inputs[0].shape.shape if inputs.size == 1
-        if inputs.size == 2 && inputs[0] && inputs[1]
-          return TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape)
-        end
+        return TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape) if inputs.size == 2 && inputs[0] && inputs[1]
       end
 
       nil
@@ -287,8 +306,8 @@ module TensorStream
           input.flatten.compact.each do |t|
             t.send(:setup_output, self) if t.is_a?(Tensor)
           end
-        else
-          input.send(:setup_output, self) if input.is_a?(Tensor) && (input.name != self.name)
+        elsif input.is_a?(Tensor) && (input.name != name)
+          input.send(:setup_output, self)
         end
       end
     end

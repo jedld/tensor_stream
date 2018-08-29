@@ -79,7 +79,7 @@ predict = tf.argmax(yhat, 1)
 
 # Backward propagation
 cost    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels: y, logits: yhat))
-updates =  TensorStream::Train::GradientDescentOptimizer.new(0.01).minimize(cost)
+updates =  TensorStream::Train::MomentumOptimizer.new(0.01, 0.1, use_nesterov: true).minimize(cost)
 
 # Run SGD
 sess = tf.session
@@ -94,6 +94,7 @@ start_time = Time.now
   x_train.size.times do |i|
     sess.run(updates, feed_dict: {X => [x_train[i]], y => [y_train[i]]})
   end
+
   loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
   puts "epoch: #{epoch}, loss #{loss}"
 end

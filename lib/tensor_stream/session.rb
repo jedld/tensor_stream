@@ -22,7 +22,7 @@ module TensorStream
                              if evaluators.empty?
                                TensorStream::Evaluator.default_evaluators
                              else
-                               evaluators.collect { |name|  Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
+                               evaluators.collect { |name| Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
                              end
                            elsif evaluators.nil?
                              TensorStream::Evaluator.default_evaluators
@@ -52,9 +52,7 @@ module TensorStream
       # scan for placeholders and assign value
       if options[:feed_dict]
         options[:feed_dict].keys.each do |k|
-          if k.is_a?(Placeholder)
-            context[k.name.to_sym] = options[:feed_dict][k]
-          end
+          context[k.name.to_sym] = options[:feed_dict][k] if k.is_a?(Placeholder)
         end
       end
 
@@ -77,7 +75,7 @@ module TensorStream
     end
 
     def list_devices
-      TensorStream::Evaluator.evaluators.collect do |k, v|
+      TensorStream::Evaluator.evaluators.collect do |_k, v|
         v[:class].query_supported_devices.collect do |device|
           device
         end
@@ -102,10 +100,10 @@ module TensorStream
 
     def dump_ops(tensor, selector)
       graph = tensor.graph
-      graph.nodes.select { |k, v| selector.call(k, v) }.collect { |k, node|
+      graph.nodes.select { |k, v| selector.call(k, v) }.collect do |k, node|
         next unless @last_session_context[node.name]
         "#{k} #{node.to_math(true, 1)} = #{@last_session_context[node.name]}"
-      }.compact
+      end.compact
     end
 
     def graph_ml(tensor, filename)
@@ -115,9 +113,7 @@ module TensorStream
     def delegate_to_evaluator(tensor_arr, session_context, context)
       arr = tensor_arr.is_a?(Array) ? tensor_arr : [tensor_arr]
       result = arr.collect do |tensor|
-        if session_context[:_cache][:placement][tensor.name].nil?
-          session_context[:_cache][:placement][tensor.name] = assign_evaluator(tensor)
-        end
+        session_context[:_cache][:placement][tensor.name] = assign_evaluator(tensor) if session_context[:_cache][:placement][tensor.name].nil?
 
         session_context[:_cache][:placement][tensor.name][1].run_with_buffer(tensor, session_context, context)
       end
@@ -144,7 +140,7 @@ module TensorStream
 
       raise "no evaluator available to execute #{tensor.operation}" if device.nil?
 
-      key = "#{device.evaluator.to_s}/#{device.name}"
+      key = "#{device.evaluator}/#{device.name}"
       if @evaluators.key?(key)
         @evaluators[key]
       else

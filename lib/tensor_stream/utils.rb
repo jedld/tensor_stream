@@ -54,14 +54,14 @@ module TensorStream
         trainable: trainable
       }
       tensor = if value.is_a?(String)
-        TensorStream::Variable.new(dtype || :string, 0, [], get_variable_scope, common_options)
-      elsif value.is_a?(Integer)
-        TensorStream::Variable.new(dtype || :int32, 0, [], get_variable_scope, common_options)
-      elsif value.is_a?(Float)
-        TensorStream::Variable.new(dtype || :float32, 0, [], get_variable_scope, common_options)
-      else
-        TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
-      end
+                 TensorStream::Variable.new(dtype || :string, 0, [], get_variable_scope, common_options)
+               elsif value.is_a?(Integer)
+                 TensorStream::Variable.new(dtype || :int32, 0, [], get_variable_scope, common_options)
+               elsif value.is_a?(Float)
+                 TensorStream::Variable.new(dtype || :float32, 0, [], get_variable_scope, common_options)
+               else
+                 TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
+               end
       op.inputs[0] = tensor
       tensor
     end
@@ -115,8 +115,13 @@ module TensorStream
       session
     end
 
-    def program(&block)
-      block.call(self)
+    def colocate_with(op, ignore_existing: false)
+      # noop for now
+      yield
+    end
+
+    def program
+      yield self
     end
 
     def layers
@@ -153,7 +158,7 @@ module TensorStream
       TensorStream::DynamicStitch.new(:dynamic_stitch, [indices, data], name: name)
     end
 
-    def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil)
+    def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil, validate_shape: false)
       get_variable_scope.get_variable(name, dtype: dtype, shape: shape, initializer: initializer, trainable: trainable, collections: collections)
     end
 
@@ -184,6 +189,8 @@ module TensorStream
       TensorStream.get_default_graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
     end
 
+    ##
+    # Sets random seed to use for the default graph
     def set_random_seed(seed)
       TensorStream.get_default_graph.random_seed = seed
     end

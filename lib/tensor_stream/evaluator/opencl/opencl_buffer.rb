@@ -16,10 +16,6 @@ module TensorStream
 
     def to_ruby
       return [] if buffer.empty?
-      if shape.empty?
-        return buffer[0] != 0 if data_type == :boolean
-        return buffer[0]
-      end
 
       if dirty
         op.command_queue.enqueue_read_buffer(cl_buffer, buffer, event_wait_list: [op].compact)
@@ -27,9 +23,13 @@ module TensorStream
         self.dirty = false
       end
 
+      if shape.empty?
+        return buffer[0] != 0 if data_type == :boolean
+        return buffer[0]
+      end
+
       result = buffer.reshape(*shape.map(&:to_i).reverse).to_a
-      result = process_function_op(result, ->(a, _b) { a != 0 }) if data_type == :boolean
-      result
+      data_type == :boolean ? process_function_op(result, ->(a, _b) { a != 0 }) : result
     end
   end
 end

@@ -245,7 +245,7 @@ module TensorStream
     ##
     # Concatenates tensors along one dimension.
     def concat(values, axis, name: 'concat')
-      _op(:concat, values, nil, axis: axis, name: name)
+      _op(:concat, *values, axis: axis, name: name)
     end
 
     ##
@@ -316,6 +316,13 @@ module TensorStream
     def acos(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
       _op(:acos, input, name: name)
+    end
+
+    ##
+    # Computes atan of input element-wise
+    def atan(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:atan, input, name: name)
     end
 
     ##
@@ -582,8 +589,8 @@ module TensorStream
 
     ##
     # Transposes a. Permutes the dimensions according to perm.
-    def transpose(tensor, perm: nil, name: 'transpose')
-      _op(:transpose, tensor, nil, perm: perm, name: name)
+    def transpose(tensor, perm = nil, name: 'transpose')
+      _op(:transpose, tensor, perm, name: name)
     end
 
     ##
@@ -611,6 +618,32 @@ module TensorStream
     def broadcast_gradient_args(shape_a, shape_b, name: nil)
       op_result = _op(:broadcast_gradient_args, shape_a, shape_b, name: name)
       [op_result[0], op_result[1]]
+    end
+
+    ##
+    # Gather slices from params and axis according to indices.
+    #
+    def gather(params, indices, validate_indices: nil,
+                                name: nil,
+                                axis: 0)
+      _op(:gather, params, indices, validate_indices: validate_indices, name: name, axis: axis)
+    end
+
+    def stack(values, axis: 0, name: 'stack')
+      _op(:stack, *values, axis: axis, name: name)
+    end
+
+    def setdiff1d(x, y, index_dtype: :int32, name: nil)
+      result = _op(:setdiff1d, x, y, index_dtype: index_dtype, name: name)
+      [result[0], result[1]]
+    end
+
+    def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)
+      _op(:cumprod, x, axis: axis, exclusive: exclusive, reverse: reverse, name: name)
+    end
+
+    def invert_permutation(x, name: nil)
+      _op(:invert_permutation, x, name: name)
     end
   end
 end

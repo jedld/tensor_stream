@@ -14,10 +14,9 @@ module TensorStream
       scope_name = variable_scope ? variable_scope.name : nil
       variable_scope_initializer = variable_scope ? variable_scope.initializer : nil
       @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join('/')
-      @initalizer_tensor = options[:initializer] ? options[:initializer] : variable_scope_initializer || TensorStream.glorot_uniform_initializer
-      if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
-        shape = @initalizer_tensor.shape.shape
-      end
+      @initalizer_tensor = options[:initializer] || variable_scope_initializer || TensorStream.glorot_uniform_initializer
+      shape = @initalizer_tensor.shape.shape if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
+
       @shape = TensorShape.new(shape, rank)
       @trainable = options.fetch(:trainable, true)
       @graph.add_variable(self, options)
@@ -34,22 +33,30 @@ module TensorStream
       assign(init_op)
     end
 
+    def initialized_value
+      init_op = @initalizer_tensor.op
+      init_op.shape = @shape || init_op.shape
+      init_op.data_type = @data_type || init_op.data_type
+      init_op
+    end
+
     def assign(value, name: nil)
       _a, value = TensorStream.check_data_types(self, value)
-      Operation.new(:assign, self, value, name: name)
+      _op(:assign, self, value, name: name)
     end
 
     def read_value
-      if buffer
-        @value = buffer.to_ruby
-      end
-
+      @value = buffer.to_ruby if buffer
       @value
     end
 
-    def assign_add(value)
+    def assign_add(value, name: nil)
       _a, value = TensorStream.check_data_types(self, value)
-      Operation.new(:assign_add, self, value, data_type: data_type)
+      _op(:assign_add, self, value, data_type: data_type, name: name)
+    end
+
+    def op
+      @op ||= _op(:variable, self, data_type: data_type)
     end
 
     def to_math(_tensor, _name_only = false, _max_depth = 99, _unused = 0)
@@ -58,7 +65,7 @@ module TensorStream
 
     def assign_sub(value)
       _a, value = TensorStream.check_data_types(self, value)
-      Operation.new(:assign_sub, self, value)
+      _op(:assign_sub, self, value)
     end
 
     def self.variables_initializer(collection)

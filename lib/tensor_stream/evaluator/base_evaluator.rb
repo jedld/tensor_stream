@@ -2,13 +2,14 @@ module TensorStream
   # Evaluator base module
   module Evaluator
     class OutputGroup
-      attr_accessor :outputs
-      def initialize(outputs = [])
+      attr_accessor :outputs, :data_types
+      def initialize(outputs = [], data_types = [])
         @outputs = outputs
+        @data_types = data_types
       end
     end
 
-    class UnsupportedOp < Exception
+    class UnsupportedOp < RuntimeError
       def initialize(tensor)
         @tensor = tensor
       end
@@ -111,28 +112,36 @@ module TensorStream
 
         resolved_inputs = tensor.inputs.map do |i|
           next if i.nil?
+          next i if op_options[:noop]
 
           if i.is_a?(Array)
-            next i.collect { |sub_item| sub_item.is_a?(Tensor) ? invoke(sub_item, execution_context) : sub_item }
+            next i.collect { |sub_item| sub_item.is_a?(Tensor) ? global_eval(tensor, sub_item, execution_context) : sub_item }
           end
 
-          if !op_options[:noop] && @context[:_cache][:placement][tensor.name] != @context[:_cache][:placement][i.name] # tensor is on another device or evaluator
-            cache_key = "#{tensor.graph.object_id}_#{i.name}:#{object_id}"
-            next @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
-
-            result = @session.delegate_to_evaluator(i, @context, execution_context)
-            convert_from_buffer(i, result).tap do |buffer|
-              @context[:_cache][cache_key] = buffer if i.is_const
-            end
-          else
-            prepare_input(i, execution_context, op_options)
-          end
+          global_eval(tensor, i, execution_context, op_options)
         end
 
         instance_exec(execution_context, tensor, resolved_inputs, &op[:block])
       end
 
       protected
+
+      def global_eval(tensor, input, execution_context, op_options = {})
+        return nil unless input
+        return input unless input.is_a?(Tensor)
+
+        if object_id != @context[:_cache][:placement][input.name][1].object_id # tensor is on another device or evaluator
+          cache_key = "#{tensor.graph.object_id}_#{input.name}:#{object_id}"
+          return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
+
+          result = @session.delegate_to_evaluator(input, @context, execution_context)
+          convert_from_buffer(input, result).tap do |buffer|
+            @context[:_cache][cache_key] = buffer if input.is_const
+          end
+        else
+          prepare_input(input, execution_context, op_options)
+        end
+      end
 
       def get_broadcast_gradient_args(input_a, input_b)
         return [[], []] if input_a == input_b
@@ -153,16 +162,16 @@ module TensorStream
           end
         end
 
-       [input_a_args.reverse, input_b_args.reverse]
+        [input_a_args.reverse, input_b_args.reverse]
       end
 
       ##
       # converts from a ruby Buffer object to the evaluator's native buffer format
-      def convert_from_buffer(tensor, result)
+      def convert_from_buffer(_tensor, _result)
         raise "need implementation"
       end
 
-      def prepare_input(tensor, context, options = {})
+      def prepare_input(_tensor, _context, _options = {})
         raise "need implementation"
       end
     end

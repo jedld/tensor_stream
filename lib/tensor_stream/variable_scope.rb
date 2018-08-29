@@ -8,7 +8,7 @@ module TensorStream
       @initializer = initializer
     end
 
-    def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil)
+    def get_variable(name, dtype: nil, shape: nil, initializer: nil, trainable: true, collections: nil, validate_shape: false)
       TensorStream::Variable.new(dtype || :float32, nil, shape, self, collections: collections, name: name, initializer: initializer, trainable: trainable)
     end
   end

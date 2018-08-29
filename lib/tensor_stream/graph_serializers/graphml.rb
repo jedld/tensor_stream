@@ -83,7 +83,7 @@ module TensorStream
       arr_buf << '<y:GroupNode>'
       arr_buf << '<y:Fill color="#CAECFF84" transparent="false"/>'
       arr_buf << '<y:BorderStyle color="#666699" type="dotted" width="1.0"/>'
-      arr_buf << '<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">'+ title + '</y:NodeLabel>'
+      arr_buf << '<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">' + title + '</y:NodeLabel>'
       arr_buf << '<y:Shape type="roundrectangle"/>'
       arr_buf << '</y:GroupNode>'
       arr_buf << '</y:Realizers>'
@@ -146,9 +146,9 @@ module TensorStream
           input_buf << "<node id=\"#{_gml_string(input.name)}\">"
           input_buf << "<data key=\"d0\">#{input.name}</data>"
           input_buf << "<data key=\"d2\">green</data>"
-          if @last_session_context[input.name]
-            input_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
-          end
+
+          input_buf << "<data key=\"d3\">#{_val(tensor)}</data>" if @last_session_context[input.name]
+
           input_buf << "<data key=\"d9\">"
           input_buf << "<y:ShapeNode>"
           input_buf << "  <y:Fill color=\"#33CCCC\" transparent=\"false\"/>"
@@ -164,9 +164,9 @@ module TensorStream
           input_buf << "  <y:NodeLabel alignment=\"center\">#{input.name}</y:NodeLabel>"
           input_buf << "</y:ShapeNode>"
           input_buf << "</data>"
-          if @last_session_context[input.name]
-            input_buf << "<data key=\"d3\">#{_val(tensor)}</data>"
-          end
+
+          input_buf << "<data key=\"d3\">#{_val(tensor)}</data>" if @last_session_context[input.name]
+\
           input_buf << "</node>"
         elsif input.is_a?(Tensor)
           input_buf << "<node id=\"#{_gml_string(input.name)}\">"
@@ -175,12 +175,11 @@ module TensorStream
           input_buf << "<data key=\"d9\">"
           input_buf << "<y:ShapeNode>"
 
-          if input.internal?
-            input_buf << "  <y:Fill color=\"#C0C0C0\" transparent=\"false\"/>"
-          else
-            input_buf << "  <y:Fill color=\"#FFFFFF\" transparent=\"false\"/>"
-          end
-
+          input_buf << if input.internal?
+                         "  <y:Fill color=\"#C0C0C0\" transparent=\"false\"/>"
+                       else
+                         "  <y:Fill color=\"#FFFFFF\" transparent=\"false\"/>"
+                       end
 
           input_buf << "  <y:NodeLabel alignment=\"center\">#{input.name}</y:NodeLabel>"
 
@@ -189,7 +188,7 @@ module TensorStream
           input_buf << "</node>"
         end
 
-        if !add_to_group(groups, input.name, input_buf)
+        unless add_to_group(groups, input.name, input_buf)
           if input.is_a?(Variable)
             add_to_group(groups, "variable/#{input.name}", input_buf)
           else
@@ -205,7 +204,7 @@ module TensorStream
     end
 
     def _gml_string(str)
-      str.gsub('/','-')
+      str.tr('/', '-')
     end
 
     def output_edge(input, tensor, arr_buf, index = 0)
@@ -215,22 +214,20 @@ module TensorStream
 
       arr_buf << "<y:PolyLineEdge>"
       arr_buf << "<y:EdgeLabel >"
-      if !@last_session_context.empty?
-        arr_buf << "<![CDATA[  #{_val(input)}  ]]>"
-      else
-        if input.shape.shape.nil?
-          arr_buf << "<![CDATA[ #{input.data_type.to_s} ? ]]>"
-        else
-          arr_buf << "<![CDATA[ #{input.data_type.to_s} #{input.shape.shape.empty? ? 'scalar' : input.shape.shape.to_json}  ]]>"
-        end
-      end
+      arr_buf << if !@last_session_context.empty?
+                   "<![CDATA[  #{_val(input)}  ]]>"
+                 elsif input.shape.shape.nil?
+                   "<![CDATA[ #{input.data_type} ? ]]>"
+                 else
+                   "<![CDATA[ #{input.data_type} #{input.shape.shape.empty? ? 'scalar' : input.shape.shape.to_json}  ]]>"
+                 end
       arr_buf << "</y:EdgeLabel >"
       arr_buf << "<y:Arrows source=\"none\" target=\"standard\"/>"
-      if index == 0
-        arr_buf << "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
-      else
-        arr_buf << "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
-      end
+      arr_buf << if index.zero?
+                  "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
+                 else
+                   "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
+                 end
       arr_buf << "</y:PolyLineEdge>"
       arr_buf << "</data>"
       arr_buf << "</edge>"

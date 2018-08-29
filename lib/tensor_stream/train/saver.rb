@@ -55,7 +55,6 @@ module TensorStream
         build_save: true,
         build_restore: true)
         saveables = _validate_and_slice_inputs(names_to_saveables)
-
       end
 
       def _validate_and_slice_inputs(names_to_saveables)

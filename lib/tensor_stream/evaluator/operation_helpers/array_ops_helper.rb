@@ -6,11 +6,11 @@ module TensorStream
       start_index = start.shift
       dimen_size = start_index + size.shift
 
-      input[start_index...dimen_size].collect do |input|
-        if input.is_a?(Array)
-          slice_tensor(input, start.dup, size.dup)
+      input[start_index...dimen_size].collect do |item|
+        if item.is_a?(Array)
+          slice_tensor(item, start.dup, size.dup)
         else
-          input
+          item
         end
       end
     end
@@ -25,7 +25,7 @@ module TensorStream
 
     def _reduced_shape(input_shape, axes)
       return [] if axes.nil? # reduce to scalar
-      axes = [ axes ] unless axes.is_a?(Array)
+      axes = [axes] unless axes.is_a?(Array)
       return input_shape if axes.empty?
 
       axes.each do |dimen|
@@ -72,8 +72,8 @@ module TensorStream
       d = dims.shift
 
       if input.is_a?(Array) && (get_rank(input) - 1) == dims.size
-        row_to_dup = input.collect do |input|
-          broadcast_dimensions(input, dims.dup)
+        row_to_dup = input.collect do |item|
+          broadcast_dimensions(item, dims.dup)
         end
 
         row_to_dup + Array.new(d) { row_to_dup }.flatten(1)
@@ -204,6 +204,96 @@ module TensorStream
           end
         end
       end
+    end
+
+    def gather(params, indexes)
+      indexes.collect do |index|
+        if index.is_a?(Array)
+          gather(params, index)
+        else
+          params[index]
+        end
+      end
+    end
+
+    # general case transposition with flat arrays
+    def transpose_with_perm(arr, new_arr, shape, new_shape, perm)
+      arr_size = shape.reduce(:*)
+      divisors = shape.dup.drop(1).reverse.inject([1]) do |a, s|
+        a << s * a.last
+      end.reverse
+
+      multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+        a << s * a.last
+      end.reverse
+
+      arr_size.times do |p|
+        ptr = p
+        index = []
+        divisors.each_with_object(index) do |div, a|
+          a << (ptr / div.to_f).floor
+          ptr = ptr % div
+        end
+
+        # remap based on perm
+        remaped = perm.map { |x| index[x] }
+
+        ptr2 = 0
+        multipliers.each_with_index do |m, idx|
+          ptr2 += remaped[idx] * m
+        end
+
+        new_arr[ptr2] = arr[p]
+      end
+
+      [new_arr, new_shape]
+    end
+
+    def reduce_axis(current_axis, axis, val, keep_dims, f)
+      return val unless val.is_a?(Array)
+
+      r = val.collect do |v|
+        reduce_axis(current_axis + 1, axis, v, keep_dims, f)
+      end
+
+      should_reduce_axis = axis.nil? || (axis.is_a?(Array) && axis.include?(current_axis)) || (current_axis == axis)
+
+      if should_reduce_axis
+        reduced_val = r[0]
+        if r.size > 1
+          reduced_val = f.call(r[0..val.size])
+        elsif r.empty?
+          reduced_val = f.call(nil)
+        end
+        keep_dims ? [reduced_val] : reduced_val
+      else
+        r
+      end
+    end
+
+    def reduce(val, axis, keep_dims, func = nil)
+      rank = get_rank(val)
+      return val if axis && axis.is_a?(Array) && axis.empty?
+
+      func = lambda do |arr|
+        reduced_val = arr[0]
+        arr[1..arr.size].each do |v|
+          reduced_val = vector_op(reduced_val, v, ->(t, u) { t + u })
+        end
+        reduced_val
+      end if func.nil?
+
+      axis = if axis.nil?
+               nil
+             elsif axis.is_a?(Array)
+               return val if axis.empty?
+
+               axis.map { |a| a < 0 ? rank - a.abs : a }
+             else
+               axis < 0 ? rank - axis.abs : axis
+             end
+
+      reduce_axis(0, axis, val, keep_dims, func)
     end
   end
 end

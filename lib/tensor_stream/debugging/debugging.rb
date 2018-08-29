@@ -9,8 +9,9 @@ module TensorStream
       nodes_to_process.each do |node|
         node.inputs = node.inputs.collect do |input|
           next if input.nil?
+          next input if input.is_a?(Variable)
 
-          if TensorStream::Ops::FLOATING_POINT_TYPES.include?(input.data_type)
+          if input.is_a?(Tensor) && TensorStream::Ops::FLOATING_POINT_TYPES.include?(input.data_type)
             TensorStream.check_numerics(input, "#{node.name}/#{input.name}", name: "check/#{node.name}/#{input.name}" )
           else
             input

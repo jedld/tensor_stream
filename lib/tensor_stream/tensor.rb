@@ -4,9 +4,9 @@ module TensorStream
   # Base class that defines a tensor like interface
   class Tensor
     include OpHelper
-
+    attr_reader :graph
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
-                  :value, :breakpoint, :internal, :source, :given_name, :graph,
+                  :value, :breakpoint, :internal, :source, :given_name,
                   :consumers, :outputs, :device
 
     def initialize(data_type, rank, shape, options = {})
@@ -174,7 +174,7 @@ module TensorStream
     end
 
     def op
-      is_const ? _op(:const, self, nil, name: name) : _op(:variable, self, nil, name: name)
+      @op ||= is_const ? _op(:const, self, nil, name: name) : _op(:variable, self, nil, name: name)
     end
 
     def eval(options = {})

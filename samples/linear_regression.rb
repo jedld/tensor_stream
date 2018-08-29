@@ -5,7 +5,8 @@ require 'benchmark'
 tf = TensorStream
 
 learning_rate = 0.01
-training_epochs = 1000
+momentum = 0.5
+training_epochs = 10000
 display_step = 50
 
 train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
@@ -28,6 +29,7 @@ pred = X * W + b
 # Mean squared error
 cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 
+# optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum).minimize(cost)
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)

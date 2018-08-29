@@ -25,8 +25,8 @@ module TensorStream
         logits = tf.convert_to_tensor(logits, name: 'logits')
         labels = tf.convert_to_tensor(labels, name: 'labels')
         labels = tf.cast(labels, logits.dtype)
-        softmax_logits = _op(:softmax_cross_entropy_with_logits_v2, logits, labels)
-        tf.reduce_sum(softmax_logits, tf.rank(logits) - 1)
+        output = _op(:softmax_cross_entropy_with_logits_v2, logits, labels)
+        output[0]
       end
     end
 
@@ -45,10 +45,8 @@ module TensorStream
         relu_logits = tf.where(cond, logits, zeros)
         neg_abs_logits = tf.where(cond, -logits, logits)
 
-        return tf.add(
-            relu_logits - logits * labels,
-            tf.log1p(tf.exp(neg_abs_logits)),
-            name: name)
+        tf.add(relu_logits - logits * labels,
+               tf.log1p(tf.exp(neg_abs_logits)), name: name)
       end
     end
   end

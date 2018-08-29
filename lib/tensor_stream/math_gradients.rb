@@ -1,9 +1,10 @@
 module TensorStream
   # Class that provides auto-differentiation
+  # Most gradients are ported over from tensorflow's math_grad.py
   class MathGradients
     extend TensorStream::OpHelper
 
-    def self.tf
+    def self.ts
       TensorStream
     end
 
@@ -16,7 +17,7 @@ module TensorStream
         node.consumers.include?(tensor.name) || node.equal?(tensor)
       end.compact + [wrt_dx.name]
 
-      grad = i_op(:fill, tf.shape(tensor), tf.constant(1, dtype: wrt_dx.data_type))
+      grad = i_op(:fill, ts.shape(tensor), ts.constant(1, dtype: wrt_dx.data_type))
 
       _propagate(grad, tensor, wrt_dx, nodes_to_compute, options[:stop_gradients] || []) || i_op(:zeros_like, wrt_dx)
     end
@@ -41,6 +42,7 @@ module TensorStream
       end
     end
 
+    #TODO: refactor and implement registerGradient
     def self._compute_derivative(node, grad)
       node.graph.name_scope("#{node.name}_grad") do
         x = node.inputs[0] if node.inputs[0]
@@ -51,116 +53,161 @@ module TensorStream
           return [grad] * node.inputs.size
         when :add
           return [grad, grad] if shapes_fully_specified_and_equal(x, y)
-          sx = tf.shape(x, name: 'add/shape_x')
-          sy = tf.shape(y, name: 'add/shape_y')
+          sx = ts.shape(x, name: 'add/shape_x')
+          sy = ts.shape(y, name: 'add/shape_y')
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [tf.reshape(tf.reduce_sum(grad, rx, name: 'add/reduce_sum_x'), sx),
-           tf.reshape(tf.reduce_sum(grad, ry, name: 'add/reduce_sum_y'), sy)]
+          [ts.reshape(ts.reduce_sum(grad, rx, name: 'add/reduce_sum_x'), sx),
+           ts.reshape(ts.reduce_sum(grad, ry, name: 'add/reduce_sum_y'), sy)]
         when :asin
-          tf.control_dependencies([grad]) do
-            x2 = tf.square(x)
-            one = tf.constant(1, dtype: grad.data_type)
-            den = tf.sqrt(tf.subtract(one, x2))
-            inv = tf.reciprocal(den)
+          ts.control_dependencies([grad]) do
+            x2 = ts.square(x)
+            one = ts.constant(1, dtype: grad.data_type)
+            den = ts.sqrt(ts.subtract(one, x2))
+            inv = ts.reciprocal(den)
             grad * inv
           end
         when :acos
-          tf.control_dependencies([grad]) do
-            x2 = tf.square(x)
-            one = tf.constant(1, dtype: grad.data_type)
-            den = tf.sqrt(tf.subtract(one, x2))
-            inv = tf.reciprocal(den)
+          ts.control_dependencies([grad]) do
+            x2 = ts.square(x)
+            one = ts.constant(1, dtype: grad.data_type)
+            den = ts.sqrt(ts.subtract(one, x2))
+            inv = ts.reciprocal(den)
             -grad * inv
           end
+        when :atan
+          ts.control_dependencies([grad]) do
+            x2 = ts.square(x)
+            one = ts.constant(1, dtype: grad.data_type)
+            inv = ts.reciprocal(ts.add(one, x2))
+            grad * inv
+          end
+        when :fill
+          [nil, ts.reduce_sum(grad)]
         when :sub
           return [grad, -grad] if shapes_fully_specified_and_equal(x, y)
 
-          sx = tf.shape(x, name: 'sub/shape_x')
-          sy = tf.shape(y, name: 'sub/shape_y')
+          sx = ts.shape(x, name: 'sub/shape_x')
+          sy = ts.shape(y, name: 'sub/shape_y')
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [tf.reshape(tf.reduce_sum(grad, rx, name: 'add/reduce_sub_x'), sx),
-           -tf.reshape(tf.reduce_sum(grad, ry, name: 'add/reduce_sub_y'), sy)]
+          [ts.reshape(ts.reduce_sum(grad, rx, name: 'add/reduce_sub_x'), sx),
+           -ts.reshape(ts.reduce_sum(grad, ry, name: 'add/reduce_sub_y'), sy)]
         when :mul
-          sx = tf.shape(x)
-          sy = tf.shape(y)
+          sx = ts.shape(x)
+          sy = ts.shape(y)
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [tf.reshape(tf.reduce_sum(tf.mul(grad, y), rx), sx),
-           tf.reshape(tf.reduce_sum(tf.mul(x, grad), ry), sy)]
+          [ts.reshape(ts.reduce_sum(ts.mul(grad, y), rx), sx),
+           ts.reshape(ts.reduce_sum(ts.mul(x, grad), ry), sy)]
         when :div
           sx = i_op(:shape, x)
           sy = i_op(:shape, y)
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [tf.reshape(tf.reduce_sum(tf.div(grad, y), rx), sx),
-           tf.reshape(tf.reduce_sum(grad * tf.div(tf.div(-x, y), y), ry), sy)]
+          [ts.reshape(ts.reduce_sum(ts.div(grad, y), rx), sx),
+           ts.reshape(ts.reduce_sum(grad * ts.div(ts.div(-x, y), y), ry), sy)]
         when :mod
-          sx = tf.shape(x)
-          sy = tf.shape(y)
+          sx = ts.shape(x)
+          sy = ts.shape(y)
           rx, ry = _broadcast_gradient_args(sx, sy)
-          floor_xy = tf.floor_div(x, y)
-          gx = tf.reshape(tf.reduce_sum(grad, rx), sx)
-          gy = tf.reshape(tf.reduce_sum(grad * tf.negative(floor_xy), ry), sy)
+          floor_xy = ts.floor_div(x, y)
+          gx = ts.reshape(ts.reduce_sum(grad, rx), sx)
+          gy = ts.reshape(ts.reduce_sum(grad * ts.negative(floor_xy), ry), sy)
 
           [gx, gy]
+        when :prod
+          input_shape = ts.shape(x)
+          y = ts.range(0, ts.rank(x)) if y.nil?
+          reduction_indices = ts.reshape(y, [-1])
+
+          output_shape_kept_dims = ts.reduced_shape(input_shape, y)
+          tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
+          grad = ts.reshape(grad, output_shape_kept_dims)
+          grad = ts.tile(grad, tile_scaling)
+
+          perm, reduced_num, other_num = ts.device("/cpu:0") do
+            rank = ts.rank(x)
+            reduction_indices = (reduction_indices + rank) % rank
+            reduced = ts.cast(reduction_indices, :int32)
+            idx = ts.range(0, rank)
+            other, = ts.setdiff1d(idx, reduced)
+
+            [ts.concat([reduced, other], 0),
+             ts.reduce_prod(ts.gather(input_shape, reduced)),
+             ts.reduce_prod(ts.gather(input_shape, other))]
+          end
+
+          permuted = ts.transpose(x, perm)
+          permuted_shape = ts.shape(permuted)
+
+          reshaped = ts.reshape(permuted, [reduced_num, other_num])
+
+          # Calculate product, leaving out the current entry
+          left = ts.cumprod(reshaped, axis: 0, exclusive: true)
+          right = ts.cumprod(reshaped, axis: 0, exclusive: true, reverse: true)
+          y = ts.reshape(left * right, permuted_shape)
+
+          # Invert the transpose and reshape operations.
+          # Make sure to set the statically known shape information through a reshape.
+          out = grad * ts.transpose(y, ts.invert_permutation(perm))
+          [ts.reshape(out, input_shape, name: 'prod'), nil]
         when :squared_difference
           sx = i_op(:shape, x)
           sy = i_op(:shape, y)
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          x_grad = tf.mul(2.0, grad) * (x - y)
+          x_grad = ts.mul(2.0, grad) * (x - y)
 
-          [tf.reshape(tf.reduce_sum(x_grad, rx), sx),
-           tf.reshape(-tf.reduce_sum(x_grad, ry), sy)]
+          [ts.reshape(ts.reduce_sum(x_grad, rx), sx),
+           ts.reshape(-ts.reduce_sum(x_grad, ry), sy)]
         when :mat_mul
           t_a = node.options[:transpose_a]
           t_b = node.options[:transpose_b]
 
           if !t_a && !t_b
-            grad_a = tf.matmul(grad, y, transpose_b: true)
-            grad_b = tf.matmul(x, grad, transpose_a: true)
+            grad_a = ts.matmul(grad, y, transpose_b: true)
+            grad_b = ts.matmul(x, grad, transpose_a: true)
           elsif !ta && tb
-            grad_a = tf.matmul(grad, y)
-            grad_b = tf.matmul(grad, x, transpose_a: true)
+            grad_a = ts.matmul(grad, y)
+            grad_b = ts.matmul(grad, x, transpose_a: true)
           elsif t_a && !t_b
-            grad_a = tf.matmul(y, grad, transpose_b: true)
-            grad_b = tf.matmul(x, grad)
+            grad_a = ts.matmul(y, grad, transpose_b: true)
+            grad_b = ts.matmul(x, grad)
           elsif t_a && t_b
-            grad_a = tf.matmul(y, grad, transpose_a: true, transpose_b: true)
-            grad_b = tf.matmul(grad, x, transpose_a: true, transpose_b: true)
+            grad_a = ts.matmul(y, grad, transpose_a: true, transpose_b: true)
+            grad_b = ts.matmul(grad, x, transpose_a: true, transpose_b: true)
           end
 
           [grad_a, grad_b]
         when :sin
-          grad * tf.cos(x)
+          grad * ts.cos(x)
         when :tanh
           grad * i_op(:tanh_grad, x)
         when :pow
           z = node
-          sx = tf.shape(x)
-          sy = tf.shape(y)
+          sx = ts.shape(x)
+          sy = ts.shape(y)
           rx, ry = _broadcast_gradient_args(sx, sy)
-          gx = tf.reduce_sum(grad * y * tf.pow(x, y - 1), rx)
+          gx = ts.reduce_sum(grad * y * ts.pow(x, y - 1), rx)
 
-          log_x = tf.where(x > 0, tf.log(x), tf.zeros_like(x))
-          gy = tf.reduce_sum(grad * z * log_x, ry)
+          log_x = ts.where(x > 0, ts.log(x), ts.zeros_like(x))
+          gy = ts.reduce_sum(grad * z * log_x, ry)
 
           [gx, gy]
         when :abs
-          grad * tf.sign(x)
+          grad * ts.sign(x)
         when :log
-          grad * tf.reciprocal(x)
+          grad * ts.reciprocal(x)
         when :cos
-          -grad * tf.sin(x)
+          -grad * ts.sin(x)
         when :max
-          _min_or_max_grad(node.inputs, grad, ->(x, y) { tf.greater_equal(x, y) } )
+          _min_or_max_grad(node.inputs, grad, ->(a, b) { ts.greater_equal(a, b) })
         when :min
-          _min_or_max_grad(node.inputs, grad, ->(x, y) { tf.less_equal(x, y) } )
+          _min_or_max_grad(node.inputs, grad, ->(a, b) { ts.less_equal(a, b) })
         when :tan
-          secx = tf.reciprocal(tf.cos(x))
-          secx2 = tf.square(secx)
+          secx = ts.reciprocal(ts.cos(x))
+          secx2 = ts.square(secx)
           grad * secx2
         when :negate
           -grad
@@ -169,18 +216,25 @@ module TensorStream
         when :identity, :print
           grad
         when :sign
-          tf.zeros(tf.shape(x), dtype: x.data_type)
+          ts.zeros(ts.shape(x), dtype: x.data_type)
+        when :tile
+          input_shape = ts.shape(x)
+          split_shape = ts.reshape(ts.transpose(ts.stack([y, input_shape])), [-1])
+          axes = ts.range(0, ts.size(split_shape), 2)
+          input_grad = ts.reduce_sum(ts.reshape(grad, split_shape), axes)
+
+          [input_grad, nil]
         when :sum
           _sum_grad(x, y, grad)
         when :reciprocal
-          -grad * (tf.constant(1, dtype: x.dtype) / x**2)
+          -grad * (ts.constant(1, dtype: x.dtype) / x**2)
         when :sqrt
-          tf.constant(1, dtype: x.dtype) / (tf.constant(2, dtype: x.dtype) * tf.sqrt(x)) * grad
+          ts.constant(1, dtype: x.dtype) / (ts.constant(2, dtype: x.dtype) * ts.sqrt(x)) * grad
         when :stop_gradient
-          tf.zeros_like(grad)
+          ts.zeros_like(grad)
         when :square
-          y = tf.constant(2.0, dtype: x.dtype)
-          tf.multiply(grad, tf.multiply(x, y))
+          y = ts.constant(2.0, dtype: x.dtype)
+          ts.multiply(grad, ts.multiply(x, y))
         when :where
           x_mask = i_op(:where, i_op(:ones_like, x), i_op(:zeros_like, y), pred: node.options[:pred])
           y_mask = i_op(:where, i_op(:zeros_like, x), i_op(:ones_like, y), pred: node.options[:pred])
@@ -191,12 +245,12 @@ module TensorStream
           [x_cond * grad, y_cond * grad]
         when :mean
           sum_grad = _sum_grad(x, y, grad)[0]
-          input_shape = tf.shape(x)
-          output_shape = tf.shape(node)
-          factor = _safe_shape_div(tf.reduce_prod(input_shape), tf.reduce_prod(output_shape))
-          tf.div(sum_grad, tf.cast(factor, sum_grad.data_type))
+          input_shape = ts.shape(x)
+          output_shape = ts.shape(node)
+          factor = _safe_shape_div(ts.reduce_prod(input_shape), ts.reduce_prod(output_shape))
+          [ts.div(sum_grad, ts.cast(factor, sum_grad.data_type)), nil]
         when :log1p
-          grad * tf.reciprocal(i_cons(1, dtype: grad.data_type) + x)
+          grad * ts.reciprocal(i_cons(1, dtype: grad.data_type) + x)
         when :sigmoid
           i_op(:sigmoid_grad, x, grad)
         when :sigmoid_grad
@@ -205,7 +259,8 @@ module TensorStream
         when :softmax
           i_op(:softmax_grad, x, grad)
         when :softmax_cross_entropy_with_logits_v2
-          [i_op(:softmax_cross_entropy_with_logits_v2_grad, x, y, grad), nil]
+          output = node
+          [_broadcast_mul(grad, output[1]), nil]
         when :floor, :ceil
           # non differentiable
           nil
@@ -215,6 +270,10 @@ module TensorStream
         when :argmin, :argmax, :floor_div
           # non differentiable
           [nil, nil]
+        when :transpose
+          return [ts.transpose(grad, ts.invert_permutation(y)), nil]
+        when :index
+          grad
         else
           raise "no derivative op for #{node.operation}"
         end
@@ -231,12 +290,12 @@ module TensorStream
     end
 
     def self._safe_shape_div(arg_x, arg_y)
-      _op(:floor_div, arg_x, tf.maximum(arg_y, 1))
+      _op(:floor_div, arg_x, ts.maximum(arg_y, 1))
     end
 
     def self._sum_grad(arg_x, arg_y, grad)
       input_shape = _op(:shape, arg_x)
-      output_shape_kept_dims = tf.reduced_shape(input_shape, arg_y)
+      output_shape_kept_dims = ts.reduced_shape(input_shape, arg_y)
       tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
       new_grad = _op(:reshape, grad, output_shape_kept_dims)
 
@@ -254,17 +313,22 @@ module TensorStream
       x = inputs[0]
       y = inputs[1]
       gdtype = grad.data_type
-      sx = tf.shape(x)
-      sy = tf.shape(y)
-      gradshape = tf.shape(grad)
-      zeros = tf.zeros(gradshape, dtype: gdtype)
+      sx = ts.shape(x)
+      sy = ts.shape(y)
+      gradshape = ts.shape(grad)
+      zeros = ts.zeros(gradshape, dtype: gdtype)
       xmask = selector_op.call(x, y)
       rx, ry = _broadcast_gradient_args(sx, sy)
-      xgrad = tf.where(xmask, grad, zeros, name: 'x')
-      ygrad = tf.where(xmask, zeros, grad, name: 'y')
-      gx = tf.reshape(tf.reduce_sum(xgrad, rx), sx)
-      gy = tf.reshape(tf.reduce_sum(ygrad, ry), sy)
+      xgrad = ts.where(xmask, grad, zeros, name: 'x')
+      ygrad = ts.where(xmask, zeros, grad, name: 'y')
+      gx = ts.reshape(ts.reduce_sum(xgrad, rx), sx)
+      gy = ts.reshape(ts.reduce_sum(ygrad, ry), sy)
       [gx, gy]
+    end
+
+    def self._broadcast_mul(vec, mat)
+      vec = ts.expand_dims(vec, -1)
+      vec * mat
     end
 
     def self._include?(arr, obj)

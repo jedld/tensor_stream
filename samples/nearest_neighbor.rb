@@ -5,6 +5,8 @@ This example is using the MNIST database of handwritten digits
 
 Author: Aymeric Damien
 Project: https://github.com/aymericdamien/TensorFlow-Examples/
+
+Make sure to install the mnist-learn gem
 '''
 require "bundler/setup"
 require 'tensor_stream'
