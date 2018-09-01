@@ -7,6 +7,8 @@ require 'tensor_stream/evaluator/opencl/opencl_device'
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
 require 'tensor_stream/evaluator/base_evaluator'
+require 'tensor_stream/evaluator/opencl/math_ops'
+require 'tensor_stream/evaluator/opencl/nn_ops'
 
 module TensorStream
   module Evaluator
@@ -35,6 +37,8 @@ module TensorStream
       include TensorStream::OpHelper
       include TensorStream::ArrayOpsHelper
       include TensorStream::MathHelper
+      include TensorStream::OpenCLHelpers::MathOps
+      include TensorStream::OpenCLHelpers::NNOps
 
       def initialize(session, device, thread_pool: nil, log_intermediates: false)
         super
@@ -257,10 +261,6 @@ module TensorStream
       register_op :no_op do |_context, _tensor, _inputs|
       end
 
-      register_op :log do |context, tensor, inputs|
-        execute_func('log', tensor, inputs[0], context)
-      end
-
       register_op :cond, noop: true do |context, tensor, inputs|
         pred = complete_eval(tensor.options[:pred], context)
 
@@ -299,132 +299,9 @@ module TensorStream
         variable.buffer
       end
 
-      # Fast in place multiply subtract assign
-      register_op :apply_gradient_descent do |_context, tensor, inputs|
-        _target_var, learning_rate, delta = inputs
-
-        assign = tensor.inputs[0] || tensor
-
-        assign.buffer.dirty = true # force buffer copy when variable is read externally
-        output_buffer = assign.buffer
-
-        m, n = output_buffer.shape
-        work_group = [m || 1, n || 1]
-        cl_m = OpenCL::Int1.new(m || 1)
-        cl_n = OpenCL::Int1.new(n || 1)
-
-        event_wait_list = build_event_wait_list([assign.buffer, learning_rate, delta])
-        method_call = :"apply_gradient_#{output_buffer.data_type}"
-        event = _cl_program("apply_gradient", dtype: output_buffer.data_type).send(method_call, _opencl_queue, work_group, cl_m, cl_n, delta.cl_buffer, learning_rate.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer.op = event
-        output_buffer
-      end
-
-      # Fast in place multiply subtract assign
-      register_op :apply_momentum do |_context, tensor, inputs|
-        target_var, momentum_var, learning_rate, grad, momentum = inputs
-
-        assign = tensor.inputs[0] || tensor
-        assign_acc = tensor.inputs[1]
-        assign.buffer.dirty = true # force buffer copy when variable is read externally
-        assign_acc.buffer.dirty = true # force buffer copy when variable is read externally
-
-        output_buffer = assign.buffer
-
-        m, n = output_buffer.shape
-        work_group = [m || 1, n || 1]
-        cl_m = OpenCL::Int1.new(m || 1)
-        cl_n = OpenCL::Int1.new(n || 1)
-
-        event_wait_list = build_event_wait_list([assign.buffer, assign_acc.buffer, learning_rate, grad, momentum])
-        method_call = :"apply_momentum_#{output_buffer.data_type}"
-        event = _cl_program("apply_momentum", nesterov: tensor.options[:use_nesterov], dtype: output_buffer.data_type).
-                    send(method_call, _opencl_queue, work_group, cl_m, cl_n, grad.cl_buffer,
-                         learning_rate.cl_buffer, momentum.cl_buffer, output_buffer.cl_buffer,
-                         assign_acc.buffer.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer.op = event
-        assign_acc.buffer.op = event
-        output_buffer
-      end
-
-      # Adam optimization algorithm
-      register_op :apply_adam do |_context, tensor, inputs|
-        _target_var, _m, _v, beta1_power, beta2_power, lr_t, beta1_t, beta2_t, epsilon_t, grad = inputs
-
-        assign = tensor.inputs[0] || tensor
-        assign_m = tensor.inputs[1]
-        assign_v = tensor.inputs[2]
-
-        # mark variable buffers as dirty
-        assign.buffer.dirty = true # force buffer copy when variable is read externally
-        assign_m.buffer.dirty = true # force buffer copy when variable is read externally
-        assign_v.buffer.dirty = true # force buffer copy when variable is read externally
-
-        output_buffer = assign.buffer
-
-        m, n = output_buffer.shape
-        work_group = [m || 1, n || 1]
-        cl_m = OpenCL::Int1.new(m || 1)
-        cl_n = OpenCL::Int1.new(n || 1)
-
-        event_wait_list = build_event_wait_list(inputs)
-        method_call = :"apply_adam_#{output_buffer.data_type}"
-        event = _cl_program("apply_adam", dtype: output_buffer.data_type)
-                            .send(method_call, _opencl_queue, work_group, cl_m, cl_n,
-                                  grad.cl_buffer,
-                                  lr_t.cl_buffer,
-                                  beta1_power.cl_buffer,
-                                  beta2_power.cl_buffer,
-                                  beta1_t.cl_buffer,
-                                  beta2_t.cl_buffer,
-                                  epsilon_t.cl_buffer,
-                                  assign_m.buffer.cl_buffer,
-                                  assign.buffer.cl_buffer,
-                                  assign_v.buffer.cl_buffer,
-                                  event_wait_list: event_wait_list)
-        output_buffer.op = event
-        assign_m.buffer.op = event
-        assign_v.buffer.op = event
-        output_buffer
-      end
-
       %i[less less_equal greater greater_equal equal not_equal logical_and].each do |op|
         register_op op, noop: true do |context, tensor, inputs|
           execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context, 'cond')
-        end
-      end
-
-      %i[max min add real_div div sub floor_mod mod mul pow sigmoid_grad squared_difference].each do |op|
-        register_op op, noop: true do |context, tensor, inputs|
-          execute_2_operand_func(op.to_s, tensor, inputs[0], inputs[1], context)
-        end
-      end
-
-      register_op :add_n do |_context, tensor, inputs|
-        if inputs.size == 1
-          inputs[0]
-        else
-          m, n = inputs[0].shape
-          work_group = [m || 1, n || 1]
-          cl_m = OpenCL::Int1.new(m || 1)
-          cl_n = OpenCL::Int1.new(n || 1)
-          cl_switch = OpenCL::Int1.new(0)
-          dtype = tensor.data_type
-
-          output_buffer = _create_result_buffer(tensor.data_type, inputs[0].shape, "out_#{tensor.name}")
-          inputs_queue = inputs.dup
-          a = inputs_queue.pop
-          until inputs_queue.empty?
-            b = inputs_queue.pop
-            event_wait_list = build_event_wait_list([a, b])
-            method_call = :"add_#{a.data_type}_#{b.data_type}"
-            event = _cl_program('add', a: a.data_type, b: b.data_type, dtype: dtype).send(method_call, _opencl_queue, work_group, cl_m, cl_n, cl_switch, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-            a = output_buffer
-            a.op = event
-          end
-
-          output_buffer.op = a.op
-          output_buffer
         end
       end
 
@@ -454,56 +331,9 @@ module TensorStream
         convert_to_opencl(buffer, shape.buffer.to_a, data_type: tensor.data_type, name: tensor.name)
       end
 
-      register_op :floor_div, noop: true do |context, tensor, inputs|
-        if fp_type?(tensor.data_type)
-          execute_2_operand_func('floor_div', tensor, inputs[0], inputs[1], context)
-        else
-          execute_2_operand_func('div', tensor, inputs[0], inputs[1], context)
-        end
-      end
-
       register_op :where, noop: true do |context, tensor, inputs|
         pred = tensor.options[:pred]
         execute_cond_func('where', tensor, pred, inputs[0], inputs[1], context)
-      end
-
-      register_op :mat_mul do |_context, tensor, inputs|
-        a, b = inputs
-
-        m = a.shape[0]
-        n = b.shape[1]
-        v = b.shape[0]
-        k = a.shape[1]
-
-        if tensor.options[:transpose_a]
-          m = a.shape[1]
-          k = a.shape[0]
-        end
-
-        if tensor.options[:transpose_b]
-          n = b.shape[0]
-          v = b.shape[1]
-        end
-
-        result_shape = [m, n]
-
-        raise "#{tensor.inputs[0].name} rank must be greater than 1" if a.shape.size < 2
-        raise "#{tensor.inputs[1].name} rank must be greater than 1" if b.shape.size < 2
-        raise "incompatible shape sizes for matrix multiplication (#{a.shape[1]} != #{b.shape[0]}) #{a.shape} vs #{b.shape}" if k != v
-
-        dtype = tensor.data_type
-        a, b = auto_type_cast(a, b, name: "#{tensor.name}/cast_#{a.name}_#{b.data_type}")
-        output_buffer = _create_result_buffer(a.data_type, result_shape, tensor.name)
-
-        cl_m = OpenCL::Int1.new(m)
-        cl_n = OpenCL::Int1.new(n)
-        cl_k = OpenCL::Int1.new(k)
-
-        transpose_a = OpenCL::Int1.new(tensor.options[:transpose_a] ? 1 : 0)
-        transpose_b = OpenCL::Int1.new(tensor.options[:transpose_b] ? 1 : 0)
-        event_wait_list = build_event_wait_list(inputs)
-        output_buffer.op = _cl_program('gemm', dtype: dtype).send(:"gemm_#{dtype}", _opencl_queue, result_shape, cl_m, cl_n, cl_k, transpose_a, transpose_b, a.cl_buffer, b.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer
       end
 
       register_op :cast do |_context, tensor, inputs|
@@ -552,100 +382,6 @@ module TensorStream
           _cl_program("pack", data_type: tensor.data_type, divisors: divisors, multipliers: multipliers, axis: axis).pack(_opencl_queue, work_group, cl_n, cl_index, input.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
         end
         output_buffer.op = ops
-        output_buffer
-      end
-
-      %i[sign exp tan acos asin sin cos abs sqrt negate square reciprocal tanh tanh_grad sigmoid log1p round floor ceil].each do |op|
-        register_op op, noop: true do |context, tensor, inputs|
-          execute_func(op.to_s, tensor, inputs[0], context)
-        end
-      end
-
-      register_op :softmax do |_context, tensor, inputs|
-        a = inputs[0]
-        event_wait_list = build_event_wait_list(inputs)
-        dtype = tensor.data_type
-        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-
-        m, n = a.shape
-        work_group = [m]
-        n = m if n.nil?
-        cl_n = OpenCL::Int1.new(n || 1)
-
-        event = _cl_program("softmax", dtype: dtype).send(:"softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer.op = event
-        output_buffer
-      end
-
-      register_op :log_softmax do |_context, tensor, inputs|
-        a = inputs[0] # logits
-        event_wait_list = build_event_wait_list(inputs)
-        dtype = tensor.data_type
-        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-
-        m, n = a.shape
-        work_group = [m]
-        n = m if n.nil?
-        cl_n = OpenCL::Int1.new(n || 1)
-
-        event = _cl_program("log_softmax", dtype: dtype).send(:"log_softmax_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer.op = event
-        output_buffer
-      end
-
-      register_op :softmax_cross_entropy_with_logits_v2 do |context, tensor, inputs|
-        a = inputs[0] # logits
-        b = inputs[1] # labels
-        event_wait_list = build_event_wait_list(inputs)
-        dtype = tensor.data_type
-        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-        output_buffer_backprop = _create_result_buffer(tensor.data_type, a.shape, "#{tensor.name}_2")
-        rank = a.shape.size - 1
-        m, n = a.shape
-        work_group = [m]
-        n = m if n.nil?
-        cl_n = OpenCL::Int1.new(n || 1)
-
-        event = _cl_program("softmax_cross", dtype: dtype).send(:"softmax_cross_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, b.cl_buffer,
-                             output_buffer.cl_buffer, output_buffer_backprop.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer.op = event
-        output_buffer_backprop.op = event
-
-        loss = reduction(context, tensor, output_buffer, rank, :sum)
-        OutputGroup.new([loss, output_buffer_backprop],  [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
-      end
-
-      register_op :softmax_cross_entropy_with_logits_v2_grad do |_context, tensor, inputs|
-        a = inputs[0] # logits
-        b = inputs[1] # labels
-        c = inputs[2] # grads
-        event_wait_list = build_event_wait_list(inputs)
-        dtype = tensor.data_type
-        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-
-        m, n = a.shape
-        work_group = [m]
-        n = m if n.nil?
-        cl_n = OpenCL::Int1.new(n || 1)
-
-        event = _cl_program("softmax_cross_grad", dtype: dtype).send(:"softmax_cross_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, b.cl_buffer, c.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer.op = event
-        output_buffer
-      end
-
-      register_op :softmax_grad do |_context, tensor, inputs|
-        a, grad = inputs
-
-        event_wait_list = build_event_wait_list(inputs)
-        dtype = tensor.data_type
-        output_buffer = _create_result_buffer(tensor.data_type, a.shape, tensor.name)
-
-        m, n = a.shape
-        work_group = [m]
-        n = m if n.nil?
-        cl_n = OpenCL::Int1.new(n || 1)
-        event = _cl_program('softmax_grad', dtype: dtype, size: n).send(:"softmax_grad_#{dtype}", _opencl_queue, work_group, cl_n, a.cl_buffer, grad.cl_buffer, output_buffer.cl_buffer, event_wait_list: event_wait_list)
-        output_buffer.op = event
         output_buffer
       end
 
@@ -766,42 +502,6 @@ module TensorStream
 
       register_op :size do |_context, tensor, inputs|
         wrap_opencl(inputs[0].buffer.size, name: tensor.name, data_type: tensor.options[:out_type] || :int32)
-      end
-
-      %i[sum mean].each do |op|
-        register_op op, noop: true do |context, tensor, inputs|
-          reduction(context, tensor, inputs[0], inputs[1], op.to_sym)
-        end
-      end
-
-      register_op :prod, noop: true do |context, tensor, inputs|
-        input_a = complete_eval(inputs[0], context)
-
-        if input_a.buffer.empty?
-          convert_to_opencl([1.0], [], data_type: inputs[0].data_type, name: tensor.name)
-        else
-          reduction(context, tensor, inputs[0], inputs[1], :prod)
-        end
-      end
-
-      register_op :argmin, buffer: true do |_context, tensor, inputs|
-        axis = tensor.options[:axis] || 0
-        rank = inputs[0].shape.size
-        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
-
-        arr = inputs[0].buffer.reshape(*inputs[0].shape.reverse).to_a
-        op = get_op_with_axis(arr, axis, 0, inputs[0].data_type, ->(a, b) { a < b })
-        convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
-      end
-
-      register_op :argmax, buffer: true do |_context, tensor, inputs|
-        axis = tensor.options[:axis] || 0
-        rank = inputs[0].shape.size
-        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
-
-        arr = inputs[0].buffer.reshape(*inputs[0].shape.reverse).to_a
-        op = get_op_with_axis(arr, axis, 0, inputs[0].data_type, ->(a, b) { a > b })
-        convert_to_opencl(op, shape_eval(op), data_type: tensor.data_type, name: tensor.name)
       end
 
       def eval_operation(tensor, child_context)
