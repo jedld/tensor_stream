@@ -4,6 +4,8 @@ require 'tensor_stream/evaluator/operation_helpers/math_helper'
 require 'tensor_stream/evaluator/base_evaluator'
 require 'tensor_stream/evaluator/ruby/math_ops'
 require 'tensor_stream/evaluator/ruby/nn_ops'
+require 'tensor_stream/evaluator/ruby/array_ops'
+require 'tensor_stream/evaluator/ruby/random_ops'
 
 module TensorStream
   module Evaluator
@@ -33,6 +35,8 @@ module TensorStream
       include TensorStream::MathHelper
       include TensorStream::MathOps
       include TensorStream::NNOps
+      include TensorStream::ArrayOps
+      include TensorStream::RandomOps
 
       def run(tensor, execution_context)
         return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
@@ -109,20 +113,6 @@ module TensorStream
         inputs[0]
       end
 
-      register_op(%i[argmax arg_max]) do |_context, tensor, inputs|
-        axis = tensor.options[:axis] || 0
-        rank = get_rank(inputs[0])
-        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
-        get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
-      end
-
-      register_op(%i[argmin arg_min]) do |_context, tensor, inputs|
-        axis = tensor.options[:axis] || 0
-        rank = get_rank(inputs[0])
-        raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
-        get_op_with_axis(inputs[0], axis, 0, tensor.data_type, ->(a, b) { a < b })
-      end
-
       register_op(:cast) do |context, tensor, inputs|
         call_op(:cast, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
       end
@@ -155,24 +145,6 @@ module TensorStream
         call_vector_op(tensor, :not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
-      register_op :index, no_eval: true do |_context, _tensor, inputs|
-        f = inputs[0]
-        index = inputs[1]
-        if f.is_a?(OutputGroup)
-          f.outputs[index]
-        else
-          f[index]
-        end
-      end
-
-      register_op :slice do |context, tensor, inputs|
-        input = inputs[0]
-        start = inputs[1]
-        size = complete_eval(tensor.options[:size], context)
-        raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
-        slice_tensor(input, start, size)
-      end
-
       def merge_dynamic_stitch(merged, indexes, data)
         indexes.each_with_index do |ind, m|
           if ind.is_a?(Array)
@@ -183,124 +155,8 @@ module TensorStream
         end
       end
 
-      register_op %i[flow_dynamic_stitch dynamic_stitch] do |_context, _tensor, inputs|
-        indexes, data = inputs
-        merged = []
-        merge_dynamic_stitch(merged, indexes, data)
-        merged
-      end
-
-      register_op :gather do |_context, _tensor, inputs|
-        params, indexes = inputs
-        gather(params, indexes)
-      end
-
-      register_op :setdiff1d do |_context, tensor, inputs|
-        input, remove = inputs
-        idx = []
-        out = []
-        input.each_with_index do |x, index|
-          next if remove.include?(x)
-          out << x
-          idx << index
-        end
-        idx = idx.map { |i| Tensor.cast_dtype(i, tensor.options[:index_dtype]) } unless tensor.options[:index_dtype] == :int32
-        OutputGroup.new([out, idx], tensor.inputs.map(&:data_type))
-      end
-
-      register_op :cumprod do |context, tensor, inputs|
-        x = inputs[0]
-        c = fp_type?(tensor.data_type) ? 1.0 : 1
-        reverse_option = tensor.options[:reverse]
-        exclusive = tensor.options[:exclusive]
-
-        func = lambda do |arr|
-          return c if arr.nil?
-          count = arr.size
-
-
-          arr = arr.reverse if reverse_option
-          arr = [1] + arr if exclusive
-
-          start_prod = arr[0]
-          mapped = arr[1...count].map do |v|
-            start_prod = vector_op(start_prod, v, ->(a, b) { a * b })
-          end
-
-          arr = [arr[0]] + mapped
-          reverse_option ? arr.reverse : arr
-        end
-        reduction(context, tensor, func)
-      end
-
-      register_op :invert_permutation do |_context, _tensor, inputs|
-        input = inputs[0]
-        output = input.dup
-        input.size.times.each do |index|
-          output[input[index]] = index
-        end unless input.nil?
-        output
-      end
-
-      register_op :size do |_context, tensor, inputs|
-        input = inputs[0]
-        Tensor.cast_dtype(input.flatten.size, tensor.options[:out_type])
-      end
-
-      register_op %i[concat concat_v2] do |_context, tensor, inputs|
-        concat_array(inputs, tensor.options[:axis])
-      end
-
       register_op :stop_gradient, no_eval: true do |_context, _tensor, inputs|
         inputs[0]
-      end
-
-      register_op :sigmoid_grad, no_eval: true do |context, tensor, inputs|
-        a, b = inputs
-        call_vector_op(tensor, :sigmoid_grad, a, b, context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t)) })
-      end
-
-      register_op :random_uniform, no_eval: true do |_context, tensor, _inputs|
-        maxval = tensor.options.fetch(:maxval, 1)
-        minval = tensor.options.fetch(:minval, 0)
-        seed = tensor.options[:seed]
-
-        random = _get_randomizer(tensor, seed)
-        generator = -> { random.rand * (maxval - minval) + minval }
-        shape = tensor.options[:shape] || tensor.shape.shape
-        generate_vector(shape, generator: generator)
-      end
-
-      register_op :random_standard_normal, no_eval: true do |_context, tensor, _inputs|
-        seed = tensor.options[:seed]
-        random = _get_randomizer(tensor, seed)
-        r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
-        random = _get_randomizer(tensor, seed)
-        generator = -> { r.rand }
-        shape = tensor.options[:shape] || tensor.shape.shape
-        generate_vector(shape, generator: generator)
-      end
-
-      register_op :glorot_uniform, no_eval: true do |_context, tensor, _inputs|
-        seed = tensor.options[:seed]
-        random = _get_randomizer(tensor, seed)
-
-        shape = tensor.options[:shape] || tensor.shape.shape
-        fan_in, fan_out = if shape.size.zero?
-                            [1, 1]
-                          elsif shape.size == 1
-                            [1, shape[0]]
-                          else
-                            [shape[0], shape.last]
-                          end
-
-        limit = Math.sqrt(6.0 / (fan_in + fan_out))
-
-        minval = -limit
-        maxval = limit
-
-        generator = -> { random.rand * (maxval - minval) + minval }
-        generate_vector(shape, generator: generator)
       end
 
       register_op :assign, noop: true do |context, tensor, _inputs|
@@ -323,116 +179,7 @@ module TensorStream
         tensor.inputs[0].value
       end
 
-      register_op :stack do |_context, tensor, inputs|
-        axis = tensor.options[:axis] || 0
-        shape = shape_eval(inputs[0])
-        rank = shape.size + 1
-        elem_size = shape.empty? ? 1 : shape.reduce(:*)
-        output_buffer = Array.new(inputs.size * elem_size) { 0 }
-        new_shape = [inputs.size]
-        shape.inject(new_shape) { |ns, s| ns << s }
-
-        divisors = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
-          a << s * a.last
-        end.reverse
-
-        axis = rank + axis if axis < 0
-        rotated_shape = Array.new(axis + 1) { new_shape.shift }
-        new_shape = rotated_shape.rotate! + new_shape
-
-        multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
-          a << s * a.last
-        end.reverse
-
-        inputs.each_with_index do |input, index|
-          raw_input = input.is_a?(Array) ? input.flatten : [input]
-          start = index * divisors.first
-
-          raw_input.each_with_index do |x, index2|
-            index_map = []
-            ptr = start + index2
-            divisors.each_with_object(index_map) do |div, a|
-              a << (ptr / div.to_f).floor
-              ptr = ptr % div
-            end
-
-            rotated_index = Array.new(axis + 1) { index_map.shift }
-            index_map = rotated_index.rotate! + index_map
-
-            ptr2 = 0
-            multipliers.each_with_index do |m, idx|
-              ptr2 += index_map[idx] * m
-            end
-
-            output_buffer[ptr2] = x
-          end
-        end
-
-        TensorShape.reshape(output_buffer, new_shape)
-      end
-
-      register_op :mean, noop: true do |context, tensor, _inputs|
-        c = fp_type?(tensor.data_type) ? 0.0 : 0
-        func = lambda do |arr|
-          return c if arr.nil?
-
-          reduced_val = arr[0]
-          arr[1..arr.size].each do |v|
-            reduced_val = vector_op(reduced_val, v, ->(a, b) { a + b })
-          end
-
-          vector_op(reduced_val, nil, ->(a, _b) { a / arr.size })
-        end
-
-        reduction(context, tensor, func)
-      end
-
-      register_op :sum, noop: true do |context, tensor, _inputs|
-        func = lambda do |arr|
-          reduced_val = arr[0]
-          arr[1..arr.size].each do |v|
-            reduced_val = vector_op(reduced_val, v, ->(t, u) { t + u })
-          end
-          reduced_val
-        end
-
-        reduction(context, tensor, func)
-      end
-
-      register_op :prod, noop: true do |context, tensor, _inputs|
-        c = fp_type?(tensor.data_type) ? 1.0 : 1
-        func = lambda do |arr|
-          return c if arr.nil?
-
-          reduced_val = arr[0]
-          arr[1..arr.size].each do |v|
-            reduced_val = vector_op(reduced_val, v, ->(a, b) { a * b })
-          end
-          reduced_val
-        end
-
-        reduction(context, tensor, func)
-      end
-
-      register_op :range do |_context, _tensor, inputs|
-        start, limit, delta = inputs
-        raise " delta !=0 " if delta.zero?
-        raise " Requires start <= limit when delta > 0" if (start > limit) && delta > 0
-        raise " Requires start >= limit when delta < 0" if (start < limit) && delta < 0
-
-        cur_step = start
-        r = []
-        Kernel.loop do
-          break if start == limit
-          break if (start < limit) && (cur_step >= limit)
-          break if (start > limit) && (cur_step <= limit)
-          r << cur_step
-          cur_step += delta
-        end
-        r
-      end
-
-      register_op :transpose do |_context, tensor, inputs|
+      register_op :transpose do |_context, _tensor, inputs|
         shape = shape_eval(inputs[0])
         rank = get_rank(inputs[0])
         perm = inputs[1] || (0...rank).to_a.reverse
@@ -446,32 +193,6 @@ module TensorStream
           transpose_with_perm(arr, new_arr, shape, new_shape, perm)
           TensorShape.reshape(new_arr, new_shape)
         end
-      end
-
-      register_op :eye do |_context, tensor, inputs|
-        rows, columns = inputs
-
-        Array.new(rows) do |i|
-          Array.new(columns) do |col|
-            if fp_type?(tensor.data_type)
-              i == col ? 1.0 : 0.0
-            else
-              i == col ? 1 : 0
-            end
-          end
-        end
-      end
-
-      register_op :expand_dims do |_context, _tensor, inputs|
-        val, axis = inputs
-        axis = axis.nil? ? 0 : axis
-
-        shape = shape_eval(val)
-        axis = -axis if axis == shape.size
-
-        new_shape = shape.dup.insert(axis, 1).compact
-
-        TensorShape.reshape([val].flatten, new_shape)
       end
 
       register_op :cond, noop: true do |context, tensor, inputs|
@@ -509,75 +230,12 @@ module TensorStream
         call_vector_op(tensor, :greater_equal, a, b, context, ->(t, u) { t <= u })
       end
 
-      register_op :fill do |_context, _tensor, inputs|
-        shape = inputs[0]
-        value = inputs[1]
-
-        func = -> { value }
-
-        if shape.is_a?(Array) && shape.size.zero?
-          func.call
-        else
-          shape = [shape.to_i] unless shape.is_a?(Array)
-          generate_vector(shape, generator: func)
-        end
-      end
-
-      register_op %i[zeros ones zeros_like ones_like] do |_context, tensor, inputs|
-        shape = if %i[zeros_like ones_like].include?(tensor.operation)
-                  shape_eval(inputs[0])
-                else
-                  inputs[0] || tensor.shape.shape
-                end
-
-        func = if %i[zeros zeros_like].include?(tensor.operation)
-                 -> { int_type?(tensor.data_type) ? 0 : 0.0 }
-               else
-                 -> { int_type?(tensor.data_type) ? 1 : 1.0 }
-               end
-
-        if shape.is_a?(Array) && shape.size.zero?
-          func.call
-        else
-          shape = [shape.to_i] unless shape.is_a?(Array)
-
-          cache_key = "#{tensor.operation}_#{shape}"
-          if @context[:_cache].key?(cache_key)
-            @context[:_cache][cache_key]
-          else
-            generate_vector(shape, generator: func).tap do |v|
-              @context[:_cache][cache_key] = v
-            end
-          end
-        end
-      end
-
       register_op :shape do |_context, tensor, inputs|
         shape_eval(inputs[0], tensor.options[:out_type])
       end
 
-      register_op :mat_mul do |_context, tensor, inputs|
-        matrix_a, matrix_b = inputs
-        rank_a = get_rank(matrix_a)
-        rank_b = get_rank(matrix_b)
-        raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
-        raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
-
-        matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
-        matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-
-        # check matrix dimensions
-        raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
-
-        (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
-      end
-
       register_op :broadcast_transform do |_context, _tensor, inputs|
         broadcast(inputs[0], inputs[1])
-      end
-
-      register_op :truncate do |_context, _tensor, inputs|
-        truncate(inputs[0], inputs[1])
       end
 
       register_op :identity do |_context, _tensor, inputs|
@@ -589,55 +247,13 @@ module TensorStream
         inputs[0]
       end
 
-      register_op :rank do |_context, _tensor, inputs|
-        get_rank(inputs[0])
-      end
-
       register_op %i[div real_div], noop: true do |context, tensor, inputs|
         process_vector_math_op(tensor, inputs[0], inputs[1], context, ->(t, u) { t / u })
-      end
-
-      register_op :reshape do |_context, _tensor, inputs|
-        arr, new_shape = inputs
-
-        arr = [arr] unless arr.is_a?(Array)
-
-        flat_arr = arr.flatten
-        if new_shape.size.zero? && flat_arr.size == 1
-          flat_arr[0]
-        else
-          new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
-          TensorShape.reshape(flat_arr, new_shape)
-        end
-      end
-
-      register_op :pad do |context, tensor, inputs|
-        p = complete_eval(tensor.options[:paddings], context)
-
-        arr_pad(inputs[0], p, tensor.data_type)
-      end
-
-      register_op %i[max maximum], noop: true do |context, tensor, inputs|
-        call_vector_op(tensor, :max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
-      end
-
-      register_op %i[min minimum], noop: true do |context, tensor, inputs|
-        call_vector_op(tensor, :min, inputs[0], inputs[1], context, ->(t, u) { [t, u].min })
       end
 
       register_op :broadcast_gradient_args do |_context, tensor, inputs|
         rx, ry = get_broadcast_gradient_args(inputs[0], inputs[1])
         OutputGroup.new([rx, ry], tensor.inputs.map(&:data_type))
-      end
-
-      register_op :tile do |_context, _tensor, inputs|
-        input, multiples = inputs
-        rank = get_rank(input)
-        raise '1D or higher tensor required' if rank.zero?
-        raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
-
-        tile = tile_arr(input, 0, multiples)
-        tile.nil? ? [] : tile
       end
 
       register_op :flow_group, noop: true do |context, tensor, inputs|
@@ -655,35 +271,6 @@ module TensorStream
 
       register_op :restore_v2 do |context, tensor, inputs|
         # prefix, tensor_names, shape_and_slices = inputs[0..3]
-      end
-
-      register_op :softmax_grad do |_context, _tensor, inputs|
-        input, grad = inputs
-        softmax_input = softmax(input)
-        input_shape = shape_eval(input)
-
-        last_dimen_list = last_axis(softmax_input)
-        last_grad_list = last_axis(grad)
-
-        func = lambda { |list, last_grad|
-          f_grad = softmax_grad(list)
-          f_grad.transpose.each.collect do |row|
-            sum = 0.0
-            row.each_with_index do |r, g_index|
-              sum += r * last_grad[g_index]
-            end
-            sum
-          end
-        }
-
-        if input_shape.size == 1
-          func.call(last_dimen_list, last_grad_list)
-        else
-          arr = last_dimen_list.zip(last_grad_list).collect do |list, last_grad|
-            func.call(list, last_grad)
-          end
-          TensorShape.reshape(arr.flatten, input_shape)
-        end
       end
 
       register_op :check_numerics do |context, tensor, inputs|

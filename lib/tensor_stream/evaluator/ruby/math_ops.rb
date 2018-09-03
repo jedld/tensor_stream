@@ -138,6 +138,117 @@ module TensorStream
         register_op :tanh_grad, no_eval: true do |context, _tensor, inputs|
           call_op(:tanh_grad, inputs[0], context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
         end
+
+        register_op(%i[argmax arg_max]) do |_context, tensor, inputs|
+          axis = tensor.options[:axis] || 0
+          rank = get_rank(inputs[0])
+          raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
+          get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
+        end
+
+        register_op(%i[argmin arg_min]) do |_context, tensor, inputs|
+          axis = tensor.options[:axis] || 0
+          rank = get_rank(inputs[0])
+          raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
+          get_op_with_axis(inputs[0], axis, 0, tensor.data_type, ->(a, b) { a < b })
+        end
+
+        register_op :cumprod do |context, tensor, inputs|
+          x = inputs[0]
+          c = fp_type?(tensor.data_type) ? 1.0 : 1
+          reverse_option = tensor.options[:reverse]
+          exclusive = tensor.options[:exclusive]
+
+          func = lambda do |arr|
+            return c if arr.nil?
+            count = arr.size
+
+
+            arr = arr.reverse if reverse_option
+            arr = [1] + arr if exclusive
+
+            start_prod = arr[0]
+            mapped = arr[1...count].map do |v|
+              start_prod = vector_op(start_prod, v, ->(a, b) { a * b })
+            end
+
+            arr = [arr[0]] + mapped
+            reverse_option ? arr.reverse : arr
+          end
+          reduction(context, tensor, func)
+        end
+
+        register_op :sum, noop: true do |context, tensor, _inputs|
+          func = lambda do |arr|
+            reduced_val = arr[0]
+            arr[1..arr.size].each do |v|
+              reduced_val = vector_op(reduced_val, v, ->(t, u) { t + u })
+            end
+            reduced_val
+          end
+
+          reduction(context, tensor, func)
+        end
+
+        register_op :prod, noop: true do |context, tensor, _inputs|
+          c = fp_type?(tensor.data_type) ? 1.0 : 1
+          func = lambda do |arr|
+            return c if arr.nil?
+
+            reduced_val = arr[0]
+            arr[1..arr.size].each do |v|
+              reduced_val = vector_op(reduced_val, v, ->(a, b) { a * b })
+            end
+            reduced_val
+          end
+
+          reduction(context, tensor, func)
+        end
+
+        register_op :sigmoid_grad, no_eval: true do |context, tensor, inputs|
+          a, b = inputs
+          call_vector_op(tensor, :sigmoid_grad, a, b, context, ->(t, u) { u * sigmoid(t) * (1 - sigmoid(t)) })
+        end
+
+        register_op :mean, noop: true do |context, tensor, _inputs|
+          c = fp_type?(tensor.data_type) ? 0.0 : 0
+          func = lambda do |arr|
+            return c if arr.nil?
+
+            reduced_val = arr[0]
+            arr[1..arr.size].each do |v|
+              reduced_val = vector_op(reduced_val, v, ->(a, b) { a + b })
+            end
+
+            vector_op(reduced_val, nil, ->(a, _b) { a / arr.size })
+          end
+
+          reduction(context, tensor, func)
+        end
+
+        register_op :mat_mul do |_context, tensor, inputs|
+          matrix_a, matrix_b = inputs
+          rank_a = get_rank(matrix_a)
+          rank_b = get_rank(matrix_b)
+          raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
+          raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
+
+          matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
+          matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
+
+          # check matrix dimensions
+          raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+
+          (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
+        end
+
+        register_op %i[max maximum], noop: true do |context, tensor, inputs|
+          call_vector_op(tensor, :max, inputs[0], inputs[1], context, ->(t, u) { [t, u].max })
+        end
+
+        register_op %i[min minimum], noop: true do |context, tensor, inputs|
+          call_vector_op(tensor, :min, inputs[0], inputs[1], context, ->(t, u) { [t, u].min })
+        end
       end
     end
   end
