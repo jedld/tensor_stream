@@ -2,7 +2,7 @@ module TensorStream
   # Class that defines all available ops supported by TensorStream
   module Ops
     FLOATING_POINT_TYPES = %i[float32 float64 float].freeze
-    INTEGER_TYPES = %i[int32 int int64].freeze
+    INTEGER_TYPES = %i[uint8 int32 int int64].freeze
     NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
 
     ##

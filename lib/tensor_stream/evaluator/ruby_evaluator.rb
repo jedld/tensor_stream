@@ -6,6 +6,7 @@ require 'tensor_stream/evaluator/ruby/math_ops'
 require 'tensor_stream/evaluator/ruby/nn_ops'
 require 'tensor_stream/evaluator/ruby/array_ops'
 require 'tensor_stream/evaluator/ruby/random_ops'
+require 'tensor_stream/evaluator/ruby/images_ops'
 
 module TensorStream
   module Evaluator
@@ -37,6 +38,7 @@ module TensorStream
       include TensorStream::NNOps
       include TensorStream::ArrayOps
       include TensorStream::RandomOps
+      include TensorStream::ImagesOps
 
       def run(tensor, execution_context)
         return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
@@ -193,21 +195,6 @@ module TensorStream
           transpose_with_perm(arr, new_arr, shape, new_shape, perm)
           TensorShape.reshape(new_arr, new_shape)
         end
-      end
-
-      register_op :cond, noop: true do |context, tensor, inputs|
-        pred = global_eval(tensor, tensor.options[:pred], context)
-
-        if all_true?(pred)
-          global_eval(tensor, inputs[0], context)
-        else
-          global_eval(tensor, inputs[1], context)
-        end
-      end
-
-      register_op %i[select where] do |context, tensor, inputs|
-        pred = complete_eval(tensor.options[:pred], context)
-        call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
       end
 
       register_op :less do |context, tensor, inputs|

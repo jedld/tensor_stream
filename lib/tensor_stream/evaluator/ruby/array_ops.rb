@@ -239,6 +239,21 @@ module TensorStream
           tile = tile_arr(input, 0, multiples)
           tile.nil? ? [] : tile
         end
+
+        register_op :cond, noop: true do |context, tensor, inputs|
+          pred = global_eval(tensor, tensor.options[:pred], context)
+
+          if all_true?(pred)
+            global_eval(tensor, inputs[0], context)
+          else
+            global_eval(tensor, inputs[1], context)
+          end
+        end
+
+        register_op %i[select where] do |context, tensor, inputs|
+          pred = complete_eval(tensor.options[:pred], context)
+          call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
+        end
       end
     end
   end

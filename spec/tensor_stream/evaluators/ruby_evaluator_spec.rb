@@ -14,6 +14,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   end
 
   it_behaves_like "standard ops evaluator"
+  it_behaves_like "images ops"
   it_behaves_like "TensorStream::Train::Saver"
 
   context "supported ops" do
