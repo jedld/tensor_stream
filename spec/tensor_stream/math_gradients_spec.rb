@@ -1,6 +1,5 @@
 require "spec_helper"
 require 'benchmark'
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::MathGradients do
   let(:tf) { TensorStream }
@@ -325,7 +324,7 @@ RSpec.describe TensorStream::MathGradients do
 
         X = tf.placeholder(:float, shape: [nil, num_input])
         Y = tf.placeholder(:float, shape: [nil, num_classes])
-        
+
 
         h1_init = tf.constant([[0.5937, 0.2343, 1.4332, 0.4395],
                   [-1.0227, -0.6915, 1.2367, 0.3452],
@@ -354,7 +353,7 @@ RSpec.describe TensorStream::MathGradients do
         h1 = tf.variable(h1_init, dtype: :float, name: 'h1')
         h2 = tf.variable(h2_init, dtype: :float, name: 'h2')
         h3 = tf.variable(h3_init, dtype: :float, name: 'out')
-    
+
         b1 = tf.variable(b1_init, dtype: :float, name: 'b1')
         b2 = tf.variable(b2_init, dtype: :float, name: 'b2')
         out = tf.variable(out_init, dtype: :float, name: 'out2')

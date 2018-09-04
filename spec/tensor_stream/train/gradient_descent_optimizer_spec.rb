@@ -1,9 +1,8 @@
 require "spec_helper"
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Train::GradientDescentOptimizer do
     let(:ts) { TensorStream }
-    let(:sess) { TensorStream.session([:opencl_evaluator, :ruby_evaluator]) }
+    let(:sess) { TensorStream.session([:ruby_evaluator]) }
 
     before(:each) do
         TensorStream::Tensor.reset_counters

@@ -1,10 +1,9 @@
 require "spec_helper"
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Train::AdamOptimizer do
     let(:ts) { TensorStream }
 
-    [[:opencl_evaluator, :ruby_evaluator], [:ruby_evaluator]].each do |evaluator|
+    [[:ruby_evaluator]].each do |evaluator|
       context "evaluator #{evaluator.join(',')}" do
         let(:sess) { TensorStream.session(evaluator) }
 

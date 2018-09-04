@@ -1,5 +1,4 @@
 require "spec_helper"
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Train::MomentumOptimizer do
   let(:ts) { TensorStream }
@@ -12,7 +11,7 @@ RSpec.describe TensorStream::Train::MomentumOptimizer do
     ts.reset_default_graph
   end
 
-  [[:opencl_evaluator, :ruby_evaluator], [:ruby_evaluator]].each do |evaluator|
+  [[:ruby_evaluator]].each do |evaluator|
 
     context "evaluator #{evaluator.join(',')}" do
       let(:sess) { TensorStream.session(evaluator) }
