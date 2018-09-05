@@ -44,4 +44,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov"
   spec.add_dependency "deep_merge"
   spec.add_dependency "concurrent-ruby"
+  spec.add_dependency "chunky_png"
 end
