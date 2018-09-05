@@ -5,11 +5,11 @@ module TensorStream
     def ImagesOps.included(klass)
       klass.class_eval do
         register_op :decode_png do |_context, tensor, inputs|
-          filename = inputs[0]
+          content = inputs[0]
           channels = tensor.options[:channels]
           channels = 4 if channels.zero?
 
-          image = ChunkyPNG::Image.from_file(filename)
+          image = ChunkyPNG::Image.from_blob(content)
 
           image.grayscale! if channels == 1
           image_data = image.pixels.collect do |pixel|

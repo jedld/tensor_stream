@@ -11,7 +11,7 @@ RSpec.shared_examples "images ops" do
   supported_op ".decode_png" do
     it "converts png file to a tensor" do
       file_path = File.join('spec','fixtures', 'ruby_16.png')
-      decoded_image = tf.image.decode_png(file_path)
+      decoded_image = tf.image.decode_png(File.read(file_path))
       expect(sess.run(decoded_image)).to eq([[[0, 0, 0, 0],
         [0, 0, 0, 0],
         [0, 0, 0, 0],
@@ -272,7 +272,7 @@ RSpec.shared_examples "images ops" do
 
     it "supports grayscale" do
       file_path = File.join('spec','fixtures', 'ruby_16.png')
-      decoded_image = tf.image.decode_png(file_path, channels: 1)
+      decoded_image = tf.image.decode_png(File.read(file_path), channels: 1)
       expect(sess.run(decoded_image)).to eq([])
     end
   end
