@@ -30,6 +30,7 @@ require 'tensor_stream/math_gradients'
 require "tensor_stream/debugging/debugging"
 require 'tensor_stream/utils'
 require 'tensor_stream/train/utils'
+require 'tensor_stream/images'
 require 'tensor_stream/trainer'
 
 # require 'tensor_stream/libraries/layers'

@@ -129,7 +129,7 @@ module TensorStream
       def global_eval(tensor, input, execution_context, op_options = {})
         return nil unless input
         return input unless input.is_a?(Tensor)
-
+        @context[:_cache][:placement][input.name] = @session.assign_evaluator(input) if @context[:_cache][:placement][input.name].nil?
         if object_id != @context[:_cache][:placement][input.name][1].object_id # tensor is on another device or evaluator
           cache_key = "#{tensor.graph.object_id}_#{input.name}:#{object_id}"
           return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)

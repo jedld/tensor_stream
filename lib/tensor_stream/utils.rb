@@ -206,6 +206,10 @@ module TensorStream
       TensorStream::Trainer
     end
 
+    def image
+      TensorStream::Images
+    end
+
     def trainable_variables
       TensorStream.get_default_graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
     end

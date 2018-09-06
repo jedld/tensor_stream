@@ -15,6 +15,10 @@ module TensorStream
       :int32
     end
 
+    def self.uint8
+      :int8
+    end
+
     def self.float64
       :float64
     end

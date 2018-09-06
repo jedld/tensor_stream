@@ -14,11 +14,13 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   end
 
   it_behaves_like "standard ops evaluator"
+  it_behaves_like "images ops"
   it_behaves_like "TensorStream::Train::Saver"
+  it_behaves_like "optimizer evaluator"
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(111)
+      expect(described_class.ops.keys.size).to eq(115)
     end
 
     specify do
@@ -27,6 +29,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         acos
         add
         add_n
+        apply_adadelta
         apply_adam
         apply_gradient_descent
         apply_momentum
@@ -50,8 +53,10 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         const
         cos
         cumprod
+        decode_png
         div
         dynamic_stitch
+        encode_png
         equal
         exp
         expand_dims
@@ -120,6 +125,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         sqrt
         square
         squared_difference
+        squeeze
         stack
         stop_gradient
         sub

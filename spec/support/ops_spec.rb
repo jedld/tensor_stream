@@ -166,6 +166,11 @@ RSpec.shared_examples "standard ops evaluator" do
   end
 
   supported_op ".reshape" do
+    it "Reshapes with dimension of 1" do
+      t = tf.constant([[1],[1],[1],[1]])
+      expect(sess.run(tf.reshape(t, [4]))).to eq([1, 1, 1, 1])
+    end
+
     it "Reshapes a tensor." do
       t = [1, 2, 3, 4, 5, 6, 7, 8, 9]
       expect(sess.run(tf.reshape(t, [3, 3]))).to eq(
@@ -1403,264 +1408,264 @@ RSpec.shared_examples "standard ops evaluator" do
     end
 end
 
-context "#broadcast" do
-  context "gets compatible shapes for two tensors" do
-    specify "scalar vs scalar" do
-      expect(instance.broadcast(1.0, 1.0)).to eq([1.0, 1.0])
-    end
+  context "#broadcast" do
+    context "gets compatible shapes for two tensors" do
+      specify "scalar vs scalar" do
+        expect(instance.broadcast(1.0, 1.0)).to eq([1.0, 1.0])
+      end
 
-    specify "1D vs constant" do
-      expect(instance.broadcast([1.0, 2.0], 1.0)).to eq([[1.0, 2.0], [1.0, 1.0]])
-      expect(instance.broadcast([1.0, 2.0, 1.0], 1.0)).to eq([[1.0, 2.0, 1.0], [1.0, 1.0, 1.0]])
-    end
+      specify "1D vs constant" do
+        expect(instance.broadcast([1.0, 2.0], 1.0)).to eq([[1.0, 2.0], [1.0, 1.0]])
+        expect(instance.broadcast([1.0, 2.0, 1.0], 1.0)).to eq([[1.0, 2.0, 1.0], [1.0, 1.0, 1.0]])
+      end
 
-    specify "1D vs 1D" do
-      expect(instance.broadcast([1.0, 2.0], 1.0)).to eq([[1.0, 2.0], [1.0, 1.0]])
-      expect(instance.broadcast([1.0, 2.0, 3.0], [1.0])).to eq([[1.0, 2.0, 3.0], [1.0, 1.0, 1.0]])
-    end
+      specify "1D vs 1D" do
+        expect(instance.broadcast([1.0, 2.0], 1.0)).to eq([[1.0, 2.0], [1.0, 1.0]])
+        expect(instance.broadcast([1.0, 2.0, 3.0], [1.0])).to eq([[1.0, 2.0, 3.0], [1.0, 1.0, 1.0]])
+      end
 
-    specify "2D vs 1D" do
-      expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], 1.0)).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
-      expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [1.0])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
-      expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [3.0, 3.1])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[3.0, 3.1], [3.0, 3.1]]])
-    end
+      specify "2D vs 1D" do
+        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], 1.0)).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
+        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [1.0])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
+        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [3.0, 3.1])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[3.0, 3.1], [3.0, 3.1]]])
+      end
 
-    specify "2D vs 2D" do
-      expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [[1.0], [1.0]])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
-      expect(instance.broadcast([[1.0, 2.0, 1.1], [1.0, 2.0, 2.2]], [[1.0], [2.0]])).to eq( [[[1.0, 2.0, 1.1], [1.0, 2.0, 2.2]], [[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]]])
+      specify "2D vs 2D" do
+        expect(instance.broadcast([[1.0, 2.0], [1.0, 2.0]], [[1.0], [1.0]])).to eq([[[1.0, 2.0], [1.0, 2.0]], [[1.0, 1.0], [1.0, 1.0]]])
+        expect(instance.broadcast([[1.0, 2.0, 1.1], [1.0, 2.0, 2.2]], [[1.0], [2.0]])).to eq( [[[1.0, 2.0, 1.1], [1.0, 2.0, 2.2]], [[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]]])
+      end
     end
   end
-end
 
-context "#broadcast_dimensions" do
-  it "can broadcast various tensors in various shapes" do
-    a = [1.0]
-    expect(instance.broadcast_dimensions(a, [5])).to eq([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-    expect(instance.broadcast_dimensions(a, [2, 1])).to eq([[1.0, 1.0], [1.0, 1.0]])
-    expect(instance.broadcast_dimensions(a, [3, 1])).to eq([[1.0, 1.0], [1.0, 1.0], [1.0, 1.0]])
+  context "#broadcast_dimensions" do
+    it "can broadcast various tensors in various shapes" do
+      a = [1.0]
+      expect(instance.broadcast_dimensions(a, [5])).to eq([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+      expect(instance.broadcast_dimensions(a, [2, 1])).to eq([[1.0, 1.0], [1.0, 1.0]])
+      expect(instance.broadcast_dimensions(a, [3, 1])).to eq([[1.0, 1.0], [1.0, 1.0], [1.0, 1.0]])
 
-    a = [[1.0, 2.0]]
-    b = [[1.0],[2.0]]
-    expect(instance.broadcast_dimensions(a, [3, 0])).to eq([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0], [1.0, 2.0]])
-    expect(instance.broadcast_dimensions(b, [0, 1])).to eq([[1.0, 1.0], [2.0, 2.0]])
-    expect(instance.broadcast_dimensions(a, [])).to eq([[1.0, 2.0]])
-    expect(instance.broadcast_dimensions(b, [])).to eq([[1.0], [2.0]])
-    expect(instance.broadcast_dimensions([1.0], [2, 1])).to eq([[1.0, 1.0], [1.0, 1.0]])
-  end
-end
-
-context ".reduced_shape" do
-  specify do
-    rs = tf.reduced_shape([2, 2], 0)
-    expect(sess.run(rs)).to eq([1, 2])
+      a = [[1.0, 2.0]]
+      b = [[1.0],[2.0]]
+      expect(instance.broadcast_dimensions(a, [3, 0])).to eq([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0], [1.0, 2.0]])
+      expect(instance.broadcast_dimensions(b, [0, 1])).to eq([[1.0, 1.0], [2.0, 2.0]])
+      expect(instance.broadcast_dimensions(a, [])).to eq([[1.0, 2.0]])
+      expect(instance.broadcast_dimensions(b, [])).to eq([[1.0], [2.0]])
+      expect(instance.broadcast_dimensions([1.0], [2, 1])).to eq([[1.0, 1.0], [1.0, 1.0]])
+    end
   end
 
   context ".reduced_shape" do
-    include TensorStream::OpHelper
-    it "returns the output shape of a tensor after reduction assuing keepdims= true" do
-      input = tf.constant([[2,3],[3,4]])
-      expect(sess.run(tf.reduced_shape(tf.shape(input), 0))).to eq([1, 2])
+    specify do
+      rs = tf.reduced_shape([2, 2], 0)
+      expect(sess.run(rs)).to eq([1, 2])
+    end
+
+    context ".reduced_shape" do
+      include TensorStream::OpHelper
+      it "returns the output shape of a tensor after reduction assuing keepdims= true" do
+        input = tf.constant([[2,3],[3,4]])
+        expect(sess.run(tf.reduced_shape(tf.shape(input), 0))).to eq([1, 2])
+      end
+
+      specify do
+        expect(sess.run(tf.reduced_shape([2, 3], 0))).to eq([1, 3])
+      end
+    end
+
+  end
+
+  context ".shape" do
+    it "returns a 1D tensor representing shape of target tensor" do
+      t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      shape = tf.shape(t)
+      expect(sess.run(shape)).to eq([2, 2, 3])
+
+      u = tf.constant(1)
+      shape = tf.shape(u)
+      expect(sess.run(shape)).to eq([])
+
+      v = tf.constant([[1,2,3],[4,5,6]])
+      shape = tf.shape(v)
+      expect(sess.run(shape)).to eq([2 ,3])
+    end
+
+    it "can set out_type to return a float" do
+      v = tf.constant([[1, 2, 3],[4, 5, 6]])
+      shape = tf.shape(v, out_type: :float32)
+      expect(sess.run(shape)).to eql([2.0, 3.0])
+    end
+  end
+
+  supported_op ".range" do
+    it "Creates a sequence of numbers that begins at start and extends by increments of delta up to but not including limit" do
+      range = tf.range(3, 18, 3)
+      expect(sess.run(range)).to eq([3, 6, 9, 12, 15])
     end
 
     specify do
-      expect(sess.run(tf.reduced_shape([2, 3], 0))).to eq([1, 3])
+      range = tf.range(3, 1, -0.5)
+      expect(sess.run(range)).to eq([3, 2.5, 2, 1.5])
     end
   end
 
-end
+  supported_op ".sum" do
+    it "computes the sum of elements across dimensions of a tensor." do
+      x = tf.constant([[1, 1, 1], [1, 1, 1]])
 
-context ".shape" do
-  it "returns a 1D tensor representing shape of target tensor" do
-    t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
-    shape = tf.shape(t)
-    expect(sess.run(shape)).to eq([2, 2, 3])
+      expect(sess.run(tf.reduce_sum(x))).to eq(6)
+      expect(sess.run(tf.reduce_sum(x, 0))).to eq([2, 2, 2])
+      expect(sess.run(tf.reduce_sum(x, 1))).to eq([3, 3])
+      expect(sess.run(tf.reduce_sum(x, 1, keepdims: true))).to eq([[3], [3]])
+      expect(sess.run(tf.reduce_sum(x, [0, 1]))).to eq(6)
 
-    u = tf.constant(1)
-    shape = tf.shape(u)
-    expect(sess.run(shape)).to eq([])
+      expect(sess.run(tf.reduce_sum(x, []))).to eq([[1, 1, 1], [1, 1, 1]]) # no reduction
+      expect(sess.run(tf.reduce_sum([[1, 1], [1, 1], [1, 1]]))).to eq(6)
+    end
 
-    v = tf.constant([[1,2,3],[4,5,6]])
-    shape = tf.shape(v)
-    expect(sess.run(shape)).to eq([2 ,3])
+    it "negative axis" do
+      x = tf.constant([[1, 1, 1], [1, 1, 1]])
+
+      expect(sess.run(tf.reduce_sum(x, -1))).to eq([3, 3])
+      expect(sess.run(tf.reduce_sum(x, -2))).to eq([2, 2, 2])
+    end
+
+    specify "rank 0 tensor" do
+      c = tf.constant(2.0)
+      f = tf.reduce_sum(c)
+      g = tf.gradients(f, [c])
+      expect(sess.run(g)).to eq([1.0])
+    end
+
+    it "rank > 2 tensor" do
+      x = tf.constant([ [[1,1], [1,1]], [[1,1], [1,1]]])
+      expect(sess.run(tf.reduce_sum(x))).to eq(8)
+      expect(sess.run(tf.reduce_sum(x, [1, 0]))).to eq([4, 4])
+      expect(sess.run(tf.reduce_sum(x, 0))).to eq([[2, 2],[2, 2]])
+
+      y = tf.constant([[1.0, 2.0], [0.4, 4.1], [0.2, 4.2]])
+      expect(tr(sess.run(tf.reduce_sum(y, [1], keepdims: true)))).to eq([[3.0], [4.5], [4.4]])
+    end
+
+    specify "computes the gradients properly" do
+      a = tf.constant([[1,2,3],[4,5,6]])
+      op = tf.reduce_sum(a)
+      expect(sess.run(tf.gradients(op,[a]))).to eq([[[1, 1, 1], [1, 1, 1]]])
+    end
+
+    specify "alternate notation" do
+      a = tf.constant([[1,2,3],[4,5,6]]).reduce(:+)
+      expect(sess.run(a)).to eq(21)
+    end
   end
 
-  it "can set out_type to return a float" do
-    v = tf.constant([[1, 2, 3],[4, 5, 6]])
-    shape = tf.shape(v, out_type: :float32)
-    expect(sess.run(shape)).to eql([2.0, 3.0])
-  end
-end
+  supported_op ".prod" do
+    it "computes the product of elements across dimensions of a tensor." do
+      x = tf.constant([[2, 1, 1], [3, 1, 1]])
 
-supported_op ".range" do
-  it "Creates a sequence of numbers that begins at start and extends by increments of delta up to but not including limit" do
-    range = tf.range(3, 18, 3)
-    expect(sess.run(range)).to eq([3, 6, 9, 12, 15])
-  end
+      expect(sess.run(tf.reduce_prod(x))).to eq(6)
+      expect(sess.run(tf.reduce_prod(x, 0))).to eq([6, 1, 1])
+      expect(sess.run(tf.reduce_prod(x, 1))).to eq([2, 3])
+      expect(sess.run(tf.reduce_prod(x, 1, keepdims: true))).to eq([[2], [3]])
+      expect(sess.run(tf.reduce_prod(x, [0, 1]))).to eq(6)
 
-  specify do
-    range = tf.range(3, 1, -0.5)
-    expect(sess.run(range)).to eq([3, 2.5, 2, 1.5])
-  end
-end
-
-supported_op ".sum" do
-  it "computes the sum of elements across dimensions of a tensor." do
-    x = tf.constant([[1, 1, 1], [1, 1, 1]])
-
-    expect(sess.run(tf.reduce_sum(x))).to eq(6)
-    expect(sess.run(tf.reduce_sum(x, 0))).to eq([2, 2, 2])
-    expect(sess.run(tf.reduce_sum(x, 1))).to eq([3, 3])
-    expect(sess.run(tf.reduce_sum(x, 1, keepdims: true))).to eq([[3], [3]])
-    expect(sess.run(tf.reduce_sum(x, [0, 1]))).to eq(6)
-
-    expect(sess.run(tf.reduce_sum(x, []))).to eq([[1, 1, 1], [1, 1, 1]]) # no reduction
-    expect(sess.run(tf.reduce_sum([[1, 1], [1, 1], [1, 1]]))).to eq(6)
+      expect(sess.run(tf.reduce_prod(x, []))).to eq([[2, 1, 1], [3, 1, 1]]) # no reduction
+      expect(sess.run(tf.reduce_prod([[1, 1], [1, 1], [1, 1]]))).to eq(1)
+    end
   end
 
-  it "negative axis" do
-    x = tf.constant([[1, 1, 1], [1, 1, 1]])
+  supported_op ".squared_difference" do
+    it "Returns (x - y)(x - y) element-wise." do
+      a = tf.constant([[1,2,3],[4,5,6]])
+      b = tf.constant([[2,4,6],[1,2,3]])
+      op = tf.squared_difference(a, b)
+      expect(sess.run(op)).to eq([[1, 4, 9], [9, 9, 9]])
 
-    expect(sess.run(tf.reduce_sum(x, -1))).to eq([3, 3])
-    expect(sess.run(tf.reduce_sum(x, -2))).to eq([2, 2, 2])
+      a = tf.constant([[1.0, 2.0, 3.0],[4.0, 5.0, 6.0]])
+      b = tf.constant(2.0)
+      op = tf.squared_difference(a, b)
+      expect(sess.run(op)).to eq([[1.0, 0.0, 1.0], [4.0, 9.0, 16.0]])
+    end
+
+    it "computes for the gradient" do
+      a = tf.constant([[1.0, 2.0, 3.0],[4.0, 5.0, 6.0]])
+      b = tf.constant(2.0)
+      op = tf.squared_difference(a, b)
+      g = tf.gradients(op, [a, b])
+      expect(sess.run(g)).to eq([[[-2.0, 0.0, 2.0], [4.0, 6.0, 8.0]], -18.0])
+    end
   end
 
-  specify "rank 0 tensor" do
-    c = tf.constant(2.0)
-    f = tf.reduce_sum(c)
-    g = tf.gradients(f, [c])
-    expect(sess.run(g)).to eq([1.0])
+  supported_op ".prod" do
+    it "computes the sum of elements across dimensions of a tensor." do
+      x = tf.constant([[2, 1, 2], [2, 1, 2]])
+      expect(sess.run(tf.reduce_prod(x))).to eq(16)
+      expect(sess.run(tf.reduce_prod(x, 0))).to eq([4, 1, 4])
+      expect(sess.run(tf.reduce_prod(x, 1))).to eq([4, 4])
+      expect(sess.run(tf.reduce_prod(x, 1, keepdims: true))).to eq([[4], [4]])
+      expect(sess.run(tf.reduce_prod(x, [0, 1]))).to eq(16)
+    end
+
+    xit "reduceing an empty array" do #fails for opencl
+      x = tf.constant([])
+      y = tf.constant([[], []])
+      expect(sess.run(tf.reduce_prod(x))).to eq(1.0)
+      expect(sess.run(tf.reduce_prod(y, 0))).to eq([])
+      expect(sess.run(tf.reduce_prod(y, 1))).to eq([1.0, 1.0])
+    end
+
+    specify "computes the gradients properly" do
+      a = tf.constant([[1,2,3],[4,5,6]])
+      op = tf.reduce_prod(a)
+      expect(sess.run(tf.gradients(op,[a]))).to eq([[[720, 360, 240],[180, 144, 120]]])
+    end
   end
 
-  it "rank > 2 tensor" do
-    x = tf.constant([ [[1,1], [1,1]], [[1,1], [1,1]]])
-    expect(sess.run(tf.reduce_sum(x))).to eq(8)
-    expect(sess.run(tf.reduce_sum(x, [1, 0]))).to eq([4, 4])
-    expect(sess.run(tf.reduce_sum(x, 0))).to eq([[2, 2],[2, 2]])
+  supported_op ".cumprod" do
+    let(:x) { tf.constant([2, 3, 4, 5, 6]) }
 
-    y = tf.constant([[1.0, 2.0], [0.4, 4.1], [0.2, 4.2]])
-    expect(tr(sess.run(tf.reduce_sum(y, [1], keepdims: true)))).to eq([[3.0], [4.5], [4.4]])
+    specify do
+      op = tf.cumprod(x)
+      expect(sess.run(op)).to eq([2, 6, 24, 120, 720])
+    end
+
+    specify "reverse" do
+      op = tf.cumprod(x, reverse: true)
+      expect(sess.run(op)).to eq([720, 360, 120, 30, 6])
+    end
+
+    specify "exclusive" do
+      op = tf.cumprod(x, exclusive: true)
+      expect(sess.run(op)).to eq([1, 2, 6, 24, 120])
+      op = tf.cumprod(x, exclusive: true, reverse: true)
+      expect(sess.run(op)).to eq([360, 120, 30, 6, 1])
+    end
   end
 
-  specify "computes the gradients properly" do
-    a = tf.constant([[1,2,3],[4,5,6]])
-    op = tf.reduce_sum(a)
-    expect(sess.run(tf.gradients(op,[a]))).to eq([[[1, 1, 1], [1, 1, 1]]])
+  supported_op ".invert_permutation" do
+    specify do
+      x = tf.constant([3, 4, 0, 2, 1])
+      op = tf.invert_permutation(x)
+      expect(sess.run(op)).to eq([2, 4, 3, 0, 1])
+    end
   end
 
-  specify "alternate notation" do
-    a = tf.constant([[1,2,3],[4,5,6]]).reduce(:+)
-    expect(sess.run(a)).to eq(21)
-  end
-end
-
-supported_op ".prod" do
-  it "computes the product of elements across dimensions of a tensor." do
-    x = tf.constant([[2, 1, 1], [3, 1, 1]])
-
-    expect(sess.run(tf.reduce_prod(x))).to eq(6)
-    expect(sess.run(tf.reduce_prod(x, 0))).to eq([6, 1, 1])
-    expect(sess.run(tf.reduce_prod(x, 1))).to eq([2, 3])
-    expect(sess.run(tf.reduce_prod(x, 1, keepdims: true))).to eq([[2], [3]])
-    expect(sess.run(tf.reduce_prod(x, [0, 1]))).to eq(6)
-
-    expect(sess.run(tf.reduce_prod(x, []))).to eq([[2, 1, 1], [3, 1, 1]]) # no reduction
-    expect(sess.run(tf.reduce_prod([[1, 1], [1, 1], [1, 1]]))).to eq(1)
-  end
-end
-
-supported_op ".squared_difference" do
-  it "Returns (x - y)(x - y) element-wise." do
-    a = tf.constant([[1,2,3],[4,5,6]])
-    b = tf.constant([[2,4,6],[1,2,3]])
-    op = tf.squared_difference(a, b)
-    expect(sess.run(op)).to eq([[1, 4, 9], [9, 9, 9]])
-
-    a = tf.constant([[1.0, 2.0, 3.0],[4.0, 5.0, 6.0]])
-    b = tf.constant(2.0)
-    op = tf.squared_difference(a, b)
-    expect(sess.run(op)).to eq([[1.0, 0.0, 1.0], [4.0, 9.0, 16.0]])
+  supported_op ".zeros_like" do
+    it "generates a zero tensor based on another tensor" do
+      a = tf.zeros_like([2,2,2,2,2])
+      b = tf.zeros_like([[2,2],[3,3]])
+      expect(sess.run(a)).to eq([0, 0, 0, 0, 0])
+      expect(sess.run(b)).to eq([[0, 0], [0, 0]])
+    end
   end
 
-  it "computes for the gradient" do
-    a = tf.constant([[1.0, 2.0, 3.0],[4.0, 5.0, 6.0]])
-    b = tf.constant(2.0)
-    op = tf.squared_difference(a, b)
-    g = tf.gradients(op, [a, b])
-    expect(sess.run(g)).to eq([[[-2.0, 0.0, 2.0], [4.0, 6.0, 8.0]], -18.0])
+  supported_op ".ones_like" do
+    it "generates a zero tensor based on another tensor" do
+      a = tf.ones_like([2, 2, 2, 2, 2])
+      b = tf.ones_like([[2, 2],[3, 3]])
+      expect(sess.run(a)).to eq([1, 1, 1, 1, 1])
+      expect(sess.run(b)).to eq([[1, 1], [1, 1]])
+    end
   end
-end
-
-supported_op ".prod" do
-  it "computes the sum of elements across dimensions of a tensor." do
-    x = tf.constant([[2, 1, 2], [2, 1, 2]])
-    expect(sess.run(tf.reduce_prod(x))).to eq(16)
-    expect(sess.run(tf.reduce_prod(x, 0))).to eq([4, 1, 4])
-    expect(sess.run(tf.reduce_prod(x, 1))).to eq([4, 4])
-    expect(sess.run(tf.reduce_prod(x, 1, keepdims: true))).to eq([[4], [4]])
-    expect(sess.run(tf.reduce_prod(x, [0, 1]))).to eq(16)
-  end
-
-  xit "reduceing an empty array" do #fails for opencl
-    x = tf.constant([])
-    y = tf.constant([[], []])
-    expect(sess.run(tf.reduce_prod(x))).to eq(1.0)
-    expect(sess.run(tf.reduce_prod(y, 0))).to eq([])
-    expect(sess.run(tf.reduce_prod(y, 1))).to eq([1.0, 1.0])
-  end
-
-  specify "computes the gradients properly" do
-    a = tf.constant([[1,2,3],[4,5,6]])
-    op = tf.reduce_prod(a)
-    expect(sess.run(tf.gradients(op,[a]))).to eq([[[720, 360, 240],[180, 144, 120]]])
-  end
-end
-
-supported_op ".cumprod" do
-  let(:x) { tf.constant([2, 3, 4, 5, 6]) }
-
-  specify do
-    op = tf.cumprod(x)
-    expect(sess.run(op)).to eq([2, 6, 24, 120, 720])
-  end
-
-  specify "reverse" do
-    op = tf.cumprod(x, reverse: true)
-    expect(sess.run(op)).to eq([720, 360, 120, 30, 6])
-  end
-
-  specify "exclusive" do
-    op = tf.cumprod(x, exclusive: true)
-    expect(sess.run(op)).to eq([1, 2, 6, 24, 120])
-    op = tf.cumprod(x, exclusive: true, reverse: true)
-    expect(sess.run(op)).to eq([360, 120, 30, 6, 1])
-  end
-end
-
-supported_op ".invert_permutation" do
-  specify do
-    x = tf.constant([3, 4, 0, 2, 1])
-    op = tf.invert_permutation(x)
-    expect(sess.run(op)).to eq([2, 4, 3, 0, 1])
-  end
-end
-
-supported_op ".zeros_like" do
-  it "generates a zero tensor based on another tensor" do
-    a = tf.zeros_like([2,2,2,2,2])
-    b = tf.zeros_like([[2,2],[3,3]])
-    expect(sess.run(a)).to eq([0, 0, 0, 0, 0])
-    expect(sess.run(b)).to eq([[0, 0], [0, 0]])
-  end
-end
-
-supported_op ".ones_like" do
-  it "generates a zero tensor based on another tensor" do
-    a = tf.ones_like([2, 2, 2, 2, 2])
-    b = tf.ones_like([[2, 2],[3, 3]])
-    expect(sess.run(a)).to eq([1, 1, 1, 1, 1])
-    expect(sess.run(b)).to eq([[1, 1], [1, 1]])
-  end
-end
 
   context "multivariate functions" do
     let(:a)   { tf.constant(1.0) }
@@ -1898,6 +1903,31 @@ end
           expect(sess.run(sy)).to eq([0])
         end
       end
+    end
+  end
+
+  context ".squeeze" do
+    it "removes dimensions with a size of 1" do
+      a = tf.constant([[1],[1],[2],[3]])
+      f = tf.squeeze(a)
+      expect(sess.run(f)).to eq([1, 1, 2, 3])
+    end
+
+    it "squeeze only specific axis" do
+      a = tf.constant([[
+        [
+          [[1],[1],[2],[3]],
+          [[1],[1],[2],[3]]
+        ]], [[
+          [[1],[1],[2],[3]],
+          [[1],[1],[2],[3]]
+        ]]])
+      s = tf.shape(a)
+      expect(sess.run(s)).to eq([2, 1, 2, 4, 1])
+      f = tf.squeeze(a, axis: 1)
+      expect(sess.run(f)).to eq([[[[1], [1], [2], [3]], [[1], [1], [2], [3]]], [[[1], [1], [2], [3]], [[1], [1], [2], [3]]]])
+      f = tf.squeeze(a, axis: 4)
+      expect(sess.run(f)).to eq([[[[1, 1, 2, 3], [1, 1, 2, 3]]], [[[1, 1, 2, 3], [1, 1, 2, 3]]]])
     end
   end
 end

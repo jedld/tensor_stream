@@ -2,7 +2,7 @@ module TensorStream
   # Class that defines all available ops supported by TensorStream
   module Ops
     FLOATING_POINT_TYPES = %i[float32 float64 float].freeze
-    INTEGER_TYPES = %i[int32 int int64].freeze
+    INTEGER_TYPES = %i[uint8 int32 int int64].freeze
     NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
 
     ##
@@ -632,6 +632,10 @@ module TensorStream
 
     def stack(values, axis: 0, name: 'stack')
       _op(:stack, *values, axis: axis, name: name)
+    end
+
+    def squeeze(value, axis: [], name: nil)
+      _op(:squeeze, value, axis: axis, name: nil)
     end
 
     def setdiff1d(x, y, index_dtype: :int32, name: nil)

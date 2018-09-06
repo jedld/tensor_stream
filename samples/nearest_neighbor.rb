@@ -8,10 +8,9 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 
 Make sure to install the mnist-learn gem !!
 '''
-
+require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 tf = TensorStream
 

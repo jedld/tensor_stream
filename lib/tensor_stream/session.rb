@@ -124,21 +124,6 @@ module TensorStream
       end
     end
 
-    protected
-
-    def run_with_session_context(tensor, session_context, context)
-      session_context[:_cache][:placement][tensor.name] = assign_evaluator(tensor) if session_context[:_cache][:placement][tensor.name].nil?
-      session_context[:_cache][:placement][tensor.name][1].run_with_buffer(tensor, session_context, context)
-    end
-
-    def recursive_eval(value, depth = 2)
-      if value.is_a?(Array) && depth > 0
-        value.collect { |v| recursive_eval(v, depth - 1) }
-      else
-        value.respond_to?(:to_ruby) ? value.to_ruby : value
-      end
-    end
-
     def assign_evaluator(tensor)
       device = @evaluator_classes.map do |klass|
         next nil if tensor.is_a?(Operation) && !klass.ops.include?(tensor.operation.to_sym)
@@ -154,6 +139,21 @@ module TensorStream
         @evaluators[key]
       else
         @evaluators[key] = [device, device.evaluator.new(self, device)]
+      end
+    end
+
+    protected
+
+    def run_with_session_context(tensor, session_context, context)
+      session_context[:_cache][:placement][tensor.name] = assign_evaluator(tensor) if session_context[:_cache][:placement][tensor.name].nil?
+      session_context[:_cache][:placement][tensor.name][1].run_with_buffer(tensor, session_context, context)
+    end
+
+    def recursive_eval(value, depth = 2)
+      if value.is_a?(Array) && depth > 0
+        value.collect { |v| recursive_eval(v, depth - 1) }
+      else
+        value.respond_to?(:to_ruby) ? value.to_ruby : value
       end
     end
 
