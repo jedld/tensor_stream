@@ -3,6 +3,7 @@ require 'tensor_stream/train/optimizer'
 require 'tensor_stream/train/gradient_descent_optimizer'
 require 'tensor_stream/train/momentum_optimizer'
 require 'tensor_stream/train/adam_optimizer'
+require 'tensor_stream/train/adadelta_optimizer'
 require 'tensor_stream/train/saver'
 
 module TensorStream

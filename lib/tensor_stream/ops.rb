@@ -634,6 +634,10 @@ module TensorStream
       _op(:stack, *values, axis: axis, name: name)
     end
 
+    def squeeze(value, axis: [], name: nil)
+      _op(:squeeze, value, axis: axis, name: nil)
+    end
+
     def setdiff1d(x, y, index_dtype: :int32, name: nil)
       result = _op(:setdiff1d, x, y, index_dtype: index_dtype, name: name)
       [result[0], result[1]]

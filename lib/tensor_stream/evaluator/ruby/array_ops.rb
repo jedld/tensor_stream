@@ -74,6 +74,28 @@ module TensorStream
           TensorShape.reshape(output_buffer, new_shape)
         end
 
+        register_op :squeeze do |_context, tensor, inputs|
+          val = inputs[0]
+          shape = shape_eval(val)
+
+          axis = !tensor.options[:axis].is_a?(Array) ? [tensor.options[:axis]] : tensor.options[:axis]
+
+          if !axis.empty?
+            
+            axis.each do |axis|
+              if shape[axis] == 1
+                shape[axis] = nil 
+              else
+                raise TensorStream::ValueError, "unable to squeeze dimension that does not have a size of 1"
+              end
+            end
+          else
+            shape = shape.map { |s| s == 1 ? nil : s }
+          end
+
+          TensorShape.reshape(val.flatten, shape.compact)
+        end
+
         register_op :expand_dims do |_context, _tensor, inputs|
           val, axis = inputs
           axis = axis.nil? ? 0 : axis

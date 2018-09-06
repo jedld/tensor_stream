@@ -15,13 +15,25 @@ module TensorStream
           target_var, momentum_var, learning_rate, grad, momentum = inputs
           assign = tensor.inputs[0] || tensor
           assign_acc = tensor.inputs[1]
-          assign_acc.value = process_vector_math_op(tensor, momentum_var, grad, context, ->(t, u) { t * momentum + u })
+          assign_acc.value = multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad )
           if tensor.options[:use_nesterov]
-            delta = process_vector_math_op(tensor, grad, momentum_var, context, ->(g, acc) { g * learning_rate + acc * momentum * learning_rate })
-            assign.value = process_vector_math_op(tensor,target_var, delta, context, ->(t, u) { t - u })
+            assign.value = multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) } , target_var, grad, momentum_var)
           else
-            assign.value = process_vector_math_op(tensor, target_var, momentum_var, context, ->(v, acc) { v - acc * learning_rate })
+            assign.value = multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
           end
+          assign.value
+        end
+
+        register_op :apply_adadelta do |context, tensor, inputs|
+          target_var, accum, accum_update, lr, rho, epsilon, grad = inputs
+          assign = tensor.inputs[0] || tensor
+          assign_acc = tensor.inputs[1]
+          assign_acc_update = tensor.inputs[2]
+          assign_acc.value = multi_array_op(->(acc_t, grad_t) { acc_t * rho + (grad_t * grad_t) * (1.0 - rho ) }, accum, grad)
+          update = multi_array_op(->(acc_update_t, acc_t, grad_t) { Math.sqrt(acc_update_t + epsilon) * (1.0 / Math.sqrt(acc_t + epsilon)) * grad_t }, accum_update, assign_acc.value, grad)
+          assign.value = multi_array_op(->(v, u) { v - (u * lr) }, target_var, update)
+          assign_acc_update.value = multi_array_op(->(acc_update_t, u) {  acc_update_t * rho + (u * u) * (1.0 - rho) }, accum_update, update)
+ 
           assign.value
         end
 
@@ -32,11 +44,9 @@ module TensorStream
           assign_m = tensor.inputs[1]
           assign_v = tensor.inputs[2]
 
-          m_delta = process_vector_math_op(tensor, grad, m, context, ->(g, m_d) { (g - m_d) * (1.0 - beta1_t) })
-          assign_m.value = process_vector_math_op(tensor, m, m_delta, context, ->(u_d , v_d) { u_d + v_d })
-          assign_v.value = process_vector_math_op(tensor, v, grad, context, ->(u_d , v_d) { u_d + (v_d ** 2 - u_d) * (1.0 - beta2_t)})
-          v_delta = process_vector_math_op(tensor, assign_m.value, assign_v.value, context, ->(m_d , v_d) {  (m_d * alpha) / (Math.sqrt(v_d) + epsilon_t) })
-          assign.value = process_vector_math_op(tensor, target_var, v_delta, context, ->(var_d , delta_d) { var_d - delta_d })
+          assign_m.value = multi_array_op(->(u_d , g) { u_d + (g - u_d) * (1.0 - beta1_t) }, m, grad)
+          assign_v.value = multi_array_op(->(u_d , v_d) { u_d + (v_d ** 2 - u_d) * (1.0 - beta2_t)},  v, grad)
+          assign.value = multi_array_op( ->(t, m_d , v_d) { t - ((m_d * alpha) / (Math.sqrt(v_d) + epsilon_t)) }, target_var, assign_m.value, assign_v.value)
           assign.value
         end
 

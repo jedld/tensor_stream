@@ -442,6 +442,19 @@ module TensorStream
         # end
       end
 
+      # multi array ops on ruby arrays with same sizes
+      def multi_array_op(func, *args)
+        elem = args[0]
+        if (elem.is_a?(Array))
+          elem.each_with_index.collect do |item, index|
+            indexed_args = args.collect { |a| a[index] }
+            multi_array_op(func, *indexed_args)
+          end
+        else
+          func.call(*args)
+        end
+      end
+
       def _rank_from_shape(shape)
         shape.is_a?(Array) ? shape.size : 0
       end

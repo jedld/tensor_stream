@@ -1,5 +1,5 @@
 # Linear Regression sample, using SGD and auto-differentiation
-
+require "bundler/setup"
 require 'tensor_stream'
 
 tf = TensorStream # use tf to make it look like TensorFlow
@@ -20,6 +20,7 @@ X = tf.placeholder("float")
 Y = tf.placeholder("float")
 
 # Set model weights
+
 W = tf.variable(rand, name: "weight")
 b = tf.variable(rand, name: "bias")
 
@@ -32,7 +33,9 @@ cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 # Other possible Optimizers
 # optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true).minimize(cost)
 # optimizer = TensorStream::Train::AdamOptimizer.new(learning_rate).minimize(cost)
+# optimizer = TensorStream::Train::AdadeltaOptimizer.new(learning_rate).minimize(cost)
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
+
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
