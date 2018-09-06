@@ -16,7 +16,7 @@ module TensorStream
     end
 
     def self.uint8
-      :int8
+      :uint8
     end
 
     def self.float64
