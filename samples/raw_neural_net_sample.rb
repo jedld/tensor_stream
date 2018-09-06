@@ -12,6 +12,7 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 
 The mnist-learn gem is required as well as an OpenCL compatible device with drivers correctly installed
 """
+require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
 

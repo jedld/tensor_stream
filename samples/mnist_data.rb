@@ -6,7 +6,7 @@
 # Requirements:
 #   mnist-learn gem
 #   opencl_ruby_ffi gem
-
+require "bundler/setup"
 require 'tensor_stream'
 require 'mnist-learn'
 
