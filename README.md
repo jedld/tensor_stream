@@ -22,10 +22,16 @@ The goal of this gem is to have a high performance machine learning and compute 
 TensorStream comes with a pure ruby and OpenCL implementation out of the box. The pure ruby implementation
 is known to work with most ruby implementations including TruffleRuby, JRuby as well as jit enabled versions of mri (ruby-2.6.0).
 
-OpenCL is supported only on mri implementations of ruby. This can be enabled by including the OpenCL evaluator (Make sure you have OpenCL drivers installed correctly on your system):
+OpenCL is supported only on mri implementations of ruby. This can be enabled by adding OpenCL evaluator gem (Make sure you have OpenCL drivers installed correctly on your system):
+
+```Gemfile
+gem 'tensor_stream-opencl'
+```
+
+and then (without bundler)
 
 ```ruby
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+require 'tensor_stream-opencl'
 ```
 
 OpenCL is basically a requirement for deep learning and image processing tasks as the ruby implementation is too slow even with jit speedups using latest ruby implementations.
@@ -199,14 +205,14 @@ Also OpenCL only supports ruby-mri at the moment.
 
 Also include the following gem in your project:
 
-```
-gem 'opencl_ruby_ffi'
+```Gemfile
+gem 'tensor_stream-opencl'
 ```
 
-To use the opencl evaluator instead of the ruby evaluator simply add require it.
+To use the opencl evaluator instead of the ruby evaluator simply require it (if using rails this should be loaded automatically).
 
 ```ruby
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+require 'tensor_stream-opencl'
 ```
 
 Adding the OpenCL evaluator should expose additional devices available to tensor_stream

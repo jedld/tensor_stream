@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.5] - 2018-09-06
+
+### Added
+- [TRAINING] Added AdadeltaOptimizer
+- [NEW OP] squeeze, encode_png, decode_png
+
+### Others
+- The OpenCL evaluator has now been decoupled and is not on its own gem (tensor_stream-opencl)
 
 ## [0.8.1] - 2018-08-30
 - [TRAINING] Added AdamOptimizer
