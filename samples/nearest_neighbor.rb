@@ -11,7 +11,6 @@ Make sure to install the mnist-learn gem !!
 
 require 'tensor_stream'
 require 'mnist-learn'
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 tf = TensorStream
 

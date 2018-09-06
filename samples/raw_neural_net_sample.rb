@@ -14,7 +14,6 @@ The mnist-learn gem is required as well as an OpenCL compatible device with driv
 """
 require 'tensor_stream'
 require 'mnist-learn'
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 tf = TensorStream
 # Import MNIST data

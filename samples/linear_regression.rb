@@ -33,7 +33,7 @@ cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 # Other possible Optimizers
 # optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true).minimize(cost)
 # optimizer = TensorStream::Train::AdamOptimizer.new(learning_rate).minimize(cost)
-# optimizer = TensorStream::Train::AdadeltaOptimizer.new(learning_rate).minimize(cost)
+# optimizer = TensorStream::Train::AdadeltaOptimizer.new(1.0).minimize(cost)
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 
