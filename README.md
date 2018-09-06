@@ -31,7 +31,7 @@ gem 'tensor_stream-opencl'
 and then (without bundler)
 
 ```ruby
-require 'tensor_stream-opencl'
+require 'tensor_stream/opencl'
 ```
 
 OpenCL is basically a requirement for deep learning and image processing tasks as the ruby implementation is too slow even with jit speedups using latest ruby implementations.
@@ -212,7 +212,7 @@ gem 'tensor_stream-opencl'
 To use the opencl evaluator instead of the ruby evaluator simply require it (if using rails this should be loaded automatically).
 
 ```ruby
-require 'tensor_stream-opencl'
+require 'tensor_stream/opencl'
 ```
 
 Adding the OpenCL evaluator should expose additional devices available to tensor_stream
