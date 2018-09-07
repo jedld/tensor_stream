@@ -274,10 +274,21 @@ module TensorStream
           return [ts.transpose(grad, ts.invert_permutation(y)), nil]
         when :index
           grad
+        when :squeeze
+          _reshape_to_input(node, grad)
+        when :stack
+          res = ts.unstack(grad, axis: node.options[:axis])
+          node.inputs.size.times.collect { |i| res[i] }
+        when :unstack
+          ts.stack(grad, axis: node.options[:axis])
         else
           raise "no derivative op for #{node.operation}"
         end
       end
+    end
+
+    def self._reshape_to_input(node, grad)
+      ts.reshape(grad, tf.shape(node.inputs[0]))
     end
 
     def self._broadcast_gradient_args(input_a, input_b)

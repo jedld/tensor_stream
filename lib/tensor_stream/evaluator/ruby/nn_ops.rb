@@ -15,25 +15,25 @@ module TensorStream
           target_var, momentum_var, learning_rate, grad, momentum = inputs
           assign = tensor.inputs[0] || tensor
           assign_acc = tensor.inputs[1]
-          assign_acc.value = multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad )
+          assign_acc.value = multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad)
           if tensor.options[:use_nesterov]
-            assign.value = multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) } , target_var, grad, momentum_var)
+            assign.value = multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
           else
             assign.value = multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
           end
           assign.value
         end
 
-        register_op :apply_adadelta do |context, tensor, inputs|
+        register_op :apply_adadelta do |_context, tensor, inputs|
           target_var, accum, accum_update, lr, rho, epsilon, grad = inputs
           assign = tensor.inputs[0] || tensor
           assign_acc = tensor.inputs[1]
           assign_acc_update = tensor.inputs[2]
-          assign_acc.value = multi_array_op(->(acc_t, grad_t) { acc_t * rho + (grad_t * grad_t) * (1.0 - rho ) }, accum, grad)
+          assign_acc.value = multi_array_op(->(acc_t, grad_t) { acc_t * rho + (grad_t * grad_t) * (1.0 - rho) }, accum, grad)
           update = multi_array_op(->(acc_update_t, acc_t, grad_t) { Math.sqrt(acc_update_t + epsilon) * (1.0 / Math.sqrt(acc_t + epsilon)) * grad_t }, accum_update, assign_acc.value, grad)
           assign.value = multi_array_op(->(v, u) { v - (u * lr) }, target_var, update)
-          assign_acc_update.value = multi_array_op(->(acc_update_t, u) {  acc_update_t * rho + (u * u) * (1.0 - rho) }, accum_update, update)
- 
+          assign_acc_update.value = multi_array_op(->(acc_update_t, u) { acc_update_t * rho + (u * u) * (1.0 - rho) }, accum_update, update)
+
           assign.value
         end
 

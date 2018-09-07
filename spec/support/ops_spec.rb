@@ -557,15 +557,59 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(tf.stack([x, y], axis: 3))).to eq([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
     end
 
-    xspecify "gradients" do
+    specify "gradients" do
       x = tf.constant([[0, 1],[2, 3]])
       y = tf.constant([[4, 5],[6, 7]])
       z = tf.constant([[8, 9],[10, 11]])
       f = tf.stack([x, y, z])
       g = tf.gradients(f, [x, y, z])
-      expect(sess.run(g)).to eq([])
+      expect(sess.run(g)).to eq([[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]])
     end
   end
+
+  supported_op ".unstack" do
+    specify "scalar" do
+      a = tf.constant([1, 2, 3])
+      res = tf.unstack(a)
+      expect(sess.run(res[0])).to eq(1)
+      expect(sess.run(res[1])).to eq(2)
+      expect(sess.run(res[2])).to eq(3)
+    end
+
+    specify "rank = 2 && axis == 0" do
+      a = tf.constant([[0, 3], [1, 4], [2, 5]])
+      res = tf.unstack(a)
+      expect(sess.run(res[0])).to eq([0, 3])
+      expect(sess.run(res[1])).to eq([1, 4])
+      expect(sess.run(res[2])).to eq([2, 5])
+    end
+
+    specify "rank == 3 && axis == 1" do
+      # axis = 1
+      a = tf.constant([[[ 0,  1],[ 4,  5],[ 8,  9]],[[ 2,  3],[ 6,  7],[10, 11]]])
+      res = tf.unstack(a, axis: 1)
+      expect(sess.run(res[0])).to eq([[0, 1],[2, 3]])
+      expect(sess.run(res[1])).to eq([[4, 5],[6, 7]])
+      expect(sess.run(res[2])).to eq([[8, 9],[10, 11]])
+    end
+
+    specify "rank == 3 && axis == 2" do
+      a = tf.constant([[[[0, 1], [8, 9]], [[2, 3], [10, 11]]], [[[4, 5], [12, 13]], [[6, 7], [14, 15]]]])
+      res = tf.unstack(a, axis: 2)
+
+      expect(sess.run(res[0])).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
+      expect(sess.run(res[1])).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+    end
+
+    specify "rank == 3 && axis == 3" do
+      a = tf.constant([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
+      res = tf.unstack(a, axis: 3)
+
+      expect(sess.run(res[0])).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
+      expect(sess.run(res[1])).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+    end
+  end
+
 
   context "combination of functions" do
     it "add two operation together" do

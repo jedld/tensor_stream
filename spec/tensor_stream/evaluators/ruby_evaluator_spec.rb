@@ -20,7 +20,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(115)
+      expect(described_class.ops.keys.size).to eq(116)
     end
 
     specify do
@@ -136,6 +136,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         tile
         transpose
         truncate
+        unstack
         variable
         where
         zeros

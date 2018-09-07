@@ -74,6 +74,54 @@ module TensorStream
           TensorShape.reshape(output_buffer, new_shape)
         end
 
+        register_op :unstack do |_context, tensor, inputs|
+          value = inputs[0]
+
+          axis = tensor.options[:axis] || 0
+          new_shape = shape_eval(inputs[0])
+          rank = new_shape.size - 1
+
+          divisors = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+            a << s * a.last
+          end.reverse
+
+          axis = rank + axis if axis < 0
+          rotated_shape = Array.new(axis + 1) { new_shape.shift }
+          new_shape = rotated_shape.rotate!(-1) + new_shape
+          output_buffer = Array.new(new_shape.reduce(:*)) { 0 }
+
+          multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+            a << s * a.last
+          end.reverse
+
+          inputs.each_with_index do |input, index|
+            raw_input = input.is_a?(Array) ? input.flatten : [input]
+            start = index * divisors.first
+
+            raw_input.each_with_index do |x, index2|
+              index_map = []
+              ptr = start + index2
+              divisors.each_with_object(index_map) do |div, a|
+                a << (ptr / div.to_f).floor
+                ptr = ptr % div
+              end
+
+              rotated_index = Array.new(axis + 1) { index_map.shift }
+              index_map = rotated_index.rotate!(-1) + index_map
+
+              ptr2 = 0
+              multipliers.each_with_index do |m, idx|
+                ptr2 += index_map[idx] * m
+              end
+
+              output_buffer[ptr2] = x
+            end
+          end
+          outputs = TensorShape.reshape(output_buffer, new_shape)
+
+          TensorStream::Evaluator::OutputGroup.new(outputs)
+        end
+
         register_op :squeeze do |_context, tensor, inputs|
           val = inputs[0]
           shape = shape_eval(val)
@@ -81,10 +129,10 @@ module TensorStream
           axis = !tensor.options[:axis].is_a?(Array) ? [tensor.options[:axis]] : tensor.options[:axis]
 
           if !axis.empty?
-            
+
             axis.each do |axis|
               if shape[axis] == 1
-                shape[axis] = nil 
+                shape[axis] = nil
               else
                 raise TensorStream::ValueError, "unable to squeeze dimension that does not have a size of 1"
               end

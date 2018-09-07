@@ -1,6 +1,11 @@
 module TensorStream
   # Class that defines all available ops supported by TensorStream
   module Ops
+    class OutputHolder
+      def initialize(op)
+        @op = op
+      end
+    end
     FLOATING_POINT_TYPES = %i[float32 float64 float].freeze
     INTEGER_TYPES = %i[uint8 int32 int int64].freeze
     NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
@@ -632,6 +637,10 @@ module TensorStream
 
     def stack(values, axis: 0, name: 'stack')
       _op(:stack, *values, axis: axis, name: name)
+    end
+
+    def unstack(value, num: nil, axis: 0, name: 'unstack')
+      _op(:unstack, value, num: num, axis: axis, name: name)
     end
 
     def squeeze(value, axis: [], name: nil)
