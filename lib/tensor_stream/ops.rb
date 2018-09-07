@@ -639,18 +639,37 @@ module TensorStream
       _op(:gather, params, indices, validate_indices: validate_indices, name: name, axis: axis)
     end
 
+
+    ##
+    # Stacks a list of rank-R tensors into one rank-(R+1) tensor.
+    #
     def stack(values, axis: 0, name: 'stack')
       _op(:stack, *values, axis: axis, name: name)
     end
 
+    ##
+    # Unpacks the given dimension of a rank-R tensor into rank-(R-1) tensors.
+    #
     def unstack(value, num: nil, axis: 0, name: 'unstack')
       _op(:unstack, value, num: num, axis: axis, name: name)
     end
 
+    ##
+    # Removes dimensions of size 1 from the shape of a tensor.
+    #
+    # Given a tensor input, this operation returns a tensor of the same type with all dimensions of size 1 removed.
+    # If you don't want to remove all size 1 dimensions, you can remove specific size 1 dimensions by specifying axis.
     def squeeze(value, axis: [], name: nil)
       _op(:squeeze, value, axis: axis, name: nil)
     end
 
+    ##
+    # Computes the difference between two lists of numbers or strings.
+    # Given a list x and a list y, this operation returns a list out that represents all values
+    # that are in x but not in y. The returned list out is sorted in the same order that the numbers appear
+    # in x (duplicates are preserved). This operation also returns a list idx that represents the position of
+    # each out element in x. In other words:
+    #
     def setdiff1d(x, y, index_dtype: :int32, name: nil)
       result = _op(:setdiff1d, x, y, index_dtype: index_dtype, name: name)
       [result[0], result[1]]
