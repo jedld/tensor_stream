@@ -96,7 +96,7 @@ cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 # optimizer = TensorStream::Train::AdadeltaOptimizer.new(1.0).minimize(cost)
 # optimizer = TensorStream::Train::AdagradOptimizer.new(0.01).minimize(cost)
 # optimizer = TensorStream::Train::RMSPropOptimizer.new(0.01, centered: true).minimize(cost)
-opoptimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
+optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
