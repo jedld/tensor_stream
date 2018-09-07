@@ -127,8 +127,16 @@ module TensorStream
 
     ##
     # initializer that generates tensors initialized to 0.
-    def zeros_initializer(dtype: nil)
+    #
+    def zeros_initializer(dtype: :float32)
       TensorStream::Initializer.new(-> { _op(:zeros, nil, nil, data_type: dtype) })
+    end
+
+    ##
+    # initializer that generates tensors initialized to 1.
+    #
+    def ones_initializer(dtype: :float32)
+      TensorStream::Initializer.new(-> { _op(:ones, nil, nil, data_type: dtype) })
     end
 
     ##

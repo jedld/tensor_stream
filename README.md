@@ -91,9 +91,12 @@ pred = X * W + b
 # Mean squared error
 cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
 
-# optimizer =  TensorStream::Train::MomentumOptimizer.new(0.01, 0.5, use_nesterov: true).minimize(cost)
-# optimizer =  TensorStream::Train::AdamOptimizer.new.minimize(cost)
-optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
+# optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true).minimize(cost)
+# optimizer = TensorStream::Train::AdamOptimizer.new(learning_rate).minimize(cost)
+# optimizer = TensorStream::Train::AdadeltaOptimizer.new(1.0).minimize(cost)
+# optimizer = TensorStream::Train::AdagradOptimizer.new(0.01).minimize(cost)
+# optimizer = TensorStream::Train::RMSPropOptimizer.new(0.01, centered: true).minimize(cost)
+opoptimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -227,7 +230,7 @@ By default TensorStream will determine using the given evaluators the best possi
 placement for each tensor operation
 
 ```ruby
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+require 'tensor_stream/opencl'
 
 # set session to use the opencl evaluator
 sess = ts.session

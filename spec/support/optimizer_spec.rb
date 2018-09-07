@@ -378,4 +378,73 @@ RSpec.shared_examples "optimizer evaluator" do
       end
     end
   end
+
+  context "RMSProp optimizer" do
+    [true, false].each do |centered|
+      let(:expectation) do
+        { false  => { 0 => [ 0.0315, 0.0543], 1 => [[0.0315, 0.0312], [0.0543, 0.054], [0.0734, 0.0731]] },
+          true => { 0 => [ 0.0315, 0.0549], 1 => [[0.0315, 0.0312], [0.0549, 0.0546], [0.0743, 0.074]] } }
+      end
+
+      context "#{centered ? 'centered' : 'non-centered'}" do
+        supported_op :apply_rms_prop do
+          specify "rank 0" do
+            n_samples = 5
+
+            m = ts.variable(0.0, dtype: :float32)
+            b = ts.variable(0.0, dtype: :float32)
+            global_step = ts.variable(0, trainable: false)
+            x = ts.placeholder(:float32)
+            y = ts.placeholder(:float32)
+
+            pred = m * x + b
+
+            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+
+            optimizer = TensorStream::Train::RMSPropOptimizer.new(0.01, centered: centered).minimize(cost, global_step: global_step)
+
+            init = ts.global_variables_initializer()
+
+            sess.run(init)
+
+            expect(m.read_value).to eq(0.0)
+            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+            expect(tr(m.read_value)).to eq(expectation[centered][0][0])
+            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+            expect(tr(m.read_value)).to eq(expectation[centered][0][1])
+            expect(sess.run(global_step)).to eq(2)
+          end
+
+          specify "rank 1" do
+            n_samples = 5
+
+            m = ts.variable([0.0, 0.0], dtype: :float32)
+            b = ts.variable([0.0, 0.0], dtype: :float32)
+            global_step = ts.variable(0, trainable: false)
+            x = ts.placeholder(:float32)
+            y = ts.placeholder(:float32)
+
+            pred = m * x + b
+
+            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+
+            optimizer = TensorStream::Train::RMSPropOptimizer.new(0.01, centered: centered).minimize(cost, global_step: global_step)
+
+            init = ts.global_variables_initializer()
+
+            sess.run(init)
+
+            expect(m.read_value).to eq([0.0, 0.0])
+            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            expect(tr(m.read_value)).to eq(expectation[centered][1][0])
+            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            expect(tr(m.read_value)).to eq(expectation[centered][1][1])
+            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            expect(tr(m.read_value)).to eq(expectation[centered][1][2])
+            expect(sess.run(global_step)).to eq(3)
+          end
+        end
+      end
+    end
+  end
 end

@@ -5,6 +5,7 @@ require 'tensor_stream/train/momentum_optimizer'
 require 'tensor_stream/train/adam_optimizer'
 require 'tensor_stream/train/adadelta_optimizer'
 require 'tensor_stream/train/adagrad_optimizer'
+require 'tensor_stream/train/rmsprop_optimizer'
 require 'tensor_stream/train/saver'
 
 module TensorStream

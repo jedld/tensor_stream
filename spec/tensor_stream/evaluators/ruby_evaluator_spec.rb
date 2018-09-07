@@ -20,7 +20,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(117)
+      expect(described_class.ops.keys.size).to eq(119)
     end
 
     specify do
@@ -32,8 +32,10 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         apply_adadelta
         apply_adagrad
         apply_adam
+        apply_centered_rms_prop
         apply_gradient_descent
         apply_momentum
+        apply_rms_prop
         arg_max
         arg_min
         argmax

@@ -947,7 +947,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  supported_op ".random_uniform_initializer" do
+  context ".random_uniform_initializer" do
     it "initializes variables using the random uniform initializer" do
       tf.set_random_seed(1234)
       u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.random_uniform_initializer)
@@ -956,11 +956,19 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  supported_op ".zeros_initializer" do
+  context ".zeros_initializer" do
     specify do
       u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.zeros_initializer)
       sess.run(tf.global_variables_initializer)
       expect(tr(sess.run(u))).to eq(0.0)
+    end
+  end
+
+  context ".ones_initializer" do
+    specify do
+      u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.ones_initializer)
+      sess.run(tf.global_variables_initializer)
+      expect(tr(sess.run(u))).to eq(1.0)
     end
   end
 

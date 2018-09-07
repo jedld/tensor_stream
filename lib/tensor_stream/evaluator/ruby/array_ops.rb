@@ -254,7 +254,6 @@ module TensorStream
                  else
                    -> { int_type?(tensor.data_type) ? 1 : 1.0 }
                  end
-
           if shape.is_a?(Array) && shape.size.zero?
             func.call
           else
