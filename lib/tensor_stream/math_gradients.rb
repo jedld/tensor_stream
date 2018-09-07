@@ -273,9 +273,20 @@ module TensorStream
         when :transpose
           return [ts.transpose(grad, ts.invert_permutation(y)), nil]
         when :index
-          grad
+          #hack!! not sure how to fix this yet
+          return grad if %i[softmax_cross_entropy_with_logits_v2].include?(node.inputs[0].operation)
+
+          if node.inputs[0].shape.known?
+            multiplier = node.inputs[0].shape.shape[0]
+            rank = node.inputs[0].shape.shape.size - 1
+            padding = [[0, multiplier - 1]]
+            rank.times.each { padding << [0, 0] }
+            ts.pad([grad], padding)
+          end
         when :squeeze
           _reshape_to_input(node, grad)
+        when :reshape
+          [ts.reshape(grad, ts.shape(node.inputs[0])), nil]
         when :stack
           res = ts.unstack(grad, axis: node.options[:axis])
           node.inputs.size.times.collect { |i| res[i] }
@@ -288,7 +299,7 @@ module TensorStream
     end
 
     def self._reshape_to_input(node, grad)
-      ts.reshape(grad, tf.shape(node.inputs[0]))
+      ts.reshape(grad, ts.shape(node.inputs[0]))
     end
 
     def self._broadcast_gradient_args(input_a, input_b)

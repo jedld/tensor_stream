@@ -117,9 +117,8 @@ module TensorStream
               output_buffer[ptr2] = x
             end
           end
-          outputs = TensorShape.reshape(output_buffer, new_shape)
 
-          TensorStream::Evaluator::OutputGroup.new(outputs)
+          TensorShape.reshape(output_buffer, new_shape)
         end
 
         register_op :squeeze do |_context, tensor, inputs|

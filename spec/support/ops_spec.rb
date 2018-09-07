@@ -242,6 +242,13 @@ RSpec.shared_examples "standard ops evaluator" do
     specify do
       expect(tr(sess.run(tf.reshape([ 1.7226844, -0.0204582], [2])))).to eq([1.7227, -0.0205])
     end
+
+    specify "gradients" do
+      t = tf.constant([[1],[1],[1],[1]])
+      f = tf.reshape(t, [4])
+      g = tf.gradients(f, [t])
+      expect(sess.run(g)).to eq([[[1], [1], [1], [1]]])
+    end
   end
 
   context ".glorot_uniform_initializer" do
@@ -607,6 +614,13 @@ RSpec.shared_examples "standard ops evaluator" do
 
       expect(sess.run(res[0])).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
       expect(sess.run(res[1])).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+    end
+
+    specify "gradients" do
+      a = tf.constant([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
+      res = tf.unstack(a, axis: 3)
+      g = tf.gradients(res[0], [a])
+      expect(sess.run(g)).to eq([[[[[[1, 1]], [[1, 1]]], [[[1, 1]], [[1, 1]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]]]])
     end
   end
 
@@ -1972,6 +1986,13 @@ end
       expect(sess.run(f)).to eq([[[[1], [1], [2], [3]], [[1], [1], [2], [3]]], [[[1], [1], [2], [3]], [[1], [1], [2], [3]]]])
       f = tf.squeeze(a, axis: 4)
       expect(sess.run(f)).to eq([[[[1, 1, 2, 3], [1, 1, 2, 3]]], [[[1, 1, 2, 3], [1, 1, 2, 3]]]])
+    end
+
+    specify "gradients" do
+      a = tf.constant([[1],[1],[2],[3]])
+      f = tf.squeeze(a)
+      g = tf.gradients(f, [a])
+      expect(sess.run(g)).to eq([[[1], [1], [1], [1]]])
     end
   end
 end
