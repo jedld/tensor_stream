@@ -147,6 +147,18 @@ module TensorStream
         end
         v
       end
+
+      ##
+      # Find or create a slot for a variable, using an Initializer.
+      def get_or_make_slot_with_initializer(var, initializer, shape, dtype, slot_name, op_name)
+        named_slots = slot_dict(slot_name)
+        if !named_slots.key?(var_key(var))
+          new_slot_variable = create_slot_with_initializer(
+            var, initializer, shape, dtype, op_name)
+          named_slots[var_key(var)] = new_slot_variable
+        end
+        named_slots[var_key(var)]
+      end
     end
   end
 end

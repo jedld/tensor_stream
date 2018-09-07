@@ -121,6 +121,10 @@ module TensorStream
       _op(:rank, input, name: name)
     end
 
+    def constant_initializer(value, dtype: nil, verify_shape: false)
+      TensorStream::Initializer.new(-> { convert_to_tensor(value, dtype: dtype) })
+    end
+
     ##
     # initializer that generates tensors initialized to 0.
     def zeros_initializer(dtype: nil)
