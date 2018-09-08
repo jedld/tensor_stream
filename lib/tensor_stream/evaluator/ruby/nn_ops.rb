@@ -86,6 +86,7 @@ module TensorStream
           input_shape = shape_eval(inputs[0])
           rank = input_shape.size - 1
           labels = last_axis(inputs[1])
+
           func = lambda { |logits, label|
             c = logits.max
             transformed_logits = logits.map { |l| l - c }
@@ -110,6 +111,49 @@ module TensorStream
             reshaped_losses = TensorShape.reshape(losses.flatten, input_shape)
             reshaped_backprops = TensorShape.reshape(backprobs.flatten, input_shape)
             reshaped_losses = reduce(reshaped_losses, rank, false)
+            TensorStream::Evaluator::OutputGroup.new([reshaped_losses, reshaped_backprops], [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
+          end
+        end
+
+        register_op :sparse_softmax_cross_entropy_with_logits do |context, tensor, inputs|
+          last_dimen_list = last_axis(inputs[0])
+          input_shape = shape_eval(inputs[0])
+          rank = input_shape.size - 1
+          labels = last_axis(inputs[1])
+          num_classes = input_shape.last
+
+          labels = labels.map do |l|
+            one_hot = Array.new(num_classes) { 0 }
+            one_hot[l] = 1
+            one_hot
+          end
+
+          func = lambda { |logits, label|
+            c = logits.max
+            transformed_logits = logits.map { |l| l - c }
+            sum = transformed_logits.map { |x| Math.exp(x) }.reduce(:+)
+            losses = transformed_logits.zip(label).map { |x, y| (Math.log(sum) - x) * y }
+            probs = transformed_logits.zip(label).map  { |x, y| (Math.exp(x) / sum) - y }
+            [losses, probs]
+          }
+
+          if input_shape.size == 1
+            loss, prob = func.call(last_dimen_list, labels)
+            loss = reduce(loss, rank, false)
+
+            TensorStream::Evaluator::OutputGroup.new([loss, prob], [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
+          else
+            losses = []
+            backprobs = []
+            arr = last_dimen_list.zip(labels).each do |list, label|
+              loss, prob = func.call(list, label)
+              losses << loss
+              backprobs << prob
+            end
+            reshaped_losses = TensorShape.reshape(losses.flatten, input_shape)
+            reshaped_backprops = TensorShape.reshape(backprobs.flatten, input_shape)
+            reshaped_losses = reduce(reshaped_losses, rank, false)
+
             TensorStream::Evaluator::OutputGroup.new([reshaped_losses, reshaped_backprops], [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
           end
         end

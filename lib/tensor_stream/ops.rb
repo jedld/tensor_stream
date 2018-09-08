@@ -102,7 +102,7 @@ module TensorStream
       return constant(shape_eval(input, out_type), dtype: out_type, name: name) if input.is_a?(Array)
       return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}") if shape_full_specified(input)
 
-      _op(:shape, input, nil, name: name, out_type: out_type)
+      _op(:shape, input, name: name, out_type: out_type)
     end
 
     ##
@@ -659,7 +659,38 @@ module TensorStream
     # Unpacks the given dimension of a rank-R tensor into rank-(R-1) tensors.
     #
     def unstack(value, num: nil, axis: 0, name: 'unstack')
-      _op(:unstack, value, num: num, axis: axis, name: name)
+      res = _op(:unstack, value, num: num, axis: axis, name: name)
+
+      num_vars = if value.shape.known?
+                   new_shape = value.shape.shape.dup
+                   rank = new_shape.size - 1
+                   axis = rank + axis if axis < 0
+                   rotated_shape = Array.new(axis + 1) { new_shape.shift }
+                   new_shape = rotated_shape.rotate!(-1) + new_shape
+                   new_shape[0]
+                 else
+                   raise TensorStream::ValueError, "num is unspecified and cannot be inferred." if num.nil?
+                   num
+                 end
+
+      return res[0] if num_vars == 1
+
+      Array.new(num_vars) do |index|
+        res[index]
+      end
+    end
+
+    ##
+    # Same as stack
+    def pack(values, axis: 0, name: 'pack')
+      _op(:stack, *values, axis: axis, name: name)
+    end
+
+    ##
+    # Same as unstack
+    #
+    def unpack(value, num: nil, axis: 0, name: 'unpack')
+      unstack(value, num: num, axis: axis, name: name)
     end
 
     ##

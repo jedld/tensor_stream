@@ -23,6 +23,10 @@ module TensorStream
       shape.size
     end
 
+    def scalar?
+      shape.size.zero?
+    end
+
     def known?
       return false if shape.nil?
       shape.each { |s| return false if s.nil? }

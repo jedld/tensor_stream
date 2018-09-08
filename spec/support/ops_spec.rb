@@ -67,6 +67,23 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".sparse_softmax_cross_entropy_with_logits" do
+    it "Computes softmax cross entropy between logits and labels" do
+      outputs = tf.constant([[0.789757, 0.605936], [0.285, 0.21685], [1.3821, 1.08949], [1.4441, 1.14361], [1.2160, 0.9489]])
+      labels = tf.constant([1, 1, 1, 1, 0])
+      f = tf.nn.sparse_softmax_cross_entropy_with_logits(logits: outputs, labels: labels)
+      expect(tr(sess.run(f))).to eq([0.7893, 0.7278, 0.8501, 0.8546, 0.5685])
+    end
+
+    specify "gradients" do
+      outputs = tf.constant([[0.789757, 0.605936], [0.285, 0.21685], [1.3821, 1.08949], [1.4441, 1.14361], [1.2160, 0.9489]])
+      labels = tf.constant([1, 1, 1, 1, 0])
+      f = tf.nn.sparse_softmax_cross_entropy_with_logits(logits: outputs, labels: labels)
+      g = tf.gradients(f, [outputs])
+      expect(tr(sess.run(g))).to eq([[[0.5458, -0.5458], [0.517, -0.517], [0.5726, -0.5726], [0.5746, -0.5746], [-0.4336, 0.4336]]])
+    end
+  end
+
   context ".log_softmax" do
     specify "computes for the log softmax" do
       logits = tf.constant([-2046.4904911315384, 2371.594564592362, -1920.025585664249, 266.06257844862205, 570.1462458227674, 2290.6715733914048, 1396.0319189271745, -2750.277642111798, 1758.5654697551304, 3116.9786057465503])
@@ -577,49 +594,49 @@ RSpec.shared_examples "standard ops evaluator" do
   supported_op ".unstack" do
     specify "scalar" do
       a = tf.constant([1, 2, 3])
-      res = tf.unstack(a)
-      expect(sess.run(res[0])).to eq(1)
-      expect(sess.run(res[1])).to eq(2)
-      expect(sess.run(res[2])).to eq(3)
+      x, y, z = tf.unstack(a)
+      expect(sess.run(x)).to eq(1)
+      expect(sess.run(y)).to eq(2)
+      expect(sess.run(z)).to eq(3)
     end
 
     specify "rank = 2 && axis == 0" do
       a = tf.constant([[0, 3], [1, 4], [2, 5]])
-      res = tf.unstack(a)
-      expect(sess.run(res[0])).to eq([0, 3])
-      expect(sess.run(res[1])).to eq([1, 4])
-      expect(sess.run(res[2])).to eq([2, 5])
+      x, y, z = tf.unstack(a)
+      expect(sess.run(x)).to eq([0, 3])
+      expect(sess.run(y)).to eq([1, 4])
+      expect(sess.run(z)).to eq([2, 5])
     end
 
     specify "rank == 3 && axis == 1" do
       # axis = 1
       a = tf.constant([[[ 0,  1],[ 4,  5],[ 8,  9]],[[ 2,  3],[ 6,  7],[10, 11]]])
-      res = tf.unstack(a, axis: 1)
-      expect(sess.run(res[0])).to eq([[0, 1],[2, 3]])
-      expect(sess.run(res[1])).to eq([[4, 5],[6, 7]])
-      expect(sess.run(res[2])).to eq([[8, 9],[10, 11]])
+      x, y, z = tf.unstack(a, axis: 1)
+      expect(sess.run(x)).to eq([[0, 1],[2, 3]])
+      expect(sess.run(y)).to eq([[4, 5],[6, 7]])
+      expect(sess.run(z)).to eq([[8, 9],[10, 11]])
     end
 
     specify "rank == 3 && axis == 2" do
       a = tf.constant([[[[0, 1], [8, 9]], [[2, 3], [10, 11]]], [[[4, 5], [12, 13]], [[6, 7], [14, 15]]]])
-      res = tf.unstack(a, axis: 2)
+      x, y = tf.unstack(a, axis: 2)
 
-      expect(sess.run(res[0])).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
-      expect(sess.run(res[1])).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+      expect(sess.run(x)).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
+      expect(sess.run(y)).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
     end
 
     specify "rank == 3 && axis == 3" do
       a = tf.constant([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
-      res = tf.unstack(a, axis: 3)
+      x, y = tf.unstack(a, axis: 3)
 
-      expect(sess.run(res[0])).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
-      expect(sess.run(res[1])).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+      expect(sess.run(x)).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
+      expect(sess.run(y)).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
     end
 
     specify "gradients" do
       a = tf.constant([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
-      res = tf.unstack(a, axis: 3)
-      g = tf.gradients(res[0], [a])
+      x, y = tf.unstack(a, axis: 3)
+      g = tf.gradients(x, [a])
       expect(sess.run(g)).to eq([[[[[[1, 1]], [[1, 1]]], [[[1, 1]], [[1, 1]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]]]])
     end
   end

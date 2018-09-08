@@ -322,6 +322,10 @@ module TensorStream
           pred = complete_eval(tensor.options[:pred], context)
           call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
         end
+
+        register_op :shape do |_context, tensor, inputs|
+          shape_eval(inputs[0], tensor.options[:out_type])
+        end
       end
     end
   end

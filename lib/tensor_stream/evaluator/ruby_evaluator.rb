@@ -7,6 +7,7 @@ require 'tensor_stream/evaluator/ruby/nn_ops'
 require 'tensor_stream/evaluator/ruby/array_ops'
 require 'tensor_stream/evaluator/ruby/random_ops'
 require 'tensor_stream/evaluator/ruby/images_ops'
+require 'tensor_stream/evaluator/ruby/check_ops'
 
 module TensorStream
   module Evaluator
@@ -39,6 +40,7 @@ module TensorStream
       include TensorStream::ArrayOps
       include TensorStream::RandomOps
       include TensorStream::ImagesOps
+      include TensorStream::CheckOps
 
       def run(tensor, execution_context)
         return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
@@ -217,10 +219,6 @@ module TensorStream
         call_vector_op(tensor, :greater_equal, a, b, context, ->(t, u) { t <= u })
       end
 
-      register_op :shape do |_context, tensor, inputs|
-        shape_eval(inputs[0], tensor.options[:out_type])
-      end
-
       register_op :broadcast_transform do |_context, _tensor, inputs|
         broadcast(inputs[0], inputs[1])
       end
@@ -271,9 +269,8 @@ module TensorStream
 
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
-        # puts "ruby: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
-
+          puts "ruby: #{tensor.name}"
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
             b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]

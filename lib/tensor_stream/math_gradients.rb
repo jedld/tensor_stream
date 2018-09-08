@@ -10,7 +10,7 @@ module TensorStream
 
     def self.derivative(tensor, wrt_dx, options = {})
       return i_op(:ones_like, tensor) if tensor.equal?(wrt_dx)
-      return i_op(:zeros_like, tensor) unless wrt_dx.consumers.include?(tensor.name)
+      return i_op(:zeros_like, wrt_dx) unless wrt_dx.consumers.include?(tensor.name)
 
       nodes_to_compute = wrt_dx.consumers.select do |t|
         node = tensor.graph.nodes[t]
@@ -260,7 +260,11 @@ module TensorStream
           i_op(:softmax_grad, x, grad)
         when :softmax_cross_entropy_with_logits_v2
           output = node
-          [_broadcast_mul(grad, output[1]), nil]
+          logits = node.inputs[0]
+          [_broadcast_mul(grad, output[1]), -ts.nn.log_softmax(logits)]
+        when :sparse_softmax_cross_entropy_with_logits
+          output = node
+           [_broadcast_mul(grad, output[1]), nil]
         when :floor, :ceil
           # non differentiable
           nil
@@ -274,7 +278,7 @@ module TensorStream
           return [ts.transpose(grad, ts.invert_permutation(y)), nil]
         when :index
           #hack!! not sure how to fix this yet
-          return grad if %i[softmax_cross_entropy_with_logits_v2].include?(node.inputs[0].operation)
+          return grad if %i[softmax_cross_entropy_with_logits_v2 sparse_softmax_cross_entropy_with_logits].include?(node.inputs[0].operation)
 
           if node.inputs[0].shape.known?
             multiplier = node.inputs[0].shape.shape[0]
@@ -288,10 +292,20 @@ module TensorStream
         when :reshape
           [ts.reshape(grad, ts.shape(node.inputs[0])), nil]
         when :stack
-          res = ts.unstack(grad, axis: node.options[:axis])
-          node.inputs.size.times.collect { |i| res[i] }
+          res = ts.unstack(grad, num: node.inputs.size, axis: node.options[:axis])
+          Array.new(node.inputs.size) { |i| res[i] }
         when :unstack
           ts.stack(grad, axis: node.options[:axis])
+        when :cast
+          t = %i[float16 float32 float64]
+          src_type = node.inputs[0].data_type
+          dst_type = grad.data_type
+
+          if t.key?(src_type) && t.key?(dst_type)
+            ts.cast(grad, src_type)
+          else
+            nil
+          end
         else
           raise "no derivative op for #{node.operation}"
         end
