@@ -72,7 +72,7 @@ total_loss = tf.reduce_mean(losses)
 
 train_step = TensorStream::Train::AdagradOptimizer.new(0.3).minimize(total_loss)
 
-puts tf.get_default_graph.nodes.keys.size
+puts "#{tf.get_default_graph.nodes.keys.size} nodes created"
 
 tf.session do |sess|
   sess.run(tf.global_variables_initializer)

@@ -229,7 +229,7 @@ module TensorStream
       return convert_to_tensor(value.call) if value.is_a?(Proc)
       if value.is_a?(Array) && value[0].is_a?(Tensor)
         if value.size > 1
-          return TensorStream.concat(value.map { |v| TensorStream.expand_dims(v, 0) }, 0)
+          return TensorStream.stack(value)
         else
           return TensorStream.expand_dims(value[0], 0)
         end
