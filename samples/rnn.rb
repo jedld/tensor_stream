@@ -73,30 +73,31 @@ total_loss = tf.reduce_mean(losses)
 train_step = TensorStream::Train::AdagradOptimizer.new(0.3).minimize(total_loss)
 
 puts tf.get_default_graph.nodes.keys.size
-# tf.session do |sess|
-#   sess.run(tf.global_variables_initializer)
-#   (0..num_epochs).each do |epoch_idx|
-#     x,y = generate_data(total_series_length, batch_size, echo_step)
-#     _current_state = tf.zeros([batch_size, state_size]).eval
-#     print("New data, epoch", epoch_idx, "\n")
-#     (0..num_batches - 1).each do |batch_idx|
-#       start_idx = batch_idx * truncated_backprop_length
-#       end_idx = start_idx + truncated_backprop_length
 
-#       batchX = x.map { |x| x[start_idx...end_idx] }
-#       batchY = y.map { |y| y[start_idx...end_idx] }
+tf.session do |sess|
+  sess.run(tf.global_variables_initializer)
+  (0..num_epochs).each do |epoch_idx|
+    x,y = generate_data(total_series_length, batch_size, echo_step)
+    _current_state = tf.zeros([batch_size, state_size]).eval
+    print("New data, epoch", epoch_idx, "\n")
+    (0..num_batches - 1).each do |batch_idx|
+      start_idx = batch_idx * truncated_backprop_length
+      end_idx = start_idx + truncated_backprop_length
 
-#       _total_loss, _train_step, _current_state, _predictions_series = sess.run(
-#           [total_loss, train_step, current_state, predictions_series],
-#           feed_dict: {
-#               batchX_placeholder => batchX,
-#               batchY_placeholder => batchY,
-#               init_state => _current_state
-#           })
+      batchX = x.map { |x| x[start_idx...end_idx] }
+      batchY = y.map { |y| y[start_idx...end_idx] }
 
-#       if batch_idx%100 == 0
-#           print("Step",batch_idx, " Loss ", _total_loss, "\n")
-#       end
-#     end
-#   end
-# end
+      _total_loss, _train_step, _current_state, _predictions_series = sess.run(
+          [total_loss, train_step, current_state, predictions_series],
+          feed_dict: {
+              batchX_placeholder => batchX,
+              batchY_placeholder => batchY,
+              init_state => _current_state
+          })
+
+      if batch_idx%100 == 0
+          print("Step",batch_idx, " Loss ", _total_loss, "\n")
+      end
+    end
+  end
+end

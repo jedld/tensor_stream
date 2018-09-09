@@ -291,8 +291,8 @@ module TensorStream
     end
 
     def add_consumer(consumer)
-      @consumers ||= []
-      @consumers << consumer.name if !@consumers.include?(consumer.name) && consumer.name != name
+      @consumers ||= Set.new
+      @consumers << consumer.name if consumer.name != name
     end
 
     def setup_output(consumer)

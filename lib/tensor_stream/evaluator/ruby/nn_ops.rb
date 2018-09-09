@@ -150,8 +150,8 @@ module TensorStream
               losses << loss
               backprobs << prob
             end
-            reshaped_losses = TensorShape.reshape(losses.flatten, input_shape)
-            reshaped_backprops = TensorShape.reshape(backprobs.flatten, input_shape)
+            reshaped_losses = TensorShape.reshape(losses, input_shape)
+            reshaped_backprops = TensorShape.reshape(backprobs, input_shape)
             reshaped_losses = reduce(reshaped_losses, rank, false)
 
             TensorStream::Evaluator::OutputGroup.new([reshaped_losses, reshaped_backprops], [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
@@ -175,7 +175,7 @@ module TensorStream
             arr = last_dimen_list.collect do |list|
               func.call(list)
             end
-            TensorShape.reshape(arr.flatten, input_shape)
+            TensorShape.reshape(arr, input_shape)
           end
         end
 
@@ -204,7 +204,7 @@ module TensorStream
             arr = last_dimen_list.zip(last_grad_list).collect do |list, last_grad|
               func.call(list, last_grad)
             end
-            TensorShape.reshape(arr.flatten, input_shape)
+            TensorShape.reshape(arr, input_shape)
           end
         end
       end

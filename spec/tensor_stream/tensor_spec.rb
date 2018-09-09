@@ -103,10 +103,10 @@ RSpec.describe TensorStream::Tensor do
       b = tf.constant([1,2,3,4,5])
       f = a * 2
       g = f + b
-      expect(a.consumers).to eq(["mul:0", "add_1:0"])
-      expect(b.consumers).to eq(["add_1:0"])
-      expect(f.consumers).to eq(["add_1:0"])
-      expect(g.consumers).to eq([])
+      expect(a.consumers.to_a).to eq(["mul:0", "add_1:0"])
+      expect(b.consumers.to_a).to eq(["add_1:0"])
+      expect(f.consumers.to_a).to eq(["add_1:0"])
+      expect(g.consumers.to_a).to eq([])
     end
   end
 

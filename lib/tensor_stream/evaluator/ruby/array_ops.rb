@@ -140,7 +140,7 @@ module TensorStream
             shape = shape.map { |s| s == 1 ? nil : s }
           end
 
-          TensorShape.reshape(val.flatten, shape.compact)
+          TensorShape.reshape(val, shape.compact)
         end
 
         register_op :expand_dims do |_context, _tensor, inputs|
@@ -152,7 +152,7 @@ module TensorStream
 
           new_shape = shape.dup.insert(axis, 1).compact
 
-          TensorShape.reshape([val].flatten, new_shape)
+          TensorShape.reshape([val], new_shape)
         end
 
         register_op :fill do |_context, _tensor, inputs|
