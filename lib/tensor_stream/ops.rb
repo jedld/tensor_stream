@@ -484,8 +484,11 @@ module TensorStream
     end
 
     ##
-    # Casts a tensor to a new type.
+    # Casts a tensor to a new type, if needed
     def cast(input, dtype, name: nil)
+      input = convert_to_tensor(input)
+      return input if input.data_type == dtype
+
       _op(:cast, input, nil, data_type: dtype, name: name)
     end
 

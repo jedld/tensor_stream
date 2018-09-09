@@ -227,7 +227,13 @@ module TensorStream
     def convert_to_tensor(value, dtype: nil, name: nil, preferred_dtype: nil)
       return value if value.is_a?(Tensor)
       return convert_to_tensor(value.call) if value.is_a?(Proc)
-      return TensorStream.concat(value.map { |v| TensorStream.expand_dims(v, 0) }, 0) if value.is_a?(Array) && value[0].is_a?(Tensor)
+      if value.is_a?(Array) && value[0].is_a?(Tensor)
+        if value.size > 1
+          return TensorStream.concat(value.map { |v| TensorStream.expand_dims(v, 0) }, 0)
+        else
+          return TensorStream.expand_dims(value[0], 0)
+        end
+      end
 
       i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
     end

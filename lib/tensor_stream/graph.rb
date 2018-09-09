@@ -93,7 +93,7 @@ module TensorStream
       # puts "adding node"
       node.send(:propagate_outputs)
       node.send(:propagate_consumer, node)
-      # puts "done propagation"
+      # puts "#{node.name}"
       node.value = node.eval if @eager_execution
     end
 

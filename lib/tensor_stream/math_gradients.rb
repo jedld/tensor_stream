@@ -30,12 +30,15 @@ module TensorStream
       computed_op = _compute_derivative(tensor, grad)
 
       if computed_op.is_a?(Array)
-        computed_op.each_with_index.collect do |op_grad, index|
+        grads = computed_op.each_with_index.collect do |op_grad, index|
           next if op_grad.nil?
           next unless nodes_to_compute.include?(tensor.inputs[index].name)
 
           _propagate(op_grad, tensor.inputs[index], stop_tensor, nodes_to_compute, stop_gradients)
-        end.compact.reduce(:+)
+        end.compact
+
+        return nil if grads.empty?
+        grads.size > 1 ? ts.add_n(grads) : grads[0]
       else
         return nil if computed_op.nil?
         _propagate(computed_op, tensor.inputs[0], stop_tensor, nodes_to_compute, stop_gradients)
