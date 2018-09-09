@@ -88,8 +88,7 @@ module TensorStream
     end
 
     def %(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:mod, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+      TensorStream.mod(self, other)
     end
 
     def floor

@@ -274,9 +274,28 @@ module TensorStream
         rank = inputs[0].shape.shape.size + 1
         axis = rank + axis if axis < 0
         rotated_shape = Array.new(axis + 1) { new_shape.shift }
-        rotated_shape.rotate! + new_shape
+        return rotated_shape.rotate! + new_shape
+      when :concat
+        return nil if inputs[0].value.nil?
+
+        axis = inputs[0].value # get axis
+
+        axis_size = 0
+
+        inputs[1..inputs.size].each do |input_item|
+          return nil if input_item.shape.shape.nil?
+          return nil if input_item.shape.shape[axis].nil?
+
+          axis_size += input_item.shape.shape[axis]
+        end
+
+        new_shape = inputs[1].shape.shape.dup
+        new_shape[axis] = axis_size
+        return new_shape
+      when :slice, :squeeze
+        return nil
       when :tile
-        nil
+        return nil
       else
         return nil if inputs[0].nil?
         return inputs[0].shape.shape if inputs.size == 1

@@ -1,8 +1,13 @@
+
 module TensorStream
   # module that contains helper functions useful for ops
   module OpHelper
     def _op(code, *args)
       op = Operation.new(code.to_sym, *args)
+      if op.is_const
+        op.value = op.eval
+        op.shape = TensorShape.new(shape_eval(op.value))
+      end
       if !TensorStream.get_default_graph.get_dependency_scope.nil?
         i_op(:identity, op, TensorStream.get_default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
       else

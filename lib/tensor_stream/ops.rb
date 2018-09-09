@@ -99,7 +99,7 @@ module TensorStream
     ##
     # This operation returns a 1-D integer tensor representing the shape of input
     def shape(input, name: nil, out_type: :int32)
-      return constant(shape_eval(input, out_type), dtype: out_type, name: name) if input.is_a?(Array)
+      return constant(shape_eval(input, out_type), dtype: out_type, name: name) if input.is_a?(Array) && !input[0].is_a?(Tensor)
       return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}") if shape_full_specified(input)
 
       _op(:shape, input, name: name, out_type: out_type)
@@ -118,6 +118,9 @@ module TensorStream
     ##
     # Returns the rank of a tensor.
     def rank(input, name: nil)
+      input = convert_to_tensor(input)
+      return cons(input.shape.ndims) if input.shape.known?
+
       _op(:rank, input, name: name)
     end
 
@@ -263,7 +266,56 @@ module TensorStream
     ##
     # Concatenates tensors along one dimension.
     def concat(values, axis, name: 'concat')
-      _op(:concat, *values, axis: axis, name: name)
+      if values.is_a?(Array)
+        _op(:concat, axis, *values, name: name)
+      else
+        _op(:concat, axis, values, name: name)
+      end
+    end
+
+    def split(value, num_or_size_splits, axis: 0, num: nil, name: 'split')
+      value = convert_to_tensor(value)
+      num_or_size_splits = convert_to_tensor(num_or_size_splits)
+      axis = convert_to_tensor(axis)
+
+      raise TensorStream::ValueError, "num_or_size_splits must be integer dtype" unless INTEGER_TYPES.include?(num_or_size_splits.data_type)
+
+      res = _op(:split, value, num_or_size_splits, axis: axis, name: name)
+
+      pieces = if value.shape.known? && num_or_size_splits.is_const && num_or_size_splits.value && axis.is_const
+                  if num_or_size_splits.shape.scalar?
+                    raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless value.shape.shape[axis.value] % num_or_size_splits.value == 0
+                    div = num_or_size_splits.value
+                    n = value.shape.shape[axis.value] / div
+
+                    div.times.collect do |i|
+                      new_shape = value.shape.shape.dup
+                      new_shape[axis.value] = n
+                      new_shape
+                    end
+                  elsif num_or_size_splits.shape.ndims == 1
+                    raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{ num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
+                    num_or_size_splits.value.collect do |v|
+                      new_shape = value.shape.shape.dup
+                      new_shape[axis.value] = v
+                      new_shape
+                    end
+                  else
+                    raise TensorStream::ValueError, "Scalar or 1D Tensor expected for num_or_size_splits"
+                  end
+                else
+                  raise TensorStream::ValueError, "Cannot automatically determine num, please specify num: in options" if num.nil?
+
+                  Array.new(num) { nil }
+                end
+
+      pieces.collect.with_index do |shape, index|
+        op = res[index]
+        if shape
+          op.shape = TensorShape.new(shape)
+        end
+        op
+      end
     end
 
     ##
@@ -355,8 +407,11 @@ module TensorStream
     ##
     # Returns element-wise remainder of division.
     def mod(input_a, input_b, name: nil)
+      input_a = convert_to_tensor(input_a)
+      input_b = convert_to_tensor(input_b)
+
       input_a, input_b = check_data_types(input_a, input_b)
-      _op(:mod, input_a, input_b, name: name)
+       _op(:mod, input_a, input_b, name: name)
     end
 
     ##

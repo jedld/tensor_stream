@@ -58,7 +58,7 @@ module TensorStream
     end
 
     def self.reshape(arr, new_shape)
-      return arr if new_shape.empty?
+      return arr.flatten[0] if arr.is_a?(Array) && new_shape.empty?
       new_shape = new_shape.dup
       s = new_shape.shift
 

@@ -21,27 +21,26 @@ num_batches = total_series_length / batch_size / truncated_backprop_length
 
 def generate_data(total_series_length, batch_size, echo_step)
   x = TensorStream.random_uniform([total_series_length], minval: 0, maxval: 2).eval
-  y = x.rotate(echo_step)
+  y = x.rotate(-echo_step)
 
   y[echo_step] = 0
 
   x = TensorStream.reshape(x, [batch_size, -1]).eval  # The first index changing slowest, subseries as rows
   y = TensorStream.reshape(y, [batch_size, -1]).eval
-
   [x, y]
 end
 
-batchX_placeholder = tf.placeholder(:float32, shape: [batch_size, truncated_backprop_length])
-batchY_placeholder = tf.placeholder(:int32, shape: [batch_size, truncated_backprop_length])
+batchX_placeholder = tf.placeholder(:float32, shape: [batch_size, truncated_backprop_length], name: 'batch_x')
+batchY_placeholder = tf.placeholder(:int32, shape: [batch_size, truncated_backprop_length], name: 'batch_y')
 
-init_state = tf.placeholder(:float32, shape: [batch_size, state_size])
+init_state = tf.placeholder(:float32, shape: [batch_size, state_size], name: 'init_state')
 
 
-W = tf.variable(tf.random_uniform([state_size+1, state_size]), dtype: :float32)
-b = tf.variable(tf.zeros([state_size]), dtype: :float32)
+W = tf.variable(tf.random_uniform([state_size+1, state_size]), dtype: :float32, name: 'W')
+b = tf.variable(tf.zeros([state_size]), dtype: :float32, name: 'b')
 
-W2 = tf.variable(tf.random_uniform([state_size, num_classes]), dtype: :float32)
-b2 = tf.variable(tf.zeros([num_classes]), dtype: :float32)
+W2 = tf.variable(tf.random_uniform([state_size, num_classes]), dtype: :float32, name: 'W2')
+b2 = tf.variable(tf.zeros([num_classes]), dtype: :float32, name: 'b2')
 
 
 inputs_series = tf.unpack(batchX_placeholder, axis: 1)
@@ -79,13 +78,13 @@ tf.session do |sess|
   (0..num_epochs).each do |epoch_idx|
     x,y = generate_data(total_series_length, batch_size, echo_step)
     _current_state = tf.zeros([batch_size, state_size]).eval
-    print("New data, epoch", epoch_idx)
-    (0..num_batches).each do |batch_idx|
+    print("New data, epoch", epoch_idx, "\n")
+    (0..num_batches - 1).each do |batch_idx|
       start_idx = batch_idx * truncated_backprop_length
       end_idx = start_idx + truncated_backprop_length
 
-      batchX = x[start_idx..end_idx]
-      batchY = y[start_idx..end_idx]
+      batchX = x.map { |x| x[start_idx...end_idx] }
+      batchY = y.map { |y| y[start_idx...end_idx] }
 
       _total_loss, _train_step, _current_state, _predictions_series = sess.run(
           [total_loss, train_step, current_state, predictions_series],
@@ -96,7 +95,7 @@ tf.session do |sess|
           })
 
       if batch_idx%100 == 0
-          print("Step",batch_idx, "Loss", _total_loss)
+          print("Step",batch_idx, " Loss ", _total_loss, "\n")
       end
     end
   end

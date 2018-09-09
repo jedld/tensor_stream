@@ -7,7 +7,7 @@ module TensorStream
           start = inputs[1]
           size = complete_eval(tensor.options[:size], context)
           raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
-          slice_tensor(input, start, size)
+          slice_tensor(input, start.dup, size.dup)
         end
 
         register_op %i[flow_dynamic_stitch dynamic_stitch] do |_context, _tensor, inputs|
@@ -22,8 +22,9 @@ module TensorStream
           gather(params, indexes)
         end
 
-        register_op %i[concat concat_v2] do |_context, tensor, inputs|
-          concat_array(inputs, tensor.options[:axis])
+        register_op %i[concat concat_v2] do |_context, _tensor, inputs|
+          axis = inputs.shift
+          concat_array(inputs, axis)
         end
 
         register_op :stack do |_context, tensor, inputs|
@@ -128,7 +129,6 @@ module TensorStream
           axis = !tensor.options[:axis].is_a?(Array) ? [tensor.options[:axis]] : tensor.options[:axis]
 
           if !axis.empty?
-
             axis.each do |axis|
               if shape[axis] == 1
                 shape[axis] = nil
@@ -278,9 +278,11 @@ module TensorStream
           get_rank(inputs[0])
         end
 
+        register_op :split  do |context, tensor, inputs|
+        end
+
         register_op :reshape do |_context, _tensor, inputs|
           arr, new_shape = inputs
-
           arr = [arr] unless arr.is_a?(Array)
 
           flat_arr = arr.flatten

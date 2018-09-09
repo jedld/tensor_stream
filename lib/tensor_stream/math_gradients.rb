@@ -289,6 +289,10 @@ module TensorStream
           end
         when :squeeze
           _reshape_to_input(node, grad)
+        when :expand_dims
+          [_reshape_to_input(node, grad), nil]
+        when :concat
+          _concat_grad_helper(node, grad, 1, node.inputs.size, 0)
         when :reshape
           [ts.reshape(grad, ts.shape(node.inputs[0])), nil]
         when :stack
@@ -370,6 +374,41 @@ module TensorStream
     def self._include?(arr, obj)
       arr.each { |a| return true if a.equal?(obj) }
       false
+    end
+
+    def self._extract_input_shapes(inputs)
+      sizes = []
+      fully_known = true
+      inputs.each do |x|
+        input_shape = ts.shape(x)
+        unless input_shape.is_const
+          fully_known = false
+          break
+        end
+        sizes << input_shape.value
+      end
+
+      if fully_known
+        sizes
+      else
+        ts.shape_n(inputs)
+      end
+    end
+
+    def self._concat_grad_helper(op, grad, start_value_index, end_value_index, dim_index)
+      # Degenerate concatenation, just return grad.
+      if op.inputs.size == 2
+        return end_value_index <= dim_index ? [grad] + [nil] : [nil] + [grad]
+      end
+      concat_dim = op.inputs[dim_index]
+      input_values = op.inputs[start_value_index..end_value_index]
+      non_neg_concat_dim = concat_dim % ts.rank(input_values[0])
+      sizes = _extract_input_shapes(input_values)
+      slicer = ts.slice(ts.stack(sizes, axis: 1), [non_neg_concat_dim, 0], [1, -1])
+
+      sizes = ts.squeeze(slicer)
+      out_grads = ts.split(grad, sizes, axis: non_neg_concat_dim)
+      end_value_index <= dim_index ? out_grads + [nil] : [nil] + out_grads
     end
   end
 end

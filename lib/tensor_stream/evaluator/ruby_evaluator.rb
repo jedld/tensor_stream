@@ -270,7 +270,7 @@ module TensorStream
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         invoke(tensor, child_context).tap do |result|
-          puts "ruby: #{tensor.name}"
+          # puts "ruby: #{tensor.name}"
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
             b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
@@ -481,7 +481,15 @@ module TensorStream
 
         var = if placeholder.is_a?(Placeholder)
                 @context[placeholder.name.to_sym].tap do |c|
-                  raise "missing placeholder #{placeholder.name}" if c.nil?
+                  raise TensorStream::ValueError, "missing placeholder #{placeholder.name}" if c.nil?
+                  if placeholder.shape.shape
+                    value_shape = shape_eval(c)
+                    placeholder_shape = placeholder.shape.shape
+                    placeholder_shape.zip(value_shape).each do |p_shape, v_shape|
+                      next if p_shape.nil?
+                      raise TensorStream::ValueError, "placeholder expects #{placeholder_shape}, got #{value_shape}" if p_shape != v_shape
+                    end
+                  end
                 end
               else
                 placeholder

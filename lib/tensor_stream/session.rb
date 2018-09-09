@@ -68,6 +68,7 @@ module TensorStream
         end
       end
       result = args.collect do |e|
+        next e.value if e.is_a?(Tensor) && e.is_const && e.value
         value = delegate_to_evaluator(e, context, {})
         recursive_eval(value)
       end

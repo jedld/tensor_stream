@@ -167,8 +167,11 @@ RSpec.shared_examples "standard ops evaluator" do
     it "Concatenates tensors along one dimension." do
       t1 = [[1, 2, 3], [4, 5, 6]]
       t2 = [[7, 8, 9], [10, 11, 12]]
-      expect(sess.run(tf.concat([t1, t2], 0))).to eq([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
-      expect(sess.run(tf.concat([t1, t2], 1))).to eq([[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]])
+      f1 = tf.concat([t1, t2], 0)
+      f2 = tf.concat([t1, t2], 1)
+
+      expect(sess.run(f1)).to eq([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+      expect(sess.run(f2)).to eq([[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]])
     end
 
     it "negative axis" do
@@ -179,6 +182,14 @@ RSpec.shared_examples "standard ops evaluator" do
         [ 2,  3,  8,  4]],
        [[ 4,  4,  2, 10],
         [ 5,  3, 15, 11]]])
+    end
+
+    specify "gradients" do
+      t1 = tf.constant([[1, 2, 3], [4, 5, 6]])
+      t2 = tf.constant([[7, 8, 9], [10, 11, 12]])
+      f = tf.concat([t1, t2], 0)
+      g = tf.gradients(f, [t1, t2])
+      expect(sess.run(g)).to eq([])
     end
   end
 
@@ -637,7 +648,7 @@ RSpec.shared_examples "standard ops evaluator" do
       a = tf.constant([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
       x, y = tf.unstack(a, axis: 3)
       g = tf.gradients(x, [a])
-      expect(sess.run(g)).to eq([[[[[[1, 1]], [[1, 1]]], [[[1, 1]], [[1, 1]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]]]])
+      expect(sess.run(g)).to eq([[[[[1, 0], [1, 0]], [[1, 0], [1, 0]]], [[[1, 0], [1, 0]], [[1, 0], [1, 0]]]]])
     end
   end
 
@@ -819,6 +830,23 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(rank1)).to eq(3)
       expect(sess.run(rank2)).to eq(0)
       expect(sess.run(rank3)).to eq(1)
+    end
+  end
+
+  supported_op ".split" do
+    it "splits tensors into equal portions" do
+      t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      x, y = tf.split(t1, 2)
+
+      expect(sess.run(x)).to eq([])
+      expect(sess.run(y)).to eq([])
+    end
+
+    it "splits tensors into equal portions" do
+      t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      x, y = tf.split(t1, 2)
+      expect(sess.run(x)).to eq([])
+      expect(sess.run(y)).to eq([])
     end
   end
 
@@ -1994,6 +2022,12 @@ end
       a = tf.constant([[1],[1],[2],[3]])
       f = tf.squeeze(a)
       expect(sess.run(f)).to eq([1, 1, 2, 3])
+    end
+
+    it "squeeze [1,1]" do
+      a = tf.constant([[2]])
+      f = tf.squeeze(a)
+      expect(sess.run(f)).to eq(2)
     end
 
     it "squeeze only specific axis" do
