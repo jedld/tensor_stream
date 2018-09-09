@@ -1,6 +1,16 @@
 module TensorStream
   # varoius utility functions for array processing
   module ArrayOpsHelper
+    def split_tensor(input, begin_index, end_index, axis = 0)
+      if axis.zero?
+        input[begin_index...end_index]
+      else
+        input.collect do |item|
+          split_tensor(item, begin_index, end_index, axis - 1)
+        end
+      end
+    end
+
     def slice_tensor(input, start, size)
       return input if size.empty?
       start_index = start.shift

@@ -68,7 +68,6 @@ end
 losses = logits_series.zip(labels_series).collect do |logits, labels|
   tf.nn.sparse_softmax_cross_entropy_with_logits(logits: logits, labels: labels)
 end
-
 total_loss = tf.reduce_mean(losses)
 
 train_step = TensorStream::Train::AdagradOptimizer.new(0.3).minimize(total_loss)

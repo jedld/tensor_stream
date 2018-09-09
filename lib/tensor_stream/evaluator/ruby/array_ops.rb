@@ -279,6 +279,27 @@ module TensorStream
         end
 
         register_op :split  do |context, tensor, inputs|
+          value, num_split, axis = inputs
+
+          value_shape = shape_eval(value)
+          if num_split.is_a?(Array)
+            begin_index = 0
+            num_split.collect do |num|
+              end_index = begin_index + num
+              arr = split_tensor(value, begin_index, end_index, axis)
+              begin_index = end_index
+              arr
+            end
+          else
+            raise TensorStream::ValueError, "#{num_split} does not divide #{value_shape[axis]} evenly" if value_shape[axis] % num_split != 0
+            piece_sizes = value_shape[axis] / num_split
+            Array.new(num_split) do |num|
+              begin_index = num * piece_sizes
+              end_index = begin_index + piece_sizes
+              split_tensor(value, begin_index, end_index, axis)
+            end
+          end
+
         end
 
         register_op :reshape do |_context, _tensor, inputs|
@@ -327,6 +348,13 @@ module TensorStream
 
         register_op :shape do |_context, tensor, inputs|
           shape_eval(inputs[0], tensor.options[:out_type])
+        end
+
+        register_op :shape_n do |_context, _tensor, inputs|
+          shapes = inputs.collect do |input|
+            shape_eval(input)
+          end
+          TensorStream::Evaluator::OutputGroup.new(shapes)
         end
       end
     end

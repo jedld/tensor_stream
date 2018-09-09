@@ -105,6 +105,25 @@ module TensorStream
       _op(:shape, input, name: name, out_type: out_type)
     end
 
+    def shape_n(inputs, name: nil, out_type: :int32)
+      shapes_known = true
+      inputs.each do |input|
+        unless input.shape.known?
+          shapes_known = false
+          break
+        end
+      end
+
+      if shapes_known
+        inputs.collect { |input| cons(input.shape.shape dtype: out_type) }
+      else
+        res = _op(:shape_n, *inputs, out_type: out_type, name: name)
+        Array.new(inputs.size) do |index|
+          res[index]
+        end
+      end
+    end
+
     ##
     # Constructs a tensor by tiling a given tensor.
     #
@@ -280,7 +299,7 @@ module TensorStream
 
       raise TensorStream::ValueError, "num_or_size_splits must be integer dtype" unless INTEGER_TYPES.include?(num_or_size_splits.data_type)
 
-      res = _op(:split, value, num_or_size_splits, axis: axis, name: name)
+      res = _op(:split, value, num_or_size_splits, axis, name: name)
 
       pieces = if value.shape.known? && num_or_size_splits.is_const && num_or_size_splits.value && axis.is_const
                   if num_or_size_splits.shape.scalar?

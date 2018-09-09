@@ -280,12 +280,14 @@ module TensorStream
           #hack!! not sure how to fix this yet
           return grad if %i[softmax_cross_entropy_with_logits_v2 sparse_softmax_cross_entropy_with_logits].include?(node.inputs[0].operation)
 
-          if node.inputs[0].shape.known?
+          if node.inputs[0].shape.known? && node.inputs[1].value
             multiplier = node.inputs[0].shape.shape[0]
-            rank = node.inputs[0].shape.shape.size - 1
-            padding = [[0, multiplier - 1]]
-            rank.times.each { padding << [0, 0] }
-            ts.pad([grad], padding)
+            filler = ts.zeros_like(grad)
+
+            res = Array.new(multiplier) { |index|
+              index == node.inputs[1].value ? grad : filler
+            }
+            [res]
           end
         when :squeeze
           _reshape_to_input(node, grad)
@@ -404,10 +406,11 @@ module TensorStream
       input_values = op.inputs[start_value_index..end_value_index]
       non_neg_concat_dim = concat_dim % ts.rank(input_values[0])
       sizes = _extract_input_shapes(input_values)
-      slicer = ts.slice(ts.stack(sizes, axis: 1), [non_neg_concat_dim, 0], [1, -1])
 
+      slicer = ts.slice(ts.stack(sizes, axis: 1), [non_neg_concat_dim, 0], [1, -1])
       sizes = ts.squeeze(slicer)
-      out_grads = ts.split(grad, sizes, axis: non_neg_concat_dim)
+
+      out_grads = ts.split(grad, sizes, axis: non_neg_concat_dim, num: input_values.size)
       end_value_index <= dim_index ? out_grads + [nil] : [nil] + out_grads
     end
   end

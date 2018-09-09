@@ -186,6 +186,7 @@ RSpec.describe TensorStream::Tensor do
       expect(c.shape.shape).to eq([4])
 
       m = tf.constant([[1.0, 0.5], [0.4, 0.2], [1.1, 1.2], [0.2, 0.1]])
+      c = tf.constant([1.0, 1.0])
       e = m * c
       expect(e.shape.shape).to eq([4, 2])
       s = tf.reshape(e, [2, -1])

@@ -45,7 +45,7 @@ module TensorStream
     def infer_const
       return false if breakpoint
       case operation
-      when :random_standard_normal, :random_uniform, :glorot_uniform, :print
+      when :random_standard_normal, :random_uniform, :glorot_uniform, :print, :check_numerics
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }
@@ -59,10 +59,12 @@ module TensorStream
         @inputs[1].data_type
       when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
         :boolean
-      when :shape, :rank
+      when :shape, :rank, :shape_n
         options[:out_type] || :int32
       when :random_standard_normal, :random_uniform, :glorot_uniform
         passed_data_type || :float32
+      when :concat
+        @inputs[1].data_type
       when :index
         if @inputs[0].is_a?(ControlFlow)
 

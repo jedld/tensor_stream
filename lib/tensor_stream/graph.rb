@@ -90,8 +90,10 @@ module TensorStream
       @node_keys << node.name
       @nodes[node.name] = node
       @constants[node.name] = node if node.is_const
+      # puts "adding node"
       node.send(:propagate_outputs)
       node.send(:propagate_consumer, node)
+      # puts "done propagation"
       node.value = node.eval if @eager_execution
     end
 

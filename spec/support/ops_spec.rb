@@ -189,7 +189,7 @@ RSpec.shared_examples "standard ops evaluator" do
       t2 = tf.constant([[7, 8, 9], [10, 11, 12]])
       f = tf.concat([t1, t2], 0)
       g = tf.gradients(f, [t1, t2])
-      expect(sess.run(g)).to eq([])
+      expect(sess.run(g)).to eq([[[1, 1, 1], [1, 1, 1]], [[1, 1, 1], [1, 1, 1]]])
     end
   end
 
@@ -649,6 +649,8 @@ RSpec.shared_examples "standard ops evaluator" do
       x, y = tf.unstack(a, axis: 3)
       g = tf.gradients(x, [a])
       expect(sess.run(g)).to eq([[[[[1, 0], [1, 0]], [[1, 0], [1, 0]]], [[[1, 0], [1, 0]], [[1, 0], [1, 0]]]]])
+      g = tf.gradients(y, [a])
+      expect(sess.run(g)).to eq([[[[[0, 1], [0, 1]], [[0, 1], [0, 1]]], [[[0, 1], [0, 1]], [[0, 1], [0, 1]]]]])
     end
   end
 
@@ -838,15 +840,24 @@ RSpec.shared_examples "standard ops evaluator" do
       t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
       x, y = tf.split(t1, 2)
 
-      expect(sess.run(x)).to eq([])
-      expect(sess.run(y)).to eq([])
+      expect(sess.run(x)).to eq([[[1, 1, 1], [2, 2, 2]]])
+      expect(sess.run(y)).to eq([[[3, 3, 3], [4, 4, 4]]])
     end
 
     it "splits tensors into equal portions" do
-      t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
-      x, y = tf.split(t1, 2)
-      expect(sess.run(x)).to eq([])
-      expect(sess.run(y)).to eq([])
+      t1 = tf.constant([[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]])
+      x, y, z = tf.split(t1, 3, axis: 2)
+      expect(sess.run(x)).to eq([[[1], [1]], [[1], [1]]])
+      expect(sess.run(y)).to eq([[[2], [2]], [[2], [2]]])
+      expect(sess.run(z)).to eq([[[3], [3]], [[3], [3]]])
+    end
+
+    it "splits tensors into equal portions" do
+      t1 = tf.constant([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+      x, y, z = tf.split(t1, [2, 5, 3])
+      expect(sess.run(x)).to eq([1, 2])
+      expect(sess.run(y)).to eq([3, 4, 5, 6, 7])
+      expect(sess.run(z)).to eq([8, 9, 10])
     end
   end
 
