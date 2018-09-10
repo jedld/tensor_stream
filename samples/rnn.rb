@@ -73,12 +73,12 @@ total_loss = tf.reduce_mean(losses)
 train_step = TensorStream::Train::AdagradOptimizer.new(0.3).minimize(total_loss)
 
 puts "#{tf.get_default_graph.nodes.keys.size} nodes created"
-
+zeros = tf.zeros([batch_size, state_size])
 tf.session do |sess|
   sess.run(tf.global_variables_initializer)
   (0..num_epochs).each do |epoch_idx|
-    x,y = generate_data(total_series_length, batch_size, echo_step)
-    _current_state = tf.zeros([batch_size, state_size]).eval
+    x, y = generate_data(total_series_length, batch_size, echo_step)
+    _current_state = zeros.eval
     print("New data, epoch", epoch_idx, "\n")
     (0..num_batches - 1).each do |batch_idx|
       start_idx = batch_idx * truncated_backprop_length

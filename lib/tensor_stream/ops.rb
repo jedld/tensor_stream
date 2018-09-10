@@ -307,11 +307,11 @@ module TensorStream
                     div = num_or_size_splits.value
                     n = value.shape.shape[axis.value] / div
 
-                    div.times.collect do |i|
+                    Array.new(div) { |i|
                       new_shape = value.shape.shape.dup
                       new_shape[axis.value] = n
                       new_shape
-                    end
+                    }
                   elsif num_or_size_splits.shape.ndims == 1
                     raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{ num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
                     num_or_size_splits.value.collect do |v|
@@ -328,13 +328,19 @@ module TensorStream
                   Array.new(num) { nil }
                 end
 
-      pieces.collect.with_index do |shape, index|
-        op = res[index]
+      pieces.collect.with_index do |shape, i|
+        op = index(res, i, name: "split/index:#{i}")
         if shape
           op.shape = TensorShape.new(shape)
         end
         op
       end
+    end
+
+    ##
+    # select an index in an array or a set of tensor outputs
+    def index(tensor, sel, name: nil)
+      _op(:index, tensor, sel, name: name)
     end
 
     ##
@@ -752,8 +758,8 @@ module TensorStream
 
       return res[0] if num_vars == 1
 
-      Array.new(num_vars) do |index|
-        res[index]
+      Array.new(num_vars) do |i|
+        index(res, i, name: "unstack/index:#{i}")
       end
     end
 

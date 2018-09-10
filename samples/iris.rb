@@ -1,5 +1,6 @@
+require "bundler/setup"
 require 'tensor_stream'
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+# require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 # This neural network will predict the species of an iris based on sepal and petal size
 # Dataset: http://en.wikipedia.org/wiki/Iris_flower_data_set
@@ -79,9 +80,9 @@ predict = tf.argmax(yhat, 1)
 # Backward propagation
 cost    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels: y, logits: yhat))
 
-updates =  TensorStream::Train::GradientDescentOptimizer.new(0.01).minimize(cost)
+# updates =  TensorStream::Train::GradientDescentOptimizer.new(0.01).minimize(cost)
 # updates =  TensorStream::Train::MomentumOptimizer.new(0.01, 0.5, use_nesterov: true).minimize(cost)
-# updates =  TensorStream::Train::AdamOptimizer.new.minimize(cost)
+updates =  TensorStream::Train::RMSPropOptimizer.new(0.01).minimize(cost)
 
 # Run SGD
 sess = tf.session

@@ -118,10 +118,10 @@ module TensorStream
       end
 
       register_op(:cast) do |context, tensor, inputs|
-        call_op(:cast, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
+        call_op(tensor, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
       end
 
-      register_op(:sign) do |context, _tensor, inputs|
+      register_op(:sign) do |context, tensor, inputs|
         func = lambda { |x, _b|
           if x.zero? || (x.is_a?(Float) && x.nan?)
             0
@@ -134,7 +134,7 @@ module TensorStream
           end
         }
 
-        call_op(:sign, inputs[0], context, func)
+        call_op(tensor, inputs[0], context, func)
       end
 
       register_op(:logical_and) do |context, tensor, inputs|
@@ -264,7 +264,7 @@ module TensorStream
           raise TensorStream::InvalidArgumentError, "#{message} Invalid argument" if t.nan? || t.infinite?
           t
         }
-        call_op(:check_numerics, inputs[0], context, f)
+        call_op(tensor, inputs[0], context, f)
       end
 
       def eval_operation(tensor, child_context)
@@ -409,8 +409,6 @@ module TensorStream
       def call_op(op, a, child_context, func)
         a = complete_eval(a, child_context)
         process_function_op(a, func)
-      rescue FullEvalNotPossible
-        TensorStream.send(op.to_sym, a)
       end
 
       def call_vector_op(tensor, op, a, b, child_context, func)

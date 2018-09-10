@@ -119,7 +119,9 @@ module TensorStream
             end
           end
 
-          TensorShape.reshape(output_buffer, new_shape)
+          res = TensorShape.reshape(output_buffer, new_shape)
+
+          TensorStream::Evaluator::OutputGroup.new(res)
         end
 
         register_op :squeeze do |_context, tensor, inputs|
@@ -282,7 +284,7 @@ module TensorStream
           value, num_split, axis = inputs
 
           value_shape = shape_eval(value)
-          if num_split.is_a?(Array)
+          res = if num_split.is_a?(Array)
             begin_index = 0
             num_split.collect do |num|
               end_index = begin_index + num
@@ -299,7 +301,7 @@ module TensorStream
               split_tensor(value, begin_index, end_index, axis)
             end
           end
-
+          TensorStream::Evaluator::OutputGroup.new(res)
         end
 
         register_op :reshape do |_context, _tensor, inputs|
