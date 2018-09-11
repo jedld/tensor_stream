@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] - 2018-09-11
+
+### Added
+- [TRAINING] Added RMSPropOptimizer, AdagradOptimizer
+- [NEW OP] shape_n, sparse_softmax_cross_entropy_with_logits, split, unstack
+- Added RNN sample
+  
+### Fixes
+- Fixed gradient computation when passing an array of tensors to a function
+- Added gradients for various other ops
+
 ## [0.8.5] - 2018-09-06
 
 ### Added
