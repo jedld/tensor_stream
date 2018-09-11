@@ -224,7 +224,7 @@ module TensorStream
       when :index
         input_shape = inputs[0].shape.shape
         return nil if input_shape.nil?
-        return input_shape[1, input_shape.size]
+        input_shape[1, input_shape.size]
       when :mean, :prod, :sum
         return [] if inputs[1].nil?
         return nil if inputs[0].nil?
@@ -235,7 +235,7 @@ module TensorStream
         axis = inputs[1].is_a?(Tensor) ? inputs[1].value : inputs[1]
 
         axis = [axis] unless axis.is_a?(Array)
-        return input_shape.each_with_index.map do |s, index|
+        input_shape.each_with_index.map do |s, index|
           next nil if axis.include?(index)
           s
         end.compact
@@ -246,27 +246,27 @@ module TensorStream
 
         input_shape = inputs[0].shape.shape
         return new_shape if input_shape.nil?
-
-        return TensorShape.fix_inferred_elements(new_shape, input_shape.reduce(:*))
+        return nil if input_shape.include?(nil)
+        TensorShape.fix_inferred_elements(new_shape, input_shape.reduce(:*))
       when :flow_group
-        return []
+        []
       when :zeros, :ones, :fill
-        return inputs[0] ? inputs[0].value : options[:shape]
+        inputs[0] ? inputs[0].value : options[:shape]
       when :zeros_like, :ones_like
         inputs[0].shape.shape
       when :shape
-        return inputs[0].shape.shape ? [inputs[0].shape.shape.size] : nil
+        inputs[0].shape.shape ? [inputs[0].shape.shape.size] : nil
       when :mat_mul
         shape1 = inputs[0].shape.shape.nil? ? nil : inputs[0].shape.shape[0]
         shape2 = inputs[1].shape.shape.nil? ? nil : inputs[1].shape.shape[1]
-        return [shape1, shape2]
+        [shape1, shape2]
       when :transpose
         return nil unless shape_full_specified(inputs[0])
         return nil if inputs[1].is_a?(Tensor)
 
         rank = inputs[0].shape.shape.size
         perm = inputs[1] || (0...rank).to_a.reverse
-        return perm.map { |p| inputs[0].shape.shape[p] }
+        perm.map { |p| inputs[0].shape.shape[p] }
       when :stack
         return nil unless shape_full_specified(inputs[0])
 
@@ -276,7 +276,7 @@ module TensorStream
         rank = inputs[0].shape.shape.size + 1
         axis = rank + axis if axis < 0
         rotated_shape = Array.new(axis + 1) { new_shape.shift }
-        return rotated_shape.rotate! + new_shape
+        rotated_shape.rotate! + new_shape
       when :concat
         return nil if inputs[0].value.nil?
 
@@ -293,18 +293,16 @@ module TensorStream
 
         new_shape = inputs[1].shape.shape.dup
         new_shape[axis] = axis_size
-        return new_shape
+        new_shape
       when :slice, :squeeze
-        return nil
+        nil
       when :tile
-        return nil
+        nil
       else
         return nil if inputs[0].nil?
         return inputs[0].shape.shape if inputs.size == 1
-        return TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape) if inputs.size == 2 && inputs[0] && inputs[1]
+        TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape) if inputs.size == 2 && inputs[0] && inputs[1]
       end
-
-      nil
     end
 
     def propagate_consumer(consumer)
