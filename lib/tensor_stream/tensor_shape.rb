@@ -59,6 +59,8 @@ module TensorStream
 
     def self.reshape(arr, new_shape)
       arr = arr.is_a?(Array) ? arr.flatten : [arr]
+
+      new_shape = TensorShape.fix_inferred_elements(new_shape, arr.size)
       return arr[0] if arr.size == 1 && new_shape.empty?
 
       new_shape = new_shape.dup

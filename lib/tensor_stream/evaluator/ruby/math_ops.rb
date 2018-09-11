@@ -62,7 +62,7 @@ module TensorStream
 
         register_op :mul, no_eval: true do |context, tensor, inputs|
           a, b = inputs
-          call_vector_op(tensor, :mul, a, b, context, ->(t, u) { binding.pry if t.nil? ; t * u })
+          call_vector_op(tensor, :mul, a, b, context, ->(t, u) { t * u })
         end
 
         register_op :pow, no_eval: true do |context, tensor, inputs|

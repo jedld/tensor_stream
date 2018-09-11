@@ -14,9 +14,14 @@ module TensorStream
     def slice_tensor(input, start, size)
       return input if size.empty?
       start_index = start.shift
-      dimen_size = start_index + size.shift
+      current_size = size.shift
+      dimen_size = if current_size == -1
+        input.size - 1
+      else
+        start_index + current_size - 1
+      end
 
-      input[start_index...dimen_size].collect do |item|
+      input[start_index..dimen_size].collect do |item|
         if item.is_a?(Array)
           slice_tensor(item, start.dup, size.dup)
         else

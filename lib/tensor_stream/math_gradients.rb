@@ -413,7 +413,7 @@ module TensorStream
       slicer = ts.slice(ts.stack(sizes, axis: 1), [non_neg_concat_dim, 0], [1, -1])
       sizes = ts.squeeze(slicer)
 
-      out_grads = ts.split(grad, sizes, axis: non_neg_concat_dim, num: input_values.size)
+      out_grads = ts.split(grad, sizes, axis: non_neg_concat_dim, num: op.inputs.size - 1)
       end_value_index <= dim_index ? out_grads + [nil] : [nil] + out_grads
     end
   end

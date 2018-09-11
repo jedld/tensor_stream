@@ -3,10 +3,10 @@
 # Ruby port Example based on article by Erik Hallström
 # https://medium.com/@erikhallstrm/hello-world-rnn-83cd7105b767
 #
+#
 
 require "bundler/setup"
 require 'tensor_stream'
-require 'pry-byebug'
 
 tf = TensorStream
 
@@ -18,15 +18,17 @@ num_classes = 2
 echo_step = 3
 batch_size = 5
 num_batches = total_series_length / batch_size / truncated_backprop_length
+randomizer = TensorStream.random_uniform([total_series_length], minval: 0, maxval: 2)
 
-def generate_data(total_series_length, batch_size, echo_step)
-  x = TensorStream.random_uniform([total_series_length], minval: 0, maxval: 2).eval
+
+def generate_data(randomizer, total_series_length, batch_size, echo_step)
+  x = randomizer.eval
   y = x.rotate(-echo_step)
 
   y[echo_step] = 0
 
-  x = TensorStream.reshape(x, [batch_size, -1]).eval  # The first index changing slowest, subseries as rows
-  y = TensorStream.reshape(y, [batch_size, -1]).eval
+  x = TensorStream::TensorShape.reshape(x, [batch_size, -1])  # The first index changing slowest, subseries as rows
+  y = TensorStream::TensorShape.reshape(y, [batch_size, -1])
   [x, y]
 end
 
@@ -73,12 +75,12 @@ total_loss = tf.reduce_mean(losses)
 train_step = TensorStream::Train::AdagradOptimizer.new(0.3).minimize(total_loss)
 
 puts "#{tf.get_default_graph.nodes.keys.size} nodes created"
-zeros = tf.zeros([batch_size, state_size])
+zeros_state = tf.zeros([batch_size, state_size]).eval
 tf.session do |sess|
   sess.run(tf.global_variables_initializer)
   (0..num_epochs).each do |epoch_idx|
-    x, y = generate_data(total_series_length, batch_size, echo_step)
-    _current_state = zeros.eval
+    x, y = generate_data(randomizer, total_series_length, batch_size, echo_step)
+    _current_state = zeros_state
     print("New data, epoch", epoch_idx, "\n")
     (0..num_batches - 1).each do |batch_idx|
       start_idx = batch_idx * truncated_backprop_length

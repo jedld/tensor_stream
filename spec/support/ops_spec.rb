@@ -191,6 +191,23 @@ RSpec.shared_examples "standard ops evaluator" do
       g = tf.gradients(f, [t1, t2])
       expect(sess.run(g)).to eq([[[1, 1, 1], [1, 1, 1]], [[1, 1, 1], [1, 1, 1]]])
     end
+
+    specify "gradients axis = 1" do
+        a =  tf.constant([[0.45260], [1.39886], [1.15575], [1.01626], [1.2931]])
+        b =  tf.constant([[0.98110, 0.89241, 0.97577, 0.98930],
+                          [0.99664, 0.910691, 0.9951, 0.99716],
+                          [0.97731, 0.88767, 0.971237, 0.98738],
+                          [0.99217, 0.90281, 0.98931, 0.994612],
+                          [0.98885, 0.89990, 0.985201, 0.99300]])
+        f = tf.concat([a, b], 1)
+        g = tf.gradients(f, [a, b])
+        expect(sess.run(g)).to eq([[[1.0],[1.0],[1.0],[1.0],[1.0]],
+          [[1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0]]])
+    end
   end
 
   supported_op ".reshape" do
@@ -818,6 +835,12 @@ z = tf.constant([[8, 9],[10, 11]])
     it "1D tensor slicing" do
       t  = tf.constant([1,2,3,4,5,6,7])
       expect(sess.run(tf.slice(t, [2], [1]))).to eq([3])
+    end
+
+    it "negative sizes" do
+      a = tf.constant([[5, 5], [1, 4]])
+      f = tf.slice(a, [1, 0], [1, -1])
+      expect(sess.run(f)).to eq([[1, 4]])
     end
   end
 

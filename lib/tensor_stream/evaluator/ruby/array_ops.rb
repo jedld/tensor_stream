@@ -7,6 +7,7 @@ module TensorStream
           start = inputs[1]
           size = complete_eval(tensor.options[:size], context)
           raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
+
           slice_tensor(input, start.dup, size.dup)
         end
 
@@ -312,7 +313,6 @@ module TensorStream
           if new_shape.size.zero? && flat_arr.size == 1
             flat_arr[0]
           else
-            new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
             TensorShape.reshape(flat_arr, new_shape)
           end
         end
