@@ -1,3 +1,4 @@
+
 module TensorStream
   # module that contains helper functions useful for ops
   module OpHelper

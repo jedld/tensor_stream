@@ -5,9 +5,9 @@ module TensorStream
 
       ##
       # Helper function for creating a slot variable.
-      def create_slot_var(primary, val, scope)
-        slot = get_variable(scope, initializer: val, trainable: false,
-                                                  validate_shape: val.shape.is_fully_defined?)
+      def create_slot_var(primary, val, scope, shape)
+        slot = get_variable(scope, initializer: val, trainable: false, shape: shape,
+                                                  validate_shape: val.shape && val.shape.known?)
         slot
       end
 
@@ -24,13 +24,18 @@ module TensorStream
       # Returns: A `Variable` object
       def create_slot(primary, val, name, colocate_with_primary: true)
         TensorStream.variable_scope(nil, primary.op.name + "/" + name) do
-          if colocate_with_primary
-            TensorStream.colocate_with(primary) do
-              return create_slot_var(primary, val, "")
-            end
-          else
-            return create_slot_var(primary, val, "")
+          return create_slot_var(primary, val, "", nil) if colocate_with_primary
+
+          TensorStream.colocate_with(primary) do
+            return create_slot_var(primary, val, "", nil)
           end
+        end
+      end
+
+      def create_slot_with_initializer(primary, initializer, shape, dtype, name, colocate_with_primary: true)
+        prefix = primary.op.name
+        TensorStream.variable_scope(nil, prefix + "/" + name) do
+          create_slot_var(primary, initializer, "", shape.shape)
         end
       end
 

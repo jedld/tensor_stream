@@ -25,8 +25,55 @@ module TensorStream
         logits = tf.convert_to_tensor(logits, name: 'logits')
         labels = tf.convert_to_tensor(labels, name: 'labels')
         labels = tf.cast(labels, logits.dtype)
+
         output = _op(:softmax_cross_entropy_with_logits_v2, logits, labels)
         output[0]
+      end
+    end
+
+    def self.sparse_softmax_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
+      TensorStream.name_scope(name, default: "SparseSoftmaxCrossEntropyWithLogits", values: [logits, labels]) do
+        tf = TensorStream
+        labels = tf.convert_to_tensor(labels)
+        logits = tf.convert_to_tensor(logits)
+        precise_logits = logits.data_type == :float16 ? tf.cast(logits, :float32) : logits
+
+        labels_static_shape = labels.shape
+        labels_shape = tf.shape(labels)
+        static_shapes_fully_defined = labels_static_shape.known? && logits.shape.known?
+
+        raise TensorStream::ValueError, "Logits cannot be scalars - received shape #{logits.shape.shape}." if logits.shape.known? && logits.shape.scalar?
+        raise TensorStream::ValueError, "Rank mismatch: Rank of labels (received #{labels_static_shape.ndims}) " +
+          "should equal rank of logits minus 1 (received #{logits.shape.ndims})." if logits.shape.known? && (labels_static_shape.known? && labels_static_shape.ndims != logits.shape.ndims - 1)
+
+        if logits.shape.ndims == 2
+          cost = _op(:sparse_softmax_cross_entropy_with_logits,
+              precise_logits, labels, name: name)
+          if logits.data_type == :float16
+            return tf.cast(cost[0], :float16)
+          else
+            return cost[0]
+          end
+        end
+
+        shape_checks = []
+        if !static_shapes_fully_defined
+          shape_checks << tf.append(tf.assert_equal(tf.rank(labels), tf.rank(logits) - 1))
+        end
+
+        tf.control_dependencies(shape_checks) do
+          num_classes = tf.shape(logits)[tf.rank(logits) - 1]
+          precise_logits = tf.reshape(precise_logits, [-1, num_classes])
+          labels = array_ops.reshape(labels, [-1])
+          cost = _op(:sparse_softmax_cross_entropy_with_logits, precise_logits, labels, name: name)
+          cost = tf.reshape(cost[0], labels_shape)
+
+          if logits.data_type == :float16
+            tf.cast(cost, :float16)
+          else
+            cost
+          end
+        end
       end
     end
 

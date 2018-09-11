@@ -67,6 +67,23 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  context ".sparse_softmax_cross_entropy_with_logits" do
+    it "Computes softmax cross entropy between logits and labels" do
+      outputs = tf.constant([[0.789757, 0.605936], [0.285, 0.21685], [1.3821, 1.08949], [1.4441, 1.14361], [1.2160, 0.9489]])
+      labels = tf.constant([1, 1, 1, 1, 0])
+      f = tf.nn.sparse_softmax_cross_entropy_with_logits(logits: outputs, labels: labels)
+      expect(tr(sess.run(f))).to eq([0.7893, 0.7278, 0.8501, 0.8546, 0.5685])
+    end
+
+    specify "gradients" do
+      outputs = tf.constant([[0.789757, 0.605936], [0.285, 0.21685], [1.3821, 1.08949], [1.4441, 1.14361], [1.2160, 0.9489]])
+      labels = tf.constant([1, 1, 1, 1, 0])
+      f = tf.nn.sparse_softmax_cross_entropy_with_logits(logits: outputs, labels: labels)
+      g = tf.gradients(f, [outputs])
+      expect(tr(sess.run(g))).to eq([[[0.5458, -0.5458], [0.517, -0.517], [0.5726, -0.5726], [0.5746, -0.5746], [-0.4336, 0.4336]]])
+    end
+  end
+
   context ".log_softmax" do
     specify "computes for the log softmax" do
       logits = tf.constant([-2046.4904911315384, 2371.594564592362, -1920.025585664249, 266.06257844862205, 570.1462458227674, 2290.6715733914048, 1396.0319189271745, -2750.277642111798, 1758.5654697551304, 3116.9786057465503])
@@ -150,8 +167,11 @@ RSpec.shared_examples "standard ops evaluator" do
     it "Concatenates tensors along one dimension." do
       t1 = [[1, 2, 3], [4, 5, 6]]
       t2 = [[7, 8, 9], [10, 11, 12]]
-      expect(sess.run(tf.concat([t1, t2], 0))).to eq([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
-      expect(sess.run(tf.concat([t1, t2], 1))).to eq([[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]])
+      f1 = tf.concat([t1, t2], 0)
+      f2 = tf.concat([t1, t2], 1)
+
+      expect(sess.run(f1)).to eq([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+      expect(sess.run(f2)).to eq([[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]])
     end
 
     it "negative axis" do
@@ -162,6 +182,31 @@ RSpec.shared_examples "standard ops evaluator" do
         [ 2,  3,  8,  4]],
        [[ 4,  4,  2, 10],
         [ 5,  3, 15, 11]]])
+    end
+
+    specify "gradients" do
+      t1 = tf.constant([[1, 2, 3], [4, 5, 6]])
+      t2 = tf.constant([[7, 8, 9], [10, 11, 12]])
+      f = tf.concat([t1, t2], 0)
+      g = tf.gradients(f, [t1, t2])
+      expect(sess.run(g)).to eq([[[1, 1, 1], [1, 1, 1]], [[1, 1, 1], [1, 1, 1]]])
+    end
+
+    specify "gradients axis = 1" do
+        a =  tf.constant([[0.45260], [1.39886], [1.15575], [1.01626], [1.2931]])
+        b =  tf.constant([[0.98110, 0.89241, 0.97577, 0.98930],
+                          [0.99664, 0.910691, 0.9951, 0.99716],
+                          [0.97731, 0.88767, 0.971237, 0.98738],
+                          [0.99217, 0.90281, 0.98931, 0.994612],
+                          [0.98885, 0.89990, 0.985201, 0.99300]])
+        f = tf.concat([a, b], 1)
+        g = tf.gradients(f, [a, b])
+        expect(sess.run(g)).to eq([[[1.0],[1.0],[1.0],[1.0],[1.0]],
+          [[1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0]]])
     end
   end
 
@@ -241,6 +286,13 @@ RSpec.shared_examples "standard ops evaluator" do
 
     specify do
       expect(tr(sess.run(tf.reshape([ 1.7226844, -0.0204582], [2])))).to eq([1.7227, -0.0205])
+    end
+
+    specify "gradients" do
+      t = tf.constant([[1],[1],[1],[1]])
+      f = tf.reshape(t, [4])
+      g = tf.gradients(f, [t])
+      expect(sess.run(g)).to eq([[[1], [1], [1], [1]]])
     end
   end
 
@@ -557,15 +609,68 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(tf.stack([x, y], axis: 3))).to eq([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
     end
 
-    xspecify "gradients" do
-      x = tf.constant([[0, 1],[2, 3]])
-      y = tf.constant([[4, 5],[6, 7]])
-      z = tf.constant([[8, 9],[10, 11]])
+    specify "gradients" do
+x = tf.constant([[0, 1],[2, 3]])
+y = tf.constant([[4, 5],[6, 7]])
+z = tf.constant([[8, 9],[10, 11]])
       f = tf.stack([x, y, z])
       g = tf.gradients(f, [x, y, z])
-      expect(sess.run(g)).to eq([])
+      expect(sess.run(g)).to eq([[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]])
     end
   end
+
+  supported_op ".unstack" do
+    specify "scalar" do
+      a = tf.constant([1, 2, 3])
+      x, y, z = tf.unstack(a)
+      expect(sess.run(x)).to eq(1)
+      expect(sess.run(y)).to eq(2)
+      expect(sess.run(z)).to eq(3)
+    end
+
+    specify "rank = 2 && axis == 0" do
+      a = tf.constant([[0, 3], [1, 4], [2, 5]])
+      x, y, z = tf.unstack(a)
+      expect(sess.run(x)).to eq([0, 3])
+      expect(sess.run(y)).to eq([1, 4])
+      expect(sess.run(z)).to eq([2, 5])
+    end
+
+    specify "rank == 3 && axis == 1" do
+      # axis = 1
+      a = tf.constant([[[ 0,  1],[ 4,  5],[ 8,  9]],[[ 2,  3],[ 6,  7],[10, 11]]])
+      x, y, z = tf.unstack(a, axis: 1)
+      expect(sess.run(x)).to eq([[0, 1],[2, 3]])
+      expect(sess.run(y)).to eq([[4, 5],[6, 7]])
+      expect(sess.run(z)).to eq([[8, 9],[10, 11]])
+    end
+
+    specify "rank == 3 && axis == 2" do
+      a = tf.constant([[[[0, 1], [8, 9]], [[2, 3], [10, 11]]], [[[4, 5], [12, 13]], [[6, 7], [14, 15]]]])
+      x, y = tf.unstack(a, axis: 2)
+
+      expect(sess.run(x)).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
+      expect(sess.run(y)).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+    end
+
+    specify "rank == 3 && axis == 3" do
+      a = tf.constant([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
+      x, y = tf.unstack(a, axis: 3)
+
+      expect(sess.run(x)).to eq([[[0, 1],[2, 3]], [[4, 5],[6, 7]]])
+      expect(sess.run(y)).to eq([[[8, 9],[10, 11]], [[12, 13],[14, 15]]])
+    end
+
+    specify "gradients" do
+      a = tf.constant([[[[0, 8], [1, 9]], [[2, 10], [3, 11]]], [[[4, 12], [5, 13]], [[6, 14], [7, 15]]]])
+      x, y = tf.unstack(a, axis: 3)
+      g = tf.gradients(x, [a])
+      expect(sess.run(g)).to eq([[[[[1, 0], [1, 0]], [[1, 0], [1, 0]]], [[[1, 0], [1, 0]], [[1, 0], [1, 0]]]]])
+      g = tf.gradients(y, [a])
+      expect(sess.run(g)).to eq([[[[[0, 1], [0, 1]], [[0, 1], [0, 1]]], [[[0, 1], [0, 1]], [[0, 1], [0, 1]]]]])
+    end
+  end
+
 
   context "combination of functions" do
     it "add two operation together" do
@@ -731,6 +836,12 @@ RSpec.shared_examples "standard ops evaluator" do
       t  = tf.constant([1,2,3,4,5,6,7])
       expect(sess.run(tf.slice(t, [2], [1]))).to eq([3])
     end
+
+    it "negative sizes" do
+      a = tf.constant([[5, 5], [1, 4]])
+      f = tf.slice(a, [1, 0], [1, -1])
+      expect(sess.run(f)).to eq([[1, 4]])
+    end
   end
 
   supported_op ".rank" do
@@ -744,6 +855,32 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(rank1)).to eq(3)
       expect(sess.run(rank2)).to eq(0)
       expect(sess.run(rank3)).to eq(1)
+    end
+  end
+
+  supported_op ".split" do
+    it "splits tensors into equal portions" do
+      t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      x, y = tf.split(t1, 2)
+
+      expect(sess.run(x)).to eq([[[1, 1, 1], [2, 2, 2]]])
+      expect(sess.run(y)).to eq([[[3, 3, 3], [4, 4, 4]]])
+    end
+
+    it "splits tensors into equal portions" do
+      t1 = tf.constant([[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]])
+      x, y, z = tf.split(t1, 3, axis: 2)
+      expect(sess.run(x)).to eq([[[1], [1]], [[1], [1]]])
+      expect(sess.run(y)).to eq([[[2], [2]], [[2], [2]]])
+      expect(sess.run(z)).to eq([[[3], [3]], [[3], [3]]])
+    end
+
+    it "splits tensors into equal portions" do
+      t1 = tf.constant([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+      x, y, z = tf.split(t1, [2, 5, 3])
+      expect(sess.run(x)).to eq([1, 2])
+      expect(sess.run(y)).to eq([3, 4, 5, 6, 7])
+      expect(sess.run(z)).to eq([8, 9, 10])
     end
   end
 
@@ -889,7 +1026,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  supported_op ".random_uniform_initializer" do
+  context ".random_uniform_initializer" do
     it "initializes variables using the random uniform initializer" do
       tf.set_random_seed(1234)
       u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.random_uniform_initializer)
@@ -898,11 +1035,19 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  supported_op ".zeros_initializer" do
+  context ".zeros_initializer" do
     specify do
       u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.zeros_initializer)
       sess.run(tf.global_variables_initializer)
       expect(tr(sess.run(u))).to eq(0.0)
+    end
+  end
+
+  context ".ones_initializer" do
+    specify do
+      u = tf.get_variable('v', shape: [], dtype: :float32, initializer: tf.ones_initializer)
+      sess.run(tf.global_variables_initializer)
+      expect(tr(sess.run(u))).to eq(1.0)
     end
   end
 
@@ -1913,6 +2058,12 @@ end
       expect(sess.run(f)).to eq([1, 1, 2, 3])
     end
 
+    it "squeeze [1,1]" do
+      a = tf.constant([[2]])
+      f = tf.squeeze(a)
+      expect(sess.run(f)).to eq(2)
+    end
+
     it "squeeze only specific axis" do
       a = tf.constant([[
         [
@@ -1928,6 +2079,13 @@ end
       expect(sess.run(f)).to eq([[[[1], [1], [2], [3]], [[1], [1], [2], [3]]], [[[1], [1], [2], [3]], [[1], [1], [2], [3]]]])
       f = tf.squeeze(a, axis: 4)
       expect(sess.run(f)).to eq([[[[1, 1, 2, 3], [1, 1, 2, 3]]], [[[1, 1, 2, 3], [1, 1, 2, 3]]]])
+    end
+
+    specify "gradients" do
+      a = tf.constant([[1],[1],[2],[3]])
+      f = tf.squeeze(a)
+      g = tf.gradients(f, [a])
+      expect(sess.run(g)).to eq([[[1], [1], [1], [1]]])
     end
   end
 end

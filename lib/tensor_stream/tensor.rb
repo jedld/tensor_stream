@@ -27,9 +27,7 @@ module TensorStream
           # check if single dimenstion array is passed
           options[:value] = reshape(options[:value], shape.reverse.dup) if shape.size >= 2 && !options[:value].empty? && !options[:value][0].is_a?(Array)
 
-          @value = options[:value].collect do |v|
-            v.is_a?(Tensor) ? Tensor.cast_dtype(v, @data_type) : v
-          end
+          @value = options[:value].map { |v| v.is_a?(Tensor) ? Tensor.cast_dtype(v, @data_type) : v }
         elsif !shape.empty?
           @value = reshape(Tensor.cast_dtype(options[:value], @data_type), shape.dup)
         else
@@ -88,8 +86,7 @@ module TensorStream
     end
 
     def %(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:mod, self, TensorStream.convert_to_tensor(other, dtype: data_type))
+      TensorStream.mod(self, other)
     end
 
     def floor
@@ -292,8 +289,8 @@ module TensorStream
     end
 
     def add_consumer(consumer)
-      @consumers ||= []
-      @consumers << consumer.name if !@consumers.include?(consumer.name) && consumer.name != name
+      @consumers ||= Set.new
+      @consumers << consumer.name if consumer.name != name
     end
 
     def setup_output(consumer)

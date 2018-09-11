@@ -10,7 +10,7 @@ module TensorStream
 
     def self.derivative(tensor, wrt_dx, options = {})
       return i_op(:ones_like, tensor) if tensor.equal?(wrt_dx)
-      return i_op(:zeros_like, tensor) unless wrt_dx.consumers.include?(tensor.name)
+      return i_op(:zeros_like, wrt_dx) unless wrt_dx.consumers.include?(tensor.name)
 
       nodes_to_compute = wrt_dx.consumers.select do |t|
         node = tensor.graph.nodes[t]
@@ -30,12 +30,15 @@ module TensorStream
       computed_op = _compute_derivative(tensor, grad)
 
       if computed_op.is_a?(Array)
-        computed_op.each_with_index.collect do |op_grad, index|
+        grads = computed_op.each_with_index.collect do |op_grad, index|
           next if op_grad.nil?
           next unless nodes_to_compute.include?(tensor.inputs[index].name)
 
           _propagate(op_grad, tensor.inputs[index], stop_tensor, nodes_to_compute, stop_gradients)
-        end.compact.reduce(:+)
+        end.compact
+
+        return nil if grads.empty?
+        grads.size > 1 ? ts.add_n(grads) : grads[0]
       else
         return nil if computed_op.nil?
         _propagate(computed_op, tensor.inputs[0], stop_tensor, nodes_to_compute, stop_gradients)
@@ -260,7 +263,11 @@ module TensorStream
           i_op(:softmax_grad, x, grad)
         when :softmax_cross_entropy_with_logits_v2
           output = node
-          [_broadcast_mul(grad, output[1]), nil]
+          logits = node.inputs[0]
+          [_broadcast_mul(grad, output[1]), -ts.nn.log_softmax(logits)]
+        when :sparse_softmax_cross_entropy_with_logits
+          output = node
+           [_broadcast_mul(grad, output[1]), nil]
         when :floor, :ceil
           # non differentiable
           nil
@@ -273,11 +280,49 @@ module TensorStream
         when :transpose
           return [ts.transpose(grad, ts.invert_permutation(y)), nil]
         when :index
-          grad
+          #hack!! not sure how to fix this yet
+          return grad if %i[softmax_cross_entropy_with_logits_v2 sparse_softmax_cross_entropy_with_logits].include?(node.inputs[0].operation)
+
+          if node.inputs[0].shape.known? && node.inputs[1].value
+            multiplier = node.inputs[0].shape.shape[0]
+            filler = ts.zeros_like(grad)
+
+            res = Array.new(multiplier) { |index|
+              index == node.inputs[1].value ? grad : filler
+            }
+            [res]
+          end
+        when :squeeze
+          _reshape_to_input(node, grad)
+        when :expand_dims
+          [_reshape_to_input(node, grad), nil]
+        when :concat
+          _concat_grad_helper(node, grad, 1, node.inputs.size, 0)
+        when :reshape
+          [ts.reshape(grad, ts.shape(node.inputs[0])), nil]
+        when :stack
+          res = ts.unstack(grad, num: node.inputs.size, axis: node.options[:axis])
+          Array.new(node.inputs.size) { |i| res[i] }
+        when :unstack
+          ts.stack(grad, axis: node.options[:axis])
+        when :cast
+          t = %i[float16 float32 float64]
+          src_type = node.inputs[0].data_type
+          dst_type = grad.data_type
+
+          if t.key?(src_type) && t.key?(dst_type)
+            ts.cast(grad, src_type)
+          else
+            nil
+          end
         else
           raise "no derivative op for #{node.operation}"
         end
       end
+    end
+
+    def self._reshape_to_input(node, grad)
+      ts.reshape(grad, ts.shape(node.inputs[0]))
     end
 
     def self._broadcast_gradient_args(input_a, input_b)
@@ -334,6 +379,42 @@ module TensorStream
     def self._include?(arr, obj)
       arr.each { |a| return true if a.equal?(obj) }
       false
+    end
+
+    def self._extract_input_shapes(inputs)
+      sizes = []
+      fully_known = true
+      inputs.each do |x|
+        input_shape = ts.shape(x)
+        unless input_shape.is_const
+          fully_known = false
+          break
+        end
+        sizes << input_shape.value
+      end
+
+      if fully_known
+        sizes
+      else
+        ts.shape_n(inputs)
+      end
+    end
+
+    def self._concat_grad_helper(op, grad, start_value_index, end_value_index, dim_index)
+      # Degenerate concatenation, just return grad.
+      if op.inputs.size == 2
+        return end_value_index <= dim_index ? [grad] + [nil] : [nil] + [grad]
+      end
+      concat_dim = op.inputs[dim_index]
+      input_values = op.inputs[start_value_index..end_value_index]
+      non_neg_concat_dim = concat_dim % ts.rank(input_values[0])
+      sizes = _extract_input_shapes(input_values)
+
+      slicer = ts.slice(ts.stack(sizes, axis: 1), [non_neg_concat_dim, 0], [1, -1])
+      sizes = ts.squeeze(slicer)
+
+      out_grads = ts.split(grad, sizes, axis: non_neg_concat_dim, num: op.inputs.size - 1)
+      end_value_index <= dim_index ? out_grads + [nil] : [nil] + out_grads
     end
   end
 end

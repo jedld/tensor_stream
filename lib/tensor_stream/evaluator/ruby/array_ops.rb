@@ -7,7 +7,8 @@ module TensorStream
           start = inputs[1]
           size = complete_eval(tensor.options[:size], context)
           raise "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
-          slice_tensor(input, start, size)
+
+          slice_tensor(input, start.dup, size.dup)
         end
 
         register_op %i[flow_dynamic_stitch dynamic_stitch] do |_context, _tensor, inputs|
@@ -22,8 +23,9 @@ module TensorStream
           gather(params, indexes)
         end
 
-        register_op %i[concat concat_v2] do |_context, tensor, inputs|
-          concat_array(inputs, tensor.options[:axis])
+        register_op %i[concat concat_v2] do |_context, _tensor, inputs|
+          axis = inputs.shift
+          concat_array(inputs, axis)
         end
 
         register_op :stack do |_context, tensor, inputs|
@@ -74,6 +76,55 @@ module TensorStream
           TensorShape.reshape(output_buffer, new_shape)
         end
 
+        register_op :unstack do |_context, tensor, inputs|
+          value = inputs[0]
+
+          axis = tensor.options[:axis] || 0
+          new_shape = shape_eval(inputs[0])
+          rank = new_shape.size - 1
+
+          divisors = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+            a << s * a.last
+          end.reverse
+
+          axis = rank + axis if axis < 0
+          rotated_shape = Array.new(axis + 1) { new_shape.shift }
+          new_shape = rotated_shape.rotate!(-1) + new_shape
+          output_buffer = Array.new(new_shape.reduce(:*)) { 0 }
+
+          multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+            a << s * a.last
+          end.reverse
+
+          inputs.each_with_index do |input, index|
+            raw_input = input.is_a?(Array) ? input.flatten : [input]
+            start = index * divisors.first
+
+            raw_input.each_with_index do |x, index2|
+              index_map = []
+              ptr = start + index2
+              divisors.each_with_object(index_map) do |div, a|
+                a << (ptr / div.to_f).floor
+                ptr = ptr % div
+              end
+
+              rotated_index = Array.new(axis + 1) { index_map.shift }
+              index_map = rotated_index.rotate!(-1) + index_map
+
+              ptr2 = 0
+              multipliers.each_with_index do |m, idx|
+                ptr2 += index_map[idx] * m
+              end
+
+              output_buffer[ptr2] = x
+            end
+          end
+
+          res = TensorShape.reshape(output_buffer, new_shape)
+
+          TensorStream::Evaluator::OutputGroup.new(res)
+        end
+
         register_op :squeeze do |_context, tensor, inputs|
           val = inputs[0]
           shape = shape_eval(val)
@@ -81,10 +132,9 @@ module TensorStream
           axis = !tensor.options[:axis].is_a?(Array) ? [tensor.options[:axis]] : tensor.options[:axis]
 
           if !axis.empty?
-            
             axis.each do |axis|
               if shape[axis] == 1
-                shape[axis] = nil 
+                shape[axis] = nil
               else
                 raise TensorStream::ValueError, "unable to squeeze dimension that does not have a size of 1"
               end
@@ -93,7 +143,7 @@ module TensorStream
             shape = shape.map { |s| s == 1 ? nil : s }
           end
 
-          TensorShape.reshape(val.flatten, shape.compact)
+          TensorShape.reshape(val, shape.compact)
         end
 
         register_op :expand_dims do |_context, _tensor, inputs|
@@ -105,7 +155,7 @@ module TensorStream
 
           new_shape = shape.dup.insert(axis, 1).compact
 
-          TensorShape.reshape([val].flatten, new_shape)
+          TensorShape.reshape([val], new_shape)
         end
 
         register_op :fill do |_context, _tensor, inputs|
@@ -207,7 +257,6 @@ module TensorStream
                  else
                    -> { int_type?(tensor.data_type) ? 1 : 1.0 }
                  end
-
           if shape.is_a?(Array) && shape.size.zero?
             func.call
           else
@@ -232,16 +281,38 @@ module TensorStream
           get_rank(inputs[0])
         end
 
+        register_op :split  do |context, tensor, inputs|
+          value, num_split, axis = inputs
+
+          value_shape = shape_eval(value)
+          res = if num_split.is_a?(Array)
+            begin_index = 0
+            num_split.collect do |num|
+              end_index = begin_index + num
+              arr = split_tensor(value, begin_index, end_index, axis)
+              begin_index = end_index
+              arr
+            end
+          else
+            raise TensorStream::ValueError, "#{num_split} does not divide #{value_shape[axis]} evenly" if value_shape[axis] % num_split != 0
+            piece_sizes = value_shape[axis] / num_split
+            Array.new(num_split) do |num|
+              begin_index = num * piece_sizes
+              end_index = begin_index + piece_sizes
+              split_tensor(value, begin_index, end_index, axis)
+            end
+          end
+          TensorStream::Evaluator::OutputGroup.new(res)
+        end
+
         register_op :reshape do |_context, _tensor, inputs|
           arr, new_shape = inputs
-
           arr = [arr] unless arr.is_a?(Array)
 
           flat_arr = arr.flatten
           if new_shape.size.zero? && flat_arr.size == 1
             flat_arr[0]
           else
-            new_shape = TensorShape.fix_inferred_elements(new_shape, flat_arr.size)
             TensorShape.reshape(flat_arr, new_shape)
           end
         end
@@ -275,6 +346,17 @@ module TensorStream
         register_op %i[select where] do |context, tensor, inputs|
           pred = complete_eval(tensor.options[:pred], context)
           call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
+        end
+
+        register_op :shape do |_context, tensor, inputs|
+          shape_eval(inputs[0], tensor.options[:out_type])
+        end
+
+        register_op :shape_n do |_context, _tensor, inputs|
+          shapes = inputs.collect do |input|
+            shape_eval(input)
+          end
+          TensorStream::Evaluator::OutputGroup.new(shapes)
         end
       end
     end

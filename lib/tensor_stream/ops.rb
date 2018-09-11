@@ -1,6 +1,11 @@
 module TensorStream
   # Class that defines all available ops supported by TensorStream
   module Ops
+    class OutputHolder
+      def initialize(op)
+        @op = op
+      end
+    end
     FLOATING_POINT_TYPES = %i[float32 float64 float].freeze
     INTEGER_TYPES = %i[uint8 int32 int int64].freeze
     NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
@@ -94,10 +99,29 @@ module TensorStream
     ##
     # This operation returns a 1-D integer tensor representing the shape of input
     def shape(input, name: nil, out_type: :int32)
-      return constant(shape_eval(input, out_type), dtype: out_type, name: name) if input.is_a?(Array)
+      return constant(shape_eval(input, out_type), dtype: out_type, name: name) if input.is_a?(Array) && !input[0].is_a?(Tensor)
       return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}") if shape_full_specified(input)
 
-      _op(:shape, input, nil, name: name, out_type: out_type)
+      _op(:shape, input, name: name, out_type: out_type)
+    end
+
+    def shape_n(inputs, name: nil, out_type: :int32)
+      shapes_known = true
+      inputs.each do |input|
+        unless input.shape.known?
+          shapes_known = false
+          break
+        end
+      end
+
+      if shapes_known
+        inputs.collect { |input| cons(input.shape.shape dtype: out_type) }
+      else
+        res = _op(:shape_n, *inputs, out_type: out_type, name: name)
+        Array.new(inputs.size) do |index|
+          res[index]
+        end
+      end
     end
 
     ##
@@ -113,13 +137,28 @@ module TensorStream
     ##
     # Returns the rank of a tensor.
     def rank(input, name: nil)
+      input = convert_to_tensor(input)
+      return cons(input.shape.ndims) if input.shape.known?
+
       _op(:rank, input, name: name)
+    end
+
+    def constant_initializer(value, dtype: nil, verify_shape: false)
+      TensorStream::Initializer.new(-> { convert_to_tensor(value, dtype: dtype) })
     end
 
     ##
     # initializer that generates tensors initialized to 0.
-    def zeros_initializer(dtype: nil)
+    #
+    def zeros_initializer(dtype: :float32)
       TensorStream::Initializer.new(-> { _op(:zeros, nil, nil, data_type: dtype) })
+    end
+
+    ##
+    # initializer that generates tensors initialized to 1.
+    #
+    def ones_initializer(dtype: :float32)
+      TensorStream::Initializer.new(-> { _op(:ones, nil, nil, data_type: dtype) })
     end
 
     ##
@@ -246,7 +285,62 @@ module TensorStream
     ##
     # Concatenates tensors along one dimension.
     def concat(values, axis, name: 'concat')
-      _op(:concat, *values, axis: axis, name: name)
+      if values.is_a?(Array)
+        _op(:concat, axis, *values, name: name)
+      else
+        _op(:concat, axis, values, name: name)
+      end
+    end
+
+    def split(value, num_or_size_splits, axis: 0, num: nil, name: 'split')
+      value = convert_to_tensor(value)
+      num_or_size_splits = convert_to_tensor(num_or_size_splits)
+      axis = convert_to_tensor(axis)
+
+      raise TensorStream::ValueError, "num_or_size_splits must be integer dtype" unless INTEGER_TYPES.include?(num_or_size_splits.data_type)
+
+      res = _op(:split, value, num_or_size_splits, axis, name: name)
+
+      pieces = if value.shape.known? && num_or_size_splits.is_const && num_or_size_splits.value && axis.is_const
+                  if num_or_size_splits.shape.scalar?
+                    raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless value.shape.shape[axis.value] % num_or_size_splits.value == 0
+                    div = num_or_size_splits.value
+                    n = value.shape.shape[axis.value] / div
+
+                    Array.new(div) { |i|
+                      new_shape = value.shape.shape.dup
+                      new_shape[axis.value] = n
+                      new_shape
+                    }
+                  elsif num_or_size_splits.shape.ndims == 1
+                    raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{ num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
+                    num_or_size_splits.value.collect do |v|
+                      new_shape = value.shape.shape.dup
+                      new_shape[axis.value] = v
+                      new_shape
+                    end
+                  else
+                    raise TensorStream::ValueError, "Scalar or 1D Tensor expected for num_or_size_splits"
+                  end
+                else
+                  raise TensorStream::ValueError, "Cannot automatically determine num, please specify num: in options" if num.nil?
+
+                  Array.new(num) { nil }
+                end
+
+      pieces.collect.with_index do |shape, i|
+        op = index(res, i, name: "split/index:#{i}")
+        if shape
+          op.shape = TensorShape.new(shape)
+        end
+        op
+      end
+    end
+
+    ##
+    # select an index in an array or a set of tensor outputs
+    def index(tensor, sel, name: nil)
+      _op(:index, tensor, sel, name: name)
     end
 
     ##
@@ -338,8 +432,11 @@ module TensorStream
     ##
     # Returns element-wise remainder of division.
     def mod(input_a, input_b, name: nil)
+      input_a = convert_to_tensor(input_a)
+      input_b = convert_to_tensor(input_b)
+
       input_a, input_b = check_data_types(input_a, input_b)
-      _op(:mod, input_a, input_b, name: name)
+       _op(:mod, input_a, input_b, name: name)
     end
 
     ##
@@ -393,8 +490,11 @@ module TensorStream
     end
 
     ##
-    # Casts a tensor to a new type.
+    # Casts a tensor to a new type, if needed
     def cast(input, dtype, name: nil)
+      input = convert_to_tensor(input)
+      return input if input.data_type == dtype
+
       _op(:cast, input, nil, data_type: dtype, name: name)
     end
 
@@ -630,14 +730,68 @@ module TensorStream
       _op(:gather, params, indices, validate_indices: validate_indices, name: name, axis: axis)
     end
 
+
+    ##
+    # Stacks a list of rank-R tensors into one rank-(R+1) tensor.
+    #
     def stack(values, axis: 0, name: 'stack')
       _op(:stack, *values, axis: axis, name: name)
     end
 
+    ##
+    # Unpacks the given dimension of a rank-R tensor into rank-(R-1) tensors.
+    #
+    def unstack(value, num: nil, axis: 0, name: 'unstack')
+      res = _op(:unstack, value, num: num, axis: axis, name: name)
+
+      num_vars = if value.shape.known?
+                   new_shape = value.shape.shape.dup
+                   rank = new_shape.size - 1
+                   axis = rank + axis if axis < 0
+                   rotated_shape = Array.new(axis + 1) { new_shape.shift }
+                   new_shape = rotated_shape.rotate!(-1) + new_shape
+                   new_shape[0]
+                 else
+                   raise TensorStream::ValueError, "num is unspecified and cannot be inferred." if num.nil?
+                   num
+                 end
+
+      return res[0] if num_vars == 1
+
+      Array.new(num_vars) do |i|
+        index(res, i, name: "unstack/index:#{i}")
+      end
+    end
+
+    ##
+    # Same as stack
+    def pack(values, axis: 0, name: 'pack')
+      _op(:stack, *values, axis: axis, name: name)
+    end
+
+    ##
+    # Same as unstack
+    #
+    def unpack(value, num: nil, axis: 0, name: 'unpack')
+      unstack(value, num: num, axis: axis, name: name)
+    end
+
+    ##
+    # Removes dimensions of size 1 from the shape of a tensor.
+    #
+    # Given a tensor input, this operation returns a tensor of the same type with all dimensions of size 1 removed.
+    # If you don't want to remove all size 1 dimensions, you can remove specific size 1 dimensions by specifying axis.
     def squeeze(value, axis: [], name: nil)
       _op(:squeeze, value, axis: axis, name: nil)
     end
 
+    ##
+    # Computes the difference between two lists of numbers or strings.
+    # Given a list x and a list y, this operation returns a list out that represents all values
+    # that are in x but not in y. The returned list out is sorted in the same order that the numbers appear
+    # in x (duplicates are preserved). This operation also returns a list idx that represents the position of
+    # each out element in x. In other words:
+    #
     def setdiff1d(x, y, index_dtype: :int32, name: nil)
       result = _op(:setdiff1d, x, y, index_dtype: index_dtype, name: name)
       [result[0], result[1]]

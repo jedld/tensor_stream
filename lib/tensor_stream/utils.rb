@@ -225,13 +225,15 @@ module TensorStream
     end
 
     def convert_to_tensor(value, dtype: nil, name: nil, preferred_dtype: nil)
+      return value if value.is_a?(Tensor)
       return convert_to_tensor(value.call) if value.is_a?(Proc)
+      if value.is_a?(Array) && value[0].is_a?(Tensor)
+        return TensorStream.stack(value) if value.size > 1
 
-      if !value.is_a?(Tensor)
-        i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
-      else
-        value
+        return TensorStream.expand_dims(value[0], 0)
       end
+
+      i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
     end
 
     def check_allowed_types(input, types)

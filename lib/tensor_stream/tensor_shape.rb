@@ -23,6 +23,10 @@ module TensorStream
       shape.size
     end
 
+    def scalar?
+      shape.size.zero?
+    end
+
     def known?
       return false if shape.nil?
       shape.each { |s| return false if s.nil? }
@@ -54,8 +58,13 @@ module TensorStream
     end
 
     def self.reshape(arr, new_shape)
-      return arr if new_shape.empty?
+      arr = arr.is_a?(Array) ? arr.flatten : [arr]
+
+      new_shape = TensorShape.fix_inferred_elements(new_shape, arr.size)
+      return arr[0] if arr.size == 1 && new_shape.empty?
+
       new_shape = new_shape.dup
+
       s = new_shape.shift
 
       if new_shape.size.zero?

@@ -34,7 +34,7 @@ module TensorStream
 
             color_values
           end
-          TensorShape.reshape(image_data.flatten, [image.height, image.width, channels])
+          TensorShape.reshape(image_data, [image.height, image.width, channels])
         end
 
         register_op :encode_png do |_context, tensor, inputs|

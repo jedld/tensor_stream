@@ -20,7 +20,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(115)
+      expect(described_class.ops.keys.size).to eq(122)
     end
 
     specify do
@@ -30,9 +30,12 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         add
         add_n
         apply_adadelta
+        apply_adagrad
         apply_adam
+        apply_centered_rms_prop
         apply_gradient_descent
         apply_momentum
+        apply_rms_prop
         arg_max
         arg_min
         argmax
@@ -112,6 +115,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         select
         setdiff1d
         shape
+        shape_n
         sigmoid
         sigmoid_grad
         sign
@@ -122,6 +126,8 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         softmax_cross_entropy_with_logits
         softmax_cross_entropy_with_logits_v2
         softmax_grad
+        sparse_softmax_cross_entropy_with_logits
+        split
         sqrt
         square
         squared_difference
@@ -136,6 +142,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         tile
         transpose
         truncate
+        unstack
         variable
         where
         zeros

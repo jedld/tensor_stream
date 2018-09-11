@@ -45,7 +45,7 @@ module TensorStream
     def infer_const
       return false if breakpoint
       case operation
-      when :random_standard_normal, :random_uniform, :glorot_uniform, :print
+      when :random_standard_normal, :random_uniform, :glorot_uniform, :print, :check_numerics
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }
@@ -59,10 +59,12 @@ module TensorStream
         @inputs[1].data_type
       when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
         :boolean
-      when :shape, :rank
+      when :shape, :rank, :shape_n
         options[:out_type] || :int32
       when :random_standard_normal, :random_uniform, :glorot_uniform
         passed_data_type || :float32
+      when :concat
+        @inputs[1].data_type
       when :index
         if @inputs[0].is_a?(ControlFlow)
 
@@ -274,9 +276,28 @@ module TensorStream
         rank = inputs[0].shape.shape.size + 1
         axis = rank + axis if axis < 0
         rotated_shape = Array.new(axis + 1) { new_shape.shift }
-        rotated_shape.rotate! + new_shape
+        return rotated_shape.rotate! + new_shape
+      when :concat
+        return nil if inputs[0].value.nil?
+
+        axis = inputs[0].value # get axis
+
+        axis_size = 0
+
+        inputs[1..inputs.size].each do |input_item|
+          return nil if input_item.shape.shape.nil?
+          return nil if input_item.shape.shape[axis].nil?
+
+          axis_size += input_item.shape.shape[axis]
+        end
+
+        new_shape = inputs[1].shape.shape.dup
+        new_shape[axis] = axis_size
+        return new_shape
+      when :slice, :squeeze
+        return nil
       when :tile
-        nil
+        return nil
       else
         return nil if inputs[0].nil?
         return inputs[0].shape.shape if inputs.size == 1
