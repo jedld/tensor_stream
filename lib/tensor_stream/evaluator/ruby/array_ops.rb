@@ -122,7 +122,7 @@ module TensorStream
 
           res = TensorShape.reshape(output_buffer, new_shape)
 
-          TensorStream::Evaluator::OutputGroup.new(res)
+          TensorStream::Evaluator::OutputGroup.new(res, res.map { tensor.inputs[0].data_type })
         end
 
         register_op :squeeze do |_context, tensor, inputs|
@@ -302,7 +302,7 @@ module TensorStream
               split_tensor(value, begin_index, end_index, axis)
             end
           end
-          TensorStream::Evaluator::OutputGroup.new(res)
+          TensorStream::Evaluator::OutputGroup.new(res, res.map { tensor.inputs[0].data_type })
         end
 
         register_op :reshape do |_context, _tensor, inputs|
@@ -352,11 +352,11 @@ module TensorStream
           shape_eval(inputs[0], tensor.options[:out_type])
         end
 
-        register_op :shape_n do |_context, _tensor, inputs|
+        register_op :shape_n do |_context, tensor, inputs|
           shapes = inputs.collect do |input|
             shape_eval(input)
           end
-          TensorStream::Evaluator::OutputGroup.new(shapes)
+          TensorStream::Evaluator::OutputGroup.new(shapes, shapes.map { tensor.options[:out_type] })
         end
       end
     end
