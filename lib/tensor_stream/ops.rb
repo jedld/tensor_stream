@@ -115,7 +115,7 @@ module TensorStream
       end
 
       if shapes_known
-        inputs.collect { |input| cons(input.shape.shape dtype: out_type) }
+        inputs.collect { |input| cons(input.shape.shape, dtype: out_type) }
       else
         res = _op(:shape_n, *inputs, out_type: out_type, name: name)
         Array.new(inputs.size) do |index|

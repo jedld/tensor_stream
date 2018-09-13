@@ -1641,6 +1641,15 @@ end
     end
   end
 
+  context ".shape_n" do
+    specify do
+      t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      v = tf.constant([[1, 2, 3],[4, 5, 6]])
+      shape = tf.shape_n([t,v])
+      expect(sess.run(shape)).to eq([[2, 2, 3], [2, 3]])
+    end
+  end
+
   supported_op ".range" do
     it "Creates a sequence of numbers that begins at start and extends by increments of delta up to but not including limit" do
       range = tf.range(3, 18, 3)

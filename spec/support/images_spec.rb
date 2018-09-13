@@ -580,6 +580,7 @@ RSpec.shared_examples "images ops" do
       image = tf.constant(image_data, dtype: :uint8)
       encoder = tf.image.encode_png(image)
       blob = sess.run(encoder)
+
       encoded_image = ChunkyPNG::Image.from_blob(blob)
 
       expect(encoded_image.pixels).to eq([0,
