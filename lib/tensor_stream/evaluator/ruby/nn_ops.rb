@@ -40,6 +40,7 @@ module TensorStream
         register_op :apply_adagrad do |_context, tensor, inputs|
           target_var, accum, lr, grad = inputs
           assign = tensor.inputs[0] || tensor
+
           assign.value = multi_array_op(->(v, a, g) { v - (g * lr * (1.0 / Math.sqrt(a))) }, target_var, accum, grad)
           assign.value
         end
