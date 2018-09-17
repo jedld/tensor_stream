@@ -174,6 +174,15 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(f2)).to eq([[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]])
     end
 
+    it "Concatenates tensors along one dimension. 2" do
+      t1 = tf.constant([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+      t2 = tf.constant([[10, 11, 12], [13, 14, 15], [16, 17, 18]])
+
+      f2 = tf.concat([t1, t2], 1)
+
+      expect(sess.run(f2)).to eq([[1,  2,  3, 10, 11, 12],[4,  5,  6, 13, 14, 15],[7,  8,  9, 16, 17, 18]])
+    end
+
     it "negative axis" do
       t1 = [[[1, 2], [2, 3]], [[4, 4], [5, 3]]]
       t2 = [[[7, 4], [8, 4]], [[2, 10], [15, 11]]]
@@ -870,12 +879,20 @@ z = tf.constant([[8, 9],[10, 11]])
     it "splits tensors into equal portions" do
       t1 = tf.constant([[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]])
       x, y, z = tf.split(t1, 3, axis: 2)
+      expect(sess.run(tf.shape(x))).to eq([2, 2, 1])
       expect(sess.run(x)).to eq([[[1], [1]], [[1], [1]]])
       expect(sess.run(y)).to eq([[[2], [2]], [[2], [2]]])
       expect(sess.run(z)).to eq([[[3], [3]], [[3], [3]]])
+      t1 = tf.constant([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
+      x, y = tf.split(t1, 2, axis: 0)
+      expect(sess.run(x)).to eq([[[1, 2, 3], [4, 5, 6]]])
+      expect(sess.run(y)).to eq([[[7, 8, 9],[10, 11, 12]]])
+      x, y = tf.split(t1, 2, axis: 1)
+      expect(sess.run(x)).to eq([[[1, 2, 3]],[[7, 8, 9]]])
+      expect(sess.run(y)).to eq([[[4, 5, 6]],[[10, 11, 12]]])
     end
 
-    it "splits tensors into equal portions" do
+    it "splits tensors into specific portions" do
       t1 = tf.constant([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
       x, y, z = tf.split(t1, [2, 5, 3])
       expect(sess.run(x)).to eq([1, 2])
