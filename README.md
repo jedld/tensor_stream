@@ -1,6 +1,6 @@
 [![Gem Version](https://badge.fury.io/rb/tensor_stream.svg)](https://badge.fury.io/rb/tensor_stream)
 
-[![CircleCI](https://circleci.com/gh/jedld/tensor_stream.svg?style=svg)](https://circleci.com/gh/jedld/tensor_stream)
+[![CircleCI](https://circleci.com/gh/jedld/tensor_stream.svg?style=svg)](https://circleci.com/gh/jedld/tensor_stream) [![Join the chat at https://gitter.im/tensor_stream/Lobby](https://badges.gitter.im/tensor_stream/Lobby.svg)](https://gitter.im/tensor_stream/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # TensorStream
 
