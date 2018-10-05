@@ -899,6 +899,13 @@ z = tf.constant([[8, 9],[10, 11]])
       expect(sess.run(y)).to eq([3, 4, 5, 6, 7])
       expect(sess.run(z)).to eq([8, 9, 10])
     end
+
+    it "splits tensors into specific portions, rank 2" do
+      t1 = tf.constant([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+      x, y = tf.split(t1, [2, 3], axis: 1)
+      expect(sess.run(x)).to eq([[1, 2], [6, 7]])
+      expect(sess.run(y)).to eq([[3, 4, 5], [8, 9, 10]])
+    end
   end
 
   supported_op ".negate" do
