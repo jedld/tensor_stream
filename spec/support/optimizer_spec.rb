@@ -333,7 +333,7 @@ RSpec.shared_examples "optimizer evaluator" do
         expect(m.read_value).to eq(0.0)
         sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
         sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-        expect(tr(m.read_value,6)).to eq(1.805321)
+        expect(tr(m.read_value,5)).to eq(1.80532)
         expect(sess.run(global_step)).to eq(2)
       end
 
@@ -359,7 +359,7 @@ RSpec.shared_examples "optimizer evaluator" do
         expect(m.read_value).to eq([0.0, 0.0])
         sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
         sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
-        expect(tr(m.read_value, 6)).to eq([1.805321, 1.166464])
+        expect(tr(m.read_value, 5)).to eq([1.80532, 1.16646])
         expect(sess.run(global_step)).to eq(2)
       end
 

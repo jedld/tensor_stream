@@ -11,7 +11,7 @@ require 'tensor_stream'
 require 'mnist-learn'
 
 # Enable OpenCL hardware accelerated computation, not using OpenCL can be very slow
-require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+# require 'tensor_stream/opencl'
 
 tf = TensorStream
 
@@ -20,11 +20,11 @@ puts "downloading minst data"
 mnist = Mnist.read_data_sets('/tmp/data', one_hot: true)
 puts "downloading finished"
 
-x = tf.placeholder(:float32, shape: [nil, 28, 28, 1])
+x = tf.placeholder(:float32, shape: [nil, 784])
 w = tf.variable(tf.zeros([784, 10]))
 b = tf.variable(tf.zeros([10]))
 
-init = tf.global_variables_initializer
+
 
 # model
 y = tf.nn.softmax(tf.matmul(tf.reshape(x, [-1, 784]), w) + b)
@@ -37,10 +37,11 @@ cross_entropy = -tf.reduce_sum(y_ * tf.log(y))
 is_correct = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
 accuracy =  tf.reduce_mean(tf.cast(is_correct, :float32))
 
-optimizer = TensorStream::Train::GradientDescentOptimizer.new(0.01)
+optimizer = TensorStream::Train::AdamOptimizer.new
 train_step = optimizer.minimize(cross_entropy)
 
 sess = tf.session
+init = tf.global_variables_initializer
 sess.run(init)
 
 (0...1000).each do |i|
