@@ -250,8 +250,21 @@ module TensorStream
         softmax(inputs[0])
       end
 
-      register_op :save_v2 do |context, tensor, inputs|
-        # prefix, tensor_names, shape_and_slices = inputs[0..3]
+      register_op :save_ts do |_context, tensor, inputs|
+        outputfile = inputs[0]
+        inputs = tensor.inputs.dup
+
+        basename = File.basename(outputfile)
+        path = File.dirname(outputfile)
+
+        new_filename = File.join(path, [basename, gs].compact.join('-'))
+
+        inputs.shift
+        variables = {}
+        inputs.each do |savable|
+          variables[savable.name] = TensorStream::Packer.pack(savable.read_value, savable.data_type)
+        end
+        File.write(new_filename, variables.to_yaml)
       end
 
       register_op :restore_v2 do |context, tensor, inputs|
