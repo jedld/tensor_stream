@@ -18,30 +18,39 @@ module TensorStream
         graph = {}
         gs =  eval_global_step(session, global_step)
         output_dump = {
-          variables: variables,
-          graph: graph,
-          global_step: gs
+          'variables' => variables,
+          'global_step' => gs
         }
 
         vars.each do |variable|
-          variables[variable.name] = variable.read_value
+          val = variable.read_value
+          packed_data = TensorStream::Packer.pack(val, variable.data_type)
+          variables[variable.name] = {
+            'shape' => shape_eval(val),
+            'data' => Base64.strict_encode64(packed_data)
+          }
         end
 
         basename = File.basename(outputfile)
         path = File.dirname(outputfile)
 
         new_filename = File.join(path, [basename, gs].compact.join('-'))
-        File.write(new_filename, output_dump.to_json)
+        File.write(new_filename, output_dump.to_yaml)
 
         path
       end
 
       def restore(_session, inputfile)
-        input_dump = JSON.parse(File.read(inputfile))
+        input_dump = YAML.load(File.read(inputfile))
 
         vars = TensorStream::Graph.get_default_graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
         vars.each do |variable|
-          variable.value = input_dump['variables'][variable.name]
+          next unless input_dump['variables'].key?(variable.name)
+
+          data = TensorStream::Packer.unpack(Base64.decode64(input_dump['variables'][variable.name]['data']), variable.data_type)
+          shape = input_dump['variables'][variable.name]['shape']
+          variable.buffer = nil
+          variable.value = TensorShape.reshape(data, shape)
         end
       end
 
@@ -70,7 +79,7 @@ module TensorStream
       end
 
       def _add_saveable(saveables, seen_ops, saveable)
-        raise TensorStreamm::ValueError, "The same saveable will be restored with two names: #{saveable.name}" if seen_ops.include?(saveable.op)
+        raise TensorStream::ValueError, "The same saveable will be restored with two names: #{saveable.name}" if seen_ops.include?(saveable.op)
         saveables << saveable
         seen_ops << saveable.op
       end
@@ -87,7 +96,7 @@ module TensorStream
             tensor_slices << spec.slice_spec
           end
         end
-        i_op(:save_v2, filename_tensor, tensor_names, tensor_slices, tensors)
+        i_op(:save_ts, filename_tensor, *tensors)
       end
 
       def eval_global_step(session, global_step)

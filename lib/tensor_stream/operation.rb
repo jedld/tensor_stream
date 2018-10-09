@@ -221,6 +221,9 @@ module TensorStream
 
     def infer_shape
       case operation
+      when :assign
+        return inputs[0].shape.shape || inputs[1].shape.shape if inputs[0]
+        return inputs[1].shape.shape
       when :index
         input_shape = inputs[0].shape.shape
         return nil if input_shape.nil?
@@ -250,7 +253,7 @@ module TensorStream
         TensorShape.fix_inferred_elements(new_shape, input_shape.reduce(:*))
       when :flow_group
         []
-      when :zeros, :ones, :fill
+      when :zeros, :ones, :fill, :random_standard_normal, :random_uniform
         inputs[0] ? inputs[0].value : options[:shape]
       when :zeros_like, :ones_like
         inputs[0].shape.shape

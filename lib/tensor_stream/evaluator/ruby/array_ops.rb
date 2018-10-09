@@ -158,8 +158,8 @@ module TensorStream
           TensorShape.reshape([val], new_shape)
         end
 
-        register_op :fill do |_context, _tensor, inputs|
-          shape = inputs[0]
+        register_op :fill do |_context, tensor, inputs|
+          shape = inputs[0] || tensor.shape.shape
           value = inputs[1]
 
           func = -> { value }

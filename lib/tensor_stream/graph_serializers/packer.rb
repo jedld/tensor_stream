@@ -1,32 +1,42 @@
+require 'base64'
+
 module TensorStream
   # Utility class to handle data type serialization
   class Packer
     def self.pack(value, data_type)
-      value = value.flatten
+      value = value.is_a?(Array) ? value.flatten : [value]
       byte_value = case data_type
                    when :float64
-                     value.pack('d*').bytes
+                     value.pack('d*')
                    when :float32, :float16, :float
-                     value.pack('f*').bytes
+                     value.pack('f*')
                    when :uint32
-                     value.pack('L*').bytes
+                     value.pack('L*')
                    when :int32, :int
-                     value.pack('l*').bytes
+                     value.pack('l*')
                    when :int64
-                     value.pack('q*').bytes
+                     value.pack('q*')
                    when :uint64
-                     value.pack('Q*').bytes
+                     value.pack('Q*')
                    when :uint8
-                     value.pack('C*').bytes
+                     value.pack('C*')
                    when :boolean
-                     value.map { |v| v ? 1 : 0 }.pack('C*').bytes
+                     value.map { |v| v ? 1 : 0 }.pack('C*')
                    end
 
-      byte_value.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr }.join
+      byte_value
     end
 
-    def self.unpack(content, data_type)
+    def self.pack_to_str(value, data_type)
+      pack(value, data_type).bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr }.join
+    end
+
+    def self.unpack_from_str(content, data_type)
       unpacked = eval(%Q("#{content}"))
+      unpack(unpacked, data_type)
+    end
+
+    def self.unpack(unpacked, data_type)
       case data_type
       when :float32, :float, :float16
         unpacked.unpack('f*')

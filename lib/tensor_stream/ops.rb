@@ -144,7 +144,7 @@ module TensorStream
     end
 
     def constant_initializer(value, dtype: nil, verify_shape: false)
-      TensorStream::Initializer.new(-> { convert_to_tensor(value, dtype: dtype) })
+      TensorStream::Initializer.new(-> { _op(:fill, nil, convert_to_tensor(value, dtype: dtype)) })
     end
 
     ##
