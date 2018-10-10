@@ -7,7 +7,7 @@ module TensorStream
       end
     end
     FLOATING_POINT_TYPES = %i[float32 float64 float float16].freeze
-    INTEGER_TYPES = %i[uint8 int32 int int64 uint32 uint64].freeze
+    INTEGER_TYPES = %i[uint8 int32 int int16 uint16 int64 uint32 uint64].freeze
     NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
 
     ##
