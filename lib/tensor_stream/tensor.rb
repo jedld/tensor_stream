@@ -257,7 +257,7 @@ module TensorStream
         end
       when :string
         val.to_s
-      when :uint32, :int32, :uint64, :uint16, :int16, :uint8, :int
+      when :uint32, :int32, :uint64, :uint16, :int16, :int64, :uint8, :int
         if !!val == val
           val ? 1 : 0
         else
