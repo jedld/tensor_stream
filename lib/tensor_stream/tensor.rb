@@ -249,7 +249,7 @@ module TensorStream
       dtype = dtype[:dtype] if dtype.is_a?(Hash)
 
       case dtype.to_sym
-      when :float64, :float32, :float
+      when :float64, :float32, :float16, :float
         if !!val == val
           val ? 1.0 : 0.0
         else
@@ -257,7 +257,7 @@ module TensorStream
         end
       when :string
         val.to_s
-      when :int32, :int16, :uint8, :int
+      when :uint32, :int32, :uint16, :int16, :uint8, :int
         if !!val == val
           val ? 1 : 0
         else
