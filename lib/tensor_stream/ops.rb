@@ -303,17 +303,17 @@ module TensorStream
 
       pieces = if value.shape.known? && num_or_size_splits.is_const && num_or_size_splits.value && axis.is_const
                   if num_or_size_splits.shape.scalar?
-                    raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless value.shape.shape[axis.value] % num_or_size_splits.value == 0
+                    raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless (value.shape.shape[axis.value] % num_or_size_splits.value).zero?
                     div = num_or_size_splits.value
                     n = value.shape.shape[axis.value] / div
 
-                    Array.new(div) { |i|
+                    Array.new(div) do |i|
                       new_shape = value.shape.shape.dup
                       new_shape[axis.value] = n
                       new_shape
-                    }
+                    end
                   elsif num_or_size_splits.shape.ndims == 1
-                    raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{ num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
+                    raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
                     num_or_size_splits.value.collect do |v|
                       new_shape = value.shape.shape.dup
                       new_shape[axis.value] = v

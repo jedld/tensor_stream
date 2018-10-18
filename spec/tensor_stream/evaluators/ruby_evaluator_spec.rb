@@ -110,7 +110,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         reshape
         restore_v2
         round
-        save_v2
+        save_ts
         sec
         select
         setdiff1d

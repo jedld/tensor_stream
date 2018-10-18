@@ -32,7 +32,7 @@ module TensorStream
     end
 
     def self.unpack_from_str(content, data_type)
-      unpacked = eval(%Q("#{content}"))
+      unpacked = eval(%("#{content}"), __FILE__)
       unpack(unpacked, data_type)
     end
 
