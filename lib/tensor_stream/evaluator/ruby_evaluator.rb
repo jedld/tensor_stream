@@ -283,7 +283,14 @@ module TensorStream
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         invoke(tensor, child_context).tap do |result|
-          # puts "ruby: #{tensor.name}"
+
+          # assertions to make sure inferred shapes == actual evaluated shapes
+          if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
+            if shape_eval(result) != tensor.shape.shape
+              raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
+            end
+          end
+  
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
             b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]

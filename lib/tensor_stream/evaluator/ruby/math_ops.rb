@@ -237,7 +237,7 @@ module TensorStream
           matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
 
           # check matrix dimensions
-          raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+          raise TensorStream::ValueError, "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
 
           (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
         end

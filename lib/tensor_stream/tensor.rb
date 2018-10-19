@@ -33,6 +33,7 @@ module TensorStream
         else
           @value = Tensor.cast_dtype(options[:value], @data_type)
         end
+        @shape = TensorShape.new(shape_eval(@value))
       end
 
       @graph.add_node(self)
@@ -168,6 +169,12 @@ module TensorStream
 
     def to_s
       @name
+    end
+
+    def const_value
+      return nil unless is_const
+
+      @value
     end
 
     def op
