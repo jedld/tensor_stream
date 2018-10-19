@@ -29,7 +29,9 @@ module TensorStream
 
     def known?
       return false if shape.nil?
-      shape.each { |s| return false if s.nil? }
+      
+      a_shape = shape.is_a?(Array) ? shape : [shape]
+      a_shape.each { |s| return false if s.nil? || s < 0 }
 
       true
     end

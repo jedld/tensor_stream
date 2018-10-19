@@ -6,8 +6,8 @@ module TensorStream
         @op = op
       end
     end
-    FLOATING_POINT_TYPES = %i[float32 float64 float].freeze
-    INTEGER_TYPES = %i[uint8 int32 int int64].freeze
+    FLOATING_POINT_TYPES = %i[float32 float64 float float16].freeze
+    INTEGER_TYPES = %i[uint8 int32 int int16 uint16 int64 uint32 uint64].freeze
     NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
 
     ##
@@ -99,7 +99,7 @@ module TensorStream
     ##
     # This operation returns a 1-D integer tensor representing the shape of input
     def shape(input, name: nil, out_type: :int32)
-      return constant(shape_eval(input, out_type), dtype: out_type, name: name) if input.is_a?(Array) && !input[0].is_a?(Tensor)
+      return constant(shape_eval(input, out_type), dtype: out_type, name: "Shape/#{name}") if input.is_a?(Array) && !input[0].is_a?(Tensor)
       return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}") if shape_full_specified(input)
 
       _op(:shape, input, name: name, out_type: out_type)
@@ -144,7 +144,7 @@ module TensorStream
     end
 
     def constant_initializer(value, dtype: nil, verify_shape: false)
-      TensorStream::Initializer.new(-> { convert_to_tensor(value, dtype: dtype) })
+      TensorStream::Initializer.new(-> { _op(:fill, nil, convert_to_tensor(value, dtype: dtype)) })
     end
 
     ##
@@ -303,17 +303,17 @@ module TensorStream
 
       pieces = if value.shape.known? && num_or_size_splits.is_const && num_or_size_splits.value && axis.is_const
                   if num_or_size_splits.shape.scalar?
-                    raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless value.shape.shape[axis.value] % num_or_size_splits.value == 0
+                    raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless (value.shape.shape[axis.value] % num_or_size_splits.value).zero?
                     div = num_or_size_splits.value
                     n = value.shape.shape[axis.value] / div
 
-                    Array.new(div) { |i|
+                    Array.new(div) do |i|
                       new_shape = value.shape.shape.dup
                       new_shape[axis.value] = n
                       new_shape
-                    }
+                    end
                   elsif num_or_size_splits.shape.ndims == 1
-                    raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{ num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
+                    raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
                     num_or_size_splits.value.collect do |v|
                       new_shape = value.shape.shape.dup
                       new_shape[axis.value] = v

@@ -250,8 +250,21 @@ module TensorStream
         softmax(inputs[0])
       end
 
-      register_op :save_v2 do |context, tensor, inputs|
-        # prefix, tensor_names, shape_and_slices = inputs[0..3]
+      register_op :save_ts do |_context, tensor, inputs|
+        outputfile = inputs[0]
+        inputs = tensor.inputs.dup
+
+        basename = File.basename(outputfile)
+        path = File.dirname(outputfile)
+
+        new_filename = File.join(path, [basename, gs].compact.join('-'))
+
+        inputs.shift
+        variables = {}
+        inputs.each do |savable|
+          variables[savable.name] = TensorStream::Packer.pack(savable.read_value, savable.data_type)
+        end
+        File.write(new_filename, variables.to_yaml)
       end
 
       register_op :restore_v2 do |context, tensor, inputs|
@@ -270,7 +283,14 @@ module TensorStream
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
         invoke(tensor, child_context).tap do |result|
-          # puts "ruby: #{tensor.name}"
+
+          # assertions to make sure inferred shapes == actual evaluated shapes
+          if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
+            if shape_eval(result) != tensor.shape.shape
+              raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
+            end
+          end
+  
           if tensor.breakpoint
             a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
             b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]

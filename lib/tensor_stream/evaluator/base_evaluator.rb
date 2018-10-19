@@ -126,18 +126,24 @@ module TensorStream
 
       protected
 
+      ##
+      # called when passing control to another evaluator
+      def perform_transition(tensor, input, _next_evaluator)
+        cache_key = "#{tensor.graph.object_id}_#{input.name}:#{object_id}"
+        return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
+
+        result = @session.delegate_to_evaluator(input, @context, execution_context)
+        convert_from_buffer(input, result).tap do |buffer|
+          @context[:_cache][cache_key] = buffer if input.is_const
+        end
+      end
+
       def global_eval(tensor, input, execution_context, op_options = {})
         return nil unless input
         return input unless input.is_a?(Tensor)
         @context[:_cache][:placement][input.name] = @session.assign_evaluator(input) if @context[:_cache][:placement][input.name].nil?
         if object_id != @context[:_cache][:placement][input.name][1].object_id # tensor is on another device or evaluator
-          cache_key = "#{tensor.graph.object_id}_#{input.name}:#{object_id}"
-          return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
-
-          result = @session.delegate_to_evaluator(input, @context, execution_context)
-          convert_from_buffer(input, result).tap do |buffer|
-            @context[:_cache][cache_key] = buffer if input.is_const
-          end
+          perform_transition(tensor, input, @context[:_cache][:placement][input.name][1])
         else
           prepare_input(input, execution_context, op_options)
         end

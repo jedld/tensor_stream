@@ -267,7 +267,7 @@ module TensorStream
           [_broadcast_mul(grad, output[1]), -ts.nn.log_softmax(logits)]
         when :sparse_softmax_cross_entropy_with_logits
           output = node
-           [_broadcast_mul(grad, output[1]), nil]
+          [_broadcast_mul(grad, output[1]), nil]
         when :floor, :ceil
           # non differentiable
           nil
@@ -280,16 +280,16 @@ module TensorStream
         when :transpose
           return [ts.transpose(grad, ts.invert_permutation(y)), nil]
         when :index
-          #hack!! not sure how to fix this yet
+          # hack!! not sure how to fix this yet
           return grad if %i[softmax_cross_entropy_with_logits_v2 sparse_softmax_cross_entropy_with_logits].include?(node.inputs[0].operation)
 
           if node.inputs[0].shape.known? && node.inputs[1].value
             multiplier = node.inputs[0].shape.shape[0]
             filler = ts.zeros_like(grad)
 
-            res = Array.new(multiplier) { |index|
+            res = Array.new(multiplier) do |index|
               index == node.inputs[1].value ? grad : filler
-            }
+            end
             [res]
           end
         when :squeeze
@@ -312,9 +312,9 @@ module TensorStream
 
           if t.key?(src_type) && t.key?(dst_type)
             ts.cast(grad, src_type)
-          else
-            nil
           end
+
+          nil
         else
           raise "no derivative op for #{node.operation}"
         end
