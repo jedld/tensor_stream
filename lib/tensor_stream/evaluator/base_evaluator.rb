@@ -126,7 +126,12 @@ module TensorStream
           global_eval(tensor, i, execution_context, op_options)
         end
 
-        instance_exec(execution_context, tensor, resolved_inputs, &op[:block])
+        start_time = Time.now.to_i
+        instance_exec(execution_context, tensor, resolved_inputs, &op[:block]).tap do
+          @context[:profile] ||= {}
+          @context[:profile][tensor.name] ||= {}
+          @context[:profile][tensor.name][:exec_time] = Time.now.to_i - start_time
+        end
       end
 
       protected
