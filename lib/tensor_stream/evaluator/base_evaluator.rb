@@ -19,7 +19,10 @@ module TensorStream
       end
     end
 
+    ##
     # Evaluator base class
+    #
+    # Base class to be used by all tensor_stream evaluators, provides support functions
     class BaseEvaluator
       def initialize(session, _device, thread_pool: nil, log_intermediates: false)
         @session = session
@@ -57,6 +60,7 @@ module TensorStream
         substrs.each do |q|
           components = q.split(':')
           next if components.size.zero?
+
           if components[0] == 'device' # use tensorflow convention
             device_type = components[1]
             select_index = components[2].to_i
@@ -79,6 +83,7 @@ module TensorStream
             evaluator_class = TensorStream::Evaluator.evaluators[components[1]][:class]
             return nil unless self == evaluator_class
             return evaluator_class.fetch_device(components[2..components.size]) if evaluator_class.respond_to?(:fetch_device)
+
             return nil
           end
         end
@@ -141,12 +146,18 @@ module TensorStream
       def global_eval(tensor, input, execution_context, op_options = {})
         return nil unless input
         return input unless input.is_a?(Tensor)
+        # puts "global eval #{tensor.name}"
         @context[:_cache][:placement][input.name] = @session.assign_evaluator(input) if @context[:_cache][:placement][input.name].nil?
-        if object_id != @context[:_cache][:placement][input.name][1].object_id # tensor is on another device or evaluator
+        if !on_same_device?(input) # tensor is on another device or evaluator
+          # puts "transition #{object_id} -> #{@context[:_cache][:placement][input.name][1].object_id}"
           perform_transition(tensor, input, @context[:_cache][:placement][input.name][1], execution_context)
         else
           prepare_input(input, execution_context, op_options)
         end
+      end
+
+      def on_same_device?(tensor)
+        object_id == @context[:_cache][:placement][tensor.name][1].object_id
       end
 
       def get_broadcast_gradient_args(input_a, input_b)

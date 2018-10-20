@@ -186,7 +186,6 @@ module TensorStream
             end
             reduced_val
           end
-
           reduction(context, tensor, func)
         end
 
