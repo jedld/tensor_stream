@@ -128,7 +128,7 @@ module TensorStream
 
       ##
       # called when passing control to another evaluator
-      def perform_transition(tensor, input, _next_evaluator)
+      def perform_transition(tensor, input, _next_evaluator, execution_context)
         cache_key = "#{tensor.graph.object_id}_#{input.name}:#{object_id}"
         return @context[:_cache][cache_key] if @context[:_cache].key?(cache_key)
 
@@ -143,7 +143,7 @@ module TensorStream
         return input unless input.is_a?(Tensor)
         @context[:_cache][:placement][input.name] = @session.assign_evaluator(input) if @context[:_cache][:placement][input.name].nil?
         if object_id != @context[:_cache][:placement][input.name][1].object_id # tensor is on another device or evaluator
-          perform_transition(tensor, input, @context[:_cache][:placement][input.name][1])
+          perform_transition(tensor, input, @context[:_cache][:placement][input.name][1], execution_context)
         else
           prepare_input(input, execution_context, op_options)
         end

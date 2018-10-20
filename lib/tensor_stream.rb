@@ -44,4 +44,8 @@ module TensorStream
   extend TensorStream::Ops
   extend TensorStream::Debugging
   extend TensorStream::Utils
+
+  def __version__
+    TensorStream::VERSION
+  end
 end
