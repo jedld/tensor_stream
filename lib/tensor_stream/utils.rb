@@ -129,8 +129,18 @@ module TensorStream
       Thread.current[:tensor_stream_variable_scope].map(&:name).compact.reject(&:empty?).join('/')
     end
 
-    def session(evaluator = nil, thread_pool_class: Concurrent::ImmediateExecutor, log_device_placement: false)
-      session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class, log_device_placement: log_device_placement)
+    ##
+    # Creates a session context where operations can be executed
+    #
+    # Args:
+    #     evaluator: Specific evaluator to use, otherwise the best evaluator will automatically be determined
+    #
+    # Options:
+    #     thread_pool_class: Class to use to manage thread pooling
+    #     log_device_placement: Show assigned device/evalutor for each tensor op
+    #     profile_enabled: Log performance metrics for each operation
+    def session(evaluator = nil, thread_pool_class: Concurrent::ImmediateExecutor, log_device_placement: false, profile_enabled: false)
+      session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class, log_device_placement: log_device_placement, profile_enabled: profile_enabled)
       yield session if block_given?
 
       session
@@ -151,6 +161,7 @@ module TensorStream
 
     def constant(value, dtype: nil, shape: nil, internal: false, name: 'Const')
       shared_options = { const: true, value: value, name: name, internal: internal }
+
       if value.is_a?(Float)
         TensorStream::Tensor.new(dtype || :float32, 0, shape || [], shared_options)
       elsif value.is_a?(Integer)
@@ -162,6 +173,7 @@ module TensorStream
       elsif value.is_a?(Array)
         dimension = shape || shape_eval(value)
         rank = dimension.size
+        TensorStream.check_if_dense(value)
 
         cur_dtype = dtype || Tensor.detect_type(value.flatten.last)
         value = Tensor.cast_dtype(value, cur_dtype) unless dtype.nil?
@@ -224,16 +236,37 @@ module TensorStream
       TensorStream.get_default_graph.control_dependencies(control_inputs, &block)
     end
 
-    def convert_to_tensor(value, dtype: nil, name: nil, preferred_dtype: nil)
+    def convert_to_tensor(value, dtype: nil, name: nil)
       return value if value.is_a?(Tensor)
       return convert_to_tensor(value.call) if value.is_a?(Proc)
+
       if value.is_a?(Array) && value[0].is_a?(Tensor)
         return TensorStream.stack(value) if value.size > 1
 
         return TensorStream.expand_dims(value[0], 0)
       end
 
+      check_if_dense(value)
       i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
+    end
+
+    ##
+    # Check to make sure passed array is dense
+    #
+    def check_if_dense(value, expected_shape = nil)
+      return unless value.is_a?(Array)
+      return if value.empty?
+
+      expected_shape ||= shape_eval(value)
+
+      s = expected_shape.shift
+      raise TensorStream::ValueError, "Argument must be a dense tensor: #{value}, expected size #{s} got #{value.size}" if value.size != s
+
+      return if expected_shape.empty?
+
+      value.each do |item|
+        check_if_dense(item, expected_shape.dup)
+      end
     end
 
     def check_allowed_types(input, types)

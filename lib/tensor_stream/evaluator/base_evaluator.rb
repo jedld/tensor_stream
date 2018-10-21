@@ -126,15 +126,30 @@ module TensorStream
           global_eval(tensor, i, execution_context, op_options)
         end
 
-        start_time = Time.now.to_i
+        start_time = if profile_enabled?
+                       time = Time.now
+                       time.to_i * (10**9) + time.nsec
+                     end
+
         instance_exec(execution_context, tensor, resolved_inputs, &op[:block]).tap do
-          @context[:profile] ||= {}
-          @context[:profile][tensor.name] ||= {}
-          @context[:profile][tensor.name][:exec_time] = Time.now.to_i - start_time
+          if profile_enabled?
+            time = Time.now
+            end_time = time.to_i * (10**9) + time.nsec
+            @context[:profile] ||= { step: 0, operations: {} }
+            @context[:profile][:step] += 1
+            @context[:profile][:operations][tensor.name] = { op: tensor.operation,
+                                                             step: @context[:profile][:step],
+                                                             eval_time: end_time - start_time,
+                                                             tensor: tensor }
+          end
         end
       end
 
       protected
+
+      def profile_enabled?
+        @context[:_options][:profile_enabled]
+      end
 
       ##
       # called when passing control to another evaluator

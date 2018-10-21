@@ -45,6 +45,16 @@ RSpec.describe TensorStream::Tensor do
       end
     end
 
+    it "makes sure passed arrays are dense" do
+      expect {
+        TensorStream.constant([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0],[2.0]], name: 'a')
+      }.to raise_exception TensorStream::ValueError
+
+      expect {
+        TensorStream.constant([[[1.0, 2.0],[3.0,4.0]], [[2.0],[4.0,5.0]]], name: 'b')
+      }.to raise_exception TensorStream::ValueError
+    end
+
     it "automatically adjusts based on shape" do
       b = TensorStream.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape: [3, 2], name: 'b')
       expect(b.eval).to eq(
@@ -81,7 +91,7 @@ RSpec.describe TensorStream::Tensor do
       a = TensorStream.constant(3.0, dtype: TensorStream::Types.float32)
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
       c = TensorStream.constant([[3.0],[1.0]])
-      d = TensorStream.constant([[[3.0,2.0]],[[1.0]]], dtype: TensorStream::Types.float32)
+      d = TensorStream.constant([[[3.0,2.0]],[[1.0, 1.1]]], dtype: TensorStream::Types.float32)
       expect(a.rank).to eq(0)
       expect(b.rank).to eq(1)
       expect(c.rank).to eq(2)

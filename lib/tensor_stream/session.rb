@@ -6,13 +6,13 @@ module TensorStream
     attr_reader :last_session_context, :closed, :target, :session_cache
     attr_accessor :randomizer
 
-    def initialize(evaluator = nil, thread_pool_class: Concurrent::ImmediateExecutor, log_device_placement: false, evaluator_options: {})
+    def initialize(evaluator = nil, thread_pool_class: Concurrent::ImmediateExecutor, log_device_placement: false, profile_enabled: false, evaluator_options: {})
       @thread_pool = thread_pool_class.new
       @closed = false
       @session_cache = {}
       @randomizer = {}
       @log_device_placement = log_device_placement
-      @evaluator_options = evaluator_options
+      @evaluator_options = evaluator_options.merge(profile_enabled: profile_enabled)
       get_evaluator_classes(evaluator)
       @evaluators = {}
     end
@@ -45,8 +45,13 @@ module TensorStream
                 else
                   {}
                 end
+
+      @evaluator_options[:thread_pool] = @thread_pool
+      @evaluator_options[:log_intermediates] = options[:log_intermediates]
+
       context = {
-        _cache: @session_cache
+        _cache: @session_cache,
+        _options: options.merge(@evaluator_options)
       }
 
       # scan for placeholders and assign value
@@ -56,8 +61,6 @@ module TensorStream
         end
       end
 
-      @evaluator_options[:thread_pool] = @thread_pool
-      @evaluator_options[:log_intermediates] = options[:log_intermediates]
 
       args.each { |t| prepare_evaluators(t, context) }
       @last_session_context = context

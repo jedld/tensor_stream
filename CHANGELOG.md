@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2018-10-19
+- Add profiling support
+- Make sure sparse ruby arrays are caught
+- Enhancements to support multi-gpu execution
+
 ## [0.9.1] - 2018-10-19
 - Bug fix release
-  
+
 ## [0.9.0] - 2018-10-05
 - Bug fix release for OpenCL gem
 
@@ -16,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [TRAINING] Added RMSPropOptimizer, AdagradOptimizer
 - [NEW OP] shape_n, sparse_softmax_cross_entropy_with_logits, split, unstack
 - Added RNN sample
-  
+
 ### Fixes
 - Fixed gradient computation when passing an array of tensors to a function
 - Added gradients for various other ops
