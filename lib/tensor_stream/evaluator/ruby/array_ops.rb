@@ -308,7 +308,6 @@ module TensorStream
         register_op :reshape do |_context, _tensor, inputs|
           arr, new_shape = inputs
           arr = [arr] unless arr.is_a?(Array)
-
           flat_arr = arr.flatten
           if new_shape.size.zero? && flat_arr.size == 1
             flat_arr[0]
@@ -318,9 +317,7 @@ module TensorStream
         end
 
         register_op :pad do |context, tensor, inputs|
-          p = complete_eval(tensor.options[:paddings], context)
-
-          arr_pad(inputs[0], p, tensor.data_type)
+          arr_pad(inputs[0], inputs[1], tensor.data_type)
         end
 
         register_op :tile do |_context, _tensor, inputs|

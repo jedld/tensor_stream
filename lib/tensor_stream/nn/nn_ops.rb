@@ -45,7 +45,6 @@ module TensorStream
         raise TensorStream::ValueError, "Logits cannot be scalars - received shape #{logits.shape.shape}." if logits.shape.known? && logits.shape.scalar?
         raise TensorStream::ValueError, "Rank mismatch: Rank of labels (received #{labels_static_shape.ndims}) " +
           "should equal rank of logits minus 1 (received #{logits.shape.ndims})." if logits.shape.known? && (labels_static_shape.known? && labels_static_shape.ndims != logits.shape.ndims - 1)
-
         if logits.shape.ndims == 2
           cost = _op(:sparse_softmax_cross_entropy_with_logits,
               precise_logits, labels, name: name)
@@ -57,14 +56,13 @@ module TensorStream
         end
 
         shape_checks = []
-        if !static_shapes_fully_defined
-          shape_checks << tf.append(tf.assert_equal(tf.rank(labels), tf.rank(logits) - 1))
-        end
+
+        shape_checks << tf.assert_equal(tf.rank(labels), tf.rank(logits) - 1) unless static_shapes_fully_defined
 
         tf.control_dependencies(shape_checks) do
           num_classes = tf.shape(logits)[tf.rank(logits) - 1]
           precise_logits = tf.reshape(precise_logits, [-1, num_classes])
-          labels = array_ops.reshape(labels, [-1])
+          labels = tf.reshape(labels, [-1])
           cost = _op(:sparse_softmax_cross_entropy_with_logits, precise_logits, labels, name: name)
           cost = tf.reshape(cost[0], labels_shape)
 

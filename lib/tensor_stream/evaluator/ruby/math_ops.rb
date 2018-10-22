@@ -140,9 +140,10 @@ module TensorStream
         end
 
         register_op(%i[argmax arg_max]) do |_context, tensor, inputs|
-          axis = tensor.options[:axis] || 0
+          axis = inputs[1] || 0
           rank = get_rank(inputs[0])
           raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
+
           get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
         end
 
@@ -150,6 +151,7 @@ module TensorStream
           axis = tensor.options[:axis] || 0
           rank = get_rank(inputs[0])
           raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
+
           get_op_with_axis(inputs[0], axis, 0, tensor.data_type, ->(a, b) { a < b })
         end
 

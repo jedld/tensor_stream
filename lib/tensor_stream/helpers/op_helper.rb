@@ -56,8 +56,8 @@ module TensorStream
 
     def format_source(trace)
       grad_source = trace.select { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }.first
-      source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
-      [grad_source, source].compact.join("\n")
+      # source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
+      [grad_source, trace].compact.join("\n")
     end
 
     def shapes_fully_specified_and_equal(x, y)

@@ -20,7 +20,7 @@ module TensorStream
     end
 
     def ndims
-      shape.size
+      shape ? shape.size : nil
     end
 
     def scalar?
@@ -29,7 +29,7 @@ module TensorStream
 
     def known?
       return false if shape.nil?
-      
+
       a_shape = shape.is_a?(Array) ? shape : [shape]
       a_shape.each { |s| return false if s.nil? || s < 0 }
 
@@ -41,8 +41,9 @@ module TensorStream
     end
 
     def self.infer_shape(shape_a, shape_b)
-      return shape_a if shape_b.nil?
-      return shape_b if shape_a.nil?
+      return nil if shape_a.nil? || shape_b.nil?
+      return shape_a if shape_b.empty?
+      return shape_b if shape_a.empty?
       return shape_a if shape_a == shape_b
       return shape_b if shape_b.size > shape_a.size
       return shape_a if shape_a.size > shape_b.size
@@ -61,7 +62,7 @@ module TensorStream
 
     def self.reshape(arr, new_shape)
       arr = arr.is_a?(Array) ? arr.flatten : [arr]
-
+      new_shape = new_shape.is_a?(TensorShape) ? new_shape.shape : new_shape
       new_shape = TensorShape.fix_inferred_elements(new_shape, arr.size)
       return arr[0] if arr.size == 1 && new_shape.empty?
 

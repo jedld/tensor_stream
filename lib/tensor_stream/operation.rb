@@ -1,3 +1,4 @@
+require 'tensor_stream/helpers/infer_shape'
 module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
@@ -26,7 +27,7 @@ module TensorStream
       @inputs = inputs.map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
       @data_type = set_data_type(options[:data_type])
       @is_const = infer_const
-      @shape = TensorShape.new(infer_shape)
+      @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))
       @graph.add_node(self)
     end
 
@@ -218,158 +219,6 @@ module TensorStream
     end
 
     private
-
-    def infer_shape
-      case operation
-      when :assign
-        possible_shape = if inputs[0] && inputs[0].shape.shape
-                           inputs[0].shape.shape
-                         else
-                           inputs[1].shape.shape
-                         end
-
-        possible_shape
-      when :index
-        return nil unless inputs[0].is_a?(Tensor)
-        return nil unless inputs[0].const_value
-
-        input_shape = inputs[0].shape
-        return nil unless input_shape.known?
-
-        s = input_shape.shape.dup
-        s.shift
-        s
-      when :mean, :prod, :sum
-        return [] if inputs[1].nil?
-        return nil if inputs[0].nil?
-        return nil unless inputs[0].shape.known?
-
-        input_shape = inputs[0].shape.shape
-        rank = input_shape.size
-        
-        axis = inputs[1].const_value
-        return nil if axis.nil?
-
-        axis = [axis] unless axis.is_a?(Array)
-        axis = axis.map { |a| a < 0 ? rank - a.abs : a }
-
-        input_shape.each_with_index.map do |item, index|
-          if axis.include?(index)
-            next 1 if options[:keepdims]
-            next nil
-          end
-          item
-        end.compact
-      when :reshape
-        new_shape = inputs[1] && inputs[1].value ? inputs[1].value : nil
-        return nil if new_shape.nil?
-        return nil if inputs[0].shape.nil?
-
-        input_shape = inputs[0].shape.shape
-        return new_shape if input_shape.nil?
-        return nil if input_shape.include?(nil)
-        TensorShape.fix_inferred_elements(new_shape, input_shape.reduce(:*))
-      when :flow_group
-        []
-      when :zeros, :ones, :fill, :random_standard_normal, :random_uniform
-        a_shape = inputs[0] ? inputs[0].const_value : options[:shape]
-        return nil if a_shape.nil?
-        a_shape.is_a?(Array) ? a_shape : [a_shape]
-      when :zeros_like, :ones_like
-        inputs[0].shape.shape
-      when :shape
-        inputs[0].shape.shape ? [inputs[0].shape.shape.size] : nil
-      when :mat_mul
-        return nil if inputs[0].shape.shape.nil? || inputs[1].shape.shape.nil?
-        return [] if inputs[0].shape.shape.empty? || inputs[1].shape.shape.empty?
-        return nil if inputs[0].shape.shape.size != 2 || inputs[1].shape.shape.size != 2
-
-        shape1, m = if options[:transpose_a]
-                   [inputs[0].shape.shape[0], inputs[0].shape.shape[1]]
-                 else
-                   [inputs[0].shape.shape[1], inputs[0].shape.shape[0]]
-                 end
-
-        shape2, n = if options[:transpose_b]
-                   [inputs[1].shape.shape[1], inputs[1].shape.shape[0]]
-                 else
-                   [inputs[1].shape.shape[0], inputs[1].shape.shape[1]]
-                 end
-
-        return nil if shape1.nil? || shape2.nil? || shape1 < 0 || shape2 < 0
-
-        raise TensorStream::ValueError, "incompatible shape sizes for matrix multiplication (#{shape1} != #{shape2}) #{inputs[0].shape.shape} vs #{inputs[1].shape.shape}" if shape1 != shape2
-
-        [m, n]
-      when :transpose
-        return nil unless shape_full_specified(inputs[0])
-        return nil if inputs[1].is_a?(Tensor)
-
-        rank = inputs[0].shape.shape.size
-        perm = inputs[1] || (0...rank).to_a.reverse
-        perm.map { |p| inputs[0].shape.shape[p] }
-      when :stack
-        return nil unless shape_full_specified(inputs[0])
-
-        axis = options[:axis] || 0
-        new_shape = [inputs.size]
-        inputs[0].shape.shape.inject(new_shape) { |ns, s| ns << s }
-        rank = inputs[0].shape.shape.size + 1
-        axis = rank + axis if axis < 0
-        rotated_shape = Array.new(axis + 1) { new_shape.shift }
-        rotated_shape.rotate! + new_shape
-      when :concat
-        return nil if inputs[0].value.nil?
-
-        axis = inputs[0].value # get axis
-
-        axis_size = 0
-
-        inputs[1..inputs.size].each do |input_item|
-          return nil if input_item.shape.shape.nil?
-          return nil if input_item.shape.shape[axis].nil?
-
-          axis_size += input_item.shape.shape[axis]
-        end
-
-        new_shape = inputs[1].shape.shape.dup
-        new_shape[axis] = axis_size
-        new_shape
-      when :slice, :squeeze
-        nil
-      when :tile
-        nil
-      when :expand_dims
-        nil
-      when :broadcast_gradient_args
-        nil
-      when :no_op
-        nil
-      when :softmax_cross_entropy_with_logits_v2, :sparse_softmax_cross_entropy_with_logits
-        nil
-      when :decode_png, :flow_dynamic_stitch, :dynamic_stitch, :gather
-        nil
-      when :eye
-        return [inputs[0].const_value, inputs[1].const_value] if inputs[0].const_value && inputs[1].const_value
-
-        nil
-      when :size
-        []
-      when :unstack
-        return nil unless inputs[0].shape.known?
-
-        new_shape = inputs[0].shape.shape.dup
-        rank = new_shape.size - 1
-        axis = options[:axis] || 0
-        axis = rank + axis if axis < 0
-        rotated_shape = Array.new(axis + 1) { new_shape.shift }
-        rotated_shape.rotate!(-1) + new_shape
-      else
-        return nil if inputs[0].nil?
-        return inputs[0].shape.shape if inputs.size == 1
-        TensorShape.infer_shape(inputs[0].shape.shape, inputs[1].shape.shape) if inputs.size == 2 && inputs[0] && inputs[1] && inputs[0].shape.known? && inputs[1].shape.known?
-      end
-    end
 
     def propagate_consumer(consumer)
       super

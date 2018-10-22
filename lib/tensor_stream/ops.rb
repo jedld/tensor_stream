@@ -19,7 +19,7 @@ module TensorStream
     # +axis+  Describes which axis of the input Tensor to reduce across. For vectors, use axis = 0
     # +output_type+ Output data type defaults to int32
     def argmax(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
-      _op(:argmax, input, nil, axis: axis, name: name, dimension: dimension, data_type: output_type)
+      _op(:argmax, input, axis, name: name, dimension: dimension, data_type: output_type)
     end
 
     ##
@@ -31,7 +31,21 @@ module TensorStream
     # +axis+  Describes which axis of the input Tensor to reduce across. For vectors, use axis = 0
     # +output_type+ Output data type defaults to int32
     def argmin(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
-      _op(:argmin, input, nil, axis: axis, name: name, dimension: dimension, data_type: output_type)
+      _op(:argmin, input, axis, name: name, dimension: dimension, data_type: output_type)
+    end
+
+    ##
+    # Assert the condition x == y holds element-wise.
+    #
+    # Argmuments
+    #
+    # +x+ Numeric Tensor.
+    # +y+ Numeric Tensor, same dtype as and broadcastable to x.
+    #
+    # Returns
+    # Op that raises InvalidArgumentError if x == y is false
+    def assert_equal(x, y, data: nil, summarize: nil, message: nil, name: nil)
+      _op(:assert_equal, x, y, data: data, summarize: summarize, message: message, name: name)
     end
 
     ##
@@ -83,7 +97,7 @@ module TensorStream
     #
     # When executed in a graph, this op outputs its input tensor as-is.
     def stop_gradient(tensor, options = {})
-      _op(:stop_gradient, tensor, nil, options)
+      _op(:stop_gradient, tensor, options)
     end
 
     ##
@@ -190,13 +204,13 @@ module TensorStream
     ##
     # Creates a tensor with all elements set to zero
     def zeros(shape, dtype: :float32, name: nil)
-      _op(:zeros, shape, nil, data_type: dtype, name: name)
+      _op(:zeros, shape, data_type: dtype, name: name)
     end
 
     ##
     # Creates a tensor with all elements set to 1.
     def ones(shape, dtype: :float32, name: nil)
-      _op(:ones, shape, nil, data_type: dtype, name: name)
+      _op(:ones, shape, data_type: dtype, name: name)
     end
 
     ##
@@ -354,20 +368,20 @@ module TensorStream
     ##
     # Computes square of x element-wise.
     def square(tensor, name: nil)
-      _op(:square, tensor, nil, name: name)
+      _op(:square, tensor, name: name)
     end
 
     ##
     # Rounds the values of a tensor to the nearest integer, element-wise
     def round(tensor, name: nil)
       check_allowed_types(tensor, FLOATING_POINT_TYPES)
-      _op(:round, tensor, nil, name: name)
+      _op(:round, tensor, name: name)
     end
 
     ##
     # Computes the reciprocal of x element-wise.
     def reciprocal(tensor, name: nil)
-      _op(:reciprocal, tensor, nil, name: name)
+      _op(:reciprocal, tensor, name: name)
     end
 
     ##
@@ -495,7 +509,7 @@ module TensorStream
       input = convert_to_tensor(input)
       return input if input.data_type == dtype
 
-      _op(:cast, input, nil, data_type: dtype, name: name)
+      _op(:cast, input, data_type: dtype, name: name)
     end
 
     ##
@@ -509,7 +523,7 @@ module TensorStream
     ##
     # Computes numerical negative value element-wise.
     def negate(input, name: nil)
-      _op(:negate, input, nil, name: name)
+      _op(:negate, input, name: name)
     end
 
     ##
@@ -539,7 +553,7 @@ module TensorStream
     # of the same type and shape as tensor with all elements set to zero.
     # Optionally, you can use dtype to specify a new type for the returned tensor.
     def zeros_like(tensor, dtype: nil, name: nil)
-      _op(:zeros_like, tensor, nil, data_type: dtype, name: name)
+      _op(:zeros_like, tensor, data_type: dtype, name: name)
     end
 
     ##
@@ -548,13 +562,13 @@ module TensorStream
     # tensor of the same type and shape as tensor with all elements set to 1.
     # Optionally, you can specify a new type (dtype) for the returned tensor.
     def ones_like(tensor, dtype: nil, name: nil)
-      _op(:ones_like, tensor, nil, data_type: dtype, name: name)
+      _op(:ones_like, tensor, data_type: dtype, name: name)
     end
 
     ##
     # Return a tensor with the same shape and contents as input.
     def identity(input, name: nil)
-      _op(:identity, input, nil, name: name)
+      _op(:identity, input, name: name)
     end
 
     ##
@@ -591,7 +605,7 @@ module TensorStream
     ##
     # Computes the absolute value of a tensor.
     def abs(input, name: nil)
-      _op(:abs, input, nil, name: name)
+      _op(:abs, input, name: name)
     end
 
     ##
@@ -599,63 +613,63 @@ module TensorStream
     # y = sign(x) = -1 if x < 0; 0 if x == 0 or tf.is_nan(x); 1 if x > 0.
     # Zero is returned for NaN inputs.
     def sign(input, name: nil)
-      _op(:sign, input, nil, name: name)
+      _op(:sign, input, name: name)
     end
 
     ##
     # Computes sin of input element-wise.
     def sin(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:sin, input, nil, name: name)
+      _op(:sin, input, name: name)
     end
 
     ##
     # Computes cos of input element-wise.
     def cos(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:cos, input, nil, name: name)
+      _op(:cos, input, name: name)
     end
 
     ##
     # Computes tan of input element-wise.
     def tan(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:tan, input, nil, name: name)
+      _op(:tan, input, name: name)
     end
 
     ##
     # Computes tanh of input element-wise.
     def tanh(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:tanh, input, nil, name: name)
+      _op(:tanh, input, name: name)
     end
 
     ##
     # Computes sqrt of input element-wise.
     def sqrt(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:sqrt, input, nil, name: name)
+      _op(:sqrt, input, name: name)
     end
 
     ##
     # Computes natural logarithm of x element-wise.
     def log(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:log, input, nil, name: name)
+      _op(:log, input, name: name)
     end
 
     ##
     # Computes natural logarithm of (1 + x) element-wise.
     def log1p(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:log1p, input, nil, name: name)
+      _op(:log1p, input, name: name)
     end
 
     ##
     # Computes exponential of x element-wise.
     def exp(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:exp, input, nil, name: name)
+      _op(:exp, input, name: name)
     end
 
     ##
@@ -675,7 +689,7 @@ module TensorStream
     # Computes sigmoid of x element-wise.
     def sigmoid(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:sigmoid, input, nil, name: name)
+      _op(:sigmoid, input, name: name)
     end
 
     ##
@@ -698,14 +712,14 @@ module TensorStream
     # Pads a tensor.
     # This operation pads a tensor according to the paddings you specify.
     def pad(tensor, paddings, mode: 'CONSTANT', name: nil)
-      _op(:pad, tensor, nil, paddings: paddings, mode: mode, name: name)
+      _op(:pad, tensor, paddings, mode: mode, name: name)
     end
 
     ##
     # Checks a tensor for NaN and Inf values.
     # When run, reports an InvalidArgument error if tensor has any values that are not a number (NaN) or infinity (Inf). Otherwise, passes tensor as-is.
     def check_numerics(tensor, message, name: nil)
-      _op(:check_numerics, tensor, nil, message: message, name: name)
+      _op(:check_numerics, tensor, message: message, name: name)
     end
 
     def size(tensor, name: nil, out_type: :int32)

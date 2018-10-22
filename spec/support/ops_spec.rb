@@ -8,6 +8,16 @@ RSpec.shared_examples "standard ops evaluator" do
     sess.clear_session_cache
   end
 
+  context ".assert_equal" do
+    it "Assert the condition x == y holds element-wise." do
+      a = tf.constant([1.0, 2.0])
+      b = tf.constant([1.0, 2.0])
+      c = tf.constant([1.0, 2.1])
+      expect{ sess.run(tf.assert_equal(a, b)) }.to_not raise_error
+      expect{ sess.run(tf.assert_equal(a, c)) }.to raise_error(TensorStream::InvalidArgumentError)
+    end
+  end
+
   context ".control_dependencies" do
     it "control inputs must be fully evaluated before executing block" do
       # We define our Variables and placeholders
