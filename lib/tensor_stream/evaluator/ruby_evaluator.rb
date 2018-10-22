@@ -313,9 +313,9 @@ module TensorStream
           @context[tensor.name] = result
         end
       rescue EvaluatorExcecutionException => e
-        raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
+        raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue TensorStreamError => e
-        raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
+        raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue StandardError => e
 
         a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]

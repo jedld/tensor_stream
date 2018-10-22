@@ -18,9 +18,13 @@ RSpec.describe TensorStream::ReportTool do
       b = ts.constant(session.run(ts.random_uniform(SHAPES)))
       a1 = a.dot(b)
       a2 = a1 + b
-      session.run(a2)
+      a3 = ts.sigmoid(a2)
+      a4 = ts.reduce_sum(a3)
+      session.run(a4)
       profile = TensorStream::ReportTool.profile_for(session)
-      expect(profile.first[0]).to eq "mat_mul_2:0"
+      name, _elpased, shape, _source = profile.first
+      expect(name).to eq "sum_5:0"
+      expect(shape).to eq []
     end
   end
 end

@@ -32,12 +32,13 @@ require "tensor_stream/debugging/debugging"
 require 'tensor_stream/utils'
 require 'tensor_stream/train/utils'
 require 'tensor_stream/images'
-require 'tensor_stream/trainer'
+
 require 'tensor_stream/profile/report_tool'
 
 # require 'tensor_stream/libraries/layers'
 require 'tensor_stream/monkey_patches/integer'
 require 'tensor_stream/ops'
+require 'tensor_stream/trainer'
 
 # module that exposes TensorStream top level functions
 module TensorStream
