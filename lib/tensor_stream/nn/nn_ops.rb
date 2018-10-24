@@ -11,6 +11,13 @@ module TensorStream
       TensorStream.max(features, 0, name: "relu_#{name}")
     end
 
+    def self.relu6(features, name: nil)
+      TensorStream.name_scope(name, "Relu6", values: [features]) do
+        features = TensorStream.convert_to_tensor(features, name: "features")
+        _op(:relu6, features, name: name)
+      end
+    end
+
     def self.sigmoid(input, name: nil)
       TensorStream.sigmoid(input, name: name)
     end
@@ -21,10 +28,10 @@ module TensorStream
 
     def self.softmax_cross_entropy_with_logits_v2(labels: nil, logits: nil, name: nil)
       TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do
-        tf = TensorStream
-        logits = tf.convert_to_tensor(logits, name: 'logits')
-        labels = tf.convert_to_tensor(labels, name: 'labels')
-        labels = tf.cast(labels, logits.dtype)
+        ts = TensorStream
+        logits = ts.convert_to_tensor(logits, name: 'logits')
+        labels = ts.convert_to_tensor(labels, name: 'labels')
+        labels = ts.cast(labels, logits.dtype)
 
         output = _op(:softmax_cross_entropy_with_logits_v2, logits, labels)
         output[0]

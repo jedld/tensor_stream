@@ -20,7 +20,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(123)
+      expect(described_class.ops.keys.size).to eq(124)
     end
 
     specify do
@@ -108,6 +108,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         rank
         real_div
         reciprocal
+        relu6
         reshape
         restore_v2
         round

@@ -268,7 +268,7 @@ module TensorStream
         when :sparse_softmax_cross_entropy_with_logits
           output = node
           [_broadcast_mul(grad, output[1]), nil]
-        when :floor, :ceil
+        when :floor, :ceil, :round
           # non differentiable
           nil
         when :zeros_like
