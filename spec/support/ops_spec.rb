@@ -1204,6 +1204,14 @@ z = tf.constant([[8, 9],[10, 11]])
       expect(sess.run(tf.argmin(b, 0))).to eq(0)
       expect(sess.run(tf.argmin(b, 0, output_type: :float32))).to eql(0.0)
     end
+
+    specify "rank 3" do
+      a = tf.constant([
+        [[31, 23,  4], [18,  3, 25],  [28, 14, 33]],
+        [[24, 27, 34], [0,   6,  35],   [22, 20,  8]]
+      ])
+      expect(sess.run(tf.argmin(a))).to eq([[1, 0, 0],[1, 0, 0],[1, 0, 1]])
+    end
   end
 
   supported_op '.argmax' do
@@ -1229,6 +1237,14 @@ z = tf.constant([[8, 9],[10, 11]])
       expect {
         sess.run(tf.argmax(x, 1))
       }.to raise_exception TensorStream::InvalidArgumentError
+    end
+
+    specify "rank 3" do
+      a = tf.constant([
+        [[31, 23,  4], [18,  3, 25],  [28, 14, 33]],
+        [[24, 27, 34], [0,   6,  35],   [22, 20,  8]]
+      ])
+      expect(sess.run(tf.argmax(a))).to eq([[0, 1, 1],[0, 1, 1],[0, 1, 0]])
     end
   end
 
