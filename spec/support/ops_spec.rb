@@ -1207,10 +1207,16 @@ z = tf.constant([[8, 9],[10, 11]])
 
     specify "rank 3" do
       a = tf.constant([
-        [[31, 23,  4], [18,  3, 25],  [28, 14, 33]],
-        [[24, 27, 34], [0,   6,  35],   [22, 20,  8]]
-      ])
+                        [
+                          [31, 23,  4], [18,  3, 25],  [28, 14, 33]
+                        ],
+                        [
+                          [24, 27, 34], [0,   6,  35],   [22, 20,  8]
+                        ]
+                      ])
       expect(sess.run(tf.argmin(a))).to eq([[1, 0, 0],[1, 0, 0],[1, 0, 1]])
+      expect(sess.run(tf.argmin(a, 1))).to eq([[1, 1, 0], [1, 1, 2]])
+      expect(sess.run(tf.argmin(a, 2))).to eq([[2, 1, 1], [0, 0, 2]])
     end
   end
 
@@ -2156,6 +2162,15 @@ end
       f = tf.squeeze(a)
       g = tf.gradients(f, [a])
       expect(sess.run(g)).to eq([[[1], [1], [1], [1]]])
+    end
+  end
+
+  supported_op ".index" do
+    specify "array index" do
+      a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0])
+      expect(sess.run(a[0])).to eq 1.0
+      b = tf.constant([[1.0, 2.0, 3.0, 4.0, 5.0],[6.0, 7.0, 8.0, 9.0, 10.0]])
+      expect(sess.run(b[1])).to eq ([6.0, 7.0, 8.0, 9.0, 10.0])
     end
   end
 
