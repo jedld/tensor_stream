@@ -554,7 +554,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  supported_op ".reduce_mean" do
+  supported_op ".mean" do
     it "Computes the mean of elements across dimensions of a tensor" do
       x = tf.constant([[1.0, 1.0], [2.0, 2.0]])
       expect(sess.run(tf.reduce_mean(x))).to eq(1.5)
