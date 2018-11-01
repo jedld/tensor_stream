@@ -363,36 +363,33 @@ module TensorStream
       private
 
       def get_op_with_axis(a, target_axis, current_axis, output_type, op = ->(t, u) { t > u })
-        if target_axis == current_axis
-          if a[0].is_a?(Array)
-            (0...a[0].size).each.collect do |column_index|
-              max = nil
-              max_index = 0
-              a.each_with_index do |row, row_index|
-                if max.nil? || op.call(row[column_index], max)
-                  max = row[column_index]
-                  max_index = row_index
-                end
-              end
 
-              Tensor.cast_dtype(max_index, output_type)
-            end
-          else
-            max = nil
-            max_index = 0
-            a.each_with_index do |x, index|
-              if max.nil? || op.call(x, max)
-                max = x
-                max_index = index
-              end
-            end
-            Tensor.cast_dtype(max_index, output_type)
+      end
+
+      def get_min_max_index(arr, type = :max)
+        min_or_max = nil
+        ret_index = 0
+
+        if arr[0].is_a?(Array)
+          arr.map(&:flatten).transpose.map do |arr|
+            get_min_max_index(arr, type)
           end
         else
-          a.collect do |row|
-            get_op_with_axis(row, target_axis, current_axis + 1, output_type, op)
+          arr.each_with_index do |item, index|
+            if min_or_max.nil?
+              min_or_max = item
+              ret_index = index
+            elsif item > min_or_max && type == :max
+              min_or_max = item
+              ret_index = index
+            else item < min_or_max && type == :min
+              min_or_max = item
+              ret_index = index
+            end
           end
         end
+
+        ret_index
       end
 
       def reduction(child_context, tensor, func)
