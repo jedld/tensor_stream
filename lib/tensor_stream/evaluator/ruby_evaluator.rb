@@ -371,8 +371,8 @@ module TensorStream
         ret_index = 0
 
         if arr[0].is_a?(Array)
-          arr.map(&:flatten).transpose.map do |arr|
-            get_min_max_index(arr, type)
+          arr.map(&:flatten).transpose.map do |a|
+            get_min_max_index(a, type)
           end
         else
           arr.each_with_index do |item, index|

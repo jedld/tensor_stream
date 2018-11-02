@@ -1246,11 +1246,10 @@ z = tf.constant([[8, 9],[10, 11]])
     end
 
     specify "rank 3" do
-      a = tf.constant([
-        [[31, 23,  4], [18,  3, 25],  [28, 14, 33]],
-        [[24, 27, 34], [0,   6,  35],   [22, 20,  8]]
-      ])
+      a = tf.constant([[[31, 23,  4], [18,  3, 25],  [28, 14, 33]],[[24, 27, 34], [0,   6,  35],   [22, 20,  8]]])
       expect(sess.run(tf.argmax(a))).to eq([[0, 1, 1],[0, 1, 1],[0, 1, 0]])
+      expect(sess.run(tf.argmax(a, 1))).to eq([[0, 0, 2],[0, 0, 1]])
+      expect(sess.run(tf.argmax(a, 2))).to eq([[0, 2, 2],[2, 2, 0]])
     end
   end
 
