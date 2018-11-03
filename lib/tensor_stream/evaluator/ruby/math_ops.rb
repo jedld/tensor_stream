@@ -144,15 +144,29 @@ module TensorStream
           rank = get_rank(inputs[0])
           raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
 
-          get_op_with_axis(inputs[0], axis, 0, tensor.data_type)
+          new_shape = shape_eval(inputs[0])
+          ns = new_shape.each_with_index.collect do |shape, index|
+            next nil if index == axis
+
+            shape
+          end.compact
+
+          Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :max), ns), tensor.data_type)
         end
 
         register_op(%i[argmin arg_min]) do |_context, tensor, inputs|
-          axis =  inputs[1] || 0
+          axis = inputs[1] || 0
           rank = get_rank(inputs[0])
           raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
 
-          get_op_with_axis(inputs[0], axis, 0, tensor.data_type, ->(a, b) { a < b })
+          new_shape = shape_eval(inputs[0])
+          ns = new_shape.each_with_index.collect do |shape, index|
+            next nil if index == axis
+
+            shape
+          end.compact
+
+          Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :min), ns), tensor.data_type)
         end
 
         register_op :cumprod do |context, tensor, inputs|

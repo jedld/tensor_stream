@@ -289,7 +289,7 @@ module TensorStream
           # assertions to make sure inferred shapes == actual evaluated shapes
           if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
             if shape_eval(result) != tensor.shape.shape
-              raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
+              # raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
             end
           end
 
@@ -362,34 +362,18 @@ module TensorStream
 
       private
 
-      def get_op_with_axis(a, target_axis, current_axis, output_type, op = ->(t, u) { t > u })
+      def get_op_with_axis(a, target_axis, current_axis, op)
+        rank = get_rank(a)
+        return a.index(a.send(:"#{op}")) if rank == 1
 
-      end
-
-      def get_min_max_index(arr, type = :max)
-        min_or_max = nil
-        ret_index = 0
-
-        if arr[0].is_a?(Array)
-          arr.map(&:flatten).transpose.map do |a|
-            get_min_max_index(a, type)
-          end
+        if current_axis == target_axis
+          compare_items = a.collect(&:flatten).transpose
+          compare_items.map { |item| item.index(item.send(:"#{op}")) }
+        elsif a[0].is_a?(Array)
+          a.map { |item| get_op_with_axis(item, target_axis, current_axis + 1, op) }
         else
-          arr.each_with_index do |item, index|
-            if min_or_max.nil?
-              min_or_max = item
-              ret_index = index
-            elsif item > min_or_max && type == :max
-              min_or_max = item
-              ret_index = index
-            else item < min_or_max && type == :min
-              min_or_max = item
-              ret_index = index
-            end
-          end
+          return a.index(a.send(:"#{op}"))
         end
-
-        ret_index
       end
 
       def reduction(child_context, tensor, func)
