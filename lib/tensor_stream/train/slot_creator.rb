@@ -5,7 +5,7 @@ module TensorStream
 
       ##
       # Helper function for creating a slot variable.
-      def create_slot_var(primary, val, scope, shape)
+      def create_slot_var(_primary, val, scope, shape)
         slot = get_variable(scope, initializer: val, trainable: false, shape: shape,
                                                   validate_shape: val.shape && val.shape.known?)
         slot
@@ -53,7 +53,7 @@ module TensorStream
       def create_zeros_slot(primary, name, dtype: nil, colocate_with_primary: true)
         dtype = primary.data_type if dtype.nil?
         slot_shape = primary.shape
-        slot_shape = if slot_shape.is_fully_defined?
+        slot_shape = if slot_shape.fully_defined?
                        slot_shape.shape
                      else
                        TensorStream.shape(primary.initialized_value)

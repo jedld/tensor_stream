@@ -310,5 +310,30 @@ module TensorStream
 
       reduce_axis(0, axis, val, keep_dims, func)
     end
+
+    def arr_pad(arr, paddings, data_type = :float32, rank = 0)
+      raise "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
+
+      before = paddings[rank][0]
+      after = paddings[rank][1]
+      pad_value = fp_type?(data_type) ? 0.0 : 0
+      if arr[0].is_a?(Array)
+        next_dim_elem = arr.collect { |a| arr_pad(a, paddings, data_type, rank + 1) }
+        padding = deep_dup_array(next_dim_elem[0], pad_value)
+        Array.new(before) { padding } + next_dim_elem + Array.new(after) { padding }
+      else
+        Array.new(before) { pad_value } + arr + Array.new(after) { pad_value }
+      end
+    end
+
+    def deep_dup_array(arr, value = nil)
+      if arr.is_a?(Array)
+        arr.dup.collect do |a|
+          deep_dup_array(a, value)
+        end
+      else
+        value.nil? ? arr : value
+      end
+    end
   end
 end

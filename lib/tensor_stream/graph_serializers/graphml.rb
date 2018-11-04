@@ -34,7 +34,7 @@ module TensorStream
       arr_buf << "</node>"
 
       to_graph_ml(tensor, arr_buf, {}, groups)
-      #dump groups
+      # dump groups
       groups.each do |k, g|
         arr_buf << create_group(k, k, g)
       end

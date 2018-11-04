@@ -80,6 +80,7 @@ module TensorStream
 
       def _add_saveable(saveables, seen_ops, saveable)
         raise TensorStream::ValueError, "The same saveable will be restored with two names: #{saveable.name}" if seen_ops.include?(saveable.op)
+
         saveables << saveable
         seen_ops << saveable.op
       end

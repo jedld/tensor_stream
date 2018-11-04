@@ -104,13 +104,13 @@ module TensorStream
       get_default_graph.device(device_uri, &block)
     end
 
-    def name_scope(name, default: nil, values: nil)
+    def name_scope(name, default_name = nil, default: nil, values: nil)
       if values
         graph_count = values.select { |v| v.is_a?(Tensor) }.map(&:graph).map(&:object_id).uniq.size
         raise "values are not on the same graph" if graph_count > 1
       end
 
-      get_default_graph.name_scope(name || default) do |scope|
+      get_default_graph.name_scope(name || default_name || default) do |scope|
         yield scope if block_given?
       end
     end

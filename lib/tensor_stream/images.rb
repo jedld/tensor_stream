@@ -8,7 +8,7 @@ module TensorStream
     end
 
     def self.encode_png(contents, compression: -1, name: nil)
-      check_allowed_types(contents, [:uint8, :uint16])
+      check_allowed_types(contents, %i[uint8 uint16])
       contents = convert_to_tensor(contents, dtype: :uint16)
       _op(:encode_png, contents, compression: compression, name: name)
     end

@@ -15,6 +15,7 @@ module TensorStream
           @lines << "  op: #{camelize(node.operation.to_s).to_json}"
           node.inputs.each do |input|
             next unless input
+
             @lines << "  input: #{input.name.to_json}"
           end
           # type

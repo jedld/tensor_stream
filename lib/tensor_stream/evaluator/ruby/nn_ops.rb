@@ -16,11 +16,11 @@ module TensorStream
           assign = tensor.inputs[0] || tensor
           assign_acc = tensor.inputs[1]
           assign_acc.value = multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad)
-          if tensor.options[:use_nesterov]
-            assign.value = multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
-          else
-            assign.value = multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
-          end
+          assign.value = if tensor.options[:use_nesterov]
+                           multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
+                         else
+                           multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
+                         end
           assign.value
         end
 
@@ -206,6 +206,10 @@ module TensorStream
             end
             TensorShape.reshape(arr, input_shape)
           end
+        end
+
+        register_op :relu6 do |context, tensor, inputs|
+          call_vector_op(tensor, :relu6, inputs[0], inputs[1], context, ->(t, u) { [[t, 0].max, 6].min })
         end
       end
     end

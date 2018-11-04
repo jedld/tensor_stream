@@ -244,4 +244,44 @@ RSpec.describe TensorStream::Tensor do
       expect(t.ceil.run).to eq(4)
     end
   end
+
+  context "monkey patch" do
+    specify do
+      expect(2 + 1).to eql(3)
+      expect(2 - 1).to eql(1)
+      expect(2 / 1).to eql(2)
+      expect(2 * 1).to eql(2)
+      expect(2 % 1).to eql(0)
+    end
+
+    specify "add float" do
+      a = 2.0.t
+      f = 1.0 + a
+      f1 = 1.0 / a
+      f2 = 1.0 - a
+      f3 = 1.0 * a
+      f4 = 1.0 % a
+      expect(f.run).to eql(3.0)
+      expect(f1.run).to eql(2.0)
+      expect(f2.run).to eql(-1.0)
+      expect(f3.run).to eql(2.0)
+      expect(f4.run).to eql(1.0)
+    end
+
+    specify "add int" do
+      f = 1 + 2.t
+      expect(f.run).to eql(3)
+    end
+
+    context "arrays" do
+      specify do
+        f = [1.0, 2.0, 3.0, 1.1, 2.2].t + 1.5
+        expect(f.run).to eql([2.5, 3.5, 4.5, 2.6, 3.7])
+      end
+      specify do
+        f = [1.0, 2.0, 3.0, 1.1, 2.2] + 1.0.t
+        expect(f.run).to eql([2.0, 3.0, 4.0, 2.1, 3.2])
+      end
+    end
+  end
 end

@@ -7,7 +7,7 @@ module TensorStream
       attr_accessor :learning_rate
 
       def initialize(learning_rate, initial_accumulator_value = 0.1,
-        use_locking: false, name: "Adagrad")
+                     use_locking: false, name: "Adagrad")
         @learning_rate = learning_rate
         @initial_accumulator_value = initial_accumulator_value
         @learning_rate_tensor = nil

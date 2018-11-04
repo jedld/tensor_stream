@@ -8,6 +8,16 @@ RSpec.shared_examples "standard ops evaluator" do
     sess.clear_session_cache
   end
 
+  context ".assert_equal" do
+    it "Assert the condition x == y holds element-wise." do
+      a = tf.constant([1.0, 2.0])
+      b = tf.constant([1.0, 2.0])
+      c = tf.constant([1.0, 2.1])
+      expect{ sess.run(tf.assert_equal(a, b)) }.to_not raise_error
+      expect{ sess.run(tf.assert_equal(a, c)) }.to raise_error(TensorStream::InvalidArgumentError)
+    end
+  end
+
   context ".control_dependencies" do
     it "control inputs must be fully evaluated before executing block" do
       # We define our Variables and placeholders
@@ -544,7 +554,7 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
-  supported_op ".reduce_mean" do
+  supported_op ".mean" do
     it "Computes the mean of elements across dimensions of a tensor" do
       x = tf.constant([[1.0, 1.0], [2.0, 2.0]])
       expect(sess.run(tf.reduce_mean(x))).to eq(1.5)
@@ -1189,6 +1199,24 @@ z = tf.constant([[8, 9],[10, 11]])
 
       b = tf.constant([1,2,3,4,5,6])
       expect(sess.run(tf.argmin(a))).to eq([3, 4, 0, 1, 4, 2])
+      expect(sess.run(tf.argmin(a, 1))).to eq([2, 3, 5, 4, 1, 2])
+      expect(sess.run(tf.argmin(a, 0))).to eq([3, 4, 0, 1, 4, 2])
+      expect(sess.run(tf.argmin(b, 0))).to eq(0)
+      expect(sess.run(tf.argmin(b, 0, output_type: :float32))).to eql(0.0)
+    end
+
+    specify "rank 3" do
+      a = tf.constant([
+                        [
+                          [31, 23,  4], [18,  3, 25],  [28, 14, 33]
+                        ],
+                        [
+                          [24, 27, 34], [0,   6,  35],   [22, 20,  8]
+                        ]
+                      ])
+      expect(sess.run(tf.argmin(a))).to eq([[1, 0, 0],[1, 0, 0],[1, 0, 1]])
+      expect(sess.run(tf.argmin(a, 1))).to eq([[1, 1, 0], [1, 1, 2]])
+      expect(sess.run(tf.argmin(a, 2))).to eq([[2, 1, 1], [0, 0, 2]])
     end
   end
 
@@ -1215,6 +1243,13 @@ z = tf.constant([[8, 9],[10, 11]])
       expect {
         sess.run(tf.argmax(x, 1))
       }.to raise_exception TensorStream::InvalidArgumentError
+    end
+
+    specify "rank 3" do
+      a = tf.constant([[[31, 23,  4], [18,  3, 25],  [28, 14, 33]],[[24, 27, 34], [0,   6,  35],   [22, 20,  8]]])
+      expect(sess.run(tf.argmax(a))).to eq([[0, 1, 1],[0, 1, 1],[0, 1, 0]])
+      expect(sess.run(tf.argmax(a, 1))).to eq([[0, 0, 2],[0, 0, 1]])
+      expect(sess.run(tf.argmax(a, 2))).to eq([[0, 2, 2],[2, 2, 0]])
     end
   end
 
@@ -1521,7 +1556,8 @@ z = tf.constant([[8, 9],[10, 11]])
       [:reciprocal, 10.0, [[0.9091,  0.4762], [0.4762, 0.3333]], [[[0.9091, 0.4762], [0.4762, 0.3333]], [[0.9091, 0.4762], [0.4762, 0.3333]]],   -100,  [[-0.8264,  -0.2268], [-0.2268, -0.1111]]                         ],
       [:sigmoid, 0.525, [[0.7503, 0.8909], [0.8909, 0.9526]], [[[0.7503, 0.8909], [0.8909, 0.9526]], [[0.7503, 0.8909], [0.8909, 0.9526]]],   0.2494, [[0.1874, 0.0972], [0.0972, 0.0452]]],
       [:floor, 0, [[1, 2], [2, 3]],  [[[1, 2], [2, 3]], [[1, 2], [2, 3]]],       0, [[0.0, 0.0], [0.0, 0.0]]],
-      [:ceil, 1,[[2, 3], [3, 3]],    [[[2, 3], [3, 3]], [[2, 3], [3, 3]]],      0, [[0.0, 0.0], [0.0, 0.0]]]
+      [:ceil, 1, [[2, 3], [3, 3]],    [[[2, 3], [3, 3]], [[2, 3], [3, 3]]],      0, [[0.0, 0.0], [0.0, 0.0]]],
+      [:round, 0, [[1, 2], [2, 3]],  [[[1, 2], [2, 3]], [[1, 2], [2, 3]]],       0, [[0.0, 0.0], [0.0, 0.0]]],
     ].each do |func, scalar, matrix, rank3, gradient, gradient2|
       supported_op ".#{func}" do
         let(:x) { tf.constant(0.1) }
@@ -2125,6 +2161,35 @@ end
       f = tf.squeeze(a)
       g = tf.gradients(f, [a])
       expect(sess.run(g)).to eq([[[1], [1], [1], [1]]])
+    end
+  end
+
+  supported_op ".index" do
+    specify "array index" do
+      a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0])
+      expect(sess.run(a[0])).to eq 1.0
+      b = tf.constant([[1.0, 2.0, 3.0, 4.0, 5.0],[6.0, 7.0, 8.0, 9.0, 10.0]])
+      expect(sess.run(b[1])).to eq ([6.0, 7.0, 8.0, 9.0, 10.0])
+    end
+  end
+
+  context ".relu6" do
+    specify do
+      a = tf.constant([-2.0, 1.0, 2.0, 3.0, 5.0, 6.3, 7.0 ])
+      r = tf.nn.relu6(a)
+      expect(sess.run(r)).to eq([0, 1.0, 2.0, 3.0, 5.0, 6, 6])
+    end
+  end
+
+  context ".dropout" do
+    specify do
+      tf.set_random_seed(0)
+      a = tf.constant([-2.0, 1.0, 2.0, 3.0, 5.0, 6.3, 7.0 ])
+      r = tf.nn.dropout(a, 0.5)
+      expect(sess.run(r)).to eq([-4.0, 2.0, 4.0, 6.0, 0.0, 12.6, 0.0])
+
+      r2 = tf.nn.dropout(a, 0.1)
+      expect(sess.run(r2)).to eq([-0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 70.0])
     end
   end
 end

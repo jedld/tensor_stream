@@ -140,6 +140,8 @@ module TensorStream
             @context[:profile][:operations][tensor.name] = { op: tensor.operation,
                                                              step: @context[:profile][:step],
                                                              eval_time: end_time - start_time,
+                                                             shape: tensor.shape ? tensor.shape.shape : nil,
+                                                             data_type: tensor.data_type,
                                                              tensor: tensor }
           end
         end
@@ -166,6 +168,7 @@ module TensorStream
       def global_eval(tensor, input, execution_context, op_options = {})
         return nil unless input
         return input unless input.is_a?(Tensor)
+
         # puts "global eval #{tensor.name}"
         @context[:_cache][:placement][input.name] = @session.assign_evaluator(input) if @context[:_cache][:placement][input.name].nil?
         if !on_same_device?(input) # tensor is on another device or evaluator

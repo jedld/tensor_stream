@@ -289,7 +289,7 @@ module TensorStream
           # assertions to make sure inferred shapes == actual evaluated shapes
           if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
             if shape_eval(result) != tensor.shape.shape
-              raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
+              # raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
             end
           end
 
@@ -313,21 +313,20 @@ module TensorStream
           @context[tensor.name] = result
         end
       rescue EvaluatorExcecutionException => e
-        raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
+        raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue TensorStreamError => e
-        raise e, "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
+        raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue StandardError => e
-
-        a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-        b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
+        # a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
+        # b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
         puts e.message
         puts e.backtrace.join("\n")
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
         # dtype_a = a.data_type if a
         # dtype_b = b.data_type if b
-        a = complete_eval(a, child_context)
-        b = complete_eval(b, child_context)
+        # a = complete_eval(a, child_context)
+        # b = complete_eval(b, child_context)
         # puts "name: #{tensor.given_name}"
         # # puts "op: #{tensor.to_math(true, 1)}"
         # puts "A #{shape_a} #{dtype_a}: #{a}" if a
@@ -363,36 +362,17 @@ module TensorStream
 
       private
 
-      def get_op_with_axis(a, target_axis, current_axis, output_type, op = ->(t, u) { t > u })
-        if target_axis == current_axis
-          if a[0].is_a?(Array)
-            (0...a[0].size).each.collect do |column_index|
-              max = nil
-              max_index = 0
-              a.each_with_index do |row, row_index|
-                if max.nil? || op.call(row[column_index], max)
-                  max = row[column_index]
-                  max_index = row_index
-                end
-              end
+      def get_op_with_axis(a, target_axis, current_axis, op)
+        rank = get_rank(a)
+        return a.index(a.send(:"#{op}")) if rank == 1
 
-              Tensor.cast_dtype(max_index, output_type)
-            end
-          else
-            max = nil
-            max_index = 0
-            a.each_with_index do |x, index|
-              if max.nil? || op.call(x, max)
-                max = x
-                max_index = index
-              end
-            end
-            Tensor.cast_dtype(max_index, output_type)
-          end
+        if current_axis == target_axis
+          compare_items = a.collect(&:flatten).transpose
+          compare_items.map { |item| item.index(item.send(:"#{op}")) }
+        elsif a[0].is_a?(Array)
+          a.map { |item| get_op_with_axis(item, target_axis, current_axis + 1, op) }
         else
-          a.collect do |row|
-            get_op_with_axis(row, target_axis, current_axis + 1, output_type, op)
-          end
+          return a.index(a.send(:"#{op}"))
         end
       end
 
@@ -401,31 +381,6 @@ module TensorStream
         axis = global_eval(tensor, tensor.inputs[1], child_context)
         keep_dims = global_eval(tensor, tensor.options[:keepdims], child_context)
         reduce(val, axis, keep_dims, func)
-      end
-
-      def arr_pad(arr, paddings, data_type = :float32, rank = 0)
-        raise "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
-
-        before = paddings[rank][0]
-        after = paddings[rank][1]
-        pad_value = fp_type?(data_type) ? 0.0 : 0
-        if arr[0].is_a?(Array)
-          next_dim_elem = arr.collect { |a| arr_pad(a, paddings, data_type, rank + 1) }
-          padding = deep_dup_array(next_dim_elem[0], pad_value)
-          Array.new(before) { padding } + next_dim_elem + Array.new(after) { padding }
-        else
-          Array.new(before) { pad_value } + arr + Array.new(after) { pad_value }
-        end
-      end
-
-      def deep_dup_array(arr, value = nil)
-        if arr.is_a?(Array)
-          arr.dup.collect do |a|
-            deep_dup_array(a, value)
-          end
-        else
-          value.nil? ? arr : value
-        end
       end
 
       def call_op(op, a, child_context, func)

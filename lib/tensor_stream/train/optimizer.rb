@@ -11,6 +11,7 @@ module TensorStream
         @name = name
         @use_locking = use_locking
         raise TensorStream::ValueError, "Must specify the optimizer name" unless @name
+
         @slots = {}
         @non_slots = {}
       end
@@ -51,6 +52,7 @@ module TensorStream
       def compute_gradients(loss, var_list: nil, grad_loss: nil)
         trainable_vars = if var_list
                            raise "var_list must be an array" unless var_list.is_a?(Array)
+
                            var_list.each_with_index { |var, index| raise "var #{index} not a Variable" unless var.is_a?(Variable) }
 
                            var_list
@@ -66,6 +68,7 @@ module TensorStream
       def get_slot(var, name)
         named_slots = @slots.fetch(name, nil)
         return nil if named_slots.nil?
+
         named_slots.fetch(var_key(var), nil)
       end
 
@@ -100,7 +103,7 @@ module TensorStream
       #   op_name: string - Name to use when scoping the Variable that needs to be created
       def zeros_slot(var, slot_name, op_name)
         named_slots = slot_dict(slot_name)
-        if !named_slots.key?(var_key(var))
+        unless named_slots.key?(var_key(var))
           named_slots[var_key(var)] = create_zeros_slot(var, op_name)
         end
         named_slots[var_key(var)]
@@ -132,9 +135,8 @@ module TensorStream
       end
 
       def call_if_callable(param)
-        param.kind_of?(Proc) ? param.call : param
+        param.is_a?(Proc) ? param.call : param
       end
-
 
       def create_non_slot_variable(initial_value, name, colocate_with)
         graph = colocate_with.graph
@@ -152,9 +154,8 @@ module TensorStream
       # Find or create a slot for a variable, using an Initializer.
       def get_or_make_slot_with_initializer(var, initializer, shape, dtype, slot_name, op_name)
         named_slots = slot_dict(slot_name)
-        if !named_slots.key?(var_key(var))
-          new_slot_variable = create_slot_with_initializer(
-            var, initializer, shape, dtype, op_name)
+        unless named_slots.key?(var_key(var))
+          new_slot_variable = create_slot_with_initializer(var, initializer, shape, dtype, op_name)
           named_slots[var_key(var)] = new_slot_variable
         end
         named_slots[var_key(var)]

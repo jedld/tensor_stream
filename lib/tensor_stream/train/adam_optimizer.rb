@@ -43,8 +43,8 @@ module TensorStream
 
       def get_beta_accumulators
         graph = TensorStream.get_default_graph
-        [ get_non_slot_variable("beta1_power", graph: graph),
-          get_non_slot_variable("beta2_power", graph: graph)]
+        [get_non_slot_variable("beta1_power", graph: graph),
+         get_non_slot_variable("beta2_power", graph: graph)]
       end
 
       def prepare

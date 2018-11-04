@@ -76,5 +76,17 @@ RSpec.describe TensorStream::Session do
       partial_eval = session.run(expression, retain: [x])
       expect(partial_eval.to_math).to eq("(sin(Variable:0) + -0.4161468365471424)")
     end
+
+    context "exceptions" do
+      specify "checks for missing placeholder exceptions" do
+        session = TensorStream::Session.default_session
+        x = tf.placeholder(:float32)
+        a = tf.constant(1.0) + x
+        session.run(a, feed_dict: { x => 1 })
+        expect {
+          session.run(a)
+        }.to raise_error TensorStream::ValueError
+      end
+    end
   end
 end

@@ -14,30 +14,28 @@ module TensorStream
           image.grayscale! if channels == 1
           image_data = image.pixels.collect do |pixel|
             color_values = if channels == 4
-              [ ChunkyPNG::Color.r(pixel),
-                ChunkyPNG::Color.g(pixel),
-                ChunkyPNG::Color.b(pixel),
-                ChunkyPNG::Color.a(pixel) ]
-            elsif channels == 3
-              [ ChunkyPNG::Color.r(pixel),
-                ChunkyPNG::Color.g(pixel),
-                ChunkyPNG::Color.b(pixel)]
-            elsif channels == 1
-              [ ChunkyPNG::Color.r(pixel) ]
-            else
-              raise "Invalid channel value #{channels}"
-            end
-            
-            if fp_type?(tensor.data_type)
-              color_values.map! { |v| v.to_f }
-            end
+                             [ChunkyPNG::Color.r(pixel),
+                              ChunkyPNG::Color.g(pixel),
+                              ChunkyPNG::Color.b(pixel),
+                              ChunkyPNG::Color.a(pixel)]
+                           elsif channels == 3
+                             [ChunkyPNG::Color.r(pixel),
+                              ChunkyPNG::Color.g(pixel),
+                              ChunkyPNG::Color.b(pixel)]
+                           elsif channels == 1
+                             [ChunkyPNG::Color.r(pixel)]
+                           else
+                             raise "Invalid channel value #{channels}"
+                           end
+
+            color_values.map!(&:to_f) if fp_type?(tensor.data_type)
 
             color_values
           end
           TensorShape.reshape(image_data, [image.height, image.width, channels])
         end
 
-        register_op :encode_png do |_context, tensor, inputs|
+        register_op :encode_png do |_context, _tensor, inputs|
           image_data = inputs[0]
           height, width, channels = shape_eval(image_data)
 

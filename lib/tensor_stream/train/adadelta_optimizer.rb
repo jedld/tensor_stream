@@ -11,7 +11,7 @@ module TensorStream
         @learning_rate = learning_rate
         @rho = rho
         @epsilon = epsilon
-    
+
         # Tensor versions of the constructor arguments, created in _prepare().
         @learning_rate_tensor = nil
         @rho_t = nil

@@ -14,6 +14,7 @@ module TensorStream
       parsed_tree = protobuf.load_from_string(buffer)
       parsed_tree.each do |node|
         next unless node['type'] == 'node'
+
         # puts "build #{node['name']}"
         options = protobuf.options_evaluator(node)
         options[:name] = node['name']
