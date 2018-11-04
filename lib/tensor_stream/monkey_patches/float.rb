@@ -1,3 +1,3 @@
-class Integer
+class Float
   include TensorStream::MonkeyPatch
 end

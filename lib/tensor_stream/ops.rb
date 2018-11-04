@@ -81,15 +81,15 @@ module TensorStream
     ##
     # Outputs random values from a uniform distribution.
     def random_uniform(shape, dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
-      options = { shape: shape, dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name }
-      _op(:random_uniform, nil, nil, options)
+      options = { dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name }
+      _op(:random_uniform, shape, nil, options)
     end
 
     ##
     # Outputs random values from a normal distribution.
     def random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
-      options = { shape: shape, dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
-      _op(:random_standard_normal, nil, nil, options)
+      options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
+      _op(:random_standard_normal, shape, nil, options)
     end
 
     ##

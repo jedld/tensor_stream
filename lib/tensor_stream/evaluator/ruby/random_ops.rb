@@ -25,24 +25,24 @@ module TensorStream
           generate_vector(shape, generator: generator)
         end
 
-        register_op :random_uniform, no_eval: true do |_context, tensor, _inputs|
+        register_op :random_uniform, no_eval: true do |_context, tensor, inputs|
           maxval = tensor.options.fetch(:maxval, 1)
           minval = tensor.options.fetch(:minval, 0)
           seed = tensor.options[:seed]
 
           random = _get_randomizer(tensor, seed)
           generator = -> { random.rand * (maxval - minval) + minval }
-          shape = tensor.options[:shape] || tensor.shape.shape
+          shape = inputs[0] || tensor.shape.shape
           generate_vector(shape, generator: generator)
         end
 
-        register_op :random_standard_normal, no_eval: true do |_context, tensor, _inputs|
+        register_op :random_standard_normal, no_eval: true do |_context, tensor, inputs|
           seed = tensor.options[:seed]
           random = _get_randomizer(tensor, seed)
           r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
           random = _get_randomizer(tensor, seed)
           generator = -> { r.rand }
-          shape = tensor.options[:shape] || tensor.shape.shape
+          shape = inputs[0] || tensor.shape.shape
           generate_vector(shape, generator: generator)
         end
       end

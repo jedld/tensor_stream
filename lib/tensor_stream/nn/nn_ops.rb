@@ -18,6 +18,35 @@ module TensorStream
       end
     end
 
+    ##
+    # Computes dropout.
+    #
+    # With probability keep_prob, outputs the input element scaled up by 1 / keep_prob, otherwise outputs 0. The scaling is so that the expected sum is unchanged.
+    def self.dropout(x, keep_prob, noise_shape: nil, seed: nil, name: nil)
+      TensorStream.name_scope(name, "dropout", values: [x]) do
+        x = TensorStream.convert_to_tensor(x, name: "x")
+        raise TensorStream::ValueError, "x has to be a floating point tensor since it's going to be scaled. Got a #{x.data_type} tensor instead." unless fp_type?(x.data_type)
+        raise TensorStream::ValueError, "keep_prob must be a scalar tensor or a float in the range (0, 1], got #{keep_prob}" unless (0 < keep_prob && keep_prob <= 1)
+
+        return x if keep_prob.is_a?(Float) && keep_prob.to_f == 1.0
+
+        keep_prob = TensorStream.convert_to_tensor(keep_prob, dtype: x.dtype, name: "keep_prob")
+        return x if keep_prob.value == 1.0
+
+        noise_shape = if noise_shape.nil?
+                        TensorStream.shape(x)
+                      else
+                        noise_shape
+                      end
+
+        random_tensor = keep_prob
+        random_tensor += TensorStream.random_uniform(noise_shape, seed: seed, dtype: x.dtype)
+
+        binary_tensor = TensorStream.floor(random_tensor)
+        TensorStream.div(x, keep_prob) * binary_tensor
+      end
+    end
+
     def self.sigmoid(input, name: nil)
       TensorStream.sigmoid(input, name: name)
     end

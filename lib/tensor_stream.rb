@@ -36,7 +36,9 @@ require 'tensor_stream/images'
 require 'tensor_stream/profile/report_tool'
 
 # require 'tensor_stream/libraries/layers'
+require 'tensor_stream/monkey_patches/patch'
 require 'tensor_stream/monkey_patches/integer'
+require 'tensor_stream/monkey_patches/float'
 require 'tensor_stream/ops'
 require 'tensor_stream/trainer'
 
