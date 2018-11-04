@@ -10,8 +10,8 @@ module TensorStream
             end
 
       ops.each do |m, name|
-        klass.alias_method :"_tensor_stream_#{name}_orig", m
-        klass.remove_method m
+        klass.send(:alias_method, :"_tensor_stream_#{name}_orig", m)
+        klass.send(:remove_method, m)
       end
     end
 
