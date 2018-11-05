@@ -26,7 +26,7 @@ module TensorStream
       TensorStream.name_scope(name, "dropout", values: [x]) do
         x = TensorStream.convert_to_tensor(x, name: "x")
         raise TensorStream::ValueError, "x has to be a floating point tensor since it's going to be scaled. Got a #{x.data_type} tensor instead." unless fp_type?(x.data_type)
-        raise TensorStream::ValueError, "keep_prob must be a scalar tensor or a float in the range (0, 1], got #{keep_prob}" unless (0 < keep_prob && keep_prob <= 1)
+        raise TensorStream::ValueError, "keep_prob must be a scalar tensor or a float in the range (0, 1], got #{keep_prob}" if keep_prob.is_a?(Float) && !(0 < keep_prob && keep_prob <= 1)
 
         return x if keep_prob.is_a?(Float) && keep_prob.to_f == 1.0
 

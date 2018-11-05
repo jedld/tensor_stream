@@ -1218,6 +1218,11 @@ z = tf.constant([[8, 9],[10, 11]])
       expect(sess.run(tf.argmin(a, 1))).to eq([[1, 1, 0], [1, 1, 2]])
       expect(sess.run(tf.argmin(a, 2))).to eq([[2, 1, 1], [0, 0, 2]])
     end
+
+    specify "Nan behavior" do
+      b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, Float::NAN])
+      expect(sess.run(tf.argmin(b))).to eq(0)
+    end
   end
 
   supported_op '.argmax' do
@@ -1250,6 +1255,11 @@ z = tf.constant([[8, 9],[10, 11]])
       expect(sess.run(tf.argmax(a))).to eq([[0, 1, 1],[0, 1, 1],[0, 1, 0]])
       expect(sess.run(tf.argmax(a, 1))).to eq([[0, 0, 2],[0, 0, 1]])
       expect(sess.run(tf.argmax(a, 2))).to eq([[0, 2, 2],[2, 2, 0]])
+    end
+
+    specify "Nan behavior" do
+      b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, Float::NAN])
+      expect(sess.run(tf.argmax(b))).to eq(4)
     end
   end
 
@@ -2186,10 +2196,10 @@ end
       tf.set_random_seed(0)
       a = tf.constant([-2.0, 1.0, 2.0, 3.0, 5.0, 6.3, 7.0 ])
       r = tf.nn.dropout(a, 0.5)
-      expect(sess.run(r)).to eq([-4.0, 2.0, 4.0, 6.0, 0.0, 12.6, 0.0])
+      expect(tr(sess.run(r))).to eq([-4.0, 2.0, 4.0, 6.0, 0.0, 12.6, 0.0])
 
       r2 = tf.nn.dropout(a, 0.1)
-      expect(sess.run(r2)).to eq([-0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 70.0])
+      expect(tr(sess.run(r2))).to eq([-0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 70.0])
     end
   end
 end
