@@ -7,11 +7,25 @@ module TensorStream
         register_op :decode_png do |_context, tensor, inputs|
           content = inputs[0]
           channels = tensor.options[:channels]
+          resample_new_shape = tensor.options[:new_shape]
+          resample_method = tensor.options[:resample_method] || :bilinear
           channels = 4 if channels.zero?
 
           image = ChunkyPNG::Image.from_blob(content)
 
           image.grayscale! if channels == 1
+
+          if resample_new_shape
+            case resample_method
+            when :bilinear
+              image.resample_bilinear!(resample_new_shape[1], resample_new_shape[0]) # width, # height
+            when :nearest_neighbor
+              image.resample_nearest_neighbor!(resample_new_shape[1], resample_new_shape[0])
+            else
+              raise TensorStream::ValueError, "invalid resample method provided #{resample_method}. Available (:bilinear, :nearest_neighbor)"
+            end
+          end
+
           image_data = image.pixels.collect do |pixel|
             color_values = if channels == 4
                              [ChunkyPNG::Color.r(pixel),
@@ -35,9 +49,12 @@ module TensorStream
           TensorShape.reshape(image_data, [image.height, image.width, channels])
         end
 
-        register_op :encode_png do |_context, _tensor, inputs|
+        register_op :encode_png do |_context, tensor, inputs|
           image_data = inputs[0]
           height, width, channels = shape_eval(image_data)
+
+          resample_new_shape = tensor.options[:new_shape]
+          resample_method = tensor.options[:resample_method] || :bilinear
 
           png = ChunkyPNG::Image.new(width, height)
           image_data.each_with_index do |rows, h_index|
@@ -51,6 +68,18 @@ module TensorStream
               end
             end
           end
+
+          if resample_new_shape
+            case resample_method
+            when :bilinear
+              png.resample_bilinear!(resample_new_shape[1], resample_new_shape[0]) # width, # height
+            when :nearest_neighbor
+              png.resample_nearest_neighbor!(resample_new_shape[1], resample_new_shape[0])
+            else
+              raise TensorStream::ValueError, "invalid resample method provided #{resample_method}. Available (:bilinear, :nearest_neighbor)"
+            end
+          end
+
           png.to_s
         end
       end
