@@ -1,4 +1,5 @@
 require 'json'
+require "zlib"
 
 module TensorStream
   module Train
@@ -12,11 +13,12 @@ module TensorStream
                write_meta_graph: true,
                write_state: true,
                strip_default_attrs: false)
-        vars = TensorStream::Graph.get_default_graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
+        graph = TensorStream::Graph.get_default_graph
+        vars = graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
 
         variables = {}
-        graph = {}
-        gs =  eval_global_step(session, global_step)
+
+        gs = eval_global_step(session, global_step)
         output_dump = {
           'variables' => variables,
           'global_step' => gs
@@ -24,7 +26,7 @@ module TensorStream
 
         vars.each do |variable|
           val = variable.read_value
-          packed_data = TensorStream::Packer.pack(val, variable.data_type)
+          packed_data = Zlib::Deflate.deflate(TensorStream::Packer.pack(val, variable.data_type))
           variables[variable.name] = {
             'shape' => shape_eval(val),
             'data' => Base64.strict_encode64(packed_data)
@@ -36,18 +38,21 @@ module TensorStream
 
         new_filename = File.join(path, [basename, gs].compact.join('-'))
         File.write(new_filename, output_dump.to_yaml)
-
+        if write_meta_graph
+          graph_filename = "#{basename}.pbtext"
+          TensorStream.train.write_graph(graph, path, graph_filename)
+        end
         path
       end
 
       def restore(_session, inputfile)
-        input_dump = YAML.load(File.read(inputfile))
+        input_dump = YAML.safe_load(File.read(inputfile))
 
         vars = TensorStream::Graph.get_default_graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
         vars.each do |variable|
           next unless input_dump['variables'].key?(variable.name)
 
-          data = TensorStream::Packer.unpack(Base64.decode64(input_dump['variables'][variable.name]['data']), variable.data_type)
+          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump['variables'][variable.name]['data'])), variable.data_type)
           shape = input_dump['variables'][variable.name]['shape']
           variable.buffer = nil
           variable.value = TensorShape.reshape(data, shape)
