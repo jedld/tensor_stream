@@ -211,6 +211,9 @@ module TensorStream
         register_op :relu6 do |context, tensor, inputs|
           call_vector_op(tensor, :relu6, inputs[0], inputs[1], context, ->(t, u) { [[t, 0].max, 6].min })
         end
+
+        register_op :conv2d do |context, tensor, inputs|
+        end
       end
     end
   end
