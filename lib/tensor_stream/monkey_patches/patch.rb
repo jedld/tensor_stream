@@ -15,6 +15,10 @@ module TensorStream
       end
     end
 
+    def shape
+      TensorStream.shape_eval(self)
+    end
+
     def t(name = nil)
       TensorStream.convert_to_tensor(self, name: name)
     end

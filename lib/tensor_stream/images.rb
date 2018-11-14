@@ -3,7 +3,7 @@ module TensorStream
     extend OpHelper
     extend TensorStream::Utils
 
-    def self.decode_png(contents, channels: 0, dtype: :uint8, name: nil, new_shape: new_shape)
+    def self.decode_png(contents, channels: 0, dtype: :uint8, name: nil, new_shape: nil)
       _op(:decode_png, contents, channels: channels, data_type: dtype, name: name, new_shape: new_shape)
     end
 
