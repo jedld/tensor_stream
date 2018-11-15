@@ -171,6 +171,10 @@ module TensorStream
         axis = rank + axis if axis < 0
         rotated_shape = Array.new(axis + 1) { new_shape.shift }
         rotated_shape.rotate!(-1) + new_shape
+      when :conv2d
+        return nil unless tensor.inputs[0].shape.known?
+
+        tensor.inputs[0].shape.shape
       else
         return nil if tensor.inputs[0].nil?
         return tensor.inputs[0].shape.shape if tensor.inputs.size == 1

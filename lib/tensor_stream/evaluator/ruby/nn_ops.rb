@@ -213,6 +213,22 @@ module TensorStream
         end
 
         register_op :conv2d do |context, tensor, inputs|
+          filter = inputs[1]
+          filter_shape = shape_eval(filter)
+          flat_filter = filter.flatten
+          arr = inputs[0].collect do |image|
+            image_shape = shape_eval(image)
+            flat_image = image.flatten
+            image_offset = 0
+
+            flat_filter.each_with_index.map do |f_val, index|
+              filter_x = index / filter_shape[0]
+              filter_y = index % filter_shape[1]
+
+
+            end
+            image_offset += image_shape[1] * image[2]
+          end
         end
       end
     end

@@ -103,7 +103,7 @@ RSpec.shared_examples "standard nn ops evaluator" do
         expect(image.shape.shape).to eq([2, 4, 4, 1])
         expect(sample_filter.shape.shape).to eq([2, 2, 1, 1])
         conv = ts.nn.conv2d(image, sample_filter, [1, 1, 1, 1], 'SAME')
-        expect(conv.shape.shape).to eq([2, 4, 4, 3])
+        expect(conv.shape.shape).to eq([2, 4, 4, 1])
         result = sess.run(conv)
         expect(result).to eq([
           [
