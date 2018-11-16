@@ -212,22 +212,32 @@ module TensorStream
           call_vector_op(tensor, :relu6, inputs[0], inputs[1], context, ->(t, u) { [[t, 0].max, 6].min })
         end
 
-        register_op :conv2d do |context, tensor, inputs|
+        register_op :conv2d do |_context, _tensor, inputs|
           filter = inputs[1]
           filter_shape = shape_eval(filter)
-          flat_filter = filter.flatten
-          arr = inputs[0].collect do |image|
-            image_shape = shape_eval(image)
-            flat_image = image.flatten
-            image_offset = 0
 
-            flat_filter.each_with_index.map do |f_val, index|
-              filter_x = index / filter_shape[0]
-              filter_y = index % filter_shape[1]
+          inputs[0].collect do |image|
+            height, width, _channels = shape_eval(image)
+            f_height, f_width, _input_channels, _output_channels = filter_shape
 
+            (0...height).map do |y|
+              (0...width).map do |x|
+                filter_result = (0...f_height).map do |f_y|
+                  (0...f_width).map do |f_x|
+                    f_element = filter[f_y][f_x]
 
+                    next if x + f_x >= width
+                    next if y + f_y >= height
+
+                    image[y + f_y][x + f_x].zip(f_element).map do |image_channel, filter_channels|
+                      filter_channels.map { |c| image_channel * c }
+                    end
+                  end.compact
+                end.flatten(2)
+
+                filter_result.transpose.map { |e| e.reduce(:+) }
+              end
             end
-            image_offset += image_shape[1] * image[2]
           end
         end
       end
