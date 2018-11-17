@@ -215,13 +215,16 @@ module TensorStream
         register_op :conv2d do |_context, _tensor, inputs|
           filter = inputs[1]
           filter_shape = shape_eval(filter)
+          strides = inputs[2]
+          height_stride = strides[1]
+          width_stride = strides[2]
 
           inputs[0].collect do |image|
             height, width, _channels = shape_eval(image)
             f_height, f_width, _input_channels, _output_channels = filter_shape
 
-            (0...height).map do |y|
-              (0...width).map do |x|
+            (0...height).step(height_stride).map do |y|
+              (0...width).step(width_stride).map do |x|
                 filter_result = (0...f_height).map do |f_y|
                   (0...f_width).map do |f_x|
                     f_element = filter[f_y][f_x]
@@ -249,7 +252,7 @@ module TensorStream
           f_height, f_width, _input_channels, output_channels = filter_shape
           batch, height, width, channels = image_shape
 
-          batch.times.map do |b|
+          Array.new(batch) do |b|
             image_gradient = TensorShape.reshape(Array.new(height * width * channels) { 0.0 }, [height, width, channels])
 
             (0...height).each do |y|
@@ -260,7 +263,7 @@ module TensorStream
                     next if y + f_y >= height
 
                     channels.times.each do |c|
-                      image_gradient[y + f_y][x + f_x][c] += output_channels.times.map do |o_c|
+                      image_gradient[y + f_y][x + f_x][c] += Array.new(output_channels) do |o_c|
                         filter[f_y][f_x][c][o_c] * grad[b][y + f_y][x + f_x][o_c]
                       end.reduce(:+)
                     end

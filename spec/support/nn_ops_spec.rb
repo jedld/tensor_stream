@@ -94,7 +94,7 @@ RSpec.shared_examples "standard nn ops evaluator" do
           ],
           [
             [
-              [[15.2582, 15.2582, 15.2582], [14.41, 14.41, 14.41], [14.434, 14.434, 14.434]], 
+              [[15.2582, 15.2582, 15.2582], [14.41, 14.41, 14.41], [14.434, 14.434, 14.434]],
               [[13.3582, 13.3582, 13.3582], [9.828, 9.828, 9.828], [10.854, 10.854, 10.854]]
             ],
             [
@@ -174,6 +174,36 @@ RSpec.shared_examples "standard nn ops evaluator" do
           [[0.225, 0.41], [0.625, 0.88], [0.885, 1.26], [0.75, 0.75]]]])
       end
 
+      specify "strides" do
+        conv = ts.nn.conv2d(image, sample_filter_2, [1, 2, 2, 1], 'SAME')
+        result = sess.run(conv)
+        expect(tr(result)).to eq([
+          [
+            [[1.322, 1.556], [1.308, 1.699]], [[1.228, 1.239], [0.4124, 0.7767]]
+          ],
+          [
+            [[1.028, 1.294], [0.539, 0.942]], [[0.544, 0.767], [0.54, 0.665]]
+          ]
+        ])
+
+        conv = ts.nn.conv2d(image, sample_filter_2, [1, 1, 2, 1], 'SAME')
+        result = sess.run(conv)
+        expect(tr(result)).to eq([
+          [
+            [[1.322, 1.556], [1.308, 1.699]],
+            [[0.926, 1.188], [0.723, 1.144]],
+            [[1.228, 1.239], [0.4124, 0.7767]
+          ],
+          [
+            [1.164, 1.559], [0.4485, 0.477]]],
+            [[[1.028, 1.294], [0.539, 0.942]],
+            [[1.132, 1.3], [0.81, 0.83]],
+            [[0.544, 0.767], [0.54, 0.665]],
+            [[0.225, 0.41], [0.885, 1.26]]
+          ]
+        ])
+      end
+
       specify "gradient" do
         conv = ts.nn.conv2d(image, sample_filter, [1, 1, 1, 1], 'SAME')
         g = tf.gradients(conv, [image, sample_filter])
@@ -206,7 +236,7 @@ RSpec.shared_examples "standard nn ops evaluator" do
         conv = ts.nn.conv2d(image, sample_filter_2, [1, 1, 1, 1], 'SAME')
         g = tf.gradients(conv, [image, sample_filter_2])
         result = sess.run(g)
- 
+
         expect(tr(result)).to eq([
           [
             [
