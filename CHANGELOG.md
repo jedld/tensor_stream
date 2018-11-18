@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.6] - 2018-11-18
+- [NEW OP] Convolutional networks - conv2d, conv2d_backprop_filter, conv2d_backprop_input
+- [IMAGE] Exposed image resampling options
+- [BUG FIX] fix argmin, argmax handling of NaN values
+
 ## [0.9.5] - 2018-11-05
 - [NEW OP] assert_equal, relu6
 - [TRAINING] learning_rate_decay, dropout
