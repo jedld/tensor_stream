@@ -364,7 +364,7 @@ module TensorStream
 
       def get_op_with_axis(a, target_axis, current_axis, op)
         rank = get_rank(a)
-        return a.index(a.send(:"#{op}")) if rank == 1
+        return a.send(:"#{op}_index") if rank == 1
 
         if current_axis == target_axis
           compare_items = a.collect(&:flatten).transpose
@@ -372,7 +372,7 @@ module TensorStream
         elsif a[0].is_a?(Array)
           a.map { |item| get_op_with_axis(item, target_axis, current_axis + 1, op) }
         else
-          return a.index(a.send(:"#{op}"))
+          return a.send(:"#{op}_index")
         end
       end
 

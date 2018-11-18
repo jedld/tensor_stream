@@ -314,6 +314,12 @@ RSpec.shared_examples "images ops" do
         [[0.0], [0.0], [19.0], [25.0], [9.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]]])
 
     end
+
+    specify "resampling" do
+      file_path = File.join('spec','fixtures', 'ruby_16.png')
+      decoded_image = tf.image.decode_png(File.read(file_path), new_shape: [32, 32])
+      expect(sess.run(tf.shape(decoded_image))).to eq([32, 32, 4])
+    end
   end
 
   supported_op ".encode_png" do
@@ -839,6 +845,14 @@ RSpec.shared_examples "images ops" do
         31,
         12,
         1])
+    end
+
+    specify "resampling" do
+      image = tf.constant(image_data, dtype: :uint8)
+      encoder = tf.image.encode_png(image, new_shape: [8, 8])
+      blob = sess.run(encoder)
+      encoded_image = ChunkyPNG::Image.from_blob(blob)
+      expect([encoded_image.width, encoded_image.height]).to eq([8, 8])
     end
   end
 end

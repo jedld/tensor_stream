@@ -305,6 +305,8 @@ module TensorStream
           Array.new(node.inputs.size) { |i| res[i] }
         when :unstack
           ts.stack(grad, axis: node.options[:axis])
+        when :conv2d
+          _Conv2DGrad(node, grad)
         when :cast
           t = %i[float16 float32 float64]
           src_type = node.inputs[0].data_type
@@ -415,6 +417,34 @@ module TensorStream
 
       out_grads = ts.split(grad, sizes, axis: non_neg_concat_dim, num: op.inputs.size - 1)
       end_value_index <= dim_index ? out_grads + [nil] : [nil] + out_grads
+    end
+
+    def self._Conv2DGrad(op, grad)
+      # dilations = op.get_attr("dilations")
+      strides = op.options[:strides]
+      padding = op.options[:padding]
+      use_cudnn_on_gpu = op.options[:use_cudnn_on_gpu]
+      data_format = op.options[:data_format]
+
+      shape_0, shape_1 = ts.shape_n([op.inputs[0], op.inputs[1]])
+      [
+          _op(:conv2d_backprop_input,
+              shape_0,
+              op.inputs[1],
+              grad,
+              strides: strides,
+              padding: padding,
+              use_cudnn_on_gpu: use_cudnn_on_gpu,
+              data_format: data_format),
+          _op(:conv2d_backprop_filter,
+              op.inputs[0],
+              shape_1,
+              grad,
+              strides: strides,
+              padding: padding,
+              use_cudnn_on_gpu: use_cudnn_on_gpu,
+              data_format: data_format)
+      ]
     end
   end
 end

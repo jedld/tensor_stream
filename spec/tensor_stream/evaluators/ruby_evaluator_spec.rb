@@ -17,10 +17,11 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   it_behaves_like "images ops"
   it_behaves_like "TensorStream::Train::Saver"
   it_behaves_like "optimizer evaluator"
+  it_behaves_like "standard nn ops evaluator"
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(124)
+      expect(described_class.ops.keys.size).to eq(127)
     end
 
     specify do
@@ -55,6 +56,9 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         concat_v2
         cond
         const
+        conv2d
+        conv2d_backprop_filter
+        conv2d_backprop_input
         cos
         cumprod
         decode_png

@@ -211,6 +211,114 @@ module TensorStream
         register_op :relu6 do |context, tensor, inputs|
           call_vector_op(tensor, :relu6, inputs[0], inputs[1], context, ->(t, u) { [[t, 0].max, 6].min })
         end
+
+        register_op :conv2d do |_context, tensor, inputs|
+          filter = inputs[1]
+          filter_shape = shape_eval(filter)
+          strides = tensor.options[:strides]
+          height_stride = strides[1]
+          width_stride = strides[2]
+
+          raise TensorStream::ValueError, " Current implementation does not yet support strides in the batch and depth dimensions." if strides[0] != 1 || strides[3] != 1
+
+          inputs[0].collect do |image|
+            height, width, _channels = shape_eval(image)
+            f_height, f_width, _input_channels, _output_channels = filter_shape
+
+            (0...height).step(height_stride).map do |y|
+              (0...width).step(width_stride).map do |x|
+                filter_result = (0...f_height).map do |f_y|
+                  (0...f_width).map do |f_x|
+                    f_element = filter[f_y][f_x]
+
+                    next if x + f_x >= width
+                    next if y + f_y >= height
+
+                    image[y + f_y][x + f_x].zip(f_element).map do |image_channel, filter_channels|
+                      filter_channels.map { |c| image_channel * c }
+                    end
+                  end.compact
+                end.flatten(2)
+
+                filter_result.transpose.map { |e| e.reduce(:+) }
+              end
+            end
+          end
+        end
+
+        register_op :conv2d_backprop_input do |_context, tensor, inputs|
+          image_shape, filter, grad = inputs
+
+          strides = tensor.options[:strides]
+
+          height_stride = strides[1]
+          width_stride = strides[2]
+
+          filter_shape = shape_eval(filter)
+
+          f_height, f_width, _input_channels, output_channels = filter_shape
+          batch, height, width, channels = image_shape
+
+          Array.new(batch) do |b|
+            image_gradient = TensorShape.reshape(Array.new(height * width * channels) { 0.0 }, [height, width, channels])
+
+            (0...height).step(height_stride).each do |y|
+              (0...width).step(width_stride).each do |x|
+                (0...f_height).each do |f_y|
+                  (0...f_width).each do |f_x|
+                    next if x + f_x >= width
+                    next if y + f_y >= height
+
+                    channels.times.each do |c|
+                      image_gradient[y + f_y][x + f_x][c] += Array.new(output_channels) do |o_c|
+                        filter[f_y][f_x][c][o_c] * grad[b][(y/height_stride) + f_y][(x/width_stride) + f_x][o_c]
+                      end.reduce(:+)
+                    end
+                  end
+                end
+              end
+            end
+
+            image_gradient
+          end
+        end
+
+        register_op :conv2d_backprop_filter do |_context, tensor, inputs|
+          images, filter_shape, grad = inputs
+
+          strides = tensor.options[:strides]
+          height_stride = strides[1]
+          width_stride = strides[2]
+
+          filter_gradient_sum = Array.new(filter_shape.reduce(:*)) { 0.0 }
+
+          images.each_with_index.map do |image, index|
+            height, width, _channels = shape_eval(image)
+            f_height, f_width, input_channels, output_channels = filter_shape
+
+            (0...height).step(height_stride).each do |y|
+              (0...width).step(width_stride).each do |x|
+                filter_result = (0...f_height).map do |f_y|
+                  (0...f_width).map do |f_x|
+
+                    next Array.new(input_channels * output_channels) { 0.0 } if x + f_x >= width
+                    next Array.new(input_channels * output_channels) { 0.0 } if y + f_y >= height
+
+                    image[y + f_y][x + f_x].each_with_index.map do |image_channel, c_channel|
+                      output_channels.times.map do |o_c|
+                        image_channel * grad[index][(y/height_stride) + f_y][(x/width_stride) + f_x][o_c]
+                      end
+                    end
+                  end
+                end.flatten
+
+                filter_gradient_sum = multi_array_op(->(a, b) { a + b }, filter_gradient_sum, filter_result)
+              end
+            end
+          end
+
+          TensorShape.reshape(filter_gradient_sum, filter_shape)
+        end
       end
     end
   end
