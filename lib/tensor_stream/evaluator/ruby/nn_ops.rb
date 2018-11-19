@@ -264,6 +264,8 @@ module TensorStream
 
             (0...height).step(height_stride).each do |y|
               (0...width).step(width_stride).each do |x|
+                img_grad = grad[b][y/height_stride][x/width_stride]
+                
                 (0...f_height).each do |f_y|
                   (0...f_width).each do |f_x|
                     next if x + f_x >= width
@@ -271,7 +273,7 @@ module TensorStream
 
                     channels.times.each do |c|
                       image_gradient[y + f_y][x + f_x][c] += Array.new(output_channels) do |o_c|
-                        filter[f_y][f_x][c][o_c] * grad[b][(y/height_stride) + f_y][(x/width_stride) + f_x][o_c]
+                        filter[f_y][f_x][c][o_c] * img_grad[o_c]
                       end.reduce(:+)
                     end
                   end
