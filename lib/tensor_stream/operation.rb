@@ -66,6 +66,8 @@ module TensorStream
         passed_data_type || :float32
       when :concat
         @inputs[1].data_type
+      when :conv2d_backprop_input
+        @inputs[1].data_type
       when :index
         if @inputs[0].is_a?(ControlFlow)
 
