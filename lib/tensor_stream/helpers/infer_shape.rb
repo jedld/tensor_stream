@@ -178,6 +178,10 @@ module TensorStream
         new_shape = tensor.inputs[0].shape.shape.dup
         new_shape[3] = tensor.inputs[1].shape.shape[3]
         new_shape
+      when :conv2d_backprop_input
+        return nil unless tensor.inputs[0].value
+
+        tensor.inputs[0].value
       else
         return nil if tensor.inputs[0].nil?
         return tensor.inputs[0].shape.shape if tensor.inputs.size == 1
