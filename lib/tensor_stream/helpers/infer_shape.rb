@@ -66,14 +66,16 @@ module TensorStream
         return nil if tensor.inputs[0].shape.nil?
 
         input_shape = tensor.inputs[0].shape.shape
-        return new_shape if input_shape.nil?
-        return nil if input_shape.include?(nil)
+        return new_shape if input_shape.nil? && !new_shape.include?(-1) && !new_shape.include?(nil)
+        return nil if input_shape.nil? || input_shape.include?(nil)
+
         TensorShape.fix_inferred_elements(new_shape, input_shape.reduce(:*))
       when :flow_group
         []
-      when :zeros, :ones, :fill, :random_standard_normal, :random_uniform
+      when :zeros, :ones, :fill, :random_standard_normal, :random_uniform, :truncated_normal
         a_shape = tensor.inputs[0] ? tensor.inputs[0].const_value : tensor.options[:shape]
         return nil if a_shape.nil?
+        
         a_shape.is_a?(Array) ? a_shape : [a_shape]
       when :zeros_like, :ones_like
         tensor.inputs[0].shape.shape

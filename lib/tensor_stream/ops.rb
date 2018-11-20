@@ -93,6 +93,13 @@ module TensorStream
     end
 
     ##
+    # Outputs random values from a truncated normal distribution.
+    def truncated_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
+      options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
+      _op(:truncated_normal, shape, nil, options)
+    end
+
+    ##
     # Stops gradient computation.
     #
     # When executed in a graph, this op outputs its input tensor as-is.
@@ -114,7 +121,7 @@ module TensorStream
     # This operation returns a 1-D integer tensor representing the shape of input
     def shape(input, name: nil, out_type: :int32)
       return constant(shape_eval(input, out_type), dtype: out_type, name: "Shape/#{name}") if input.is_a?(Array) && !input[0].is_a?(Tensor)
-      return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}") if shape_full_specified(input)
+      return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}_c") if shape_full_specified(input)
 
       _op(:shape, input, name: name, out_type: out_type)
     end

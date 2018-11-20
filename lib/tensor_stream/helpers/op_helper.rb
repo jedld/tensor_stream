@@ -71,7 +71,7 @@ module TensorStream
       return false if tensor.shape.nil?
       return false if tensor.shape.shape.nil?
 
-      tensor.shape.shape.each { |s| return false if s.nil? }
+      tensor.shape.shape.each { |s| return false if s.nil? || (s < 0) }
       true
     end
 

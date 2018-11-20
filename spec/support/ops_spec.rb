@@ -1331,6 +1331,13 @@ z = tf.constant([[8, 9],[10, 11]])
       expect(tr(sess.run(tf.add_n([a, b, c])))).to eq(4.6)
     end
 
+    specify "rank 3" do
+      a = [[[1.0],[1.0]], [[1.0],[1.0]]].t
+      b = [[[1.0],[1.0]], [[1.0],[1.0]]].t
+      c = [[[1.0],[1.0]], [[1.0],[1.0]]].t
+      expect(tr(sess.run(tf.add_n([a, b, c])))).to eq([[[3.0], [3.0]], [[3.0], [3.0]]])
+    end
+
     specify "gradients" do
       a = tf.constant([1.0, 2.0, 3.0])
       b = tf.constant([1.1, 2.0, 3.1])
@@ -1429,6 +1436,19 @@ z = tf.constant([[8, 9],[10, 11]])
             expect(tr(sess.run(r))).to eq(tr(expected))
           end
         end
+      end
+    end
+
+    supported_op ".truncated_normal" do
+      specify do
+        tf.set_random_seed(0)
+        f = tf.truncated_normal([4,4])
+        expect(tr(sess.run(f))).to eq([
+          [-1.5109, -0.4785, -1.0022, -0.755],
+          [-1.2783, 0.665, 0.2395, 0.8059],
+          [0.9579, -0.2226, 0.318, -1.185],
+          [0.3555, -0.9452, 0.3852, 0.1843]
+        ])
       end
     end
   end
