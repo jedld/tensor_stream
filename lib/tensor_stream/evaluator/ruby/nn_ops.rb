@@ -252,7 +252,6 @@ module TensorStream
 
         register_op :conv2d_backprop_input do |_context, tensor, inputs|
           image_shape, filter, grad = inputs
-
           strides = tensor.options[:strides]
           padding_option = tensor.options[:padding]
           height_stride = strides[1]
@@ -268,26 +267,30 @@ module TensorStream
           Array.new(batch) do |b|
             image_gradient = TensorShape.reshape(Array.new(height * width * channels) { 0.0 }, [height, width, channels])
 
-            ((0 - padding[0])...(height + padding[2])).step(height_stride).each do |y|
-              ((0 - padding[1])...(width + padding[3])).step(width_stride).each do |x|
-                channels.times.each do |c|
-                  (0...f_height).each do |f_y|
-                    (0...f_width).each do |f_x|
-                      next if (x + f_x) < 0 || (x % width_stride != 0)
-                      next if (y + f_y) < 0 || (y % height_stride != 0)
-                      next if (y + f_y) >= height
-                      next if (x + f_x) >= width
-                      next if (y + padding[0]) >= height
-                      next if (x + padding[1]) >= width
+            (0...height).each do |y|
+              (0...width).each do |x|
 
-                      img_grad = grad[b][(y + padding[0]) / height_stride][(x + padding[1]) / width_stride]
-                      output_channels.times.each do |o_c|
-                        image_gradient[y + f_y][x + f_x][c] += filter[f_y][f_x][c][o_c] * img_grad[o_c]
-                      end
+                (0...f_height).each do |f_y|
+                  (0...f_width).each do |f_x|
+                    next if (y - f_y + padding[0]) < 0
+                    next if (x - f_x + padding[1]) < 0
+                    next if (y - f_y + padding[0]) >= height
+                    next if (x - f_x + padding[1]) >= width
+                    next if ((y - f_y + padding[0]) % height_stride != 0)
+                    next if ((x - f_x + padding[1]) % width_stride != 0)
+
+                    img_grad = grad[b][(y - f_y + padding[0]) / height_stride][(x - f_x + padding[1]) / width_stride]
+                    
+                    channels.times.each do |c|
+                      g = output_channels.times.map do |o_c|
+                        filter[f_y][f_x][c][o_c] * img_grad[o_c]
+                      end.reduce(:+)
+
+                      image_gradient[y][x][c] += g
                     end
                   end
-
                 end
+
               end
             end
 
