@@ -360,30 +360,16 @@ RSpec.shared_examples "standard nn ops evaluator" do
         expected_output = JSON.parse(File.read(File.join('spec', 'fixtures', 'data.json')))
         result = sess.run(conv)
 
-        img_result = sess.run(image).map do |img|
-          img.map do |row|
-            row.map { |r| r.first > 0 ? '*' : ' ' }.join
-          end.join("\n")
-        end.join
+        expect(tr(sess.run(conv), 2)).to eq(tr(expected_output, 2))
 
-        result = result.map do |img|
-          img.map do |row|
-            row.map { |r| r.first > 0 ? '*' : ' ' }.join
-          end.join("\n")
-        end.join
+        g = tf.gradients(tf.nn.relu(conv) + b1, [image, filter])
 
-        expected = expected_output.map do |image|
-          image.map do |row|
-            row.map { |r| r.first > 0 ? '*' : ' ' }.join
-          end.join("\n")
-        end.join
+        expected_grad_output = JSON.parse(File.read(File.join('spec', 'fixtures', 'expected_grad.json')))
+        expected_grad_2_output = JSON.parse(File.read(File.join('spec', 'fixtures', 'expected_grad_2.json')))
+        result = sess.run(g)
 
-        File.write('data_input.json', img_result)
-        File.write('data_actual.json', result)
-        File.write('data_expected.json', expected)
-
-        expect(tr(sess.run(conv).flatten, 2)).to eq(tr(expected_output.flatten, 2))
-
+        expect(tr(result[0], 2)).to eq(tr(expected_grad_output, 2))
+        expect(tr(result[1], 2)).to eq(tr(expected_grad_2_output, 2))
       end
     end
   end

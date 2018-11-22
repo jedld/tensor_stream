@@ -214,25 +214,29 @@ module TensorStream
 
         register_op :conv2d do |_context, tensor, inputs|
           filter = inputs[1]
+
           filter_shape = shape_eval(filter)
           strides = tensor.options[:strides]
+          padding_option = tensor.options[:padding]
           height_stride = strides[1]
           width_stride = strides[2]
 
           raise TensorStream::ValueError, " Current implementation does not yet support strides in the batch and depth dimensions." if strides[0] != 1 || strides[3] != 1
 
+          padding = conv2d_padding_options(padding_option, filter_shape)
+
           inputs[0].collect do |image|
             height, width, _channels = shape_eval(image)
             f_height, f_width, _input_channels, _output_channels = filter_shape
 
-            (0...height).step(height_stride).map do |y|
-              (0...width).step(width_stride).map do |x|
+            ((0 - padding[0])...(height - padding[2])).step(height_stride).map do |y|
+              ((0 - padding[1])...(width - padding[3])).step(width_stride).map do |x|
                 filter_result = (0...f_height).map do |f_y|
                   (0...f_width).map do |f_x|
                     f_element = filter[f_y][f_x]
 
-                    next if x + f_x >= width
-                    next if y + f_y >= height
+                    next if (x + f_x >= width) || (x + f_x < 0)
+                    next if (y + f_y >= height) || (y + f_y < 0)
 
                     image[y + f_y][x + f_x].zip(f_element).map do |image_channel, filter_channels|
                       filter_channels.map { |c| image_channel * c }
@@ -250,7 +254,7 @@ module TensorStream
           image_shape, filter, grad = inputs
 
           strides = tensor.options[:strides]
-
+          padding_option = tensor.options[:padding]
           height_stride = strides[1]
           width_stride = strides[2]
 
@@ -259,24 +263,30 @@ module TensorStream
           f_height, f_width, _input_channels, output_channels = filter_shape
           batch, height, width, channels = image_shape
 
+          padding = conv2d_padding_options(padding_option, filter_shape)
+
           Array.new(batch) do |b|
             image_gradient = TensorShape.reshape(Array.new(height * width * channels) { 0.0 }, [height, width, channels])
 
-            (0...height).step(height_stride).each do |y|
-              (0...width).step(width_stride).each do |x|
-                img_grad = grad[b][y/height_stride][x/width_stride]
+            ((0 - padding[0])...(height + padding[2])).step(height_stride).each do |y|
+              ((0 - padding[1])...(width + padding[3])).step(width_stride).each do |x|
+                channels.times.each do |c|
+                  (0...f_height).each do |f_y|
+                    (0...f_width).each do |f_x|
+                      next if (x + f_x) < 0 || (x % width_stride != 0)
+                      next if (y + f_y) < 0 || (y % height_stride != 0)
+                      next if (y + f_y) >= height
+                      next if (x + f_x) >= width
+                      next if (y + padding[0]) >= height
+                      next if (x + padding[1]) >= width
 
-                (0...f_height).each do |f_y|
-                  (0...f_width).each do |f_x|
-                    next if x + f_x >= width
-                    next if y + f_y >= height
-
-                    channels.times.each do |c|
-                      image_gradient[y + f_y][x + f_x][c] += Array.new(output_channels) do |o_c|
-                        filter[f_y][f_x][c][o_c] * img_grad[o_c]
-                      end.reduce(:+)
+                      img_grad = grad[b][(y + padding[0]) / height_stride][(x + padding[1]) / width_stride]
+                      output_channels.times.each do |o_c|
+                        image_gradient[y + f_y][x + f_x][c] += filter[f_y][f_x][c][o_c] * img_grad[o_c]
+                      end
                     end
                   end
+
                 end
               end
             end
@@ -289,25 +299,28 @@ module TensorStream
           images, filter_shape, grad = inputs
 
           strides = tensor.options[:strides]
+          padding_option = tensor.options[:padding]
           height_stride = strides[1]
           width_stride = strides[2]
 
           filter_gradient_sum = Array.new(filter_shape.reduce(:*)) { 0.0 }
 
+          padding = conv2d_padding_options(padding_option, filter_shape)
+
           images.each_with_index.map do |image, index|
             height, width, _channels = shape_eval(image)
             f_height, f_width, input_channels, output_channels = filter_shape
 
-            (0...height).step(height_stride).each do |y|
-              (0...width).step(width_stride).each do |x|
-                image_grad = grad[index][y/height_stride][x/width_stride]
+            ((0 - padding[0])...(height - padding[2])).step(height_stride).each do |y|
+              ((0 - padding[1])...(width - padding[3])).step(width_stride).each do |x|
+                image_grad = grad[index][y / height_stride][x / width_stride]
                 filter_result = (0...f_height).map do |f_y|
                   (0...f_width).map do |f_x|
-                    next Array.new(input_channels * output_channels) { 0.0 } if x + f_x >= width
-                    next Array.new(input_channels * output_channels) { 0.0 } if y + f_y >= height
+                    next Array.new(input_channels * output_channels) { 0.0 } if x + f_x >= width || (x + f_x < 0)
+                    next Array.new(input_channels * output_channels) { 0.0 } if y + f_y >= height || (y + f_y < 0)
 
-                    image[y + f_y][x + f_x].each_with_index.map do |image_channel, c_channel|
-                      output_channels.times.map do |o_c|
+                    image[y + f_y][x + f_x].map do |image_channel|
+                      Array.new(output_channels) do |o_c|
                         image_channel * image_grad[o_c]
                       end
                     end
@@ -320,6 +333,17 @@ module TensorStream
           end
 
           TensorShape.reshape(filter_gradient_sum, filter_shape)
+        end
+
+        def conv2d_padding_options(padding_option, filter_shape)
+          padding = case padding_option
+                    when 'SAME'
+                      [(filter_shape[0] - 1) / 2, (filter_shape[1] - 1) / 2, (filter_shape[0] - 1) / 2, (filter_shape[1] - 1) / 2]
+                    when 'VALID'
+                      [0, 0, (filter_shape[0] - 1), (filter_shape[1] - 1)]
+                    else
+                      raise TensorStream::ValueError, "Unsupported padding value #{padding_option}, valid values 'SAME', 'VALID'"
+                    end
         end
       end
     end
