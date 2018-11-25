@@ -75,7 +75,7 @@ module TensorStream
       when :zeros, :ones, :fill, :random_standard_normal, :random_uniform, :truncated_normal
         a_shape = tensor.inputs[0] ? tensor.inputs[0].const_value : tensor.options[:shape]
         return nil if a_shape.nil?
-        
+
         a_shape.is_a?(Array) ? a_shape : [a_shape]
       when :zeros_like, :ones_like
         tensor.inputs[0].shape.shape
@@ -179,6 +179,12 @@ module TensorStream
 
         new_shape = tensor.inputs[0].shape.shape.dup
         new_shape[3] = tensor.inputs[1].shape.shape[3]
+
+        # account for stride
+        strides = tensor.options[:strides]
+        new_shape[1] /= strides[1]
+        new_shape[2] /= strides[2]
+
         new_shape
       when :conv2d_backprop_input
         return nil unless tensor.inputs[0].value
