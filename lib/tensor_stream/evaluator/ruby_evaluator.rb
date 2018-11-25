@@ -289,7 +289,8 @@ module TensorStream
           # assertions to make sure inferred shapes == actual evaluated shapes
           if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
             if shape_eval(result) != tensor.shape.shape
-              # raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
+
+              raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
             end
           end
 

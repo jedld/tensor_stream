@@ -33,3 +33,14 @@ def tr(t, places = 4)
 
   t.round(places)
 end
+
+def trf(t, places)
+  if t.is_a?(Array)
+    return t.collect do |v|
+      trf(v, places)
+    end
+  end
+
+  return t unless t.kind_of?(Float)
+  t.truncate(places)
+end

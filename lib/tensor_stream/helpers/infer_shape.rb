@@ -75,7 +75,7 @@ module TensorStream
       when :zeros, :ones, :fill, :random_standard_normal, :random_uniform, :truncated_normal
         a_shape = tensor.inputs[0] ? tensor.inputs[0].const_value : tensor.options[:shape]
         return nil if a_shape.nil?
-        
+
         a_shape.is_a?(Array) ? a_shape : [a_shape]
       when :zeros_like, :ones_like
         tensor.inputs[0].shape.shape
@@ -179,6 +179,21 @@ module TensorStream
 
         new_shape = tensor.inputs[0].shape.shape.dup
         new_shape[3] = tensor.inputs[1].shape.shape[3]
+
+        # account for stride and padding options
+        strides = tensor.options[:strides]
+
+        case tensor.options[:padding]
+        when 'SAME'
+          new_shape[1] /= strides[1]
+          new_shape[2] /= strides[2]
+        when 'VALID'
+          new_shape[1] = (new_shape[1] - tensor.inputs[1].shape.shape[0]) / strides[1] + 1
+          new_shape[2] = (new_shape[2] - tensor.inputs[1].shape.shape[1]) / strides[2] + 1
+        else
+          raise TensorStream::ValueError, "Invalid padding option only 'SAME', 'VALID' accepted"
+        end
+
         new_shape
       when :conv2d_backprop_input
         return nil unless tensor.inputs[0].value
