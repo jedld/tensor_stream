@@ -273,6 +273,16 @@ RSpec.describe TensorStream::Tensor do
       expect(f.run).to eql(3)
     end
 
+    specify "automatic type conversion" do
+      f = 1 + tf.constant(2, dtype: :uint8)
+      expect(f.run).to eql(3)
+    end
+
+    specify "explicit conversion" do
+      f = 1.t(dtype: :float)
+      expect(f.eval).to eql(1.0)
+    end
+
     context "arrays" do
       specify do
         f = [1.0, 2.0, 3.0, 1.1, 2.2].t + 1.5

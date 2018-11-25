@@ -134,6 +134,7 @@ RSpec.shared_examples "standard nn ops evaluator" do
           expect(sample_filter.shape.shape).to eq([2, 2, 3, 3])
           expect(conv.shape.shape).to eq([2, 3, 3, 3])
           result = sess.run(conv)
+
           expect(tr(result, 2)).to eq([[[[2.56, 2.88, 3.01], [3.73, 2.83, 2.59], [3.21, 2.12, 2.92]],
             [[3.02, 3.24, 3.28], [3.12, 2.23, 2.84], [2.05, 2.05, 2.08]],
             [[2.89, 2.0, 2.72], [2.42, 1.65, 1.8], [2.16, 1.73, 1.52]]],
