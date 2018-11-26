@@ -77,14 +77,16 @@ module TensorStream
       @collections[collection_name.to_sym] << val
     end
 
-    def add_node(node)
+    def add_node(node, name = nil)
       raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
 
-      node.name = if @nodes[node.name]
-                    uniqunify(node.name)
-                  else
-                    node.name
-                  end
+      if name.nil?
+        node.name = if @nodes[node.name]
+                      uniqunify(node.name)
+                    else
+                      node.name
+                    end
+      end
 
       node.device = get_device_scope
       @node_keys << node.name

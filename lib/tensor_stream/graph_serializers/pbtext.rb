@@ -4,11 +4,19 @@ module TensorStream
     include TensorStream::StringHelper
     include TensorStream::OpHelper
 
-    def get_string(tensor_or_graph, session = nil)
+    def get_string(tensor_or_graph, session = nil, graph_keys = nil)
       graph = tensor_or_graph.is_a?(Tensor) ? tensor_or_graph.graph : tensor_or_graph
       @lines = []
-      graph.node_keys.each do |k|
-        node = graph.get_tensor_by_name(k)
+
+      node_keys = graph_keys.nil? ? graph.node_keys : graph.node_keys.select { |k| graph_keys.include?(k) }
+
+      node_keys.each do |k|
+        node = if block_given?
+                 yield graph, k
+               else
+                 graph.get_tensor_by_name(k)
+               end
+
         @lines << "node {"
         @lines << "  name: #{node.name.to_json}"
         if node.is_a?(TensorStream::Operation)

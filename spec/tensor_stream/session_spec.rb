@@ -45,10 +45,12 @@ RSpec.describe TensorStream::Session do
     it "can assign placeholders" do
       x = TensorStream.placeholder(TensorStream::Types.float32)
       y = TensorStream.placeholder(TensorStream::Types.float32)
-      z = x + y
+      p = TensorStream.placeholder(TensorStream::Types.float32, name: "my_placeholder")
+      z = x + y + p
       sess = TensorStream.session(:ruby_evaluator)
-      expect(sess.run(z, feed_dict: { x =>  3, y => 4.5})).to eq(7.5)
-      expect(sess.run(z, feed_dict: { x => [1, 3], y=> [2, 4]})).to eq([3, 7])
+
+      expect(sess.run(z, feed_dict: { x =>  3, y => 4.5, "my_placeholder" => 1})).to eql(8.5)
+      expect(sess.run(z, feed_dict: { x => [1, 3], y=> [2, 4], "my_placeholder" => [1, 1]})).to eql([4.0, 8.0])
     end
 
     context "#close" do

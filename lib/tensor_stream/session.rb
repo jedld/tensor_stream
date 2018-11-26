@@ -57,7 +57,19 @@ module TensorStream
       # scan for placeholders and assign value
       if options[:feed_dict]
         options[:feed_dict].keys.each do |k|
-          context[k.name.to_sym] = options[:feed_dict][k] if k.is_a?(Placeholder)
+          if k.is_a?(Placeholder)
+            context[k.name.to_sym] = options[:feed_dict][k]
+          elsif k.is_a?(String)
+            target_graph = args[0].graph
+            node = target_graph.get_node(k)
+            if node.is_a?(Placeholder)
+              context[k.to_sym] = options[:feed_dict][k]
+            else
+              raise "Cannot find placeholder with the name of #{k}"
+            end
+          else
+            raise "Invalid placeholder type passed key must be a string or a placeholder type"
+          end
         end
       end
 
