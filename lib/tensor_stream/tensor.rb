@@ -36,6 +36,7 @@ module TensorStream
       end
 
       @op = Operation.new(:const, value: @value, data_type: @data_type, internal_name: @name, shape: @shape)
+      @name = @op.name
     end
 
     def internal?

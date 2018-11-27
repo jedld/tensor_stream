@@ -55,6 +55,14 @@ module TensorStream
       options ? options[:value] : nil
     end
 
+    def container
+      options[:container].value
+    end
+
+    def container=(value)
+      options[:container].value = value
+    end
+
     def infer_const
       return false if breakpoint
       case operation
