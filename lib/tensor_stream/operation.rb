@@ -2,7 +2,7 @@ require 'tensor_stream/helpers/infer_shape'
 module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
-    attr_accessor :name, :operation, :inputs, :rank, :options
+    attr_accessor :name, :operation, :inputs, :rank, :options, :device, :consumers
     attr_reader :outputs
 
     def initialize(operation, *args)
@@ -11,23 +11,31 @@ module TensorStream
                 else
                   {}
                 end
-
-      inputs = args
+      @consumers = Set.new
+      inputs = args || []
 
       setup_initial_state(options)
 
       @operation = operation
+
       @rank = options[:rank] || 0
-      @name = [@graph.get_name_scope, options[:name] || set_name].compact.reject(&:empty?).join('/')
+
+      if options[:internal_name]
+        @name = options[:internal_name]
+      else
+        @name = [@graph.get_name_scope, options[:name] || set_name].compact.reject(&:empty?).join('/')
+      end
+
       @internal = options[:internal]
       @given_name = @name
 
       @options = options
 
-      @inputs = inputs.map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
+      @inputs = inputs.map { |i| TensorStream.convert_to_tensor(i) }.map { |i| i ? i.op : nil }
       @data_type = set_data_type(options[:data_type])
       @is_const = infer_const
       @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))
+      @op = self
       @graph.add_node(self)
     end
 
@@ -43,10 +51,20 @@ module TensorStream
       }
     end
 
+    def const_value
+      options ? options[:value] : nil
+    end
+
     def infer_const
       return false if breakpoint
       case operation
       when :random_standard_normal, :random_uniform, :truncated_normal, :glorot_uniform, :print, :check_numerics
+        false
+      when :const
+        true
+      when :placeholder
+        false
+      when :variable_v2
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }
@@ -56,6 +74,8 @@ module TensorStream
 
     def set_data_type(passed_data_type)
       case operation
+      when :placeholder, :variable_v2, :const
+        options[:data_type]
       when :fill
         @inputs[1].data_type
       when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
@@ -70,9 +90,8 @@ module TensorStream
         @inputs[1].data_type
       when :index
         if @inputs[0].is_a?(ControlFlow)
-
           if @inputs[1].is_const
-            @inputs[0].inputs[@inputs[1].value].data_type
+            @inputs[0].inputs[@inputs[1].const_value].data_type
           else
             :unknown
           end
@@ -222,11 +241,19 @@ module TensorStream
 
     private
 
+    def add_consumer(consumer)
+      @consumers << consumer.name if consumer.name != name
+    end
+
+    def setup_output(consumer)
+      @outputs << consumer.name unless @outputs.include?(consumer.name)
+    end
+
     def propagate_consumer(consumer)
-      super
+      add_consumer(consumer)
       @inputs.compact.each do |input|
         if input.is_a?(Array)
-          input.flatten.compact.select { |t| t.is_a?(Tensor) }.each do |t|
+          input.flatten.compact.map(&:op).select { |t| t.is_a?(Tensor) }.each do |t|
             next if t.consumers.include?(consumer.name)
             t.send(:propagate_consumer, consumer)
           end
@@ -239,7 +266,7 @@ module TensorStream
     def propagate_outputs
       @inputs.compact.each do |input|
         if input.is_a?(Array)
-          input.flatten.compact.each do |t|
+          input.flatten.compact.map(&:op).each do |t|
             t.send(:setup_output, self) if t.is_a?(Tensor)
           end
         elsif input.is_a?(Tensor) && (input.name != name)

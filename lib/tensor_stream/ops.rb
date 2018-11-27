@@ -58,7 +58,8 @@ module TensorStream
     # +wrt_xs+ : A Tensor or list of tensors to be used for differentiation.
     # +stop_gradients+ :  Optional. A Tensor or list of tensors not to differentiate through
     def gradients(tensor_ys, wrt_xs, name: 'gradients', stop_gradients: nil)
-      gs = wrt_xs.collect do |x|
+      tensor_ys = tensor_ys.op
+      gs = wrt_xs.map(&:op).collect do |x|
         stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
         gradient_program_name = "grad_#{tensor_ys.name}_#{x.name}_#{stops}".to_sym
         tensor_graph = tensor_ys.graph
@@ -486,6 +487,7 @@ module TensorStream
     def max(input_a, input_b, name: nil)
       check_allowed_types(input_a, NUMERIC_TYPES)
       check_allowed_types(input_b, NUMERIC_TYPES)
+
       input_a, input_b = check_data_types(input_a, input_b)
       _op(:max, input_a, input_b, name: name)
     end

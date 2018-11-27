@@ -11,7 +11,7 @@ module TensorStream
       @is_const = false
 
       @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
-      @graph.add_node(self)
+      @op = Operation.new(:placeholder, data_type: @data_type, shape: @shape, internal_name: @name)
     end
 
     private

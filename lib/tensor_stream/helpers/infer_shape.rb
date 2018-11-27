@@ -9,6 +9,10 @@ module TensorStream
 
     def self.infer_shape(tensor)
       case tensor.operation
+      when :const
+        shape_eval(tensor.options[:value])
+      when :variable_v2
+        tensor.shape ? tensor.shape.shape : nil
       when :assign
         possible_shape = if tensor.inputs[0] && tensor.inputs[0].shape.shape
                            tensor.inputs[0].shape.shape
@@ -29,9 +33,9 @@ module TensorStream
         s
       when :arg_min, :argmax, :argmin
         return nil unless tensor.inputs[0].shape.known?
-        return nil if tensor.inputs[1] && tensor.inputs[1].value.nil?
+        return nil if tensor.inputs[1] && tensor.inputs[1].const_value.nil?
 
-        axis = tensor.inputs[1].nil? ? 0 : tensor.inputs[1].value
+        axis = tensor.inputs[1].nil? ? 0 : tensor.inputs[1].const_value
         new_shape = tensor.inputs[0].shape.shape
         new_shape.each_with_index.collect do |shape, index|
           next nil if index == axis
@@ -61,7 +65,7 @@ module TensorStream
           item
         end.compact
       when :reshape
-        new_shape = tensor.inputs[1] && tensor.inputs[1].value ? tensor.inputs[1].value : nil
+        new_shape = tensor.inputs[1] && tensor.inputs[1].const_value ? tensor.inputs[1].const_value : nil
         return nil if new_shape.nil?
         return nil if tensor.inputs[0].shape.nil?
 
@@ -83,11 +87,11 @@ module TensorStream
         tensor.inputs[0].shape.shape ? [tensor.inputs[0].shape.shape.size] : nil
       when :pad
         return nil unless tensor.inputs[0].shape.known?
-        return nil unless tensor.inputs[1].value
+        return nil unless tensor.inputs[1].const_value
 
         size = tensor.inputs[0].shape.shape.reduce(:*) || 1
         dummy_tensor_for_shape = TensorShape.reshape(Array.new(size), tensor.inputs[0].shape)
-        shape_eval(arr_pad(dummy_tensor_for_shape, tensor.inputs[1].value))
+        shape_eval(arr_pad(dummy_tensor_for_shape, tensor.inputs[1].const_value))
       when :mat_mul
         return nil if tensor.inputs[0].shape.shape.nil? || tensor.inputs[1].shape.shape.nil?
         return [] if tensor.inputs[0].shape.shape.empty? || tensor.inputs[1].shape.shape.empty?
@@ -128,9 +132,9 @@ module TensorStream
         rotated_shape = Array.new(axis + 1) { new_shape.shift }
         rotated_shape.rotate! + new_shape
       when :concat
-        return nil if tensor.inputs[0].value.nil?
+        return nil if tensor.inputs[0].const_value.nil?
 
-        axis = tensor.inputs[0].value # get axis
+        axis = tensor.inputs[0].const_value # get axis
 
         axis_size = 0
 
@@ -196,9 +200,9 @@ module TensorStream
 
         new_shape
       when :conv2d_backprop_input
-        return nil unless tensor.inputs[0].value
+        return nil unless tensor.inputs[0].const_value
 
-        tensor.inputs[0].value
+        tensor.inputs[0].const_value
       else
         return nil if tensor.inputs[0].nil?
         return tensor.inputs[0].shape.shape if tensor.inputs.size == 1

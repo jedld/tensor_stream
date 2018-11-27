@@ -131,7 +131,8 @@ module TensorStream
 
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
       add_to_collection(GraphKeys::TRAINABLE_VARIABLES, node) if node.trainable?
-      add_node(node)
+
+      Operation.new(:variable_v2, container: node, internal_name: node.name, shape: options[:shape], data_type: options[:data_type])
     end
 
     def control_dependencies(control_inputs = [])

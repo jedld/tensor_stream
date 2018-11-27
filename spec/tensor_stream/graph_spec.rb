@@ -3,7 +3,7 @@ require 'benchmark'
 require 'matrix'
 # require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
-RSpec.describe TensorStream::Graph do
+RSpec.xdescribe TensorStream::Graph do
   let(:ts) { TensorStream }
 
   before(:each) do

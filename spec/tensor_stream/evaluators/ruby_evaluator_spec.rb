@@ -21,7 +21,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(128)
+      expect(described_class.ops.keys.size).to eq(129)
     end
 
     specify do
@@ -103,6 +103,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         ones
         ones_like
         pad
+        placeholder
         pow
         print
         prod
@@ -150,7 +151,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         truncate
         truncated_normal
         unstack
-        variable
+        variable_v2
         where
         zeros
         zeros_like])

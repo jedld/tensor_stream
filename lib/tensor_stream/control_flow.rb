@@ -10,6 +10,7 @@ module TensorStream
       @inputs = inputs
       @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
       @ops = ops
+      @consumers = Set.new
       @shape = TensorShape.new([inputs.size])
       @graph.add_node(self)
     end

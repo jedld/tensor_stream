@@ -50,14 +50,10 @@ module TensorStream
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
                 eval_operation(tensor, child_context)
-              elsif tensor.is_a?(Variable)
-                eval_variable(tensor, child_context)
-              elsif tensor.is_a?(Placeholder)
-                resolve_placeholder(tensor, child_context)
-              elsif tensor.is_a?(OutputGroup)
-                tensor.outputs[0]
+              elsif !tensor.is_a?(Tensor)
+                tensor
               else
-                eval_tensor(tensor, child_context)
+                tensor.op
               end
         execution_context.deep_merge!(returns: child_context[:returns])
         res
@@ -113,8 +109,8 @@ module TensorStream
         inputs
       end
 
-      register_op(:const) do |_context, _tensor, inputs|
-        inputs[0]
+      register_op(:const) do |_context, tensor, inputs|
+        tensor.options[:value]
       end
 
       register_op(:cast) do |context, tensor, inputs|
@@ -149,14 +145,29 @@ module TensorStream
         call_vector_op(tensor, :not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
-      def merge_dynamic_stitch(merged, indexes, data)
-        indexes.each_with_index do |ind, m|
-          if ind.is_a?(Array)
-            merge_dynamic_stitch(merged, ind, data[m])
-          else
-            merged[ind] = data[m]
+      register_op :placeholder, no_eval: true do |context, tensor, inputs|
+        ph = @context[tensor.name.to_sym].tap do |c|
+          if c.nil?
+            raise TensorStream::ValueError, "missing placeholder #{tensor.name}"
+          end
+
+          if tensor.shape.shape
+            value_shape = shape_eval(c)
+            placeholder_shape = tensor.shape.shape
+            placeholder_shape.zip(value_shape).each do |p_shape, v_shape|
+              next if p_shape.nil?
+              raise TensorStream::ValueError, "placeholder expects #{placeholder_shape}, got #{value_shape}" if p_shape != v_shape
+            end
           end
         end
+
+        global_eval(tensor, ph, context)
+      end
+
+      register_op :variable_v2, no_eval: true do |context, tensor, inputs|
+        value = tensor.options[:container].read_value
+        raise "variable #{tensor.options[:container].name} not initalized" if value.nil?
+        value
       end
 
       register_op :stop_gradient, no_eval: true do |_context, _tensor, inputs|
@@ -165,22 +176,23 @@ module TensorStream
 
       register_op :assign, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
-        assign.value = global_eval(tensor, tensor.inputs[1], context)
-        assign.value
+        variable = assign.options[:container]
+        variable.value = global_eval(tensor, tensor.inputs[1], context)
+        variable.value
       end
 
       register_op :assign_add, noop: true do |context, tensor, _inputs|
-        tensor.inputs[0].value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
-        tensor.inputs[0].value
-      end
-
-      register_op :variable, noop: true do |_context, tensor, _inputs|
-        tensor.inputs[0].value
+        assign = tensor.inputs[0] || tensor
+        variable = assign.options[:container]
+        variable.value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
+        variable.value
       end
 
       register_op :assign_sub, noop: true do |context, tensor, _inputs|
-        tensor.inputs[0].value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
-        tensor.inputs[0].value
+        assign = tensor.inputs[0] || tensor
+        variable = assign.options[:container]
+        variable.value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
+        variable.value
       end
 
       register_op :transpose do |_context, _tensor, inputs|

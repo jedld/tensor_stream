@@ -1,7 +1,7 @@
 module TensorStream
   # Class that defines a TensorStream variable
   class Variable < Tensor
-    attr_accessor :trainable, :options, :buffer
+    attr_accessor :trainable, :options, :buffer, :op
     def initialize(data_type, rank, shape, variable_scope, options = {})
       setup_initial_state(options)
 
@@ -19,7 +19,7 @@ module TensorStream
 
       @shape = TensorShape.new(shape, rank)
       @trainable = options.fetch(:trainable, true)
-      @graph.add_variable(self, options)
+      @op = @graph.add_variable(self, options.merge(shape: @shape, data_type: @data_type))
     end
 
     def trainable?
@@ -53,10 +53,6 @@ module TensorStream
     def assign_add(value, name: nil)
       _a, value = TensorStream.check_data_types(self, value)
       _op(:assign_add, self, value, data_type: data_type, name: name)
-    end
-
-    def op
-      @op ||= _op(:variable, self, data_type: data_type)
     end
 
     def to_math(_tensor, _name_only = false, _max_depth = 99, _unused = 0)

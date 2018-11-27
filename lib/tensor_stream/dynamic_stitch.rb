@@ -7,8 +7,8 @@ module TensorStream
       setup_initial_state(options)
 
       @operation = :"flow_#{flow_type}"
-      @inputs = inputs
-
+      @inputs = inputs.map { |arr| deep_convert_to_tensor(arr) }
+      @consumers = Set.new
       @data_type = Tensor.detect_type(inputs[1])
       @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
       @ops = ops
@@ -22,6 +22,18 @@ module TensorStream
 
     def run
       eval
+    end
+
+    protected
+
+    def deep_convert_to_tensor(arr)
+      arr.map do |arr|
+        if arr.is_a?(Array)
+          deep_convert_to_tensor(arr)
+        else
+          TensorStream.convert_to_tensor(arr)
+        end
+      end
     end
   end
 end

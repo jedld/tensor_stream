@@ -56,7 +56,7 @@ module TensorStream
 
     def format_source(trace)
       grad_source = trace.select { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }.first
-      # source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
+      source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
       [grad_source, trace].compact.join("\n")
     end
 
@@ -82,6 +82,7 @@ module TensorStream
       axes = TensorStream.range(0, input_rank) if axes.nil?
       axes = (axes + input_rank) % input_rank
       axes_shape = i_op(:shape, axes)
+
       TensorStream.dynamic_stitch([TensorStream.range(0, input_rank), axes],
                                   [input_shape, i_op(:fill, axes_shape, 1)])
     end

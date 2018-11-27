@@ -5,9 +5,8 @@ module TensorStream
   class Tensor
     include OpHelper
     attr_reader :graph
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
-                  :value, :breakpoint, :internal, :source, :given_name,
-                  :consumers, :outputs, :device
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value,
+                  :breakpoint, :internal, :source, :given_name, :outputs, :op
 
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
@@ -36,7 +35,7 @@ module TensorStream
         @shape = TensorShape.new(shape_eval(@value))
       end
 
-      @graph.add_node(self)
+      @op = Operation.new(:const, value: @value, data_type: @data_type, internal_name: @name, shape: @shape)
     end
 
     def internal?
@@ -45,6 +44,10 @@ module TensorStream
 
     def dtype
       @data_type
+    end
+
+    def consumers
+      op.consumers
     end
 
     def self.reset_counters
@@ -147,6 +150,10 @@ module TensorStream
       _op(:mat_mul, self, other)
     end
 
+    def device
+      @op.device
+    end
+
     ##
     # Apply a reduction to tensor
     def reduce(op_type)
@@ -171,14 +178,8 @@ module TensorStream
       @name
     end
 
-    def const_value
-      return nil unless is_const
-
-      @value
-    end
-
     def op
-      @op ||= is_const ? _op(:const, self, nil, name: name) : _op(:variable, self, nil, name: name)
+      @op
     end
 
     def eval(options = {})
@@ -293,19 +294,6 @@ module TensorStream
       @outputs = []
       @graph = options[:__graph] || TensorStream.get_default_graph
       @source = format_source(caller_locations)
-    end
-
-    def add_consumer(consumer)
-      @consumers ||= Set.new
-      @consumers << consumer.name if consumer.name != name
-    end
-
-    def setup_output(consumer)
-      @outputs << consumer.name unless @outputs.include?(consumer.name)
-    end
-
-    def propagate_consumer(consumer)
-      add_consumer(consumer)
     end
 
     def propagate_outputs

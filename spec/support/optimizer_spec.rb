@@ -217,6 +217,7 @@ RSpec.shared_examples "optimizer evaluator" do
             expect(m.read_value).to eq([0.0, 0.0])
             sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
             sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+
             expect(tr(m.read_value)).to eq(expect_values[use_nesterov][1])
             expect(sess.run(global_step)).to eq(2)
           end

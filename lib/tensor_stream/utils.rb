@@ -62,7 +62,7 @@ module TensorStream
                else
                  TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
                end
-      op.inputs[0] = tensor
+      op.inputs[0] = tensor.op
       tensor
     end
 

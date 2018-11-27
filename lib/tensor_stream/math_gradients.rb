@@ -40,7 +40,10 @@ module TensorStream
         return nil if grads.empty?
         grads.size > 1 ? ts.add_n(grads) : grads[0]
       else
-        return nil if computed_op.nil?
+
+        if computed_op.nil?
+          return nil
+        end
         _propagate(computed_op, tensor.inputs[0], stop_tensor, nodes_to_compute, stop_gradients)
       end
     end
@@ -283,12 +286,12 @@ module TensorStream
           # hack!! not sure how to fix this yet
           return grad if %i[softmax_cross_entropy_with_logits_v2 sparse_softmax_cross_entropy_with_logits].include?(node.inputs[0].operation)
 
-          if node.inputs[0].shape.known? && node.inputs[1].value
+          if node.inputs[0].shape.known? && node.inputs[1].const_value
             multiplier = node.inputs[0].shape.shape[0]
             filler = ts.zeros_like(grad)
 
             res = Array.new(multiplier) do |index|
-              index == node.inputs[1].value ? grad : filler
+              index == node.inputs[1].const_value ? grad : filler
             end
             [res]
           end

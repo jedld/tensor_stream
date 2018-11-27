@@ -137,7 +137,7 @@ module TensorStream
           end
         end
       else
-        run_with_session_context(tensor_arr, session_context, context)
+        run_with_session_context(tensor_arr.op, session_context, context)
       end
     end
 

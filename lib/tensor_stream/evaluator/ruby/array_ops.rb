@@ -11,10 +11,11 @@ module TensorStream
           slice_tensor(input, start.dup, size.dup)
         end
 
-        register_op %i[flow_dynamic_stitch dynamic_stitch] do |_context, _tensor, inputs|
+        register_op %i[flow_dynamic_stitch dynamic_stitch] do |context, _tensor, inputs|
           indexes, data = inputs
           merged = []
-          merge_dynamic_stitch(merged, indexes, data)
+
+          merge_dynamic_stitch(merged, indexes, data, context)
           merged
         end
 
@@ -357,6 +358,17 @@ module TensorStream
             shape_eval(input)
           end
           TensorStream::Evaluator::OutputGroup.new(shapes, shapes.map { tensor.options[:out_type] })
+        end
+
+        def merge_dynamic_stitch(merged, indexes, data, context)
+          indexes.each_with_index do |ind, m|
+            if ind.is_a?(Array)
+              merge_dynamic_stitch(merged, ind, data[m], context)
+            else
+              ind = ind.is_a?(Tensor) ? complete_eval(ind, context) : ind
+              merged[ind] = data[m]
+            end
+          end
         end
       end
     end
