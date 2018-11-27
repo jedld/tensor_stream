@@ -2,8 +2,10 @@ require 'tensor_stream/helpers/infer_shape'
 module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
-    attr_accessor :name, :operation, :inputs, :rank, :options, :device, :consumers
-    attr_reader :outputs
+    include OpHelper
+
+    attr_accessor :name, :operation, :inputs, :rank, :device, :consumers, :breakpoint
+    attr_reader :outputs, :options, :is_const, :data_type, :shape
 
     def initialize(operation, *args)
       options = if args.last.is_a?(Hash)
@@ -52,15 +54,15 @@ module TensorStream
     end
 
     def const_value
-      options ? options[:value] : nil
+      @options ? @options[:value] : nil
     end
 
     def container
-      options[:container].value
+      @options[:container].value
     end
 
     def container=(value)
-      options[:container].value = value
+      @options[:container].value = value
     end
 
     def infer_const
@@ -285,6 +287,13 @@ module TensorStream
 
     def set_name
       "#{@operation}#{graph.get_operation_counter}:#{@rank}"
+    end
+
+    
+    def setup_initial_state(options)
+      @outputs = []
+      @graph = options[:__graph] || TensorStream.get_default_graph
+      @source = format_source(caller_locations)
     end
   end
 end

@@ -3,7 +3,7 @@ RSpec.shared_examples "standard ops evaluator" do
 
   before(:each) do
     TensorStream::Tensor.reset_counters
-    TensorStream::Operation.reset_counters
+    # TensorStream::Operation.reset_counters
     tf.reset_default_graph
     sess.clear_session_cache
   end

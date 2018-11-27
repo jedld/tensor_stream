@@ -18,7 +18,7 @@ RSpec.configure do |config|
 
   config.before(:each) do
     TensorStream::Tensor.reset_counters
-    TensorStream::Operation.reset_counters
+    # TensorStream::Operation.reset_counters
     TensorStream.reset_default_graph
   end
 end

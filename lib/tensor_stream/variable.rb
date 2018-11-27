@@ -71,5 +71,11 @@ module TensorStream
     def self.global_variables_initializer
       variables_initializer(TensorStream::GraphKeys::GLOBAL_VARIABLES)
     end
+
+    protected
+
+    def build_name
+      "Variable#{graph.get_var_counter}:#{@rank}"
+    end
   end
 end

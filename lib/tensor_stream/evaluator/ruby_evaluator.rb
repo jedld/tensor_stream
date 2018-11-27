@@ -176,23 +176,22 @@ module TensorStream
 
       register_op :assign, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
-        variable = assign.options[:container]
-        variable.value = global_eval(tensor, tensor.inputs[1], context)
-        variable.value
+        assign.container = global_eval(tensor, tensor.inputs[1], context)
+        assign.container
       end
 
       register_op :assign_add, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
-        variable = assign.options[:container]
-        variable.value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
-        variable.value
+
+        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
+        assign.container
       end
 
       register_op :assign_sub, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
-        variable = assign.options[:container]
-        variable.value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
-        variable.value
+
+        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
+        assign.container
       end
 
       register_op :transpose do |_context, _tensor, inputs|

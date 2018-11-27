@@ -4,9 +4,11 @@ module TensorStream
   # Base class that defines a tensor like interface
   class Tensor
     include OpHelper
+    include TensorMixins
+
     attr_reader :graph
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value,
-                  :breakpoint, :internal, :source, :given_name, :outputs, :op
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
+                  :internal, :source, :given_name, :outputs, :op, :value
 
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
@@ -15,8 +17,8 @@ module TensorStream
       @breakpoint = false
       @shape = TensorShape.new(shape, rank)
       @value = nil
-
-      @is_const = options[:const] || false
+      @options = options
+      @is_const = true
       @internal = options[:internal]
       @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
       @given_name = @name
@@ -55,100 +57,6 @@ module TensorStream
       @const_counter = 0
       @var_counter = 0
       @placeholder_counter = 0
-    end
-
-    def +(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:add, self, other)
-    end
-
-    def [](index)
-      _op(:index, self, index)
-    end
-
-    def *(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
-    end
-
-    def **(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
-    end
-
-    def /(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
-    end
-
-    def -(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
-    end
-
-    def -@
-      _op(:negate, self, nil)
-    end
-
-    def %(other)
-      TensorStream.mod(self, other)
-    end
-
-    def floor
-      TensorStream.floor(self)
-    end
-
-    def ceil
-      TensorStream.ceil(self)
-    end
-
-    def zero?
-      _op(:equal, self, TensorStream.constant(0, dtype: data_type, name: 'equal/is_zero?'))
-    end
-
-    def ==(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:equal, self, other)
-    end
-
-    def <(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:less, self, other)
-    end
-
-    def !=(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:not_equal, self, other)
-    end
-
-    def >(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:greater, self, other)
-    end
-
-    def >=(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:greater_equal, self, other)
-    end
-
-    def <=(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:less_equal, self, other)
-    end
-
-    def and(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:logical_and, self, other)
-    end
-
-    def matmul(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:mat_mul, self, other)
-    end
-
-    def dot(other)
-      _a, other = TensorStream.check_data_types(self, other)
-      _op(:mat_mul, self, other)
     end
 
     def device
