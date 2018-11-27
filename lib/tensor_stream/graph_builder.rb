@@ -27,7 +27,7 @@ module TensorStream
           rank = dimension.size
           options[:value] = value
           options[:const] = true
-          TensorStream::Tensor.new(options[:dtype] || options[:T], rank, dimension, options)
+          TensorStream::Constant.new(options[:dtype] || options[:T], rank, dimension, options)
         when 'VariableV2'
           # evaluate options
           shape = options[:shape]

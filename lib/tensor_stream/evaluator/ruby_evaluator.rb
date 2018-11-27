@@ -84,7 +84,6 @@ module TensorStream
 
       def prepare_input(tensor, context, options = {})
         return nil unless tensor
-        tensor = resolve_placeholder(tensor)
         if options[:noop]
           tensor
         elsif options[:no_eval]
@@ -306,8 +305,8 @@ module TensorStream
           end
 
           if tensor.breakpoint
-            a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-            b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
+            a = tensor.inputs[0] if tensor.inputs && tensor.inputs[0]
+            b = tensor.inputs[1] if tensor.inputs && tensor.inputs[1]
             a = complete_eval(a, child_context)
             b = complete_eval(b, child_context)
             tensor.breakpoint.call(tensor, a, b, complete_eval(result, child_context))
@@ -329,9 +328,7 @@ module TensorStream
       rescue TensorStreamError => e
         raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue StandardError => e
-        # a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-        # b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
-        puts e.message
+         puts e.message
         puts e.backtrace.join("\n")
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
@@ -461,29 +458,6 @@ module TensorStream
             concat(i, b[index], axis - 1)
           end
         end
-      end
-
-      def resolve_placeholder(placeholder, _execution_context = {})
-        return nil if placeholder.nil?
-
-        var = if placeholder.is_a?(Placeholder)
-                @context[placeholder.name.to_sym].tap do |c|
-                  raise TensorStream::ValueError, "missing placeholder #{placeholder.name}" if c.nil?
-                  if placeholder.shape.shape
-                    value_shape = shape_eval(c)
-                    placeholder_shape = placeholder.shape.shape
-                    placeholder_shape.zip(value_shape).each do |p_shape, v_shape|
-                      next if p_shape.nil?
-                      raise TensorStream::ValueError, "placeholder expects #{placeholder_shape}, got #{value_shape}" if p_shape != v_shape
-                    end
-                  end
-                end
-              else
-                placeholder
-              end
-
-        return var unless placeholder.is_a?(Tensor)
-        Tensor.cast_dtype(var, placeholder.data_type)
       end
 
       # handle 3 tensor math operations

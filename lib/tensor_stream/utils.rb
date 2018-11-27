@@ -163,13 +163,13 @@ module TensorStream
       shared_options = { const: true, value: value, name: name, internal: internal }
 
       if value.is_a?(Float)
-        TensorStream::Tensor.new(dtype || :float32, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :float32, 0, shape || [], shared_options)
       elsif value.is_a?(Integer)
-        TensorStream::Tensor.new(dtype || :int32, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :int32, 0, shape || [], shared_options)
       elsif value.is_a?(String)
-        TensorStream::Tensor.new(dtype || :string, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :string, 0, shape || [], shared_options)
       elsif !!value == value
-        TensorStream::Tensor.new(dtype || :boolean, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :boolean, 0, shape || [], shared_options)
       elsif value.is_a?(Array)
         dimension = shape || shape_eval(value)
         rank = dimension.size
@@ -179,7 +179,7 @@ module TensorStream
         value = Tensor.cast_dtype(value, cur_dtype) unless dtype.nil?
 
         shared_options[:value] = value
-        TensorStream::Tensor.new(cur_dtype, rank, dimension, shared_options)
+        TensorStream::Constant.new(cur_dtype, rank, dimension, shared_options)
       end
     end
 

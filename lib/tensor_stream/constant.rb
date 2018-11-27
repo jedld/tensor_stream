@@ -1,7 +1,7 @@
 module TensorStream
   # Class that defines a TensorStream variable
   class Constant < Tensor
-    def initialize(data_type, rank, shape, variable_scope, options = {})
+    def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)
       @data_type = data_type
       @rank = rank
