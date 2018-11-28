@@ -14,7 +14,7 @@ RSpec.describe TensorStream do
     end
   end
 
-  describe ".enable_eager_execution" do
+  xdescribe ".enable_eager_execution" do
     it "enables eager execution" do
       TensorStream.enable_eager_execution
       expect(TensorStream.executing_eagerly?).to be

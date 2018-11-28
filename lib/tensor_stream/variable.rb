@@ -50,6 +50,10 @@ module TensorStream
       @value
     end
 
+    def value=(val)
+      @value=val
+    end
+
     def assign_add(value, name: nil)
       _a, value = TensorStream.check_data_types(self, value)
       _op(:assign_add, self, value, data_type: data_type, name: name)

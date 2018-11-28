@@ -6,9 +6,9 @@ module TensorStream
     include OpHelper
     include TensorMixins
 
-    attr_reader :graph
+    attr_reader :graph, :value
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
-                  :internal, :source, :given_name, :outputs, :op, :value
+                  :internal, :source, :given_name, :outputs, :op
 
     def initialize(data_type, rank, shape, options = {})
       setup_initial_state(options)

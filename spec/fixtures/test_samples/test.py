@@ -43,4 +43,4 @@ g2 = tf.gradients(neural_net, [weights_layer2, biases2])
 
 weight_gradient0, biases_gradient0 = sess.run(g0, feed_dict = { inputs: test_inputs })
 weight_gradient, biases_gradient = sess.run(g, feed_dict = { inputs: test_inputs })
-weight_gradient2, biases_gradient2 = sess.run(g2, feed_dict: { inputs => test_inputs })
+weight_gradient2, biases_gradient2 = sess.run(g2, feed_dict = { inputs => test_inputs })
