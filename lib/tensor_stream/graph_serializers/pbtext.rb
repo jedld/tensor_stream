@@ -49,26 +49,12 @@ module TensorStream
 
     def process_options(node)
       return if node.options.nil?
-      node.options.each do |k, v|
+      node.options.reject { |_k, v| v.nil? }.each do |k, v|
         next if %w[name internal_name data_type].include?(k.to_s) || k.to_s.start_with?('__')
         @lines << "  attr {"
         @lines << "    key: \"#{k}\""
         @lines << "    value {"
-        if v.is_a?(TrueClass) || v.is_a?(FalseClass)
-          @lines << "      b: #{v}"
-        elsif v.is_a?(Integer)
-          @lines << "      i: #{v}"
-        elsif v.is_a?(Float)
-          @lines << "      f: #{v}"
-        elsif v.is_a?(String)
-          @lines << "      s: #{v}"
-        elsif v.is_a?(Array)
-          @lines << "      list {"
-          v.each do |v_item|
-            attr_value(v_item, 9)
-          end
-          @lines << "      }"
-        end
+        attr_value(v, 6)
         @lines << "    }"
         @lines << "  }"
       end
@@ -76,13 +62,34 @@ module TensorStream
 
     def attr_value(val, indent = 0)
       spaces = " " * indent
-      case val.class
-      when Integer
-        @lines << "#{spaces}i: #{v_item}"
-      when String
-        @lines << "#{spaces}s: #{v_item}"
-      when Float
-        @lines << "#{spaces}f: #{v_item}"
+      case val.class.to_s
+      when 'TrueClass', 'FalseClass'
+        @lines << "#{spaces}b: #{val}"
+      when 'Integer'
+        @lines << "#{spaces}i: #{val}"
+      when 'String'
+        @lines << "#{spaces}s: #{val}"
+      when 'Float'
+        @lines << "#{spaces}f: #{val}"
+      when 'Array'
+        @lines << "#{spaces}list {"
+        val.each do |v_item|
+          attr_value(v_item, indent + 2)
+        end
+        @lines << "#{spaces}}"
+      when 'TensorStream::TensorShape'
+        @lines << "#{spaces}shape {"
+        if val.shape
+          val.shape.each do |dim|
+            @lines << "#{spaces}  dim {"
+            @lines << "#{spaces}    size: #{dim}"
+            @lines << "#{spaces}  }"
+          end
+        end
+        @lines << "#{spaces}}"
+      when 'TensorStream::Variable'
+      else
+        raise "unknown type #{val.class}"
       end
     end
 

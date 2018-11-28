@@ -1,0 +1,99 @@
+---
+- :op: const
+  :name: Const
+  :inputs: []
+  :attrs:
+    value: !binary |-
+      AACAP83MjD/NzAxAMzNTQM3MjD/NzAxAMzNTQAAAgEA=
+    data_type: :float32
+    shape:
+    - 2
+    - 4
+- :op: const
+  :name: Const_1
+  :inputs: []
+  :attrs:
+    value: 2.0
+    data_type: :float32
+    shape: []
+- :op: const
+  :name: Const:0
+  :inputs: []
+  :attrs:
+    value: 1.0
+    data_type: :float32
+    shape: []
+- :op: assign
+  :name: assign:0
+  :inputs:
+  - v1
+  - Const:0
+  :attrs: {}
+- :op: variable_v2
+  :name: v1
+  :inputs: []
+  :attrs:
+    shape: []
+    data_type: :float32
+- :op: const
+  :name: Const_2
+  :inputs: []
+  :attrs:
+    value: "\x01\0\0\0\x02\0\0\0\x03\0\0\0\x04\0\0\0"
+    data_type: :int32
+    shape:
+    - 4
+- :op: const
+  :name: Const_3
+  :inputs: []
+  :attrs:
+    value: Hello World
+    data_type: :string
+    shape: []
+- :op: placeholder
+  :name: 'Placeholder:'
+  :inputs: []
+  :attrs:
+    data_type: :float32
+    shape: 
+- :op: const
+  :name: Const_4
+  :inputs: []
+  :attrs:
+    value: |
+      ---
+      - h
+      - e
+      - l
+      - l
+      - o
+    data_type: :string
+    shape:
+    - 5
+- :op: mul
+  :name: mul_1:0
+  :inputs:
+  - Const
+  - Const_1
+  :attrs: {}
+- :op: add
+  :name: add_2:0
+  :inputs:
+  - mul_1:0
+  - v1
+  :attrs: {}
+- :op: const
+  :name: Const:1
+  :inputs: []
+  :attrs:
+    value: "\0\0\0\0"
+    data_type: :int32
+    shape:
+    - 1
+- :op: sum
+  :name: sum_3:0
+  :inputs:
+  - Const
+  - Const:1
+  :attrs:
+    keepdims: false

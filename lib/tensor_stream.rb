@@ -29,6 +29,7 @@ require 'tensor_stream/graph_serializers/serializer'
 require 'tensor_stream/graph_deserializers/protobuf'
 require 'tensor_stream/graph_serializers/pbtext'
 require 'tensor_stream/graph_serializers/graphml'
+require 'tensor_stream/graph_serializers/yaml'
 require 'tensor_stream/math_gradients'
 require "tensor_stream/debugging/debugging"
 require 'tensor_stream/utils'

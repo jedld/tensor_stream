@@ -22,6 +22,14 @@ module TensorStream
                      value.pack('C*')
                    when :boolean
                      value.map { |v| v ? 1 : 0 }.pack('C*')
+                   when :string
+                     if value.is_a?(Array)
+                      value.to_yaml
+                     else
+                      value
+                     end
+                   else
+                    raise "unknown type #{data_type}"
                    end
 
       byte_value

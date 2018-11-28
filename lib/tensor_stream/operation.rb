@@ -47,9 +47,10 @@ module TensorStream
 
     def to_h
       {
-        op: operation,
-        name: name,
-        operands: hashify_tensor(inputs)
+        op: operation.to_s,
+        name: name.to_s,
+        inputs: @inputs.map(&:name),
+        attrs: serialize_options
       }
     end
 
@@ -251,6 +252,27 @@ module TensorStream
 
     private
 
+    def serialize_options
+      excludes = %i[internal_name source container]
+      @options.reject { |k, v| excludes.include?(k) || v.nil? }.map do |k,v|
+        v = case v.class.to_s
+            when 'TensorStream::TensorShape'
+              v.shape
+            when 'Array'
+              if k.to_s == 'value'
+                TensorStream::Packer.pack(v, data_type)
+              else
+                v
+              end
+            when 'String', 'Integer', 'Float', 'Symbol', 'FalseClass', "TrueClass"
+              v
+            else
+              raise "unknown type #{v.class}"
+            end
+        [k.to_s, v]
+      end.to_h
+    end
+
     def add_consumer(consumer)
       @consumers << consumer.name if consumer.name != name
     end
@@ -289,7 +311,7 @@ module TensorStream
       "#{@operation}#{graph.get_operation_counter}:#{@rank}"
     end
 
-    
+
     def setup_initial_state(options)
       @outputs = []
       @graph = options[:__graph] || TensorStream.get_default_graph

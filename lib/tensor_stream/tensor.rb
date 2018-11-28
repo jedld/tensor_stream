@@ -97,11 +97,6 @@ module TensorStream
 
     def to_h
       {
-        name: @name,
-        value: hashify_tensor(@value),
-        dtype: @data_type,
-        shape: @shape,
-        const: !!is_const,
       }
     end
 
