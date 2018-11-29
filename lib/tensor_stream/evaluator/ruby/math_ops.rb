@@ -14,10 +14,6 @@ module TensorStream
           call_op(tensor, inputs[0], context, ->(t, _b) { Math.atan(t) })
         end
 
-        register_op :sec, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.sec(t) })
-        end
-
         register_op :sin, no_eval: true do |context, tensor, inputs|
           call_op(tensor, inputs[0], context, ->(t, _b) { Math.sin(t) })
         end

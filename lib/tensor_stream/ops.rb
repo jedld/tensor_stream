@@ -654,6 +654,13 @@ module TensorStream
       _op(:tanh, input, name: name)
     end
 
+        ##
+    # Computes sec of input element-wise.
+    def sec(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:sec, input, name: name)
+    end
+
     ##
     # Computes sqrt of input element-wise.
     def sqrt(input, name: nil)

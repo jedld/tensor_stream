@@ -93,22 +93,11 @@ module TensorStream
         end
       end
 
-      def eval_variable(tensor, child_context)
-        value = tensor.read_value
-        raise "variable #{tensor.name} not initalized" if value.nil?
-
-        eval_tensor(value, child_context).tap do |val|
-          child_context[:returns] ||= {}
-          child_context[:returns][:vars] ||= []
-          child_context[:returns][:vars] << { name: tensor.name, val: val }
-        end
-      end
-
       register_op(:no_op, no_eval: true) do |_context, _tensor, inputs|
         inputs
       end
 
-      register_op(:const) do |_context, tensor, inputs|
+      register_op(:const) do |_context, tensor, _inputs|
         tensor.options[:value]
       end
 
@@ -144,11 +133,9 @@ module TensorStream
         call_vector_op(tensor, :not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
-      register_op :placeholder, no_eval: true do |context, tensor, inputs|
+      register_op :placeholder, no_eval: true do |context, tensor, _inputs|
         ph = @context[tensor.name.to_sym].tap do |c|
-          if c.nil?
-            raise TensorStream::ValueError, "missing placeholder #{tensor.name}"
-          end
+          raise TensorStream::ValueError, "missing placeholder #{tensor.name}" if c.nil?
 
           if tensor.shape.shape
             value_shape = shape_eval(c)
@@ -159,13 +146,19 @@ module TensorStream
             end
           end
         end
+        if ph.is_a?(Tensor)
+          raise TensorStream::ValueError, "placeholder expects type #{tensor.data_type}, got #{ph.data_type}" if ph.data_type != tensor.data_type
 
-        global_eval(tensor, ph, context)
+          global_eval(tensor, ph, context)
+        else
+          global_eval(tensor, Tensor.cast_dtype(ph, dtype: tensor.data_type), context)
+        end
       end
 
       register_op :variable_v2, no_eval: true do |context, tensor, inputs|
         value = tensor.options[:container].read_value
         raise "variable #{tensor.options[:container].name} not initalized" if value.nil?
+
         value
       end
 
@@ -344,25 +337,6 @@ module TensorStream
         # File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
-      end
-
-      def eval_tensor(tensor, child_context)
-        return tensor unless tensor.is_a?(Tensor)
-
-        cache_key = "#{tensor.graph.object_id}_ruby_#{tensor.name}"
-        return @context[cache_key] if @context.key?(cache_key)
-        return @context[:_cache][cache_key] if @context[:_cache] && @context[:_cache].key?(tensor.name)
-
-        if tensor.value.is_a?(Array)
-          tensor.value.collect do |input|
-            input.is_a?(Tensor) ? run(input, child_context) : input
-          end
-        else
-          tensor.value.is_a?(Tensor) ? run(tensor.value, child_context) : tensor.value
-        end.tap do |result|
-          @context[cache_key] = result
-          @context[:_cache][cache_key] = result if @context[:_cache] && tensor.is_const
-        end
       end
 
       def convert_from_buffer(_tensor, result)

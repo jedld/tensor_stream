@@ -62,7 +62,7 @@ module TensorStream
           elsif k.is_a?(String)
             target_graph = args[0].graph
             node = target_graph.get_node(k)
-            if node.is_a?(Placeholder)
+            if node.operation == :placeholder
               context[k.to_sym] = options[:feed_dict][k]
             else
               raise "Cannot find placeholder with the name of #{k}"
