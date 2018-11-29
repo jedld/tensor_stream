@@ -11,16 +11,16 @@ module TensorStream
           assign.container
         end
 
-        register_op :apply_momentum do |context, tensor, inputs|
+        register_op :apply_momentum do |_context, tensor, inputs|
           target_var, momentum_var, learning_rate, grad, momentum = inputs
           assign = tensor.inputs[0] || tensor
           assign_acc = tensor.inputs[1]
           assign_acc.container = multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad)
           assign.container = if tensor.options[:use_nesterov]
-                           multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
-                         else
-                           multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
-                         end
+                               multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
+                             else
+                               multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
+                             end
 
           assign.container
         end
@@ -104,7 +104,7 @@ module TensorStream
           else
             losses = []
             backprobs = []
-            arr = last_dimen_list.zip(labels).each do |list, label|
+            last_dimen_list.zip(labels).each do |list, label|
               loss, prob = func.call(list, label)
               losses << loss
               backprobs << prob

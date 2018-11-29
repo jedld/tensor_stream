@@ -78,8 +78,6 @@ module TensorStream
         end
 
         register_op :unstack do |_context, tensor, inputs|
-          value = inputs[0]
-
           axis = tensor.options[:axis] || 0
           new_shape = shape_eval(inputs[0])
           rank = new_shape.size - 1
@@ -134,11 +132,9 @@ module TensorStream
 
           if !axis.empty?
             axis.each do |x|
-              if shape[x] == 1
-                shape[x] = nil
-              else
-                raise TensorStream::ValueError, "unable to squeeze dimension that does not have a size of 1"
-              end
+              raise TensorStream::ValueError, "unable to squeeze dimension that does not have a size of 1" if shape[x] != 1
+
+              shape[x] = nil
             end
           else
             shape = shape.map { |s| s == 1 ? nil : s }
@@ -320,7 +316,7 @@ module TensorStream
           end
         end
 
-        register_op :pad do |context, tensor, inputs|
+        register_op :pad do |_context, tensor, inputs|
           arr_pad(inputs[0], inputs[1], tensor.data_type)
         end
 

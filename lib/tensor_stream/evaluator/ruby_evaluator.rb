@@ -102,7 +102,7 @@ module TensorStream
       end
 
       register_op(:cast) do |context, tensor, inputs|
-        call_op(tensor, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
+        call_op(inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
       end
 
       register_op(:sign) do |context, tensor, inputs|
@@ -118,7 +118,7 @@ module TensorStream
           end
         }
 
-        call_op(tensor, inputs[0], context, func)
+        call_op(inputs[0], context, func)
       end
 
       register_op(:logical_and) do |context, tensor, inputs|
@@ -155,7 +155,7 @@ module TensorStream
         end
       end
 
-      register_op :variable_v2, no_eval: true do |context, tensor, inputs|
+      register_op :variable_v2, no_eval: true do |_context, tensor, _inputs|
         value = tensor.options[:container].read_value
         raise "variable #{tensor.options[:container].name} not initalized" if value.nil?
 
@@ -280,7 +280,7 @@ module TensorStream
           raise TensorStream::InvalidArgumentError, "#{message} Invalid argument" if t.nan? || t.infinite?
           t
         }
-        call_op(tensor, inputs[0], context, f)
+        call_op(inputs[0], context, f)
       end
 
       def eval_operation(tensor, child_context)
@@ -366,7 +366,7 @@ module TensorStream
         reduce(val, axis, keep_dims, func)
       end
 
-      def call_op(op, a, child_context, func)
+      def call_op(a, child_context, func)
         a = complete_eval(a, child_context)
         process_function_op(a, func)
       end
@@ -401,7 +401,7 @@ module TensorStream
       def multi_array_op(func, *args)
         elem = args[0]
         if (elem.is_a?(Array))
-          elem.each_with_index.collect do |item, index|
+          elem.each_with_index.collect do |_item, index|
             indexed_args = args.collect { |a| a[index] }
             multi_array_op(func, *indexed_args)
           end

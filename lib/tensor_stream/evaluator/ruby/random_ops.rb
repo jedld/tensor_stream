@@ -54,9 +54,9 @@ module TensorStream
           random = _get_randomizer(tensor, seed)
           generator = -> { r.rand }
           shape = inputs[0] || tensor.shape.shape
-          random_values = Array.new(shape.reduce(:*) || 1) {
+          random_values = Array.new(shape.reduce(:*) || 1) do
             generator.call
-          }
+          end
           mean = random_values.reduce(:+) / random_values.size
 
           # standard deviation
@@ -80,20 +80,20 @@ module TensorStream
           cutoff = 2.0 * Math.exp( 0.5 + (norm_min * (norm_min - sqrt_factor)) / 4.0 ) / (norm_min + sqrt_factor)
           diff = norm_max - norm_min;
 
-          val = random_values.map { |v|
+          val = random_values.map do |v|
             iterations = 0
             pick = v
-            while ( (pick > norm_max) || (pick < norm_min) )
+            while (pick > norm_max) || (pick < norm_min)
               pick = generator.call
               iterations += 1
-              if iterations > 100
+              if iterations > max_iterations
                 pick = v
                 break
               end
             end
 
             pick 
-          }
+          end
 
           TensorShape.reshape(val, shape)
         end

@@ -2,20 +2,20 @@ module TensorStream
   module MathOps
     def MathOps.included(klass)
       klass.class_eval do
-        register_op :tanh, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.tanh(t) })
+        register_op :tanh, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.tanh(t) })
         end
 
         register_op :tan, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.tan(t) })
+          call_op(inputs[0], context, ->(t, _b) { Math.tan(t) })
         end
 
-        register_op :atan, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.atan(t) })
+        register_op :atan, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.atan(t) })
         end
 
-        register_op :sin, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.sin(t) })
+        register_op :sin, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.sin(t) })
         end
 
         register_op :add, no_eval: true do |context, tensor, inputs|
@@ -72,67 +72,67 @@ module TensorStream
         end
 
         register_op :round, no_eval: true do |context, _tensor, inputs|
-          call_op(:round, inputs[0], context, ->(t, _b) { t.round })
+          call_op(inputs[0], context, ->(t, _b) { t.round })
         end
 
-        register_op :abs, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { t.abs })
+        register_op :abs, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { t.abs })
         end
 
-        register_op :asin, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.asin(t) })
+        register_op :asin, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.asin(t) })
         end
 
-        register_op :acos, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.acos(t) })
+        register_op :acos, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.acos(t) })
         end
 
         register_op :cos, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.cos(t) })
+          call_op(inputs[0], context, ->(t, _b) { Math.cos(t) })
         end
 
-        register_op :log1p, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.log(1 + t) })
+        register_op :log1p, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.log(1 + t) })
         end
 
-        register_op :log, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
+        register_op :log, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
         end
 
-        register_op :exp, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.exp(t) })
+        register_op :exp, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.exp(t) })
         end
 
-        register_op :sigmoid, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { sigmoid(t) })
+        register_op :sigmoid, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { sigmoid(t) })
         end
 
-        register_op :sqrt, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { Math.sqrt(t) })
+        register_op :sqrt, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { Math.sqrt(t) })
         end
 
-        register_op :floor, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { t.floor })
+        register_op :floor, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { t.floor })
         end
 
-        register_op :ceil, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { t.ceil })
+        register_op :ceil, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { t.ceil })
         end
 
-        register_op :square, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { t * t })
+        register_op :square, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { t * t })
         end
 
-        register_op :reciprocal, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { 1 / t })
+        register_op :reciprocal, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { 1 / t })
         end
 
         register_op %i[neg negate], no_eval: true do |context, tensor, inputs|
           call_vector_op(tensor, :negate, inputs[0], nil, context, ->(t, _u) { -t })
         end
 
-        register_op :tanh_grad, no_eval: true do |context, tensor, inputs|
-          call_op(tensor, inputs[0], context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
+        register_op :tanh_grad, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context, ->(t, _b) { 1 - Math.tanh(t) * Math.tanh(t) })
         end
 
         register_op(%i[argmax arg_max]) do |_context, tensor, inputs|
@@ -166,7 +166,6 @@ module TensorStream
         end
 
         register_op :cumprod do |context, tensor, inputs|
-          x = inputs[0]
           c = fp_type?(tensor.data_type) ? 1.0 : 1
           reverse_option = tensor.options[:reverse]
           exclusive = tensor.options[:exclusive]

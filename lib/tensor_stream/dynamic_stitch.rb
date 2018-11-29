@@ -27,11 +27,11 @@ module TensorStream
     protected
 
     def deep_convert_to_tensor(arr)
-      arr.map do |arr|
-        if arr.is_a?(Array)
-          deep_convert_to_tensor(arr)
+      arr.map do |a|
+        if a.is_a?(Array)
+          deep_convert_to_tensor(a)
         else
-          TensorStream.convert_to_tensor(arr)
+          TensorStream.convert_to_tensor(a)
         end
       end
     end

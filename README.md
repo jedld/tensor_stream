@@ -2,17 +2,16 @@
 
 # TensorStream
 
-A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default with support for an opencl evaluator for large models and datasets.
+An opensource machine learning framework for ruby. Designed to run on a wide variety of ruby implementations (JRuby, TruffleRuby, MRI) as well as an option for High Performance computation (OpenCL).
 
-The goal of this gem is to have a high performance machine learning and compute solution for ruby with support for a wide range of hardware and software configuration.
+This is a framework is heavily influenced by tensorflow and aims to be familiar with tensorflow users. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default with support for an opencl evaluator for large models and datasets.
 
-## Features
+## Goals & Features
 
+- Easy to use - Improve model readability
 - Replicates most of the commonly used low-level tensorflow ops (tf.add, tf.constant, tf.placeholder, tf.matmul, tf.sin etc...)
-- Supports auto-differentiation
-- Provision to use your own opcode evaluator (opencl, sciruby and tensorflow backends planned)
-- Goal is to be as close to TensorFlow in behavior but with some freedom to add ruby specific enhancements (with lots of test cases)
-- (08-08-2018) Load pbtext files from tensorflow (Graph.parse_from_string)
+- Supports auto-differentiation using formal derivation
+- Extensible - use your own opcode evaluator (OpenCL and Pure ruby currently supported)
 
 ## Compatibility
 
