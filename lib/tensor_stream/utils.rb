@@ -45,7 +45,7 @@ module TensorStream
     # Creates a variable
     # A variable maintains state across sessions
     def variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
-      op = Operation.new(:assign, nil, value)
+      op = Graph.get_default_graph.add_op(:assign, nil, value)
       common_options = {
         initializer: initializer || op,
         name: name,

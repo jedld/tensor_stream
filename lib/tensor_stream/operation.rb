@@ -7,38 +7,13 @@ module TensorStream
     attr_accessor :name, :operation, :inputs, :rank, :device, :consumers, :breakpoint
     attr_reader :outputs, :options, :is_const, :data_type, :shape
 
-    def initialize(operation, *args)
-      options = if args.last.is_a?(Hash)
-                  args.pop
-                else
-                  {}
-                end
+    def initialize(graph, inputs: inputs, options: options)
       @consumers = Set.new
-      inputs = args || []
-
-      setup_initial_state(options)
-
-      @operation = operation
-
-      @rank = options[:rank] || 0
-
-      if options[:internal_name]
-        @name = options[:internal_name]
-      else
-        @name = [@graph.get_name_scope, options[:name] || set_name].compact.reject(&:empty?).join('/')
-      end
-
-      @internal = options[:internal]
-      @given_name = @name
-
-      @options = options
-
-      @inputs = inputs.map { |i| TensorStream.convert_to_tensor(i) }.map { |i| i ? i.op : nil }
-      @data_type = set_data_type(options[:data_type])
-      @is_const = infer_const
-      @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))
+      @outputs = []
       @op = self
-      @graph.add_node(self)
+      @graph = graph
+      @inputs = inputs
+      @options = options
     end
 
     def to_s
@@ -81,6 +56,10 @@ module TensorStream
         non_const = @inputs.compact.find { |input| !input.is_const }
         non_const ? false : true
       end
+    end
+
+    def set_name
+      "#{@operation}"
     end
 
     def set_data_type(passed_data_type)
@@ -306,11 +285,6 @@ module TensorStream
         end
       end
     end
-
-    def set_name
-      "#{@operation}#{graph.get_operation_counter}:#{@rank}"
-    end
-
 
     def setup_initial_state(options)
       @outputs = []

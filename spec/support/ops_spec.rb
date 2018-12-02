@@ -1055,7 +1055,7 @@ z = tf.constant([[8, 9],[10, 11]])
   context ".convert_to_tensor" do
     it "converts native types and wraps them in a tensor" do
       op = tf.convert_to_tensor([1,2,3,4])
-      expect(op.name).to eq("Const:1")
+      expect(op.name).to eq("Const")
       expect(op.data_type).to eq(:int32)
       expect(sess.run(op)).to eq([1,2,3,4])
     end

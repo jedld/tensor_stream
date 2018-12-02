@@ -3,9 +3,11 @@ module TensorStream
   # module that contains helper functions useful for ops
   module OpHelper
     def _op(code, *args)
-      op = Operation.new(code.to_sym, *args)
-      if !TensorStream.get_default_graph.get_dependency_scope.nil?
-        i_op(:identity, op, TensorStream.get_default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
+      default_graph = Graph.get_default_graph
+
+      op = default_graph.add_op(code.to_sym, *args)
+      if !default_graph.get_dependency_scope.nil?
+        i_op(:identity, op, default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
       else
         op
       end
@@ -20,7 +22,7 @@ module TensorStream
                 end
 
       args << options.merge(internal: true)
-      Operation.new(code.to_sym, *args)
+      Graph.get_default_graph.add_op(code.to_sym, *args)
     end
 
     def cons(value, options = {})

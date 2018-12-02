@@ -28,14 +28,14 @@ module TensorStream
         @shape = TensorShape.new(shape_eval(@value))
       end
 
-      @op = Operation.new(:const, value: @value, data_type: @data_type, internal_name: @name, shape: @shape)
+      @op = Graph.get_default_graph.add_op(:const, value: @value, data_type: @data_type, internal_name: @name, shape: @shape)
       @name = @op.name
     end
 
     protected
 
     def build_name
-      "Const:#{@rank}"
+      "Const"
     end
   end
 end

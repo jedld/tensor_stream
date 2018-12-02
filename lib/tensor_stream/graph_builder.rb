@@ -57,7 +57,7 @@ module TensorStream
           end
 
           options[:data_type] = options.delete(:T)
-          TensorStream::Operation.new(op, *inputs, options)
+          Graph.get_default_graph.add_op(op, *inputs, options)
         end
       end
 

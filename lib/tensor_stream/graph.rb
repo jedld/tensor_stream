@@ -1,6 +1,8 @@
 module TensorStream
   # A class that defines a TensorStream graph
   class Graph
+    include OpHelper
+
     attr_accessor :nodes, :node_keys, :collections, :eager_execution, :random_seed, :constants
 
     def initialize
@@ -107,12 +109,43 @@ module TensorStream
 
     def get_tensor_by_name(name)
       raise TensorStream::KeyError, "#{name} not found" unless @nodes.key?(name)
+
       get_node(name)
     end
 
     def add_node!(name, node)
       @nodes[name] = node
       node
+    end
+
+    def add_op(operation, *args)
+      options = if args.last.is_a?(Hash)
+                  args.pop
+                else
+                  {}
+                end
+      inputs = args.map { |i| TensorStream.convert_to_tensor(i) }.map { |i| i ? i.op : nil }
+
+      new_op = Operation.new(self, inputs: inputs, options: options)
+      new_op.source = format_source(caller_locations)
+      new_op.operation = operation
+      new_op.shape = TensorShape.new(TensorStream::InferShape.infer_shape(new_op))
+      new_op.rank = new_op.shape.rank
+      new_op.name = options[:internal_name] || [get_name_scope, options[:name] || set_operation_name(new_op)].compact.reject(&:empty?).join('/')
+      new_op.internal = options[:internal]
+
+      new_op.data_type = new_op.set_data_type(options[:data_type])
+      new_op.is_const = new_op.infer_const
+
+      new_op.given_name = new_op.name
+
+      add_node(new_op)
+
+      new_op
+    end
+
+    def set_operation_name(op)
+      "#{op.operation}"
     end
 
     def add_variable(node, options = {})
@@ -130,7 +163,7 @@ module TensorStream
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
       add_to_collection(GraphKeys::TRAINABLE_VARIABLES, node) if node.trainable?
 
-      op = Operation.new(:variable_v2, container: node, internal_name: node.name, shape: options[:shape], data_type: options[:data_type])
+      op = Graph.get_default_graph.add_op(:variable_v2, container: node, internal_name: node.name, shape: options[:shape], data_type: options[:data_type])
       node.name = op.name
       op
     end
@@ -138,7 +171,7 @@ module TensorStream
     def control_dependencies(control_inputs = [])
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] ||= []
-      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Operation.new(:no_op, *control_inputs)
+      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Graph.get_default_graph.add_op(:no_op, *control_inputs)
       begin
         yield
       ensure
