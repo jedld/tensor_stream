@@ -138,7 +138,6 @@ module TensorStream
             reduced = ts.cast(reduction_indices, :int32)
             idx = ts.range(0, rank)
             other, = ts.setdiff1d(idx, reduced)
-
             [ts.concat([reduced, other], 0),
              ts.reduce_prod(ts.gather(input_shape, reduced)),
              ts.reduce_prod(ts.gather(input_shape, other))]

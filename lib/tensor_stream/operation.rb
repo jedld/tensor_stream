@@ -7,7 +7,7 @@ module TensorStream
     attr_accessor :name, :operation, :inputs, :rank, :device, :consumers, :breakpoint
     attr_reader :outputs, :options, :is_const, :data_type, :shape
 
-    def initialize(graph, inputs: inputs, options: options)
+    def initialize(graph, inputs:, options:)
       @consumers = Set.new
       @outputs = []
       @op = self

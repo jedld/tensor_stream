@@ -186,22 +186,6 @@ module TensorStream
         assign.container
       end
 
-      register_op :transpose do |_context, _tensor, inputs|
-        shape = shape_eval(inputs[0])
-        rank = get_rank(inputs[0])
-        perm = inputs[1] || (0...rank).to_a.reverse
-        if rank == 2 && perm.nil? # use native transpose for general case
-          inputs[0].transpose
-        else
-          arr = inputs[0].flatten
-
-          new_shape = perm.map { |p| shape[p] }
-          new_arr = Array.new(shape.reduce(:*)) { 0 }
-          transpose_with_perm(arr, new_arr, shape, new_shape, perm)
-          TensorShape.reshape(new_arr, new_shape)
-        end
-      end
-
       register_op :less do |context, tensor, inputs|
         a, b = inputs
         call_vector_op(tensor, :less, a, b, context, ->(t, u) { t < u })

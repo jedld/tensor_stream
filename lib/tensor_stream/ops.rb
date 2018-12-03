@@ -311,7 +311,7 @@ module TensorStream
              elsif input.shape.scalar?
                op
              elsif input.shape.known?
-               (0..input.shape.ndims).to_a
+               (0...input.shape.ndims).to_a
              else
                range(0, rank(input))
              end

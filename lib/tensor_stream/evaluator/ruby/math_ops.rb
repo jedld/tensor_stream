@@ -169,7 +169,6 @@ module TensorStream
           c = fp_type?(tensor.data_type) ? 1.0 : 1
           reverse_option = tensor.options[:reverse]
           exclusive = tensor.options[:exclusive]
-
           func = lambda do |arr|
             return c if arr.nil?
 
@@ -201,6 +200,7 @@ module TensorStream
 
         register_op :prod, noop: true do |context, tensor, _inputs|
           c = fp_type?(tensor.data_type) ? 1.0 : 1
+
           func = lambda do |arr|
             return c if arr.nil?
 
