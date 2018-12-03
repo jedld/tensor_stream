@@ -24,7 +24,7 @@ module TensorStream
     end
 
     def scalar?
-      shape.size.zero?
+      known? && shape.size.zero?
     end
 
     def known?

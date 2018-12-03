@@ -83,21 +83,21 @@ module TensorStream
     # Outputs random values from a uniform distribution.
     def random_uniform(shape, dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
       options = { dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name }
-      _op(:random_uniform, shape, nil, options)
+      _op(:random_uniform, shape, options)
     end
 
     ##
     # Outputs random values from a normal distribution.
     def random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
       options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
-      _op(:random_standard_normal, shape, nil, options)
+      _op(:random_standard_normal, shape, options)
     end
 
     ##
     # Outputs random values from a truncated normal distribution.
     def truncated_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
       options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
-      _op(:truncated_normal, shape, nil, options)
+      _op(:truncated_normal, shape, options)
     end
 
     ##
@@ -173,14 +173,14 @@ module TensorStream
     # initializer that generates tensors initialized to 0.
     #
     def zeros_initializer(dtype: :float32)
-      TensorStream::Initializer.new(-> { _op(:zeros, nil, nil, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:zeros, data_type: dtype) })
     end
 
     ##
     # initializer that generates tensors initialized to 1.
     #
     def ones_initializer(dtype: :float32)
-      TensorStream::Initializer.new(-> { _op(:ones, nil, nil, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:ones, data_type: dtype) })
     end
 
     ##
@@ -190,13 +190,13 @@ module TensorStream
     # where limit is sqrt(6 / (fan_in + fan_out)) where fan_in is the number
     # of input units in the weight tensor and fan_out is the number of output units in the weight tensor.
     def glorot_uniform_initializer(seed: nil, dtype: nil)
-      TensorStream::Initializer.new(-> { _op(:glorot_uniform, nil, nil, seed: seed, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:glorot_uniform, seed: seed, data_type: dtype) })
     end
 
     ##
     # Initializer that generates tensors with a uniform distribution.
     def random_uniform_initializer(minval: 0, maxval: 1, seed: nil, dtype: nil)
-      TensorStream::Initializer.new(-> { _op(:random_uniform, nil, nil, minval: 0, maxval: 1, seed: seed, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:random_uniform, minval: 0, maxval: 1, seed: seed, data_type: dtype) })
     end
 
     ##
@@ -277,7 +277,7 @@ module TensorStream
     ##
     # Computes the mean of elements across dimensions of a tensor.
     def reduce_mean(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:mean, input_tensor, axis, keepdims: keepdims, name: name)
+      reduce(:mean, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
     ##
@@ -289,7 +289,7 @@ module TensorStream
     # If axis has no entries, all dimensions are reduced, and a tensor with a single element
     # is returned.
     def reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:sum, input_tensor, axis, keepdims: keepdims, name: name)
+      reduce(:sum, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
     ##
@@ -301,7 +301,22 @@ module TensorStream
     #
     # If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned.
     def reduce_prod(input, axis = nil, keepdims: false, name: nil)
-      _op(:prod, input, axis, keepdims: keepdims, name: name)
+      reduce(:prod, input, axis, keepdims: keepdims, name: name)
+    end
+
+    def reduce(op, input, axis = nil, keepdims: false, name: nil)
+      input = TensorStream.convert_to_tensor(input)
+      axis = if !axis.nil?
+               axis
+             elsif input.shape.scalar?
+               op
+             elsif input.shape.known?
+               (0..input.shape.ndims).to_a
+             else
+               range(0, rank(input))
+             end
+
+      _op(op, input, axis, keepdims: keepdims, name: name)
     end
 
     ##

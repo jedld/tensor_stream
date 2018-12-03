@@ -292,7 +292,6 @@ module TensorStream
           # assertions to make sure inferred shapes == actual evaluated shapes
           if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
             if shape_eval(result) != tensor.shape.shape
-
               raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
             end
           end
@@ -357,13 +356,6 @@ module TensorStream
         else
           return a.send(:"#{op}_index")
         end
-      end
-
-      def reduction(child_context, tensor, func)
-        val = global_eval(tensor, tensor.inputs[0], child_context)
-        axis = global_eval(tensor, tensor.inputs[1], child_context)
-        keep_dims = global_eval(tensor, tensor.options[:keepdims], child_context)
-        reduce(val, axis, keep_dims, func)
       end
 
       def call_op(a, child_context, func)

@@ -172,9 +172,8 @@ module TensorStream
 
           func = lambda do |arr|
             return c if arr.nil?
+
             count = arr.size
-
-
             arr = arr.reverse if reverse_option
             arr = [1] + arr if exclusive
 
@@ -258,6 +257,14 @@ module TensorStream
 
         register_op %i[min minimum], noop: true do |context, tensor, inputs|
           call_vector_op(tensor, :min, inputs[0], inputs[1], context, ->(t, u) { [t, u].min })
+        end
+
+        def reduction(child_context, tensor, func)
+          val = global_eval(tensor, tensor.inputs[0], child_context)
+          axis = global_eval(tensor, tensor.inputs[1], child_context)
+          keep_dims = global_eval(tensor, tensor.options[:keepdims], child_context)
+
+          reduce(val, axis, keep_dims, func)
         end
       end
     end

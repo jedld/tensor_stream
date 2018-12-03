@@ -62,7 +62,7 @@ module TensorStream
                else
                  TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
                end
-      op.inputs[0] = tensor.op
+      op.set_input(0, tensor.op)
       tensor
     end
 
@@ -239,6 +239,7 @@ module TensorStream
     def convert_to_tensor(value, dtype: nil, name: nil)
       return value if value.is_a?(Tensor)
       return convert_to_tensor(value.call) if value.is_a?(Proc)
+      # raise "Invalid tensor value" if value.nil?
 
       if value.is_a?(Array) && value[0].is_a?(Tensor)
         return TensorStream.stack(value) if value.size > 1

@@ -45,7 +45,7 @@ module TensorStream
                   end
       raise "blocks are not supported for tensors" if block_given?
 
-      _op(reduce_op, self, nil)
+      TensorStream.reduce(reduce_op, self)
     end
 
     def collect(&block)

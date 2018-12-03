@@ -5,7 +5,7 @@ module TensorStream
 
     class << self
       def softmax(logits, axis: nil, name: nil)
-        _op(:softmax, logits, nil, axis: axis, name: name)
+        _op(:softmax, logits, axis: axis, name: name)
       end
 
       def relu(features, name: nil)

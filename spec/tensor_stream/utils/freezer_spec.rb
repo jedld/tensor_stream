@@ -21,7 +21,7 @@ RSpec.describe TensorStream::Freezer do
     freezer.save('/tmp/freezed.pbtext', y1)
   end
 
-  specify "can read back freezed model" do
+  xspecify "can read back freezed model" do
     # y1 = freezer.restore('/tmp/freezed.pbtext')
     # result = sess.run(y1, feed_dict: { :x => ts.truncated_normal([1, 28, 28, 1])})
     # expect(result).to eq([])

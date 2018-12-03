@@ -41,6 +41,14 @@ module TensorStream
       @options[:container].value = value
     end
 
+    def set_input(index, value)
+      @inputs[index] = value
+      @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))
+      @rank = @shape.rank
+      @is_const = infer_const
+      @data_type = set_data_type(@options[:data_type])
+    end
+
     def infer_const
       return false if breakpoint
       case operation

@@ -30,7 +30,7 @@ module TensorStream
     end
 
     def -@
-      _op(:negate, self, nil)
+      _op(:negate, self)
     end
 
     def %(other)
