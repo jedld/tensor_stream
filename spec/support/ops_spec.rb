@@ -1984,12 +1984,9 @@ end
       indices = []
       data = []
 
-      indices[0] = 6
-      indices[1] = [4, 1]
-      indices[2] = [[5, 2], [0, 3]]
-      data[0] = [61, 62]
-      data[1] = [[41, 42], [11, 12]]
-      data[2] = [[[51, 52], [21, 22]], [[1, 2], [31, 32]]]
+      indices = [tf.constant(6), tf.constant([4, 1]), tf.constant([[5, 2], [0, 3]])]
+      data = [tf.constant([61, 62]), tf.constant([[41, 42], [11, 12]]), tf.constant([[[51, 52], [21, 22]], [[1, 2], [31, 32]]])]
+
       expect(sess.run(tf.dynamic_stitch(indices, data))).to eq([[1, 2], [11, 12], [21, 22], [31, 32], [41, 42],
         [51, 52], [61, 62]])
     end

@@ -13,7 +13,7 @@ RSpec.describe TensorStream::Yaml do
     tf.reset_default_graph
   end
 
-  xit "saves a graph into pbtext format" do
+  it "saves a graph into pbtext format" do
     # construct a graph
     a = tf.constant([[1.0, 1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 4.0]])
     b = tf.constant(2.0)
@@ -31,7 +31,7 @@ RSpec.describe TensorStream::Yaml do
     expect(test_content).to eq(expected_content)
   end
 
-  xcontext "save and restore a model" do
+  context "save and restore a model" do
     specify do
       learning_rate = 0.01
       training_epochs = 2

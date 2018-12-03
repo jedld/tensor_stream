@@ -11,8 +11,11 @@ module TensorStream
           slice_tensor(input, start.dup, size.dup)
         end
 
-        register_op %i[flow_dynamic_stitch dynamic_stitch] do |context, _tensor, inputs|
-          indexes, data = inputs
+        register_op %i[flow_dynamic_stitch dynamic_stitch] do |context, tensor, inputs|
+          number_of_indexes = tensor.options[:n]
+          indexes = inputs[0...number_of_indexes]
+          data = inputs[number_of_indexes...inputs.size]
+
           merged = []
 
           merge_dynamic_stitch(merged, indexes, data, context)
@@ -365,7 +368,7 @@ module TensorStream
             inputs[0].transpose
           else
             arr = inputs[0].flatten
-  
+
             new_shape = perm.map { |p| shape[p] }
             new_arr = Array.new(shape.reduce(:*)) { 0 }
             transpose_with_perm(arr, new_arr, shape, new_shape, perm)

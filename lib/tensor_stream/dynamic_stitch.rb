@@ -7,7 +7,9 @@ module TensorStream
       setup_initial_state(options)
 
       @operation = :"flow_#{flow_type}"
-      @inputs = inputs.map { |arr| deep_convert_to_tensor(arr) }
+      @options = options.merge(n: inputs[0].size)
+      @inputs = inputs.flatten(1).map { |i| TensorStream.convert_to_tensor(i) }.map { |i| i ? i.op : nil }
+
       @consumers = Set.new
       @data_type = Tensor.detect_type(inputs[1])
       @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
@@ -22,18 +24,6 @@ module TensorStream
 
     def run
       eval
-    end
-
-    protected
-
-    def deep_convert_to_tensor(arr)
-      arr.map do |a|
-        if a.is_a?(Array)
-          deep_convert_to_tensor(a)
-        else
-          TensorStream.convert_to_tensor(a)
-        end
-      end
     end
   end
 end
