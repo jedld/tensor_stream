@@ -56,10 +56,6 @@ module TensorStream
       @name
     end
 
-    def op
-      @op
-    end
-
     def eval(options = {})
       Session.default_session.run(self, options)
     end
