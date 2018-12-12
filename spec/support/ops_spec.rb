@@ -2201,23 +2201,14 @@ end
     end
   end
 
-  context ".relu6" do
+  supported_op ".case" do
     specify do
-      a = tf.constant([-2.0, 1.0, 2.0, 3.0, 5.0, 6.3, 7.0 ])
-      r = tf.nn.relu6(a)
-      expect(sess.run(r)).to eq([0, 1.0, 2.0, 3.0, 5.0, 6, 6])
-    end
-  end
-
-  context ".dropout" do
-    specify do
-      tf.set_random_seed(0)
-      a = tf.constant([-2.0, 1.0, 2.0, 3.0, 5.0, 6.3, 7.0 ])
-      r = tf.nn.dropout(a, 0.5)
-      expect(tr(sess.run(r))).to eq([-4.0, 2.0, 4.0, 6.0, 0.0, 12.6, 0.0])
-
-      r2 = tf.nn.dropout(a, 0.1)
-      expect(tr(sess.run(r2))).to eq([-0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 70.0])
+      x = 2.t
+      y = 3.t
+      f1 = lambda { tf.constant(17) }
+      f2 = lambda { tf.constant(23) }
+      r = tf.case([  { tf.less(x, y) => f1} ], default: f2)
+      expect(sess.run(r)).to eq([])
     end
   end
 end

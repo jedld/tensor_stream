@@ -843,6 +843,18 @@ module TensorStream
       [result[0], result[1]]
     end
 
+    ##
+    # Create a case operation.
+    #
+    # The pred_fn_pairs parameter is a dict or list of pairs of size N.
+    # Each pair contains a boolean scalar tensor and a proc that creates the tensors to be returned if the boolean evaluates to true.
+    # default is a proc generating a list of tensors. All the proc in pred_fn_pairs as well as default (if provided) should return the
+    # same number and types of tensors.
+    #
+    def case(pred_fn_pairs, default: nil, exclusive: false, strict: false, name: 'case')
+      _op(:case, *pred_fn_pairs, default: default, exclusive: exclusive, strict: strict, name: name)
+    end
+
     def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)
       _op(:cumprod, x, axis: axis, exclusive: exclusive, reverse: reverse, name: name)
     end

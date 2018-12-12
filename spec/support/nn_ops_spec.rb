@@ -403,4 +403,24 @@ RSpec.shared_examples "standard nn ops evaluator" do
       end
     end
   end
+
+  context ".relu6" do
+    specify do
+      a = ts.constant([-2.0, 1.0, 2.0, 3.0, 5.0, 6.3, 7.0 ])
+      r = ts.nn.relu6(a)
+      expect(sess.run(r)).to eq([0, 1.0, 2.0, 3.0, 5.0, 6, 6])
+    end
+  end
+
+  context ".dropout" do
+    specify do
+      ts.set_random_seed(0)
+      a = ts.constant([-2.0, 1.0, 2.0, 3.0, 5.0, 6.3, 7.0 ])
+      r = ts.nn.dropout(a, 0.5)
+      expect(tr(sess.run(r))).to eq([-4.0, 2.0, 4.0, 6.0, 0.0, 12.6, 0.0])
+
+      r2 = ts.nn.dropout(a, 0.1)
+      expect(tr(sess.run(r2))).to eq([-0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 70.0])
+    end
+  end
 end

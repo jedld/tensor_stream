@@ -376,6 +376,9 @@ module TensorStream
           end
         end
 
+        register_op :case do |context, tensor, inputs|
+        end
+
         def merge_dynamic_stitch(merged, indexes, data, context)
           indexes.each_with_index do |ind, m|
             if ind.is_a?(Array)

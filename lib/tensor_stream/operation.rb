@@ -254,6 +254,7 @@ module TensorStream
             when 'String', 'Integer', 'Float', 'Symbol', 'FalseClass', "TrueClass"
               v
             else
+              binding.pry
               raise "unknown type #{v.class}"
             end
         [k.to_s, v]
@@ -274,6 +275,7 @@ module TensorStream
         if input.is_a?(Array)
           input.flatten.compact.map(&:op).select { |t| t.is_a?(Tensor) }.each do |t|
             next if t.consumers.include?(consumer.name)
+
             t.send(:propagate_consumer, consumer)
           end
         elsif input.name != name && !input.consumers.include?(consumer.name)
