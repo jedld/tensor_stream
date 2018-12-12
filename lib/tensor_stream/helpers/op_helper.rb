@@ -57,7 +57,7 @@ module TensorStream
     end
 
     def format_source(trace)
-      grad_source = trace.select { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }.first
+      grad_source = trace.detect { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }
       source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
       [grad_source, trace].compact.join("\n")
     end
