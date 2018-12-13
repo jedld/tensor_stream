@@ -2207,8 +2207,26 @@ end
       y = 3.t
       f1 = lambda { tf.constant(17) }
       f2 = lambda { tf.constant(23) }
-      r = tf.case([  { tf.less(x, y) => f1} ], default: f2)
-      expect(sess.run(r)).to eq([])
+      r = tf.case(
+            tf.less(x, y) => f1,
+            default: f2
+          )
+      expect(sess.run(r)).to eq(17)
+    end
+
+    specify "multiple" do
+      x = 5.t
+      y = 5.t
+
+      f1 = lambda { tf.constant(17) }
+      f2 = lambda { tf.constant(23) }
+      f3 = lambda { tf.constant(25) }
+      r = tf.case(
+            (x < y) => f1,
+            (x == y) => f3,
+            default: f2
+          )
+      expect(sess.run(r)).to eq(25)
     end
   end
 end
