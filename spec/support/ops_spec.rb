@@ -548,7 +548,6 @@ RSpec.shared_examples "standard ops evaluator" do
 
       grad1 = tf.gradients(result, [x, y])
       grad2 = tf.gradients(result2, [x, y])
-
       expect(sess.run(grad1)).to eq([4.0, 2.0])
       expect(sess.run(grad2)).to eq([0.0, 6.0])
     end
@@ -2227,6 +2226,25 @@ end
             default: f2
           )
       expect(sess.run(r)).to eq(25)
+    end
+
+    specify "gradients" do
+      x = 2.t
+      y = 3.t
+      u = 1.t
+      z = tf.constant(1)
+      f1 = lambda { z + 2 }
+      f2 = lambda { tf.constant(23) }
+      f3 = lambda { u * 2 }
+      r = tf.case(
+            tf.less(x, y) => f1,
+            tf.equal(x, y) => f3,
+            default: f2
+          )
+
+      exp = tf.gradients(r, [z, u])
+
+      expect(sess.run(exp)).to eq([1, 0])
     end
   end
 end

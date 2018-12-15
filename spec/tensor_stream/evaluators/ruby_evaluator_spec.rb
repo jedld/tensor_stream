@@ -21,7 +21,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(128)
+      expect(described_class.ops.keys.size).to eq(129)
     end
 
     specify do
@@ -49,12 +49,13 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         atan
         broadcast_gradient_args
         broadcast_transform
+        case
+        case_grad
         cast
         ceil
         check_numerics
         concat
         concat_v2
-        cond
         const
         conv2d
         conv2d_backprop_filter

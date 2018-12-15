@@ -72,6 +72,16 @@ module TensorStream
 
     def set_data_type(passed_data_type)
       case operation
+      when :where
+        @inputs[1].data_type
+      when :case
+        if @inputs[2]
+          @inputs[2].data_type
+        else
+          @inputs[1].data_type
+        end
+      when :case_grad
+        @inputs[2].data_type
       when :placeholder, :variable_v2, :const
         options[:data_type]
       when :fill
@@ -180,8 +190,6 @@ module TensorStream
               "reshape(#{sub_input},#{sub_input2})"
             when :rank
               "#{sub_input}.rank"
-            when :cond
-              "(#{auto_math(options[:pred], name_only, max_depth - 1, cur_depth)} ? #{sub_input} : #{sub_input2})"
             when :less
               "#{sub_input} < #{sub_input2}"
             when :less_equal
@@ -241,6 +249,7 @@ module TensorStream
 
     def serialize_options
       excludes = %i[internal_name source container]
+
       @options.reject { |k, v| excludes.include?(k) || v.nil? }.map do |k,v|
         v = case v.class.to_s
             when 'TensorStream::TensorShape'
@@ -254,7 +263,6 @@ module TensorStream
             when 'String', 'Integer', 'Float', 'Symbol', 'FalseClass', "TrueClass"
               v
             else
-              binding.pry
               raise "unknown type #{v.class}"
             end
         [k.to_s, v]

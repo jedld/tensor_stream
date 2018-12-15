@@ -411,13 +411,13 @@ module TensorStream
     ##
     # Return true_fn() if the predicate pred is true else false_fn().
     def cond(pred, true_fn, false_fn, name: nil)
-      _op(:cond, true_fn, false_fn, pred: pred, name: name)
+      _op(:case, [pred], false_fn, true_fn, name: name)
     end
 
     ##
     # Return the elements, either from x or y, depending on the condition.
     def where(condition, true_t = nil, false_t = nil, name: nil)
-      _op(:where, true_t, false_t, pred: condition, name: name)
+      _op(:where, condition, true_t, false_t, name: name)
     end
 
     ##
@@ -851,8 +851,24 @@ module TensorStream
     # default is a proc generating a list of tensors. All the proc in pred_fn_pairs as well as default (if provided) should return the
     # same number and types of tensors.
     #
-    def case(pred_fn_pairs, default: nil, exclusive: false, strict: false, name: 'case')
-      _op(:case, *pred_fn_pairs, default: default, exclusive: exclusive, strict: strict, name: name)
+    def case(args = {})
+      args = args.dup
+      default = args.delete(:default)
+      exclusive = args.delete(:exclusive)
+      strict = args.delete(:strict)
+      name = args.delete(:name)
+
+      predicates = []
+      functions = []
+
+      args.each do |k, v|
+        raise "Invalid argment or option #{k}" unless k.is_a?(Tensor)
+
+        predicates << k
+        functions << (v.is_a?(Proc) ? v.call : v)
+      end
+
+      _op(:case, predicates, default, *functions, exclusive: exclusive, strict: strict, name: name)
     end
 
     def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)

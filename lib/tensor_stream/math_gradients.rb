@@ -53,6 +53,7 @@ module TensorStream
       node.graph.name_scope("#{node.name}_grad") do
         x = node.inputs[0] if node.inputs[0]
         y = node.inputs[1] if node.inputs[1]
+        z = node.inputs[2] if node.inputs[2]
 
         case node.operation
         when :add_n
@@ -241,13 +242,17 @@ module TensorStream
           y = ts.constant(2.0, dtype: x.dtype)
           ts.multiply(grad, ts.multiply(x, y))
         when :where
-          x_mask = i_op(:where, i_op(:ones_like, x), i_op(:zeros_like, y), pred: node.options[:pred])
-          y_mask = i_op(:where, i_op(:zeros_like, x), i_op(:ones_like, y), pred: node.options[:pred])
-          [x_mask * grad, y_mask * grad]
-        when :cond
-          x_cond = i_op(:cond, i_op(:ones_like, x), i_op(:zeros_like, y), pred: node.options[:pred])
-          y_cond = i_op(:cond, i_op(:zeros_like, x), i_op(:ones_like, x), pred: node.options[:pred])
-          [x_cond * grad, y_cond * grad]
+          x_mask = i_op(:where, x, i_op(:ones_like, y), i_op(:zeros_like, z))
+          y_mask = i_op(:where, x, i_op(:zeros_like, y), i_op(:ones_like, z))
+          [nil, x_mask * grad, y_mask * grad]
+        when :case
+          n_preds = node.inputs.size - 2
+
+          case_grads = Array.new(n_preds) do |index|
+            i_op(:case_grad, index, node.inputs[0], node.inputs[2 + index], grad)
+          end
+
+          [nil, i_op(:case_grad, -1, node.inputs[0], node.inputs[1], grad)] + case_grads
         when :mean
           sum_grad = _sum_grad(x, y, grad)[0]
           input_shape = ts.shape(x)
@@ -348,7 +353,7 @@ module TensorStream
       tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
       new_grad = _op(:reshape, grad, output_shape_kept_dims)
 
-      grad = _op(:cond, _op(:fill, input_shape, grad), _op(:tile, new_grad, tile_scaling), pred: _op(:rank, grad).zero?)
+      grad = _op(:case, [_op(:rank, grad).zero?], _op(:tile, new_grad, tile_scaling), _op(:fill, input_shape, grad))
 
       [grad, nil]
     end

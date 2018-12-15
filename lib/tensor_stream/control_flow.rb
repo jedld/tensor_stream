@@ -5,7 +5,7 @@ module TensorStream
 
     def initialize(flow_type, inputs, ops = nil, options = {})
       setup_initial_state(options)
-
+      @options = options
       @operation = :"flow_#{flow_type}"
       @inputs = inputs
       @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')

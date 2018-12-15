@@ -9,6 +9,8 @@ module TensorStream
 
     def self.infer_shape(tensor)
       case tensor.operation
+      when :case, :case_grad
+        tensor.inputs[2].shape.shape if tensor.inputs[2]
       when :const
         shape_eval(tensor.options[:value])
       when :variable_v2

@@ -333,19 +333,9 @@ module TensorStream
           tile.nil? ? [] : tile
         end
 
-        register_op :cond, noop: true do |context, tensor, inputs|
-          pred = global_eval(tensor, tensor.options[:pred], context)
-
-          if all_true?(pred)
-            global_eval(tensor, inputs[0], context)
-          else
-            global_eval(tensor, inputs[1], context)
-          end
-        end
-
         register_op %i[select where] do |context, tensor, inputs|
-          pred = complete_eval(tensor.options[:pred], context)
-          call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
+          pred = inputs[0]
+          call_3way_vector_op(pred, inputs[1], inputs[2], context, ->(t, u, v) { t ? u : v })
         end
 
         register_op :shape do |_context, tensor, inputs|
@@ -376,7 +366,34 @@ module TensorStream
           end
         end
 
-        register_op :case do |context, tensor, inputs|
+        register_op :case, noop: true do |context, tensor, _inputs|
+          pred = global_eval(tensor, tensor.inputs[0], context)
+          result = nil
+
+          pred.each_with_index do |p, index|
+            next unless p
+
+            result = global_eval(tensor, tensor.inputs[2 + index], context)
+          end
+
+          if result.nil?
+            result = global_eval(tensor, tensor.inputs[1], context)
+          end
+
+          result
+        end
+
+        register_op :case_grad do |_context, tensor, inputs|
+          index, pred, func, grad = inputs
+          if index < 0 && !pred.find { |p| !!p }
+            grad
+          elsif index >= 0 && pred[index]
+            grad
+          else
+            func = -> { int_type?(tensor.data_type) ? 0 : 0.0 }
+            shape = shape_eval(func)
+            generate_vector(shape, generator: func)
+          end
         end
 
         def merge_dynamic_stitch(merged, indexes, data, context)
