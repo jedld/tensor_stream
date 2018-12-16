@@ -248,9 +248,9 @@ module TensorStream
     private
 
     def serialize_options
-      excludes = %i[internal_name source container]
+      excludes = %i[internal_name source]
 
-      @options.reject { |k, v| excludes.include?(k) || v.nil? }.map do |k,v|
+      @options.reject { |k, v| excludes.include?(k) || v.nil? }.map do |k, v|
         v = case v.class.to_s
             when 'TensorStream::TensorShape'
               v.shape
@@ -262,6 +262,8 @@ module TensorStream
               end
             when 'String', 'Integer', 'Float', 'Symbol', 'FalseClass', "TrueClass"
               v
+            when 'TensorStream::Variable'
+              { name: v.name, options: v.options, shape: v.shape.shape.dup }
             else
               raise "unknown type #{v.class}"
             end

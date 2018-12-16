@@ -63,6 +63,7 @@ module TensorStream
                  TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
                end
       op.set_input(0, tensor.op)
+      Graph.get_default_graph.add_node(op)
       tensor
     end
 

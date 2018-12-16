@@ -13,9 +13,12 @@ module TensorStream
   module Trainer
     extend TensorStream::Train::Utils
     extend TensorStream::Train::LearningRateDecay
+    extend TensorStream::StringHelper
 
     def self.write_graph(graph, path, filename, as_text: true, serializer: TensorStream::Pbtext)
       raise "only supports as_text=true for now" unless as_text
+
+      serializer = constantize("TensorStream::#{camelize(serializer.to_s)}") if serializer.is_a?(Symbol)
 
       new_filename = File.join(path, filename)
       File.write(new_filename, serializer.new.get_string(graph))

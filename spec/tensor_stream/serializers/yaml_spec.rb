@@ -9,11 +9,10 @@ RSpec.describe TensorStream::Yaml do
   end
 
   before do
-    @fixture = File.read(File.join('spec','fixtures', 'test.pbtxt.proto'))
     tf.reset_default_graph
   end
 
-  it "saves a graph into pbtext format" do
+  it "saves a graph into yaml format" do
     # construct a graph
     a = tf.constant([[1.0, 1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 4.0]])
     b = tf.constant(2.0)
@@ -32,7 +31,7 @@ RSpec.describe TensorStream::Yaml do
   end
 
   context "save and restore a model" do
-    specify do
+    specify "save" do
       learning_rate = 0.01
       training_epochs = 2
       display_step = 50
@@ -44,8 +43,8 @@ RSpec.describe TensorStream::Yaml do
 
       n_samples = train_X.size
 
-      X = TensorStream.placeholder("float")
-      Y = TensorStream.placeholder("float")
+      X = TensorStream.placeholder("float", name: 'X')
+      Y = TensorStream.placeholder("float", name: 'Y')
 
       # Set model weights
       W = TensorStream.variable(rand, name: "weight")
@@ -66,7 +65,21 @@ RSpec.describe TensorStream::Yaml do
         sess.run(optimizer, feed_dict: {X => x, Y => y})
       end
 
+      expect(sess.run(pred, feed_dict: {X => train_X[0], Y => train_Y[0]})).to eq(1.3576718783214332)
+
       tf.train.write_graph(tf.get_default_graph, '/tmp', 'ts_test_graph_lg.yaml', serializer: described_class)
+      saved_model = File.read(File.join('/tmp', 'ts_test_graph_lg.yaml'))
+      expected_model = File.read(File.join('spec', 'fixtures', 'ts_test_graph_lg.yaml'))
+      expect(saved_model).to eq(expected_model)
+    end
+
+    specify "restore" do
+      graph = tf.get_default_graph
+      expected_model = File.read(File.join('spec', 'fixtures', 'ts_test_graph_lg.yaml'))
+      TensorStream::YamlLoader.new.load_from_string(expected_model)
+      init = graph.get_tensor_by_name("/flow_group")
+      sess.run(init)
+      binding.pry
     end
   end
 end

@@ -3,7 +3,8 @@ module TensorStream
   class Graph
     include OpHelper
 
-    attr_accessor :nodes, :node_keys, :collections, :eager_execution, :random_seed, :constants
+    attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants
+    attr_reader :node_keys
 
     def initialize
       @eager_execution = false
@@ -124,6 +125,7 @@ module TensorStream
                 else
                   {}
                 end
+
       inputs = args.map { |i| TensorStream.convert_to_tensor(i) }.map { |i| i ? i.op : nil }
 
       new_op = Operation.new(self, inputs: inputs, options: options)
@@ -139,13 +141,15 @@ module TensorStream
 
       new_op.given_name = new_op.name
 
-      add_node(new_op)
-
       new_op
     end
 
+    def add_op!(operation, *args)
+      add_op(operation, *args).tap { |node| add_node(node) }
+    end
+
     def set_operation_name(op)
-      "#{op.operation}"
+      op.operation.to_s
     end
 
     def add_variable(node, options = {})
@@ -163,7 +167,12 @@ module TensorStream
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
       add_to_collection(GraphKeys::TRAINABLE_VARIABLES, node) if node.trainable?
 
-      op = Graph.get_default_graph.add_op(:variable_v2, container: node, internal_name: node.name, shape: options[:shape], data_type: options[:data_type])
+      node
+    end
+
+    def add_variable!(node, options = {})
+      node = add_variable(node, options)
+      op = Graph.get_default_graph.add_op!(:variable_v2, container: node, internal_name: node.name, shape: options[:shape], data_type: options[:data_type])
       node.name = op.name
       op
     end
@@ -171,7 +180,7 @@ module TensorStream
     def control_dependencies(control_inputs = [])
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] ||= []
-      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Graph.get_default_graph.add_op(:no_op, *control_inputs)
+      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Graph.get_default_graph.add_op!(:no_op, *control_inputs)
       begin
         yield
       ensure

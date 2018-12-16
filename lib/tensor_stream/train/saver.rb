@@ -39,8 +39,8 @@ module TensorStream
         new_filename = File.join(path, [basename, gs].compact.join('-'))
         File.write(new_filename, output_dump.to_yaml)
         if write_meta_graph
-          graph_filename = "#{basename}.pbtext"
-          TensorStream.train.write_graph(graph, path, graph_filename)
+          graph_filename = "#{basename}.yaml"
+          TensorStream.train.write_graph(graph, path, graph_filename, serializer: :yaml)
         end
         path
       end

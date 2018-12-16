@@ -9,6 +9,8 @@ module TensorStream
     end
 
     def to_s
+      return "" if @shape.nil?
+
       dimensions = @shape.collect do |r|
         "Dimension(#{r})"
       end.join(',')

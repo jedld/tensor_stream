@@ -21,7 +21,7 @@ module TensorStream
 
       @shape = TensorShape.new(shape, rank)
       @trainable = options.fetch(:trainable, true)
-      @op = @graph.add_variable(self, options.merge(shape: @shape, data_type: @data_type))
+      @op = @graph.add_variable!(self, options.merge(shape: @shape, data_type: @data_type))
     end
 
     def trainable?

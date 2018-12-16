@@ -67,10 +67,12 @@ module TensorStream
         @lines << "#{spaces}b: #{val}"
       when 'Integer'
         @lines << "#{spaces}i: #{val}"
-      when 'String'
+      when 'String',
         @lines << "#{spaces}s: #{val}"
       when 'Float'
         @lines << "#{spaces}f: #{val}"
+      when 'Symbol'
+        @lines << "#{spaces}sym: #{val}"
       when 'Array'
         @lines << "#{spaces}list {"
         val.each do |v_item|
@@ -89,6 +91,7 @@ module TensorStream
         @lines << "#{spaces}}"
       when 'TensorStream::Variable'
       else
+        binding.pry
         raise "unknown type #{val.class}"
       end
     end

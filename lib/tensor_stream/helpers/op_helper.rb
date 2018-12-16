@@ -5,7 +5,7 @@ module TensorStream
     def _op(code, *args)
       default_graph = Graph.get_default_graph
 
-      op = default_graph.add_op(code.to_sym, *args)
+      op = default_graph.add_op!(code.to_sym, *args)
       if !default_graph.get_dependency_scope.nil?
         i_op(:identity, op, default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
       else
@@ -22,7 +22,7 @@ module TensorStream
                 end
 
       args << options.merge(internal: true)
-      Graph.get_default_graph.add_op(code.to_sym, *args)
+      Graph.get_default_graph.add_op!(code.to_sym, *args)
     end
 
     def cons(value, options = {})
