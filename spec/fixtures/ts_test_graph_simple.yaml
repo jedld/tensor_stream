@@ -1,0 +1,113 @@
+---
+- :op: const
+  :name: Const
+  :inputs: []
+  :attrs:
+    :value:
+    - - 1.0
+      - 1.1
+      - 2.2
+      - 3.3
+    - - 1.1
+      - 2.2
+      - 3.3
+      - 4.0
+    :data_type: :float32
+    :shape:
+    - 2
+    - 4
+- :op: const
+  :name: Const_1
+  :inputs: []
+  :attrs:
+    :value: 2.0
+    :data_type: :float32
+    :shape: []
+- :op: const
+  :name: Const_2
+  :inputs: []
+  :attrs:
+    :value: 1.0
+    :data_type: :float32
+    :shape: []
+- :op: variable_v2
+  :name: v1
+  :inputs: []
+  :attrs:
+    :container:
+      :name: v1
+      :options: {}
+      :shape: []
+    :data_type: :float32
+- :op: assign
+  :name: assign
+  :inputs:
+  - v1
+  - Const_2
+  :attrs: {}
+- :op: const
+  :name: Const_3
+  :inputs: []
+  :attrs:
+    :value:
+    - 1
+    - 2
+    - 3
+    - 4
+    :data_type: :int32
+    :shape:
+    - 4
+- :op: const
+  :name: Const_4
+  :inputs: []
+  :attrs:
+    :value: Hello World
+    :data_type: :string
+    :shape: []
+- :op: placeholder
+  :name: Placeholder
+  :inputs: []
+  :attrs:
+    :data_type: :float32
+    :shape: 
+- :op: const
+  :name: Const_5
+  :inputs: []
+  :attrs:
+    :value:
+    - h
+    - e
+    - l
+    - l
+    - o
+    :data_type: :string
+    :shape:
+    - 5
+- :op: mul
+  :name: mul
+  :inputs:
+  - Const
+  - Const_1
+  :attrs: {}
+- :op: add
+  :name: add
+  :inputs:
+  - mul
+  - v1
+  :attrs: {}
+- :op: const
+  :name: Const_6
+  :inputs: []
+  :attrs:
+    :value:
+    - 0
+    :data_type: :int32
+    :shape:
+    - 1
+- :op: sum
+  :name: sum
+  :inputs:
+  - Const
+  - Const_6
+  :attrs:
+    :keepdims: false

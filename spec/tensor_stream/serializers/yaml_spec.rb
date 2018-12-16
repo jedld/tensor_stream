@@ -25,7 +25,7 @@ RSpec.describe TensorStream::Yaml do
     func2 = tf.reduce_sum(a, [0])
 
     tf.train.write_graph(tf.get_default_graph, '/tmp', 'ts_test_graph_simple.yaml', serializer: described_class)
-    expected_content = File.read(File.join('spec', 'fixtures', 'test.yaml'))
+    expected_content = File.read(File.join('spec', 'fixtures', 'ts_test_graph_simple.yaml'))
     test_content = File.read(File.join('/tmp', 'ts_test_graph_simple.yaml'))
     expect(test_content).to eq(expected_content)
   end
@@ -77,9 +77,22 @@ RSpec.describe TensorStream::Yaml do
       graph = tf.get_default_graph
       expected_model = File.read(File.join('spec', 'fixtures', 'ts_test_graph_lg.yaml'))
       TensorStream::YamlLoader.new.load_from_string(expected_model)
+
       init = graph.get_tensor_by_name("/flow_group")
+      optimizer = graph.get_tensor_by_name("GradientDescent/flow_group")
+      pred = graph.get_tensor_by_name("add")
       sess.run(init)
-      binding.pry
+
+      srand(1234)
+      train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
+      7.042,10.791,5.313,7.997,5.654,9.27,3.1]
+      train_Y = [1.7,2.76,2.09,3.19,1.694,1.573,3.366,2.596,2.53,1.221,
+      2.827,3.465,1.65,2.904,2.42,2.94,1.3]
+
+      train_X.zip(train_Y).each do |x,y|
+        sess.run(optimizer, feed_dict: {"X" => x, "Y" => y})
+      end
+      expect(sess.run(pred, feed_dict: {X => train_X[0], Y => train_Y[0]})).to eq(1.3576718783214332)
     end
   end
 end

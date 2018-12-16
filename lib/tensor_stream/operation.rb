@@ -255,11 +255,7 @@ module TensorStream
             when 'TensorStream::TensorShape'
               v.shape
             when 'Array'
-              if k.to_s == 'value'
-                TensorStream::Packer.pack(v, data_type)
-              else
-                v
-              end
+              v
             when 'String', 'Integer', 'Float', 'Symbol', 'FalseClass', "TrueClass"
               v
             when 'TensorStream::Variable'
@@ -267,7 +263,7 @@ module TensorStream
             else
               raise "unknown type #{v.class}"
             end
-        [k.to_s, v]
+        [k.to_sym, v]
       end.to_h
     end
 
