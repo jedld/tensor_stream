@@ -54,13 +54,13 @@ module TensorStream
         trainable: trainable
       }
       tensor = if value.is_a?(String)
-                 TensorStream::Variable.new(dtype || :string, 0, [], get_variable_scope, common_options)
+                 i_var(dtype || :string, 0, [], get_variable_scope, common_options)
                elsif value.is_a?(Integer)
-                 TensorStream::Variable.new(dtype || :int32, 0, [], get_variable_scope, common_options)
+                 i_var(dtype || :int32, 0, [], get_variable_scope, common_options)
                elsif value.is_a?(Float)
-                 TensorStream::Variable.new(dtype || :float32, 0, [], get_variable_scope, common_options)
+                 i_var(dtype || :float32, 0, [], get_variable_scope, common_options)
                else
-                 TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
+                 i_var(dtype || :float32, 0, nil, get_variable_scope, common_options)
                end
       op.set_input(0, tensor.op)
       Graph.get_default_graph.add_node(op)

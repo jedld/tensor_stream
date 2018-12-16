@@ -25,6 +25,14 @@ module TensorStream
       Graph.get_default_graph.add_op!(code.to_sym, *args)
     end
 
+    def i_var(data_type, rank, shape, variable_scope, options = {})
+      new_var = Variable.new(data_type)
+      new_var.prepare(rank, shape, variable_scope, options)
+      new_var.op = new_var.graph.add_variable!(new_var, options.merge(shape: @shape, data_type: data_type))
+
+      new_var
+    end
+
     def cons(value, options = {})
       TensorStream.constant(value, options)
     end

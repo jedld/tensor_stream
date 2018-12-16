@@ -23,18 +23,21 @@
     value: 1.0
     data_type: :float32
     shape: []
+- :op: variable_v2
+  :name: v1
+  :inputs: []
+  :attrs:
+    container:
+      :name: v1
+      :options: {}
+      :shape: []
+    data_type: :float32
 - :op: assign
   :name: assign
   :inputs:
   - v1
   - Const_2
   :attrs: {}
-- :op: variable_v2
-  :name: v1
-  :inputs: []
-  :attrs:
-    shape: []
-    data_type: :float32
 - :op: const
   :name: Const_3
   :inputs: []

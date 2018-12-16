@@ -4,15 +4,18 @@ module TensorStream
     attr_accessor :trainable, :options, :buffer, :op
     attr_writer :value
 
-    def initialize(data_type, rank, shape, variable_scope, options = {})
+    def initialize(data_type)
+      @data_type = data_type
+      @options = {}
+      @is_const = false
+    end
+
+    def prepare(rank, shape, variable_scope, options = {})
       setup_initial_state(options)
 
-      @options = {
-      }
-      @data_type = data_type
       @rank = rank
       @value = nil
-      @is_const = false
+
       scope_name = variable_scope ? variable_scope.name : nil
       variable_scope_initializer = variable_scope ? variable_scope.initializer : nil
       @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join('/')
@@ -21,7 +24,6 @@ module TensorStream
 
       @shape = TensorShape.new(shape, rank)
       @trainable = options.fetch(:trainable, true)
-      @op = @graph.add_variable!(self, options.merge(shape: @shape, data_type: @data_type))
     end
 
     def trainable?

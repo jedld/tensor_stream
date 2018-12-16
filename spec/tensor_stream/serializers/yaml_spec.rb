@@ -24,9 +24,9 @@ RSpec.describe TensorStream::Yaml do
     func = a * b + c
     func2 = tf.reduce_sum(a, [0])
 
-    tf.train.write_graph(tf.get_default_graph, '/tmp', 'ts_test_graph.yaml', serializer: described_class)
+    tf.train.write_graph(tf.get_default_graph, '/tmp', 'ts_test_graph_simple.yaml', serializer: described_class)
     expected_content = File.read(File.join('spec', 'fixtures', 'test.yaml'))
-    test_content = File.read(File.join('/tmp', 'ts_test_graph.yaml'))
+    test_content = File.read(File.join('/tmp', 'ts_test_graph_simple.yaml'))
     expect(test_content).to eq(expected_content)
   end
 

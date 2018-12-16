@@ -31,7 +31,7 @@ module TensorStream
         when 'VariableV2'
           # evaluate options
           shape = options[:shape]
-          TensorStream::Variable.new(options[:dtype] || options[:T], nil, shape, nil, options)
+          i_var(options[:dtype] || options[:T], nil, shape, nil, options)
         when 'Placeholder'
           shape = options[:shape]
           TensorStream::Placeholder.new(options[:dtype] || options[:T], nil, shape, options)

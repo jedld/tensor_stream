@@ -26,7 +26,6 @@
       :name: weight
       :options: {}
       :shape: []
-    shape: []
     data_type: :float32
 - :op: assign
   :name: assign
@@ -49,7 +48,6 @@
       :name: bias
       :options: {}
       :shape: []
-    shape: []
     data_type: :float32
 - :op: assign
   :name: assign_1
