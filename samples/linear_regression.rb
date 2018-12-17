@@ -55,7 +55,7 @@ tf.session do |sess|
 
       if (epoch+1) % display_step == 0
         # Save the variables to disk.
-        save_path = saver.save(sess, "/tmp/lg_model.ckpt")
+        save_path = saver.save(sess, "/tmp/lg_model")
         c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
         puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
             "W=", sess.run(W), "b=", sess.run(b))

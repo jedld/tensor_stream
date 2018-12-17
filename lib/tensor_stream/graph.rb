@@ -33,8 +33,12 @@ module TensorStream
     end
 
     def as_default
+      Thread.current[:tensor_stream_current_graph_queue] ||= []
+      Thread.current[:tensor_stream_current_graph_queue] << Graph.get_default_graph
+
       Thread.current[:tensor_stream_current_graph] = self
       yield(self) if block_given?
+      Thread.current[:tensor_stream_current_graph] = Thread.current[:tensor_stream_current_graph_queue].pop
       self
     end
 

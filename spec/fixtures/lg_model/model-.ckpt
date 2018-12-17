@@ -1,0 +1,9 @@
+---
+variables:
+  weight:
+    shape: []
+    data: eJyrmlpvBwAE5wHN
+  bias:
+    shape: []
+    data: eJx7rONrDwAE7QGc
+global_step: 

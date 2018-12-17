@@ -5,12 +5,14 @@
   :inputs: []
   :attrs:
     :data_type: :float
+    :shape: 
 - :op: placeholder
   :name: Placeholder_2
   :data_type: :float
   :inputs: []
   :attrs:
     :data_type: :float
+    :shape: 
 - :op: const
   :name: Const
   :data_type: :float32
@@ -19,14 +21,16 @@
     :value: 0.6516750957755529
     :data_type: :float32
     :shape: []
-- :op: const
+- :op: variable_v2
   :name: weight
   :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0.24959364533424377
+    :container:
+      :name: weight
+      :options: {}
+      :shape: []
     :data_type: :float32
-    :shape: []
 - :op: assign
   :name: assign
   :data_type: :float32
@@ -42,14 +46,16 @@
     :value: 0.47068974180401046
     :data_type: :float32
     :shape: []
-- :op: const
+- :op: variable_v2
   :name: bias
   :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0.801466166973114
+    :container:
+      :name: bias
+      :options: {}
+      :shape: []
     :data_type: :float32
-    :shape: []
 - :op: assign
   :name: assign_1
   :data_type: :float32
@@ -1557,7 +1563,7 @@
     :internal: true
 - :op: flow_group
   :name: GradientDescent/flow_group
-  :data_type: :float32
+  :data_type: 
   :inputs:
   - GradientDescent/update_weight/apply_gradient_descent
   - GradientDescent/update_bias/apply_gradient_descent
@@ -1578,7 +1584,7 @@
   :attrs: {}
 - :op: flow_group
   :name: "/flow_group"
-  :data_type: :float32
+  :data_type: 
   :inputs:
   - assign_2
   - assign_3
