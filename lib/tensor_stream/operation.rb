@@ -24,6 +24,7 @@ module TensorStream
       {
         op: operation.to_s,
         name: name.to_s,
+        data_type: @data_type,
         inputs: @inputs.map(&:name),
         attrs: serialize_options
       }
@@ -34,7 +35,7 @@ module TensorStream
     end
 
     def container
-      @options[:container].value
+      @options[:container].read_value
     end
 
     def container=(value)
@@ -51,6 +52,7 @@ module TensorStream
 
     def infer_const
       return false if breakpoint
+
       case operation
       when :random_standard_normal, :random_uniform, :truncated_normal, :glorot_uniform, :print, :check_numerics
         false
@@ -67,7 +69,7 @@ module TensorStream
     end
 
     def set_name
-      "#{@operation}"
+      @operation.to_s
     end
 
     def set_data_type(passed_data_type)

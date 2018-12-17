@@ -1,36 +1,32 @@
 ---
 - :op: placeholder
-  :name: X
+  :name: Placeholder
   :data_type: :float
   :inputs: []
   :attrs:
     :data_type: :float
-    :shape: 
 - :op: placeholder
-  :name: Y
+  :name: Placeholder_2
   :data_type: :float
   :inputs: []
   :attrs:
     :data_type: :float
-    :shape: 
 - :op: const
   :name: Const
   :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0.1915194503788923
+    :value: 0.9128678031511536
     :data_type: :float32
     :shape: []
-- :op: variable_v2
+- :op: const
   :name: weight
   :data_type: :float32
   :inputs: []
   :attrs:
-    :container:
-      :name: weight
-      :options: {}
-      :shape: []
+    :value: 0.2519164979457855
     :data_type: :float32
+    :shape: []
 - :op: assign
   :name: assign
   :data_type: :float32
@@ -43,19 +39,17 @@
   :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0.6221087710398319
+    :value: 0.6579757211689572
     :data_type: :float32
     :shape: []
-- :op: variable_v2
+- :op: const
   :name: bias
   :data_type: :float32
   :inputs: []
   :attrs:
-    :container:
-      :name: bias
-      :options: {}
-      :shape: []
+    :value: 0.7847556471824646
     :data_type: :float32
+    :shape: []
 - :op: assign
   :name: assign_1
   :data_type: :float32
@@ -67,7 +61,7 @@
   :name: mul
   :data_type: :float
   :inputs:
-  - X
+  - Placeholder
   - weight
   :attrs: {}
 - :op: add
@@ -82,7 +76,7 @@
   :data_type: :float
   :inputs:
   - add
-  - Y
+  - Placeholder_2
   :attrs: {}
 - :op: const
   :name: Const_2
@@ -629,7 +623,7 @@
   :name: gradient_wrt_weight/sub_grad/sub/shape_y
   :data_type: :int32
   :inputs:
-  - Y
+  - Placeholder_2
   :attrs:
     :name: sub/shape_y
     :out_type: :int32
@@ -797,7 +791,7 @@
   :name: gradient_wrt_weight/mul_grad/shape
   :data_type: :int32
   :inputs:
-  - X
+  - Placeholder
   :attrs:
     :out_type: :int32
 - :op: shape
@@ -870,7 +864,7 @@
   :name: gradient_wrt_weight/mul_grad/mul_1
   :data_type: :float
   :inputs:
-  - X
+  - Placeholder
   - gradient_wrt_weight/add_grad/reshape
   :attrs: {}
 - :op: sum
@@ -1364,7 +1358,7 @@
   :name: gradient_wrt_bias/sub_grad/sub/shape_y
   :data_type: :int32
   :inputs:
-  - Y
+  - Placeholder_2
   :attrs:
     :name: sub/shape_y
     :out_type: :int32
@@ -1563,7 +1557,7 @@
     :internal: true
 - :op: flow_group
   :name: GradientDescent/flow_group
-  :data_type: 
+  :data_type: :float32
   :inputs:
   - GradientDescent/update_weight/apply_gradient_descent
   - GradientDescent/update_bias/apply_gradient_descent
@@ -1584,7 +1578,7 @@
   :attrs: {}
 - :op: flow_group
   :name: "/flow_group"
-  :data_type: 
+  :data_type: :float32
   :inputs:
   - assign_2
   - assign_3

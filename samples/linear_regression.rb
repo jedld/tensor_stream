@@ -42,6 +42,8 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
+# Add ops to save and restore all the variables.
+saver = tf::Train::Saver.new
 
 tf.session do |sess|
     start_time = Time.now
@@ -52,6 +54,8 @@ tf.session do |sess|
       end
 
       if (epoch+1) % display_step == 0
+        # Save the variables to disk.
+        save_path = saver.save(sess, "/tmp/lg_model.ckpt")
         c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
         puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
             "W=", sess.run(W), "b=", sess.run(b))
