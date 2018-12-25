@@ -34,6 +34,10 @@ module TensorStream
       @options ? @options[:value] : nil
     end
 
+    def container_buffer
+      @options[:container] ? @options[:container].buffer : nil
+    end
+
     def container
       @options[:container].read_value
     end
