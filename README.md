@@ -140,7 +140,7 @@ Not all ops are available. Available ops are defined in lib/tensor_stream/ops.rb
 
 There are also certain differences with regards to naming conventions, and named parameters:
 
-# Variables
+# Variables and Constants
 
 To make referencing python examples easier it is recommended to use "tf" as the TensorStream namespace
 
@@ -163,7 +163,14 @@ Ruby
 
 ```ruby
 w = ts.variable(0, name: 'weights')
+c = ts.constant(1.0)
+
+# concise way when initializing using a constant
+w = 0.t.var name: 'weights'
+c = 1.0.t
 ```
+
+Calling .t to Integer, Array and Float types converts it into a tensor
 
 # Shapes
 
@@ -179,6 +186,10 @@ Ruby
 ```ruby
 x = ts.placeholder(:float32, shape: [1024, 1024])
 x = ts.placeholder(:float32, shape: [nil, 1024])
+
+# Another a bit more terse way
+x = Float.placeholder shape: [1024, 1024]
+y = Float.placeholder shape: [nil, 1024]
 ```
 
 For debugging, each operation or tensor supports the to_math method
