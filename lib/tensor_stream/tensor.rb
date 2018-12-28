@@ -32,22 +32,6 @@ module TensorStream
       @op.device
     end
 
-    ##
-    # Apply a reduction to tensor
-    def reduce(op_type)
-      reduce_op = case op_type.to_sym
-                  when :+
-                    :sum
-                  when :*
-                    :prod
-                  else
-                    raise "unsupported reduce op type #{op_type}"
-                  end
-      raise "blocks are not supported for tensors" if block_given?
-
-      TensorStream.reduce(reduce_op, self)
-    end
-
     def collect(&block)
       @value.collect(&block)
     end
@@ -179,20 +163,22 @@ module TensorStream
       end
     end
 
-    def reshape(arr, shape)
+    def _reshape(arr, shape)
       if arr.is_a?(Array)
         return arr if shape.size < 2
+
         slice = shape.shift
         arr.each_slice(slice).collect do |s|
-          reshape(s, shape)
+          _reshape(s, shape)
         end
       else
         return arr if shape.empty?
+
         slice = shape.shift
         return arr if slice.nil?
 
         Array.new(slice) do
-          reshape(arr, shape.dup)
+          _reshape(arr, shape.dup)
         end
       end
     end

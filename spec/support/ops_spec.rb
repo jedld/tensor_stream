@@ -2228,6 +2228,24 @@ end
       expect(sess.run(r)).to eq(25)
     end
 
+    specify "exclusive flag" do
+      x = 5.t
+      y = 5.t
+      z = 5.t
+
+      f1 = lambda { tf.constant(17) }
+      f2 = lambda { tf.constant(23) }
+      f3 = lambda { tf.constant(25) }
+      r = tf.case(
+            (x < y) => f1,
+            (x == y) => f3,
+            (x == z) => f3,
+            default: f2,
+            exclusive: true
+          )
+      expect { sess.run(r) }.to raise_exception TensorStream::ValueError
+    end
+
     specify "gradients" do
       x = 2.t
       y = 3.t

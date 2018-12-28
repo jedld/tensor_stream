@@ -370,15 +370,18 @@ module TensorStream
           pred = global_eval(tensor, tensor.inputs[0], context)
           result = nil
 
+          if tensor.options[:exclusive]
+            p_true = pred.each_with_index.collect { |p, index| [p, index] }.select { |a| a[0] }
+            raise TensorStream::ValueError, "more than one predicate returns true pos #{p_true.map { |a| a[1] }.join(',')}" if p_true.size > 1
+          end
+
           pred.each_with_index do |p, index|
             next unless p
 
             result = global_eval(tensor, tensor.inputs[2 + index], context)
           end
 
-          if result.nil?
-            result = global_eval(tensor, tensor.inputs[1], context)
-          end
+          result = global_eval(tensor, tensor.inputs[1], context) if result.nil?
 
           result
         end

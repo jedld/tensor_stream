@@ -39,19 +39,19 @@ test_x = transformed_data[51..100].map { |x| x[0..3].map(&:to_f) }
 test_y = iris[51..100].map { |x| x[4] == 'Iris-setosa' ? 0.0 : 1.0 }
 
 
-A = tf.variable(tf.random_normal([4, 1]))
-b = tf.variable(tf.random_normal([1, 1]))
+A = tf.random_normal([4, 1]).var
+b = tf.random_normal([1, 1]).var
 
 init = tf.global_variables_initializer
 sess = tf.session
 sess.run(init)
 
-data = tf.placeholder(:float32, shape: [nil, 4])
-target = tf.placeholder(:float32, shape: [nil, 1])
+data = Float.placeholder shape: [nil, 4]
+target = Float.placeholder shape: [nil, 1]
 
-mod = data.dot(A) + b
+mod = data.matmul(A) + b
 
-loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits: mod, labels: target))
+loss = tf.nn.sigmoid_cross_entropy_with_logits(logits: mod, labels: target).reduce :mean
 
 learning_rate = 0.003
 batch_size = 30
@@ -59,11 +59,13 @@ iter_num = 1500
 
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate)
 goal = optimizer.minimize(loss)
-prediction = tf.round(tf.sigmoid(mod))
+prediction = tf.sigmoid(mod).round
+
 # Bool into float32 type
-correct = tf.cast(tf.equal(prediction, target), :float32)
+correct = (prediction == target).cast
+
 # Average
-accuracy = tf.reduce_mean(correct)
+accuracy = correct.reduce :mean
 
 loss_trace = []
 train_acc = []

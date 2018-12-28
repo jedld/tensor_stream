@@ -37,12 +37,24 @@ module TensorStream
       TensorStream.mod(self, other)
     end
 
-    def floor
-      TensorStream.floor(self)
+    def floor(name: nil)
+      TensorStream.floor(self, name: name)
     end
 
-    def ceil
-      TensorStream.ceil(self)
+    def ceil(name: nil)
+      TensorStream.ceil(self, name: name)
+    end
+
+    def round(name: nil)
+      TensorStream.round(self, name: name)
+    end
+
+    def log(name: nil)
+      TensorStream.log(self, name: name)
+    end
+
+    def reshape(shape, name: nil)
+      TensorStream.reshape(self, shape, name: name)
     end
 
     def zero?
@@ -94,5 +106,30 @@ module TensorStream
       _op(:mat_mul, self, other)
     end
 
+    def cast(data_type = :float32, name: nil)
+      TensorStream.cast(self, data_type, name: name)
+    end
+
+    def var(name: nil)
+      TensorStream.variable(self, name: name)
+    end
+
+    ##
+    # Apply a reduction to tensor
+    def reduce(op_type = :+, axis: nil, keepdims: false, name: nil)
+      reduce_op = case op_type.to_sym
+                  when :+
+                    :sum
+                  when :*
+                    :prod
+                  when :mean
+                    :mean
+                  else
+                    raise "unsupported reduce op type #{op_type} valid values are :+, :*, :prod, :mean"
+                  end
+      raise "blocks are not supported for tensors" if block_given?
+
+      TensorStream.reduce(reduce_op, self, axis, keepdims: keepdims, name: name)
+    end
   end
 end

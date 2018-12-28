@@ -17,11 +17,11 @@ module TensorStream
       if options[:value]
         if options[:value].is_a?(Array)
           # check if single dimenstion array is passed
-          options[:value] = reshape(options[:value], shape.reverse.dup) if shape.size >= 2 && !options[:value].empty? && !options[:value][0].is_a?(Array)
+          options[:value] = _reshape(options[:value], shape.reverse.dup) if shape.size >= 2 && !options[:value].empty? && !options[:value][0].is_a?(Array)
 
           @value = options[:value].map { |v| v.is_a?(Tensor) ? Tensor.cast_dtype(v, @data_type) : v }
         elsif !shape.empty?
-          @value = reshape(Tensor.cast_dtype(options[:value], @data_type), shape.dup)
+          @value = _reshape(Tensor.cast_dtype(options[:value], @data_type), shape.dup)
         else
           @value = Tensor.cast_dtype(options[:value], @data_type)
         end

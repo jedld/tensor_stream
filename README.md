@@ -54,7 +54,8 @@ Or install it yourself as:
 
 ## Usage
 
-Usage is similar to how you would use TensorFlow except with ruby syntax
+Usage is similar to how you would use TensorFlow except with ruby syntax.
+There are also enhancements to the syntax to make it as consice as possible.
 
 Linear regression sample:
 
@@ -74,18 +75,24 @@ train_Y = [1.7,2.76,2.09,3.19,1.694,1.573,3.366,2.596,2.53,1.221,
 
 n_samples = train_X.size
 
-X = tf.placeholder("float")
-Y = tf.placeholder("float")
+# X = tf.placeholder("float")
+X = Float.placeholder
+
+# Y = tf.placeholder("float")
+Y = Float.placeholder
 
 # Set model weights
-W = tf.variable(rand, name: "weight")
-b = tf.variable(rand, name: "bias")
+# W = tf.variable(rand, name: "weight")
+W = rand.t.var name: "weight"
+
+# b = tf.variable(rand, name: "bias")
+b = rand.t.var name: "bias"
 
 # Construct a linear model
 pred = X * W + b
 
 # Mean squared error
-cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
+cost = ((pred - Y) ** 2).reduce / ( 2 * n_samples)
 
 # optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true).minimize(cost)
 # optimizer = TensorStream::Train::AdamOptimizer.new(learning_rate).minimize(cost)
