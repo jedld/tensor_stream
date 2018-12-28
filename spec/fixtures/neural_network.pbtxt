@@ -212,9 +212,7 @@ node {
   attr {
     key: "_class"
     value {
-      list {
-        s: "loc:@Variable"
-      }
+
     }
   }
   attr {

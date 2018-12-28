@@ -7,7 +7,7 @@ module TensorStream
     class Saver
       include TensorStream::OpHelper
 
-      def save(session, outputfile, global_step: nil,
+      def save(session, outputdir, global_step: nil,
                latest_filename: nil,
                meta_graph_suffix: 'meta',
                write_meta_graph: true,
@@ -33,20 +33,22 @@ module TensorStream
           }
         end
 
-        basename = File.basename(outputfile)
-        path = File.dirname(outputfile)
-
-        new_filename = File.join(path, [basename, gs].compact.join('-'))
+        FileUtils.mkdir_p(outputdir)
+        basename = 'model'
+        File.write(File.join(outputdir, "#{basename}.meta"), { "gs" => gs }.to_json)
+        new_filename = File.join(outputdir, [basename, gs, '.ckpt'].compact.join('-'))
         File.write(new_filename, output_dump.to_yaml)
         if write_meta_graph
-          graph_filename = "#{basename}.pbtext"
-          TensorStream.train.write_graph(graph, path, graph_filename)
+          graph_filename = "#{basename}.yaml"
+          TensorStream.train.write_graph(graph, outputdir, graph_filename, serializer: :yaml)
         end
-        path
+        outputdir
       end
 
-      def restore(_session, inputfile)
-        input_dump = YAML.safe_load(File.read(inputfile))
+      def restore(_session, modelpath)
+        meta_data = JSON.parse(File.read(File.join(modelpath, "model.meta")))
+        gs = meta_data['gs']
+        input_dump = YAML.safe_load(File.read(File.join(modelpath, ['model', gs, '.ckpt'].compact.join('-'))))
 
         vars = TensorStream::Graph.get_default_graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
         vars.each do |variable|

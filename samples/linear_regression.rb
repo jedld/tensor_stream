@@ -16,19 +16,19 @@ train_Y = [1.7,2.76,2.09,3.19,1.694,1.573,3.366,2.596,2.53,1.221,
 
 n_samples = train_X.size
 
-X = tf.placeholder("float")
-Y = tf.placeholder("float")
+X = Float.placeholder
+Y = Float.placeholder
 
 # Set model weights
 
-W = tf.variable(rand, name: "weight")
-b = tf.variable(rand, name: "bias")
+W = rand.t.var name: "weight"
+b = rand.t.var name: "bias"
 
 # Construct a linear model
 pred = X * W + b
 
 # Mean squared error
-cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
+cost = ((pred - Y) ** 2).reduce / ( 2 * n_samples)
 
 # Other possible Optimizers
 
@@ -42,6 +42,8 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
+# Add ops to save and restore all the variables.
+saver = tf::Train::Saver.new
 
 tf.session do |sess|
     start_time = Time.now
@@ -52,6 +54,8 @@ tf.session do |sess|
       end
 
       if (epoch+1) % display_step == 0
+        # Save the variables to disk.
+        save_path = saver.save(sess, "/tmp/lg_model")
         c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
         puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
             "W=", sess.run(W), "b=", sess.run(b))

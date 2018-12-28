@@ -19,13 +19,13 @@ module TensorStream
       TensorStream.shape_eval(self)
     end
 
-    def t(name = nil)
-      TensorStream.convert_to_tensor(self, name: name)
+    def t(name = nil, dtype: nil)
+      TensorStream.convert_to_tensor(self, name: name, dtype: dtype)
     end
 
     def +(other)
       if other.is_a?(TensorStream::Tensor)
-        TensorStream.convert_to_tensor(self) + other
+        TensorStream.convert_to_tensor(self, dtype: other.data_type) + other
       else
         _tensor_stream_add_orig(other)
       end
@@ -33,7 +33,7 @@ module TensorStream
 
     def -(other)
       if other.is_a?(TensorStream::Tensor)
-        TensorStream.convert_to_tensor(self) - other
+        TensorStream.convert_to_tensor(self, dtype: other.data_type) - other
       else
         _tensor_stream_sub_orig(other)
       end
@@ -41,7 +41,7 @@ module TensorStream
 
     def *(other)
       if other.is_a?(TensorStream::Tensor)
-        TensorStream.convert_to_tensor(self) * other
+        TensorStream.convert_to_tensor(self, dtype: other.data_type) * other
       else
         _tensor_stream_mul_orig(other)
       end
@@ -49,7 +49,7 @@ module TensorStream
 
     def /(other)
       if other.is_a?(TensorStream::Tensor)
-        TensorStream.convert_to_tensor(self) * other
+        TensorStream.convert_to_tensor(self, dtype: other.data_type) * other
       else
         _tensor_stream_div_orig(other)
       end
@@ -57,7 +57,7 @@ module TensorStream
 
     def %(other)
       if other.is_a?(TensorStream::Tensor)
-        TensorStream.convert_to_tensor(self) % other
+        TensorStream.convert_to_tensor(self, dtype: other.data_type) % other
       else
         _tensor_stream_mod_orig(other)
       end
@@ -65,7 +65,7 @@ module TensorStream
 
     def **(other)
       if other.is_a?(TensorStream::Tensor)
-        TensorStream.convert_to_tensor(self)**other
+        TensorStream.convert_to_tensor(self, dtype: other.data_type)**other
       else
         _tensor_stream_pow_orig(other)
       end

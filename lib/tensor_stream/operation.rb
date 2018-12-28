@@ -2,33 +2,18 @@ require 'tensor_stream/helpers/infer_shape'
 module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
-    attr_accessor :name, :operation, :inputs, :rank, :options
-    attr_reader :outputs
+    include OpHelper
 
-    def initialize(operation, *args)
-      options = if args.last.is_a?(Hash)
-                  args.pop
-                else
-                  {}
-                end
+    attr_accessor :name, :operation, :inputs, :rank, :device, :consumers, :breakpoint
+    attr_reader :outputs, :options, :is_const, :data_type, :shape
 
-      inputs = args
-
-      setup_initial_state(options)
-
-      @operation = operation
-      @rank = options[:rank] || 0
-      @name = [@graph.get_name_scope, options[:name] || set_name].compact.reject(&:empty?).join('/')
-      @internal = options[:internal]
-      @given_name = @name
-
+    def initialize(graph, inputs:, options:)
+      @consumers = Set.new
+      @outputs = []
+      @op = self
+      @graph = graph
+      @inputs = inputs
       @options = options
-
-      @inputs = inputs.map { |i| options[:preserve_params_type] ? i : TensorStream.convert_to_tensor(i) }
-      @data_type = set_data_type(options[:data_type])
-      @is_const = infer_const
-      @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))
-      @graph.add_node(self)
     end
 
     def to_s
@@ -37,16 +22,49 @@ module TensorStream
 
     def to_h
       {
-        op: operation,
-        name: name,
-        operands: hashify_tensor(inputs)
+        op: operation.to_s,
+        name: name.to_s,
+        data_type: @data_type,
+        inputs: @inputs.map(&:name),
+        attrs: serialize_options
       }
+    end
+
+    def const_value
+      @options ? @options[:value] : nil
+    end
+
+    def container_buffer
+      @options[:container] ? @options[:container].buffer : nil
+    end
+
+    def container
+      @options[:container].read_value
+    end
+
+    def container=(value)
+      @options[:container].value = value
+    end
+
+    def set_input(index, value)
+      @inputs[index] = value
+      @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))
+      @rank = @shape.rank
+      @is_const = infer_const
+      @data_type = set_data_type(@options[:data_type])
     end
 
     def infer_const
       return false if breakpoint
+
       case operation
       when :random_standard_normal, :random_uniform, :truncated_normal, :glorot_uniform, :print, :check_numerics
+        false
+      when :const
+        true
+      when :placeholder
+        false
+      when :variable_v2
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }
@@ -54,8 +72,24 @@ module TensorStream
       end
     end
 
+    def set_name
+      @operation.to_s
+    end
+
     def set_data_type(passed_data_type)
       case operation
+      when :where
+        @inputs[1].data_type
+      when :case
+        if @inputs[2]
+          @inputs[2].data_type
+        else
+          @inputs[1].data_type
+        end
+      when :case_grad
+        @inputs[2].data_type
+      when :placeholder, :variable_v2, :const
+        options[:data_type]
       when :fill
         @inputs[1].data_type
       when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
@@ -70,9 +104,8 @@ module TensorStream
         @inputs[1].data_type
       when :index
         if @inputs[0].is_a?(ControlFlow)
-
           if @inputs[1].is_const
-            @inputs[0].inputs[@inputs[1].value].data_type
+            @inputs[0].inputs[@inputs[1].const_value].data_type
           else
             :unknown
           end
@@ -163,8 +196,6 @@ module TensorStream
               "reshape(#{sub_input},#{sub_input2})"
             when :rank
               "#{sub_input}.rank"
-            when :cond
-              "(#{auto_math(options[:pred], name_only, max_depth - 1, cur_depth)} ? #{sub_input} : #{sub_input2})"
             when :less
               "#{sub_input} < #{sub_input2}"
             when :less_equal
@@ -222,12 +253,41 @@ module TensorStream
 
     private
 
+    def serialize_options
+      excludes = %i[internal_name source]
+
+      @options.reject { |k, v| excludes.include?(k) || v.nil? }.map do |k, v|
+        v = case v.class.to_s
+            when 'TensorStream::TensorShape'
+              v.shape
+            when 'Array'
+              v
+            when 'String', 'Integer', 'Float', 'Symbol', 'FalseClass', "TrueClass"
+              v
+            when 'TensorStream::Variable'
+              { name: v.name, options: v.options, shape: v.shape.shape.dup }
+            else
+              raise "unknown type #{v.class}"
+            end
+        [k.to_sym, v]
+      end.to_h
+    end
+
+    def add_consumer(consumer)
+      @consumers << consumer.name if consumer.name != name
+    end
+
+    def setup_output(consumer)
+      @outputs << consumer.name unless @outputs.include?(consumer.name)
+    end
+
     def propagate_consumer(consumer)
-      super
+      add_consumer(consumer)
       @inputs.compact.each do |input|
         if input.is_a?(Array)
-          input.flatten.compact.select { |t| t.is_a?(Tensor) }.each do |t|
+          input.flatten.compact.map(&:op).select { |t| t.is_a?(Tensor) }.each do |t|
             next if t.consumers.include?(consumer.name)
+
             t.send(:propagate_consumer, consumer)
           end
         elsif input.name != name && !input.consumers.include?(consumer.name)
@@ -239,7 +299,7 @@ module TensorStream
     def propagate_outputs
       @inputs.compact.each do |input|
         if input.is_a?(Array)
-          input.flatten.compact.each do |t|
+          input.flatten.compact.map(&:op).each do |t|
             t.send(:setup_output, self) if t.is_a?(Tensor)
           end
         elsif input.is_a?(Tensor) && (input.name != name)
@@ -248,8 +308,10 @@ module TensorStream
       end
     end
 
-    def set_name
-      "#{@operation}#{graph.get_operation_counter}:#{@rank}"
+    def setup_initial_state(options)
+      @outputs = []
+      @graph = options[:__graph] || TensorStream.get_default_graph
+      @source = format_source(caller_locations)
     end
   end
 end

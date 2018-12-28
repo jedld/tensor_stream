@@ -1,7 +1,10 @@
 module TensorStream
   # A class that defines a TensorStream graph
   class Graph
-    attr_accessor :nodes, :node_keys, :collections, :eager_execution, :random_seed, :constants
+    include OpHelper
+
+    attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants
+    attr_reader :node_keys
 
     def initialize
       @eager_execution = false
@@ -30,8 +33,12 @@ module TensorStream
     end
 
     def as_default
+      Thread.current[:tensor_stream_current_graph_queue] ||= []
+      Thread.current[:tensor_stream_current_graph_queue] << Graph.get_default_graph
+
       Thread.current[:tensor_stream_current_graph] = self
       yield(self) if block_given?
+      Thread.current[:tensor_stream_current_graph] = Thread.current[:tensor_stream_current_graph_queue].pop
       self
     end
 
@@ -77,24 +84,24 @@ module TensorStream
       @collections[collection_name.to_sym] << val
     end
 
-    def add_node(node)
+    def add_node(node, name = nil)
       raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
 
-      node.name = if @nodes[node.name]
-                    uniqunify(node.name)
-                  else
-                    node.name
-                  end
+      if name.nil?
+        node.name = if @nodes[node.name]
+                      uniqunify(node.name)
+                    else
+                      node.name
+                    end
+      end
 
       node.device = get_device_scope
       @node_keys << node.name
       @nodes[node.name] = node
       @constants[node.name] = node if node.is_const
-      # puts "adding node"
+
       node.send(:propagate_outputs)
       node.send(:propagate_consumer, node)
-      # puts "#{node.name}"
-      node.value = node.eval if @eager_execution
     end
 
     def node_added?(name)
@@ -107,12 +114,46 @@ module TensorStream
 
     def get_tensor_by_name(name)
       raise TensorStream::KeyError, "#{name} not found" unless @nodes.key?(name)
+
       get_node(name)
     end
 
     def add_node!(name, node)
       @nodes[name] = node
       node
+    end
+
+    def add_op(operation, *args)
+      options = if args.last.is_a?(Hash)
+                  args.pop
+                else
+                  {}
+                end
+
+      inputs = args.map { |i| TensorStream.convert_to_tensor(i) }.map { |i| i ? i.op : nil }
+
+      new_op = Operation.new(self, inputs: inputs, options: options)
+      new_op.source = format_source(caller_locations)
+      new_op.operation = operation
+      new_op.shape = TensorShape.new(TensorStream::InferShape.infer_shape(new_op))
+      new_op.rank = new_op.shape.rank
+      new_op.name = options[:internal_name] || [get_name_scope, options[:name] || set_operation_name(new_op)].compact.reject(&:empty?).join('/')
+      new_op.internal = options[:internal]
+
+      new_op.data_type = new_op.set_data_type(options[:data_type])
+      new_op.is_const = new_op.infer_const
+
+      new_op.given_name = new_op.name
+
+      new_op
+    end
+
+    def add_op!(operation, *args)
+      add_op(operation, *args).tap { |node| add_node(node) }
+    end
+
+    def set_operation_name(op)
+      op.operation.to_s
     end
 
     def add_variable(node, options = {})
@@ -129,13 +170,21 @@ module TensorStream
 
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
       add_to_collection(GraphKeys::TRAINABLE_VARIABLES, node) if node.trainable?
-      add_node(node)
+
+      node
+    end
+
+    def add_variable!(node, options = {})
+      node = add_variable(node, options)
+      op = Graph.get_default_graph.add_op!(:variable_v2, container: node, internal_name: node.name, shape: options[:shape], data_type: options[:data_type])
+      node.name = op.name
+      op
     end
 
     def control_dependencies(control_inputs = [])
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:control_dependencies] ||= []
-      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Operation.new(:no_op, *control_inputs)
+      Thread.current["ts_graph_#{object_id}"][:control_dependencies] << Graph.get_default_graph.add_op!(:no_op, *control_inputs)
       begin
         yield
       ensure

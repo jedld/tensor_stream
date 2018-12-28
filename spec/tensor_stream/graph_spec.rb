@@ -36,7 +36,7 @@ RSpec.describe TensorStream::Graph do
     end
   end
 
-  describe ".parse_from_string" do
+  xdescribe ".parse_from_string" do
     specify do
       pbtext = File.read(File.join('spec','fixtures','linear_regression.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
@@ -173,7 +173,7 @@ RSpec.describe TensorStream::Graph do
       )
     end
 
-    specify "reload simple operation" do
+    xspecify "reload simple operation" do
       pbtext = File.read(File.join('spec','fixtures','matmul_graph.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
       tensor = graph.get_tensor_by_name("tanh_2:0")
@@ -183,7 +183,7 @@ RSpec.describe TensorStream::Graph do
       end
     end
 
-    specify "reload gradient operation" do
+    xspecify "reload gradient operation" do
       pbtext = File.read(File.join('spec','fixtures','gradients.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
       tensor_2 = graph.get_tensor_by_name("gradients/add_grad/Reshape_1")
@@ -195,7 +195,7 @@ RSpec.describe TensorStream::Graph do
       end
     end
 
-    specify "complex" do
+    xspecify "complex" do
       pbtext = File.read(File.join('spec','fixtures','neural_network.pbtxt'))
       graph = TensorStream::Graph.parse_from_string(pbtext)
 

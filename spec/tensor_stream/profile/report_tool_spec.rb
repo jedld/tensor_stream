@@ -23,7 +23,7 @@ RSpec.describe TensorStream::ReportTool do
       session.run(a4)
       profile = TensorStream::ReportTool.profile_for(session)
       name, _elpased, shape, _source = profile.first
-      expect(name).to eq "sum_5:0"
+      expect(name).to eq "sum"
       expect(shape).to eq []
     end
   end

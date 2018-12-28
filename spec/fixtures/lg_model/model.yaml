@@ -1,0 +1,1591 @@
+---
+- :op: placeholder
+  :name: Placeholder
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :data_type: :float
+    :shape: 
+- :op: placeholder
+  :name: Placeholder_2
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :data_type: :float
+    :shape: 
+- :op: const
+  :name: Const
+  :data_type: :float32
+  :inputs: []
+  :attrs:
+    :value: 0.6516750957755529
+    :data_type: :float32
+    :shape: []
+- :op: variable_v2
+  :name: weight
+  :data_type: :float32
+  :inputs: []
+  :attrs:
+    :container:
+      :name: weight
+      :options: {}
+      :shape: []
+    :data_type: :float32
+- :op: assign
+  :name: assign
+  :data_type: :float32
+  :inputs:
+  - weight
+  - Const
+  :attrs: {}
+- :op: const
+  :name: Const_1
+  :data_type: :float32
+  :inputs: []
+  :attrs:
+    :value: 0.47068974180401046
+    :data_type: :float32
+    :shape: []
+- :op: variable_v2
+  :name: bias
+  :data_type: :float32
+  :inputs: []
+  :attrs:
+    :container:
+      :name: bias
+      :options: {}
+      :shape: []
+    :data_type: :float32
+- :op: assign
+  :name: assign_1
+  :data_type: :float32
+  :inputs:
+  - bias
+  - Const_1
+  :attrs: {}
+- :op: mul
+  :name: mul
+  :data_type: :float
+  :inputs:
+  - Placeholder
+  - weight
+  :attrs: {}
+- :op: add
+  :name: add
+  :data_type: :float
+  :inputs:
+  - mul
+  - bias
+  :attrs: {}
+- :op: sub
+  :name: sub
+  :data_type: :float
+  :inputs:
+  - add
+  - Placeholder_2
+  :attrs: {}
+- :op: const
+  :name: Const_2
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :value: 2.0
+    :data_type: :float
+    :shape: []
+- :op: pow
+  :name: pow
+  :data_type: :float
+  :inputs:
+  - sub
+  - Const_2
+  :attrs: {}
+- :op: rank
+  :name: rank
+  :data_type: :int32
+  :inputs:
+  - pow
+  :attrs: {}
+- :op: const
+  :name: Const_3
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: const
+  :name: Const_4
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: range
+  :name: range
+  :data_type: :int32
+  :inputs:
+  - Const_3
+  - rank
+  - Const_4
+  :attrs:
+    :name: range
+- :op: sum
+  :name: sum
+  :data_type: :float
+  :inputs:
+  - pow
+  - range
+  :attrs:
+    :keepdims: false
+- :op: const
+  :name: Const_5
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :value: 34.0
+    :data_type: :float
+    :shape: []
+- :op: div
+  :name: div
+  :data_type: :float
+  :inputs:
+  - sum
+  - Const_5
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_weight/shape
+  :data_type: :int32
+  :inputs:
+  - div
+  :attrs:
+    :out_type: :int32
+- :op: const
+  :name: gradient_wrt_weight/Const
+  :data_type: :float32
+  :inputs: []
+  :attrs:
+    :value: 1.0
+    :data_type: :float32
+    :shape: []
+- :op: fill
+  :name: gradient_wrt_weight/fill
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/shape
+  - gradient_wrt_weight/Const
+  :attrs:
+    :internal: true
+- :op: shape
+  :name: gradient_wrt_weight/div_grad/shape
+  :data_type: :int32
+  :inputs:
+  - sum
+  :attrs:
+    :internal: true
+- :op: shape
+  :name: gradient_wrt_weight/div_grad/shape_1
+  :data_type: :int32
+  :inputs:
+  - Const_5
+  :attrs:
+    :internal: true
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_weight/div_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/div_grad/shape
+  - gradient_wrt_weight/div_grad/shape_1
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/div_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/div_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/div_grad/broadcast_gradient_args
+  - gradient_wrt_weight/div_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/div_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/div_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/div_grad/broadcast_gradient_args
+  - gradient_wrt_weight/div_grad/Const_1
+  :attrs: {}
+- :op: div
+  :name: gradient_wrt_weight/div_grad/div
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/fill
+  - Const_5
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/div_grad/sum
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/div_grad/div
+  - gradient_wrt_weight/div_grad/index
+  :attrs:
+    :keepdims: false
+- :op: reshape
+  :name: gradient_wrt_weight/div_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/div_grad/sum
+  - gradient_wrt_weight/div_grad/shape
+  :attrs: {}
+- :op: negate
+  :name: gradient_wrt_weight/div_grad/negate
+  :data_type: :float
+  :inputs:
+  - sum
+  :attrs: {}
+- :op: div
+  :name: gradient_wrt_weight/div_grad/div_1
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_weight/div_grad/negate
+  - Const_5
+  :attrs: {}
+- :op: div
+  :name: gradient_wrt_weight/div_grad/div_2
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_weight/div_grad/div_1
+  - Const_5
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_weight/div_grad/mul
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/fill
+  - gradient_wrt_weight/div_grad/div_2
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/div_grad/sum_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/div_grad/mul
+  - gradient_wrt_weight/div_grad/index_1
+  :attrs:
+    :keepdims: false
+- :op: reshape
+  :name: gradient_wrt_weight/div_grad/reshape_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/div_grad/sum_1
+  - gradient_wrt_weight/div_grad/shape_1
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_weight/sum_grad/shape
+  :data_type: :int32
+  :inputs:
+  - pow
+  :attrs: {}
+- :op: size
+  :name: gradient_wrt_weight/sum_grad/size
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/shape
+  :attrs:
+    :internal: true
+- :op: add
+  :name: gradient_wrt_weight/sum_grad/add
+  :data_type: :int32
+  :inputs:
+  - range
+  - gradient_wrt_weight/sum_grad/size
+  :attrs: {}
+- :op: mod
+  :name: gradient_wrt_weight/sum_grad/mod
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/add
+  - gradient_wrt_weight/sum_grad/size
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_weight/sum_grad/shape_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/mod
+  :attrs:
+    :internal: true
+- :op: const
+  :name: gradient_wrt_weight/sum_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: const
+  :name: gradient_wrt_weight/sum_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: range
+  :name: gradient_wrt_weight/sum_grad/range
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/Const
+  - gradient_wrt_weight/sum_grad/size
+  - gradient_wrt_weight/sum_grad/Const_1
+  :attrs:
+    :name: range
+- :op: const
+  :name: gradient_wrt_weight/sum_grad/Const_2
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: fill
+  :name: gradient_wrt_weight/sum_grad/fill
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/shape_1
+  - gradient_wrt_weight/sum_grad/Const_2
+  :attrs:
+    :internal: true
+- :op: flow_dynamic_stitch
+  :name: gradient_wrt_weight/sum_grad/flow_dynamic_stitch
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/range
+  - gradient_wrt_weight/sum_grad/mod
+  - gradient_wrt_weight/sum_grad/shape
+  - gradient_wrt_weight/sum_grad/fill
+  :attrs:
+    :n: 2
+- :op: const
+  :name: gradient_wrt_weight/sum_grad/Const_3
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: max
+  :name: gradient_wrt_weight/sum_grad/max
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/flow_dynamic_stitch
+  - gradient_wrt_weight/sum_grad/Const_3
+  :attrs: {}
+- :op: floor_div
+  :name: gradient_wrt_weight/sum_grad/floor_div
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/shape
+  - gradient_wrt_weight/sum_grad/max
+  :attrs: {}
+- :op: reshape
+  :name: gradient_wrt_weight/sum_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/div_grad/reshape
+  - gradient_wrt_weight/sum_grad/flow_dynamic_stitch
+  :attrs: {}
+- :op: rank
+  :name: gradient_wrt_weight/sum_grad/rank
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/div_grad/reshape
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/sum_grad/equal/is_zero?
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: equal
+  :name: gradient_wrt_weight/sum_grad/equal
+  :data_type: :boolean
+  :inputs:
+  - gradient_wrt_weight/sum_grad/rank
+  - gradient_wrt_weight/sum_grad/equal/is_zero?
+  :attrs: {}
+- :op: tile
+  :name: gradient_wrt_weight/sum_grad/tile
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/reshape
+  - gradient_wrt_weight/sum_grad/floor_div
+  :attrs: {}
+- :op: fill
+  :name: gradient_wrt_weight/sum_grad/fill_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/shape
+  - gradient_wrt_weight/div_grad/reshape
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/sum_grad/Const_4
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: expand_dims
+  :name: gradient_wrt_weight/sum_grad/expand_dims
+  :data_type: :boolean
+  :inputs:
+  - gradient_wrt_weight/sum_grad/equal
+  - gradient_wrt_weight/sum_grad/Const_4
+  :attrs: {}
+- :op: case
+  :name: gradient_wrt_weight/sum_grad/case
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/expand_dims
+  - gradient_wrt_weight/sum_grad/tile
+  - gradient_wrt_weight/sum_grad/fill_1
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_weight/pow_grad/shape
+  :data_type: :int32
+  :inputs:
+  - sub
+  :attrs:
+    :out_type: :int32
+- :op: const
+  :name: gradient_wrt_weight/pow_grad/Shape/Const_2_c
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: []
+    :data_type: :int32
+    :shape:
+    - 0
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_weight/pow_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/shape
+  - gradient_wrt_weight/pow_grad/Shape/Const_2_c
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/pow_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/pow_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/broadcast_gradient_args
+  - gradient_wrt_weight/pow_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/pow_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/pow_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/broadcast_gradient_args
+  - gradient_wrt_weight/pow_grad/Const_1
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_weight/pow_grad/mul
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/case
+  - Const_2
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/pow_grad/Const_2
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :value: 1.0
+    :data_type: :float
+    :shape: []
+- :op: sub
+  :name: gradient_wrt_weight/pow_grad/sub
+  :data_type: :float
+  :inputs:
+  - Const_2
+  - gradient_wrt_weight/pow_grad/Const_2
+  :attrs: {}
+- :op: pow
+  :name: gradient_wrt_weight/pow_grad/pow
+  :data_type: :float
+  :inputs:
+  - sub
+  - gradient_wrt_weight/pow_grad/sub
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_weight/pow_grad/mul_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/mul
+  - gradient_wrt_weight/pow_grad/pow
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/pow_grad/sum
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/mul_1
+  - gradient_wrt_weight/pow_grad/index
+  :attrs:
+    :keepdims: false
+- :op: const
+  :name: gradient_wrt_weight/pow_grad/Const_3
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :value: 0.0
+    :data_type: :float
+    :shape: []
+- :op: greater
+  :name: gradient_wrt_weight/pow_grad/greater
+  :data_type: :boolean
+  :inputs:
+  - sub
+  - gradient_wrt_weight/pow_grad/Const_3
+  :attrs: {}
+- :op: log
+  :name: gradient_wrt_weight/pow_grad/log
+  :data_type: :float
+  :inputs:
+  - sub
+  :attrs: {}
+- :op: zeros_like
+  :name: gradient_wrt_weight/pow_grad/zeros_like
+  :data_type: :float
+  :inputs:
+  - sub
+  :attrs: {}
+- :op: where
+  :name: gradient_wrt_weight/pow_grad/where
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_weight/pow_grad/greater
+  - gradient_wrt_weight/pow_grad/log
+  - gradient_wrt_weight/pow_grad/zeros_like
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_weight/pow_grad/mul_2
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sum_grad/case
+  - pow
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_weight/pow_grad/mul_3
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/mul_2
+  - gradient_wrt_weight/pow_grad/where
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/pow_grad/sum_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/mul_3
+  - gradient_wrt_weight/pow_grad/index_1
+  :attrs:
+    :keepdims: false
+- :op: shape
+  :name: gradient_wrt_weight/sub_grad/sub/shape_x
+  :data_type: :int32
+  :inputs:
+  - add
+  :attrs:
+    :name: sub/shape_x
+    :out_type: :int32
+- :op: shape
+  :name: gradient_wrt_weight/sub_grad/sub/shape_y
+  :data_type: :int32
+  :inputs:
+  - Placeholder_2
+  :attrs:
+    :name: sub/shape_y
+    :out_type: :int32
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_weight/sub_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/sub/shape_x
+  - gradient_wrt_weight/sub_grad/sub/shape_y
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/sub_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/sub_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/broadcast_gradient_args
+  - gradient_wrt_weight/sub_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/sub_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/sub_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/broadcast_gradient_args
+  - gradient_wrt_weight/sub_grad/Const_1
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/sub_grad/add/reduce_sub_x
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/sum
+  - gradient_wrt_weight/sub_grad/index
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sub_x
+- :op: reshape
+  :name: gradient_wrt_weight/sub_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/add/reduce_sub_x
+  - gradient_wrt_weight/sub_grad/sub/shape_x
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/sub_grad/add/reduce_sub_y
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/pow_grad/sum
+  - gradient_wrt_weight/sub_grad/index_1
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sub_y
+- :op: reshape
+  :name: gradient_wrt_weight/sub_grad/reshape_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/add/reduce_sub_y
+  - gradient_wrt_weight/sub_grad/sub/shape_y
+  :attrs: {}
+- :op: negate
+  :name: gradient_wrt_weight/sub_grad/negate
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/reshape_1
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_weight/add_grad/add/shape_x
+  :data_type: :int32
+  :inputs:
+  - mul
+  :attrs:
+    :name: add/shape_x
+    :out_type: :int32
+- :op: shape
+  :name: gradient_wrt_weight/add_grad/add/shape_y
+  :data_type: :int32
+  :inputs:
+  - bias
+  :attrs:
+    :name: add/shape_y
+    :out_type: :int32
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_weight/add_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/add_grad/add/shape_x
+  - gradient_wrt_weight/add_grad/add/shape_y
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/add_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/add_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/add_grad/broadcast_gradient_args
+  - gradient_wrt_weight/add_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/add_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/add_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/add_grad/broadcast_gradient_args
+  - gradient_wrt_weight/add_grad/Const_1
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/add_grad/add/reduce_sum_x
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/reshape
+  - gradient_wrt_weight/add_grad/index
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sum_x
+- :op: reshape
+  :name: gradient_wrt_weight/add_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/add_grad/add/reduce_sum_x
+  - gradient_wrt_weight/add_grad/add/shape_x
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/add_grad/add/reduce_sum_y
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/sub_grad/reshape
+  - gradient_wrt_weight/add_grad/index_1
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sum_y
+- :op: reshape
+  :name: gradient_wrt_weight/add_grad/reshape_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/add_grad/add/reduce_sum_y
+  - gradient_wrt_weight/add_grad/add/shape_y
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_weight/mul_grad/shape
+  :data_type: :int32
+  :inputs:
+  - Placeholder
+  :attrs:
+    :out_type: :int32
+- :op: shape
+  :name: gradient_wrt_weight/mul_grad/shape_1
+  :data_type: :int32
+  :inputs:
+  - weight
+  :attrs:
+    :out_type: :int32
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_weight/mul_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/mul_grad/shape
+  - gradient_wrt_weight/mul_grad/shape_1
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/mul_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/mul_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/mul_grad/broadcast_gradient_args
+  - gradient_wrt_weight/mul_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_weight/mul_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_weight/mul_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_weight/mul_grad/broadcast_gradient_args
+  - gradient_wrt_weight/mul_grad/Const_1
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_weight/mul_grad/mul
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/add_grad/reshape
+  - weight
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/mul_grad/sum
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/mul_grad/mul
+  - gradient_wrt_weight/mul_grad/index
+  :attrs:
+    :keepdims: false
+- :op: reshape
+  :name: gradient_wrt_weight/mul_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_weight/mul_grad/sum
+  - gradient_wrt_weight/mul_grad/shape
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_weight/mul_grad/mul_1
+  :data_type: :float
+  :inputs:
+  - Placeholder
+  - gradient_wrt_weight/add_grad/reshape
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_weight/mul_grad/sum_1
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_weight/mul_grad/mul_1
+  - gradient_wrt_weight/mul_grad/index_1
+  :attrs:
+    :keepdims: false
+- :op: reshape
+  :name: gradient_wrt_weight/mul_grad/reshape_1
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_weight/mul_grad/sum_1
+  - gradient_wrt_weight/mul_grad/shape_1
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_bias/shape
+  :data_type: :int32
+  :inputs:
+  - div
+  :attrs:
+    :out_type: :int32
+- :op: const
+  :name: gradient_wrt_bias/Const
+  :data_type: :float32
+  :inputs: []
+  :attrs:
+    :value: 1.0
+    :data_type: :float32
+    :shape: []
+- :op: fill
+  :name: gradient_wrt_bias/fill
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/shape
+  - gradient_wrt_bias/Const
+  :attrs:
+    :internal: true
+- :op: shape
+  :name: gradient_wrt_bias/div_grad/shape
+  :data_type: :int32
+  :inputs:
+  - sum
+  :attrs:
+    :internal: true
+- :op: shape
+  :name: gradient_wrt_bias/div_grad/shape_1
+  :data_type: :int32
+  :inputs:
+  - Const_5
+  :attrs:
+    :internal: true
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_bias/div_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/div_grad/shape
+  - gradient_wrt_bias/div_grad/shape_1
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/div_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/div_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/div_grad/broadcast_gradient_args
+  - gradient_wrt_bias/div_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/div_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/div_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/div_grad/broadcast_gradient_args
+  - gradient_wrt_bias/div_grad/Const_1
+  :attrs: {}
+- :op: div
+  :name: gradient_wrt_bias/div_grad/div
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/fill
+  - Const_5
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/div_grad/sum
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/div_grad/div
+  - gradient_wrt_bias/div_grad/index
+  :attrs:
+    :keepdims: false
+- :op: reshape
+  :name: gradient_wrt_bias/div_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/div_grad/sum
+  - gradient_wrt_bias/div_grad/shape
+  :attrs: {}
+- :op: negate
+  :name: gradient_wrt_bias/div_grad/negate
+  :data_type: :float
+  :inputs:
+  - sum
+  :attrs: {}
+- :op: div
+  :name: gradient_wrt_bias/div_grad/div_1
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_bias/div_grad/negate
+  - Const_5
+  :attrs: {}
+- :op: div
+  :name: gradient_wrt_bias/div_grad/div_2
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_bias/div_grad/div_1
+  - Const_5
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_bias/div_grad/mul
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/fill
+  - gradient_wrt_bias/div_grad/div_2
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/div_grad/sum_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/div_grad/mul
+  - gradient_wrt_bias/div_grad/index_1
+  :attrs:
+    :keepdims: false
+- :op: reshape
+  :name: gradient_wrt_bias/div_grad/reshape_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/div_grad/sum_1
+  - gradient_wrt_bias/div_grad/shape_1
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_bias/sum_grad/shape
+  :data_type: :int32
+  :inputs:
+  - pow
+  :attrs: {}
+- :op: size
+  :name: gradient_wrt_bias/sum_grad/size
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/shape
+  :attrs:
+    :internal: true
+- :op: add
+  :name: gradient_wrt_bias/sum_grad/add
+  :data_type: :int32
+  :inputs:
+  - range
+  - gradient_wrt_bias/sum_grad/size
+  :attrs: {}
+- :op: mod
+  :name: gradient_wrt_bias/sum_grad/mod
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/add
+  - gradient_wrt_bias/sum_grad/size
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_bias/sum_grad/shape_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/mod
+  :attrs:
+    :internal: true
+- :op: const
+  :name: gradient_wrt_bias/sum_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: const
+  :name: gradient_wrt_bias/sum_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: range
+  :name: gradient_wrt_bias/sum_grad/range
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/Const
+  - gradient_wrt_bias/sum_grad/size
+  - gradient_wrt_bias/sum_grad/Const_1
+  :attrs:
+    :name: range
+- :op: const
+  :name: gradient_wrt_bias/sum_grad/Const_2
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: fill
+  :name: gradient_wrt_bias/sum_grad/fill
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/shape_1
+  - gradient_wrt_bias/sum_grad/Const_2
+  :attrs:
+    :internal: true
+- :op: flow_dynamic_stitch
+  :name: gradient_wrt_bias/sum_grad/flow_dynamic_stitch
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/range
+  - gradient_wrt_bias/sum_grad/mod
+  - gradient_wrt_bias/sum_grad/shape
+  - gradient_wrt_bias/sum_grad/fill
+  :attrs:
+    :n: 2
+- :op: const
+  :name: gradient_wrt_bias/sum_grad/Const_3
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: max
+  :name: gradient_wrt_bias/sum_grad/max
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/flow_dynamic_stitch
+  - gradient_wrt_bias/sum_grad/Const_3
+  :attrs: {}
+- :op: floor_div
+  :name: gradient_wrt_bias/sum_grad/floor_div
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/shape
+  - gradient_wrt_bias/sum_grad/max
+  :attrs: {}
+- :op: reshape
+  :name: gradient_wrt_bias/sum_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/div_grad/reshape
+  - gradient_wrt_bias/sum_grad/flow_dynamic_stitch
+  :attrs: {}
+- :op: rank
+  :name: gradient_wrt_bias/sum_grad/rank
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/div_grad/reshape
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/sum_grad/equal/is_zero?
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: equal
+  :name: gradient_wrt_bias/sum_grad/equal
+  :data_type: :boolean
+  :inputs:
+  - gradient_wrt_bias/sum_grad/rank
+  - gradient_wrt_bias/sum_grad/equal/is_zero?
+  :attrs: {}
+- :op: tile
+  :name: gradient_wrt_bias/sum_grad/tile
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/reshape
+  - gradient_wrt_bias/sum_grad/floor_div
+  :attrs: {}
+- :op: fill
+  :name: gradient_wrt_bias/sum_grad/fill_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/shape
+  - gradient_wrt_bias/div_grad/reshape
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/sum_grad/Const_4
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: expand_dims
+  :name: gradient_wrt_bias/sum_grad/expand_dims
+  :data_type: :boolean
+  :inputs:
+  - gradient_wrt_bias/sum_grad/equal
+  - gradient_wrt_bias/sum_grad/Const_4
+  :attrs: {}
+- :op: case
+  :name: gradient_wrt_bias/sum_grad/case
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/expand_dims
+  - gradient_wrt_bias/sum_grad/tile
+  - gradient_wrt_bias/sum_grad/fill_1
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_bias/pow_grad/shape
+  :data_type: :int32
+  :inputs:
+  - sub
+  :attrs:
+    :out_type: :int32
+- :op: const
+  :name: gradient_wrt_bias/pow_grad/Shape/Const_2_c
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: []
+    :data_type: :int32
+    :shape:
+    - 0
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_bias/pow_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/shape
+  - gradient_wrt_bias/pow_grad/Shape/Const_2_c
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/pow_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/pow_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/broadcast_gradient_args
+  - gradient_wrt_bias/pow_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/pow_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/pow_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/broadcast_gradient_args
+  - gradient_wrt_bias/pow_grad/Const_1
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_bias/pow_grad/mul
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/case
+  - Const_2
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/pow_grad/Const_2
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :value: 1.0
+    :data_type: :float
+    :shape: []
+- :op: sub
+  :name: gradient_wrt_bias/pow_grad/sub
+  :data_type: :float
+  :inputs:
+  - Const_2
+  - gradient_wrt_bias/pow_grad/Const_2
+  :attrs: {}
+- :op: pow
+  :name: gradient_wrt_bias/pow_grad/pow
+  :data_type: :float
+  :inputs:
+  - sub
+  - gradient_wrt_bias/pow_grad/sub
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_bias/pow_grad/mul_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/mul
+  - gradient_wrt_bias/pow_grad/pow
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/pow_grad/sum
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/mul_1
+  - gradient_wrt_bias/pow_grad/index
+  :attrs:
+    :keepdims: false
+- :op: const
+  :name: gradient_wrt_bias/pow_grad/Const_3
+  :data_type: :float
+  :inputs: []
+  :attrs:
+    :value: 0.0
+    :data_type: :float
+    :shape: []
+- :op: greater
+  :name: gradient_wrt_bias/pow_grad/greater
+  :data_type: :boolean
+  :inputs:
+  - sub
+  - gradient_wrt_bias/pow_grad/Const_3
+  :attrs: {}
+- :op: log
+  :name: gradient_wrt_bias/pow_grad/log
+  :data_type: :float
+  :inputs:
+  - sub
+  :attrs: {}
+- :op: zeros_like
+  :name: gradient_wrt_bias/pow_grad/zeros_like
+  :data_type: :float
+  :inputs:
+  - sub
+  :attrs: {}
+- :op: where
+  :name: gradient_wrt_bias/pow_grad/where
+  :data_type: :float
+  :inputs:
+  - gradient_wrt_bias/pow_grad/greater
+  - gradient_wrt_bias/pow_grad/log
+  - gradient_wrt_bias/pow_grad/zeros_like
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_bias/pow_grad/mul_2
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sum_grad/case
+  - pow
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_bias/pow_grad/mul_3
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/mul_2
+  - gradient_wrt_bias/pow_grad/where
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/pow_grad/sum_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/mul_3
+  - gradient_wrt_bias/pow_grad/index_1
+  :attrs:
+    :keepdims: false
+- :op: shape
+  :name: gradient_wrt_bias/sub_grad/sub/shape_x
+  :data_type: :int32
+  :inputs:
+  - add
+  :attrs:
+    :name: sub/shape_x
+    :out_type: :int32
+- :op: shape
+  :name: gradient_wrt_bias/sub_grad/sub/shape_y
+  :data_type: :int32
+  :inputs:
+  - Placeholder_2
+  :attrs:
+    :name: sub/shape_y
+    :out_type: :int32
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_bias/sub_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/sub/shape_x
+  - gradient_wrt_bias/sub_grad/sub/shape_y
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/sub_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/sub_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/broadcast_gradient_args
+  - gradient_wrt_bias/sub_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/sub_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/sub_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/broadcast_gradient_args
+  - gradient_wrt_bias/sub_grad/Const_1
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/sub_grad/add/reduce_sub_x
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/sum
+  - gradient_wrt_bias/sub_grad/index
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sub_x
+- :op: reshape
+  :name: gradient_wrt_bias/sub_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/add/reduce_sub_x
+  - gradient_wrt_bias/sub_grad/sub/shape_x
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/sub_grad/add/reduce_sub_y
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/pow_grad/sum
+  - gradient_wrt_bias/sub_grad/index_1
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sub_y
+- :op: reshape
+  :name: gradient_wrt_bias/sub_grad/reshape_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/add/reduce_sub_y
+  - gradient_wrt_bias/sub_grad/sub/shape_y
+  :attrs: {}
+- :op: negate
+  :name: gradient_wrt_bias/sub_grad/negate
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/reshape_1
+  :attrs: {}
+- :op: shape
+  :name: gradient_wrt_bias/add_grad/add/shape_x
+  :data_type: :int32
+  :inputs:
+  - mul
+  :attrs:
+    :name: add/shape_x
+    :out_type: :int32
+- :op: shape
+  :name: gradient_wrt_bias/add_grad/add/shape_y
+  :data_type: :int32
+  :inputs:
+  - bias
+  :attrs:
+    :name: add/shape_y
+    :out_type: :int32
+- :op: broadcast_gradient_args
+  :name: gradient_wrt_bias/add_grad/broadcast_gradient_args
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/add_grad/add/shape_x
+  - gradient_wrt_bias/add_grad/add/shape_y
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/add_grad/Const
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 0
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/add_grad/index
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/add_grad/broadcast_gradient_args
+  - gradient_wrt_bias/add_grad/Const
+  :attrs: {}
+- :op: const
+  :name: gradient_wrt_bias/add_grad/Const_1
+  :data_type: :int32
+  :inputs: []
+  :attrs:
+    :value: 1
+    :data_type: :int32
+    :shape: []
+- :op: index
+  :name: gradient_wrt_bias/add_grad/index_1
+  :data_type: :int32
+  :inputs:
+  - gradient_wrt_bias/add_grad/broadcast_gradient_args
+  - gradient_wrt_bias/add_grad/Const_1
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/add_grad/add/reduce_sum_x
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/reshape
+  - gradient_wrt_bias/add_grad/index
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sum_x
+- :op: reshape
+  :name: gradient_wrt_bias/add_grad/reshape
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/add_grad/add/reduce_sum_x
+  - gradient_wrt_bias/add_grad/add/shape_x
+  :attrs: {}
+- :op: sum
+  :name: gradient_wrt_bias/add_grad/add/reduce_sum_y
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/sub_grad/reshape
+  - gradient_wrt_bias/add_grad/index_1
+  :attrs:
+    :keepdims: false
+    :name: add/reduce_sum_y
+- :op: reshape
+  :name: gradient_wrt_bias/add_grad/reshape_1
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_bias/add_grad/add/reduce_sum_y
+  - gradient_wrt_bias/add_grad/add/shape_y
+  :attrs: {}
+- :op: const
+  :name: GradientDescent/learning_rate
+  :data_type: :float32
+  :inputs: []
+  :attrs:
+    :value: 0.01
+    :data_type: :float32
+    :shape: []
+- :op: cast
+  :name: GradientDescent/update_weight/cast
+  :data_type: :float
+  :inputs:
+  - GradientDescent/learning_rate
+  :attrs:
+    :data_type: :float
+- :op: apply_gradient_descent
+  :name: GradientDescent/update_weight/apply_gradient_descent
+  :data_type: :float32
+  :inputs:
+  - weight
+  - GradientDescent/update_weight/cast
+  - gradient_wrt_weight/mul_grad/reshape_1
+  :attrs:
+    :internal: true
+- :op: apply_gradient_descent
+  :name: GradientDescent/update_bias/apply_gradient_descent
+  :data_type: :float32
+  :inputs:
+  - bias
+  - GradientDescent/learning_rate
+  - gradient_wrt_bias/add_grad/reshape_1
+  :attrs:
+    :internal: true
+- :op: flow_group
+  :name: GradientDescent/flow_group
+  :data_type: 
+  :inputs:
+  - GradientDescent/update_weight/apply_gradient_descent
+  - GradientDescent/update_bias/apply_gradient_descent
+  :attrs: {}
+- :op: assign
+  :name: assign_2
+  :data_type: :float32
+  :inputs:
+  - weight
+  - assign
+  :attrs: {}
+- :op: assign
+  :name: assign_3
+  :data_type: :float32
+  :inputs:
+  - bias
+  - assign_1
+  :attrs: {}
+- :op: flow_group
+  :name: "/flow_group"
+  :data_type: 
+  :inputs:
+  - assign_2
+  - assign_3
+  :attrs: {}

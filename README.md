@@ -2,17 +2,16 @@
 
 # TensorStream
 
-A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default with support for an opencl evaluator for large models and datasets.
+An opensource machine learning framework for ruby. Designed to run on a wide variety of ruby implementations (JRuby, TruffleRuby, MRI) as well as an option for High Performance computation (OpenCL).
 
-The goal of this gem is to have a high performance machine learning and compute solution for ruby with support for a wide range of hardware and software configuration.
+This is a framework is heavily influenced by tensorflow and aims to be familiar with tensorflow users. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default with support for an opencl evaluator for large models and datasets.
 
-## Features
+## Goals & Features
 
+- Easy to use - Improve model readability
 - Replicates most of the commonly used low-level tensorflow ops (tf.add, tf.constant, tf.placeholder, tf.matmul, tf.sin etc...)
-- Supports auto-differentiation
-- Provision to use your own opcode evaluator (opencl, sciruby and tensorflow backends planned)
-- Goal is to be as close to TensorFlow in behavior but with some freedom to add ruby specific enhancements (with lots of test cases)
-- (08-08-2018) Load pbtext files from tensorflow (Graph.parse_from_string)
+- Supports auto-differentiation using formal derivation
+- Extensible - use your own opcode evaluator (OpenCL and Pure ruby currently supported)
 
 ## Compatibility
 
@@ -55,7 +54,8 @@ Or install it yourself as:
 
 ## Usage
 
-Usage is similar to how you would use TensorFlow except with ruby syntax
+Usage is similar to how you would use TensorFlow except with ruby syntax.
+There are also enhancements to the syntax to make it as consice as possible.
 
 Linear regression sample:
 
@@ -75,18 +75,24 @@ train_Y = [1.7,2.76,2.09,3.19,1.694,1.573,3.366,2.596,2.53,1.221,
 
 n_samples = train_X.size
 
-X = tf.placeholder("float")
-Y = tf.placeholder("float")
+# X = tf.placeholder("float")
+X = Float.placeholder
+
+# Y = tf.placeholder("float")
+Y = Float.placeholder
 
 # Set model weights
-W = tf.variable(rand, name: "weight")
-b = tf.variable(rand, name: "bias")
+# W = tf.variable(rand, name: "weight")
+W = rand.t.var name: "weight"
+
+# b = tf.variable(rand, name: "bias")
+b = rand.t.var name: "bias"
 
 # Construct a linear model
 pred = X * W + b
 
 # Mean squared error
-cost = ((pred - Y) ** 2).reduce(:+) / ( 2 * n_samples)
+cost = ((pred - Y) ** 2).reduce / ( 2 * n_samples)
 
 # optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true).minimize(cost)
 # optimizer = TensorStream::Train::AdamOptimizer.new(learning_rate).minimize(cost)
@@ -134,7 +140,7 @@ Not all ops are available. Available ops are defined in lib/tensor_stream/ops.rb
 
 There are also certain differences with regards to naming conventions, and named parameters:
 
-# Variables
+# Variables and Constants
 
 To make referencing python examples easier it is recommended to use "tf" as the TensorStream namespace
 
@@ -157,7 +163,14 @@ Ruby
 
 ```ruby
 w = ts.variable(0, name: 'weights')
+c = ts.constant(1.0)
+
+# concise way when initializing using a constant
+w = 0.t.var name: 'weights'
+c = 1.0.t
 ```
+
+Calling .t to Integer, Array and Float types converts it into a tensor
 
 # Shapes
 
@@ -173,6 +186,10 @@ Ruby
 ```ruby
 x = ts.placeholder(:float32, shape: [1024, 1024])
 x = ts.placeholder(:float32, shape: [nil, 1024])
+
+# Another a bit more terse way
+x = Float.placeholder shape: [1024, 1024]
+y = Float.placeholder shape: [nil, 1024]
 ```
 
 For debugging, each operation or tensor supports the to_math method

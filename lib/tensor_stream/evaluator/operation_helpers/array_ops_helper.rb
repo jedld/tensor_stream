@@ -16,10 +16,10 @@ module TensorStream
       start_index = start.shift
       current_size = size.shift
       dimen_size = if current_size == -1
-        input.size - 1
-      else
-        start_index + current_size - 1
-      end
+                     input.size - 1
+                   else
+                     start_index + current_size - 1
+                   end
 
       input[start_index..dimen_size].collect do |item|
         if item.is_a?(Array)

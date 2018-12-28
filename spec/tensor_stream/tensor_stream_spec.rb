@@ -10,11 +10,11 @@ RSpec.describe TensorStream do
 
   describe ".VERSION" do
     it "returns the version" do
-      expect(TensorStream.version).to eq("0.9.8")
+      expect(TensorStream.version).to eq("0.9.9")
     end
   end
 
-  describe ".enable_eager_execution" do
+  xdescribe ".enable_eager_execution" do
     it "enables eager execution" do
       TensorStream.enable_eager_execution
       expect(TensorStream.executing_eagerly?).to be

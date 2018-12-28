@@ -3,9 +3,11 @@ module TensorStream
   # module that contains helper functions useful for ops
   module OpHelper
     def _op(code, *args)
-      op = Operation.new(code.to_sym, *args)
-      if !TensorStream.get_default_graph.get_dependency_scope.nil?
-        i_op(:identity, op, TensorStream.get_default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
+      default_graph = Graph.get_default_graph
+
+      op = default_graph.add_op!(code.to_sym, *args)
+      if !default_graph.get_dependency_scope.nil?
+        i_op(:identity, op, default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
       else
         op
       end
@@ -20,7 +22,15 @@ module TensorStream
                 end
 
       args << options.merge(internal: true)
-      Operation.new(code.to_sym, *args)
+      Graph.get_default_graph.add_op!(code.to_sym, *args)
+    end
+
+    def i_var(data_type, rank, shape, variable_scope, options = {})
+      new_var = Variable.new(data_type)
+      new_var.prepare(rank, shape, variable_scope, options)
+      new_var.op = new_var.graph.add_variable!(new_var, options.merge(shape: @shape, data_type: data_type))
+
+      new_var
     end
 
     def cons(value, options = {})
@@ -55,8 +65,8 @@ module TensorStream
     end
 
     def format_source(trace)
-      grad_source = trace.select { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }.first
-      # source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
+      grad_source = trace.detect { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }
+      source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
       [grad_source, trace].compact.join("\n")
     end
 
@@ -82,6 +92,7 @@ module TensorStream
       axes = TensorStream.range(0, input_rank) if axes.nil?
       axes = (axes + input_rank) % input_rank
       axes_shape = i_op(:shape, axes)
+
       TensorStream.dynamic_stitch([TensorStream.range(0, input_rank), axes],
                                   [input_shape, i_op(:fill, axes_shape, 1)])
     end

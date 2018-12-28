@@ -25,11 +25,11 @@ RSpec.describe TensorStream::Tensor do
       expect(a.to_s).to eq("Const")
       expect(b.to_s).to eq("Const_1")
       expect(c.to_s).to eq("Const_2")
-      expect(total.to_s).to eq("add_3:0")
+      expect(total.to_s).to eq("add_1")
       expect(d.to_s).to eq("Variable:0")
       expect(e.to_s).to eq("Variable_2:0")
       expect(a.shape.to_s).to eq("TensorShape([])")
-      expect(f.to_s).to eq("negate_4:0")
+      expect(f.to_s).to eq("negate")
       expect(f.dtype).to eq(:float32)
       expect(g.dtype).to eq(:int16)
     end
@@ -103,7 +103,7 @@ RSpec.describe TensorStream::Tensor do
   describe "#[]" do
     it "access indexes" do
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
-      expect(b[0].to_s).to eq("index:0")
+      expect(b[0].to_s).to eq("index")
     end
   end
 
@@ -113,9 +113,9 @@ RSpec.describe TensorStream::Tensor do
       b = tf.constant([1,2,3,4,5])
       f = a * 2
       g = f + b
-      expect(a.consumers.to_a).to eq(["mul:0", "add_1:0"])
-      expect(b.consumers.to_a).to eq(["add_1:0"])
-      expect(f.consumers.to_a).to eq(["add_1:0"])
+      expect(a.consumers.to_a).to eq(["mul", "add"])
+      expect(b.consumers.to_a).to eq(["add"])
+      expect(f.consumers.to_a).to eq(["add"])
       expect(g.consumers.to_a).to eq([])
     end
   end
@@ -271,6 +271,16 @@ RSpec.describe TensorStream::Tensor do
     specify "add int" do
       f = 1 + 2.t
       expect(f.run).to eql(3)
+    end
+
+    specify "automatic type conversion" do
+      f = 1 + tf.constant(2, dtype: :uint8)
+      expect(f.run).to eql(3)
+    end
+
+    specify "explicit conversion" do
+      f = 1.t(dtype: :float)
+      expect(f.eval).to eql(1.0)
     end
 
     context "arrays" do

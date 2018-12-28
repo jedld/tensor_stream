@@ -40,7 +40,10 @@ module TensorStream
         return nil if grads.empty?
         grads.size > 1 ? ts.add_n(grads) : grads[0]
       else
-        return nil if computed_op.nil?
+
+        if computed_op.nil?
+          return nil
+        end
         _propagate(computed_op, tensor.inputs[0], stop_tensor, nodes_to_compute, stop_gradients)
       end
     end
@@ -50,6 +53,7 @@ module TensorStream
       node.graph.name_scope("#{node.name}_grad") do
         x = node.inputs[0] if node.inputs[0]
         y = node.inputs[1] if node.inputs[1]
+        z = node.inputs[2] if node.inputs[2]
 
         case node.operation
         when :add_n
@@ -135,7 +139,6 @@ module TensorStream
             reduced = ts.cast(reduction_indices, :int32)
             idx = ts.range(0, rank)
             other, = ts.setdiff1d(idx, reduced)
-
             [ts.concat([reduced, other], 0),
              ts.reduce_prod(ts.gather(input_shape, reduced)),
              ts.reduce_prod(ts.gather(input_shape, other))]
@@ -239,13 +242,17 @@ module TensorStream
           y = ts.constant(2.0, dtype: x.dtype)
           ts.multiply(grad, ts.multiply(x, y))
         when :where
-          x_mask = i_op(:where, i_op(:ones_like, x), i_op(:zeros_like, y), pred: node.options[:pred])
-          y_mask = i_op(:where, i_op(:zeros_like, x), i_op(:ones_like, y), pred: node.options[:pred])
-          [x_mask * grad, y_mask * grad]
-        when :cond
-          x_cond = i_op(:cond, i_op(:ones_like, x), i_op(:zeros_like, y), pred: node.options[:pred])
-          y_cond = i_op(:cond, i_op(:zeros_like, x), i_op(:ones_like, x), pred: node.options[:pred])
-          [x_cond * grad, y_cond * grad]
+          x_mask = i_op(:where, x, i_op(:ones_like, y), i_op(:zeros_like, z))
+          y_mask = i_op(:where, x, i_op(:zeros_like, y), i_op(:ones_like, z))
+          [nil, x_mask * grad, y_mask * grad]
+        when :case
+          n_preds = node.inputs.size - 2
+
+          case_grads = Array.new(n_preds) do |index|
+            i_op(:case_grad, index, node.inputs[0], node.inputs[2 + index], grad)
+          end
+
+          [nil, i_op(:case_grad, -1, node.inputs[0], node.inputs[1], grad)] + case_grads
         when :mean
           sum_grad = _sum_grad(x, y, grad)[0]
           input_shape = ts.shape(x)
@@ -283,12 +290,12 @@ module TensorStream
           # hack!! not sure how to fix this yet
           return grad if %i[softmax_cross_entropy_with_logits_v2 sparse_softmax_cross_entropy_with_logits].include?(node.inputs[0].operation)
 
-          if node.inputs[0].shape.known? && node.inputs[1].value
+          if node.inputs[0].shape.known? && node.inputs[1].const_value
             multiplier = node.inputs[0].shape.shape[0]
             filler = ts.zeros_like(grad)
 
             res = Array.new(multiplier) do |index|
-              index == node.inputs[1].value ? grad : filler
+              index == node.inputs[1].const_value ? grad : filler
             end
             [res]
           end
@@ -346,7 +353,7 @@ module TensorStream
       tile_scaling = _safe_shape_div(input_shape, output_shape_kept_dims)
       new_grad = _op(:reshape, grad, output_shape_kept_dims)
 
-      grad = _op(:cond, _op(:fill, input_shape, grad), _op(:tile, new_grad, tile_scaling), pred: _op(:rank, grad).zero?)
+      grad = _op(:case, [_op(:rank, grad).zero?], _op(:tile, new_grad, tile_scaling), _op(:fill, input_shape, grad))
 
       [grad, nil]
     end

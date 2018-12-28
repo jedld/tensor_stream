@@ -11,10 +11,14 @@ module TensorStream
           slice_tensor(input, start.dup, size.dup)
         end
 
-        register_op %i[flow_dynamic_stitch dynamic_stitch] do |_context, _tensor, inputs|
-          indexes, data = inputs
+        register_op %i[flow_dynamic_stitch dynamic_stitch] do |context, tensor, inputs|
+          number_of_indexes = tensor.options[:n]
+          indexes = inputs[0...number_of_indexes]
+          data = inputs[number_of_indexes...inputs.size]
+
           merged = []
-          merge_dynamic_stitch(merged, indexes, data)
+
+          merge_dynamic_stitch(merged, indexes, data, context)
           merged
         end
 
@@ -77,8 +81,6 @@ module TensorStream
         end
 
         register_op :unstack do |_context, tensor, inputs|
-          value = inputs[0]
-
           axis = tensor.options[:axis] || 0
           new_shape = shape_eval(inputs[0])
           rank = new_shape.size - 1
@@ -133,11 +135,9 @@ module TensorStream
 
           if !axis.empty?
             axis.each do |x|
-              if shape[x] == 1
-                shape[x] = nil
-              else
-                raise TensorStream::ValueError, "unable to squeeze dimension that does not have a size of 1"
-              end
+              raise TensorStream::ValueError, "unable to squeeze dimension that does not have a size of 1" if shape[x] != 1
+
+              shape[x] = nil
             end
           else
             shape = shape.map { |s| s == 1 ? nil : s }
@@ -319,7 +319,7 @@ module TensorStream
           end
         end
 
-        register_op :pad do |context, tensor, inputs|
+        register_op :pad do |_context, tensor, inputs|
           arr_pad(inputs[0], inputs[1], tensor.data_type)
         end
 
@@ -333,19 +333,9 @@ module TensorStream
           tile.nil? ? [] : tile
         end
 
-        register_op :cond, noop: true do |context, tensor, inputs|
-          pred = global_eval(tensor, tensor.options[:pred], context)
-
-          if all_true?(pred)
-            global_eval(tensor, inputs[0], context)
-          else
-            global_eval(tensor, inputs[1], context)
-          end
-        end
-
         register_op %i[select where] do |context, tensor, inputs|
-          pred = complete_eval(tensor.options[:pred], context)
-          call_3way_vector_op(pred, inputs[0], inputs[1], context, ->(t, u, v) { t ? u : v })
+          pred = inputs[0]
+          call_3way_vector_op(pred, inputs[1], inputs[2], context, ->(t, u, v) { t ? u : v })
         end
 
         register_op :shape do |_context, tensor, inputs|
@@ -357,6 +347,67 @@ module TensorStream
             shape_eval(input)
           end
           TensorStream::Evaluator::OutputGroup.new(shapes, shapes.map { tensor.options[:out_type] })
+        end
+
+        register_op :transpose do |_context, _tensor, inputs|
+          shape = shape_eval(inputs[0])
+          rank = get_rank(inputs[0])
+          perm = inputs[1] || (0...rank).to_a.reverse
+
+          if rank == 2 && perm.nil? # use native transpose for general case
+            inputs[0].transpose
+          else
+            arr = inputs[0].flatten
+
+            new_shape = perm.map { |p| shape[p] }
+            new_arr = Array.new(shape.reduce(:*)) { 0 }
+            transpose_with_perm(arr, new_arr, shape, new_shape, perm)
+            TensorShape.reshape(new_arr, new_shape)
+          end
+        end
+
+        register_op :case, noop: true do |context, tensor, _inputs|
+          pred = global_eval(tensor, tensor.inputs[0], context)
+          result = nil
+
+          if tensor.options[:exclusive]
+            p_true = pred.each_with_index.collect { |p, index| [p, index] }.select { |a| a[0] }
+            raise TensorStream::ValueError, "more than one predicate returns true pos #{p_true.map { |a| a[1] }.join(',')}" if p_true.size > 1
+          end
+
+          pred.each_with_index do |p, index|
+            next unless p
+
+            result = global_eval(tensor, tensor.inputs[2 + index], context)
+          end
+
+          result = global_eval(tensor, tensor.inputs[1], context) if result.nil?
+
+          result
+        end
+
+        register_op :case_grad do |_context, tensor, inputs|
+          index, pred, func, grad = inputs
+          if index < 0 && !pred.find { |p| !!p }
+            grad
+          elsif index >= 0 && pred[index]
+            grad
+          else
+            func = -> { int_type?(tensor.data_type) ? 0 : 0.0 }
+            shape = shape_eval(func)
+            generate_vector(shape, generator: func)
+          end
+        end
+
+        def merge_dynamic_stitch(merged, indexes, data, context)
+          indexes.each_with_index do |ind, m|
+            if ind.is_a?(Array)
+              merge_dynamic_stitch(merged, ind, data[m], context)
+            else
+              ind = ind.is_a?(Tensor) ? complete_eval(ind, context) : ind
+              merged[ind] = data[m]
+            end
+          end
         end
       end
     end

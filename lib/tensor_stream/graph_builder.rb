@@ -27,11 +27,11 @@ module TensorStream
           rank = dimension.size
           options[:value] = value
           options[:const] = true
-          TensorStream::Tensor.new(options[:dtype] || options[:T], rank, dimension, options)
+          TensorStream::Constant.new(options[:dtype] || options[:T], rank, dimension, options)
         when 'VariableV2'
           # evaluate options
           shape = options[:shape]
-          TensorStream::Variable.new(options[:dtype] || options[:T], nil, shape, nil, options)
+          i_var(options[:dtype] || options[:T], nil, shape, nil, options)
         when 'Placeholder'
           shape = options[:shape]
           TensorStream::Placeholder.new(options[:dtype] || options[:T], nil, shape, options)
@@ -57,7 +57,7 @@ module TensorStream
           end
 
           options[:data_type] = options.delete(:T)
-          TensorStream::Operation.new(op, *inputs, options)
+          Graph.get_default_graph.add_op!(op, *inputs, options)
         end
       end
 

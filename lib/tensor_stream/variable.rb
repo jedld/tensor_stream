@@ -1,16 +1,21 @@
 module TensorStream
   # Class that defines a TensorStream variable
   class Variable < Tensor
-    attr_accessor :trainable, :options, :buffer
-    def initialize(data_type, rank, shape, variable_scope, options = {})
+    attr_accessor :trainable, :options, :buffer, :op
+    attr_writer :value
+
+    def initialize(data_type)
+      @data_type = data_type
+      @options = {}
+      @is_const = false
+    end
+
+    def prepare(rank, shape, variable_scope, options = {})
       setup_initial_state(options)
 
-      @options = {
-      }
-      @data_type = data_type
       @rank = rank
       @value = nil
-      @is_const = false
+
       scope_name = variable_scope ? variable_scope.name : nil
       variable_scope_initializer = variable_scope ? variable_scope.initializer : nil
       @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join('/')
@@ -19,7 +24,6 @@ module TensorStream
 
       @shape = TensorShape.new(shape, rank)
       @trainable = options.fetch(:trainable, true)
-      @graph.add_variable(self, options)
     end
 
     def trainable?
@@ -55,10 +59,6 @@ module TensorStream
       _op(:assign_add, self, value, data_type: data_type, name: name)
     end
 
-    def op
-      @op ||= _op(:variable, self, data_type: data_type)
-    end
-
     def to_math(_tensor, _name_only = false, _max_depth = 99, _unused = 0)
       @name
     end
@@ -74,6 +74,12 @@ module TensorStream
 
     def self.global_variables_initializer
       variables_initializer(TensorStream::GraphKeys::GLOBAL_VARIABLES)
+    end
+
+    protected
+
+    def build_name
+      "Variable#{graph.get_var_counter}:#{@rank}"
     end
   end
 end

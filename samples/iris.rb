@@ -52,15 +52,14 @@ end
 
 def init_weights(shape)
   # Weight initialization
-  weights = TensorStream.random_normal(shape, stddev: 0.1)
-  TensorStream.variable(weights)
+  TensorStream.random_normal(shape, stddev: 0.1).var
 end
 
 def forwardprop(x, w_1, w_2)
   # Forward-propagation.
   # IMPORTANT: yhat is not softmax since TensorFlow's softmax_cross_entropy_with_logits() does that internally.
-  h  = TensorStream.nn.sigmoid(TensorStream.matmul(x, w_1))  # The \sigma function
-  TensorStream.matmul(h, w_2)  # The \varphi function
+  h  = TensorStream.nn.sigmoid(x.matmul w_1)  # The \sigma function
+  h.matmul w_2  # The \varphi function
 end
 
 x_size = x_train[0].size

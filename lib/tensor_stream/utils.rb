@@ -45,7 +45,7 @@ module TensorStream
     # Creates a variable
     # A variable maintains state across sessions
     def variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
-      op = Operation.new(:assign, nil, value)
+      op = Graph.get_default_graph.add_op(:assign, nil, value)
       common_options = {
         initializer: initializer || op,
         name: name,
@@ -54,15 +54,16 @@ module TensorStream
         trainable: trainable
       }
       tensor = if value.is_a?(String)
-                 TensorStream::Variable.new(dtype || :string, 0, [], get_variable_scope, common_options)
+                 i_var(dtype || :string, 0, [], get_variable_scope, common_options)
                elsif value.is_a?(Integer)
-                 TensorStream::Variable.new(dtype || :int32, 0, [], get_variable_scope, common_options)
+                 i_var(dtype || :int32, 0, [], get_variable_scope, common_options)
                elsif value.is_a?(Float)
-                 TensorStream::Variable.new(dtype || :float32, 0, [], get_variable_scope, common_options)
+                 i_var(dtype || :float32, 0, [], get_variable_scope, common_options)
                else
-                 TensorStream::Variable.new(dtype || :float32, 0, nil, get_variable_scope, common_options)
+                 i_var(dtype || :float32, 0, nil, get_variable_scope, common_options)
                end
-      op.inputs[0] = tensor
+      op.set_input(0, tensor.op)
+      Graph.get_default_graph.add_node(op)
       tensor
     end
 
@@ -163,13 +164,13 @@ module TensorStream
       shared_options = { const: true, value: value, name: name, internal: internal }
 
       if value.is_a?(Float)
-        TensorStream::Tensor.new(dtype || :float32, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :float32, 0, shape || [], shared_options)
       elsif value.is_a?(Integer)
-        TensorStream::Tensor.new(dtype || :int32, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :int32, 0, shape || [], shared_options)
       elsif value.is_a?(String)
-        TensorStream::Tensor.new(dtype || :string, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :string, 0, shape || [], shared_options)
       elsif !!value == value
-        TensorStream::Tensor.new(dtype || :boolean, 0, shape || [], shared_options)
+        TensorStream::Constant.new(dtype || :boolean, 0, shape || [], shared_options)
       elsif value.is_a?(Array)
         dimension = shape || shape_eval(value)
         rank = dimension.size
@@ -179,7 +180,7 @@ module TensorStream
         value = Tensor.cast_dtype(value, cur_dtype) unless dtype.nil?
 
         shared_options[:value] = value
-        TensorStream::Tensor.new(cur_dtype, rank, dimension, shared_options)
+        TensorStream::Constant.new(cur_dtype, rank, dimension, shared_options)
       end
     end
 
@@ -239,6 +240,7 @@ module TensorStream
     def convert_to_tensor(value, dtype: nil, name: nil)
       return value if value.is_a?(Tensor)
       return convert_to_tensor(value.call) if value.is_a?(Proc)
+      # raise "Invalid tensor value" if value.nil?
 
       if value.is_a?(Array) && value[0].is_a?(Tensor)
         return TensorStream.stack(value) if value.size > 1

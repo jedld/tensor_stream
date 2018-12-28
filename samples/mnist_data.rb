@@ -20,22 +20,20 @@ puts "downloading minst data"
 mnist = Mnist.read_data_sets('/tmp/data', one_hot: true)
 puts "downloading finished"
 
-x = tf.placeholder(:float32, shape: [nil, 784])
-w = tf.variable(tf.zeros([784, 10]))
-b = tf.variable(tf.zeros([10]))
-
-
+x = Float.placeholder shape: [nil, 784]
+w = tf.zeros([784, 10]).var
+b = tf.zeros([10]).var
 
 # model
-y = tf.nn.softmax(tf.matmul(tf.reshape(x, [-1, 784]), w) + b)
+y = tf.nn.softmax(x.reshape([-1, 784]).matmul(w) + b)
 
-y_ = tf.placeholder(:float32, shape: [nil, 10])
+y_ = Float.placeholder shape: [nil, 10]
 
 # loss function
-cross_entropy = -tf.reduce_sum(y_ * tf.log(y))
+cross_entropy = -(y_ * y.log).reduce
 
-is_correct = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-accuracy =  tf.reduce_mean(tf.cast(is_correct, :float32))
+is_correct = tf.argmax(y, 1) == tf.argmax(y_, 1)
+accuracy = is_correct.cast.reduce :mean
 
 optimizer = TensorStream::Train::AdamOptimizer.new
 train_step = optimizer.minimize(cross_entropy)

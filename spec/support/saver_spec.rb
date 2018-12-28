@@ -30,7 +30,7 @@ RSpec.shared_examples "TensorStream::Train::Saver" do
     sess.run(inc_v1)
     sess.run(dec_v2)
     # Save the variables to disk.
-    save_path = saver.save(sess, "/tmp/model.ckpt")
+    save_path = saver.save(sess, "/tmp/model")
     print("Model saved in path: %s" % save_path)
   end
 
@@ -48,7 +48,7 @@ RSpec.shared_examples "TensorStream::Train::Saver" do
     # do some work with the model.
     
     # Restore variables from disk.
-    saver.restore(sess, "/tmp/model.ckpt")
+    saver.restore(sess, "/tmp/model")
     print("Model restored.")
     # Check the values of the variables
 

@@ -58,7 +58,8 @@ module TensorStream
     # +wrt_xs+ : A Tensor or list of tensors to be used for differentiation.
     # +stop_gradients+ :  Optional. A Tensor or list of tensors not to differentiate through
     def gradients(tensor_ys, wrt_xs, name: 'gradients', stop_gradients: nil)
-      gs = wrt_xs.collect do |x|
+      tensor_ys = tensor_ys.op
+      gs = wrt_xs.map(&:op).collect do |x|
         stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
         gradient_program_name = "grad_#{tensor_ys.name}_#{x.name}_#{stops}".to_sym
         tensor_graph = tensor_ys.graph
@@ -82,21 +83,21 @@ module TensorStream
     # Outputs random values from a uniform distribution.
     def random_uniform(shape, dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
       options = { dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name }
-      _op(:random_uniform, shape, nil, options)
+      _op(:random_uniform, shape, options)
     end
 
     ##
     # Outputs random values from a normal distribution.
     def random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
       options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
-      _op(:random_standard_normal, shape, nil, options)
+      _op(:random_standard_normal, shape, options)
     end
 
     ##
     # Outputs random values from a truncated normal distribution.
     def truncated_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
       options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
-      _op(:truncated_normal, shape, nil, options)
+      _op(:truncated_normal, shape, options)
     end
 
     ##
@@ -172,14 +173,14 @@ module TensorStream
     # initializer that generates tensors initialized to 0.
     #
     def zeros_initializer(dtype: :float32)
-      TensorStream::Initializer.new(-> { _op(:zeros, nil, nil, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:zeros, data_type: dtype) })
     end
 
     ##
     # initializer that generates tensors initialized to 1.
     #
     def ones_initializer(dtype: :float32)
-      TensorStream::Initializer.new(-> { _op(:ones, nil, nil, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:ones, data_type: dtype) })
     end
 
     ##
@@ -189,13 +190,13 @@ module TensorStream
     # where limit is sqrt(6 / (fan_in + fan_out)) where fan_in is the number
     # of input units in the weight tensor and fan_out is the number of output units in the weight tensor.
     def glorot_uniform_initializer(seed: nil, dtype: nil)
-      TensorStream::Initializer.new(-> { _op(:glorot_uniform, nil, nil, seed: seed, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:glorot_uniform, seed: seed, data_type: dtype) })
     end
 
     ##
     # Initializer that generates tensors with a uniform distribution.
     def random_uniform_initializer(minval: 0, maxval: 1, seed: nil, dtype: nil)
-      TensorStream::Initializer.new(-> { _op(:random_uniform, nil, nil, minval: 0, maxval: 1, seed: seed, data_type: dtype) })
+      TensorStream::Initializer.new(-> { _op(:random_uniform, minval: 0, maxval: 1, seed: seed, data_type: dtype) })
     end
 
     ##
@@ -276,7 +277,7 @@ module TensorStream
     ##
     # Computes the mean of elements across dimensions of a tensor.
     def reduce_mean(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:mean, input_tensor, axis, keepdims: keepdims, name: name)
+      reduce(:mean, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
     ##
@@ -288,7 +289,7 @@ module TensorStream
     # If axis has no entries, all dimensions are reduced, and a tensor with a single element
     # is returned.
     def reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
-      _op(:sum, input_tensor, axis, keepdims: keepdims, name: name)
+      reduce(:sum, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
     ##
@@ -300,7 +301,22 @@ module TensorStream
     #
     # If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned.
     def reduce_prod(input, axis = nil, keepdims: false, name: nil)
-      _op(:prod, input, axis, keepdims: keepdims, name: name)
+      reduce(:prod, input, axis, keepdims: keepdims, name: name)
+    end
+
+    def reduce(op, input, axis = nil, keepdims: false, name: nil)
+      input = TensorStream.convert_to_tensor(input)
+      axis = if !axis.nil?
+               axis
+             elsif input.shape.scalar?
+               op
+             elsif input.shape.known?
+               (0...input.shape.ndims).to_a
+             else
+               range(0, rank(input))
+             end
+
+      _op(op, input, axis, keepdims: keepdims, name: name)
     end
 
     ##
@@ -395,13 +411,13 @@ module TensorStream
     ##
     # Return true_fn() if the predicate pred is true else false_fn().
     def cond(pred, true_fn, false_fn, name: nil)
-      _op(:cond, true_fn, false_fn, pred: pred, name: name)
+      _op(:case, [pred], false_fn, true_fn, name: name)
     end
 
     ##
     # Return the elements, either from x or y, depending on the condition.
     def where(condition, true_t = nil, false_t = nil, name: nil)
-      _op(:where, true_t, false_t, pred: condition, name: name)
+      _op(:where, condition, true_t, false_t, name: name)
     end
 
     ##
@@ -486,6 +502,7 @@ module TensorStream
     def max(input_a, input_b, name: nil)
       check_allowed_types(input_a, NUMERIC_TYPES)
       check_allowed_types(input_b, NUMERIC_TYPES)
+
       input_a, input_b = check_data_types(input_a, input_b)
       _op(:max, input_a, input_b, name: name)
     end
@@ -650,6 +667,13 @@ module TensorStream
     def tanh(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
       _op(:tanh, input, name: name)
+    end
+
+        ##
+    # Computes sec of input element-wise.
+    def sec(input, name: nil)
+      check_allowed_types(input, FLOATING_POINT_TYPES)
+      _op(:sec, input, name: name)
     end
 
     ##
@@ -817,6 +841,34 @@ module TensorStream
     def setdiff1d(x, y, index_dtype: :int32, name: nil)
       result = _op(:setdiff1d, x, y, index_dtype: index_dtype, name: name)
       [result[0], result[1]]
+    end
+
+    ##
+    # Create a case operation.
+    #
+    # The pred_fn_pairs parameter is a dict or list of pairs of size N.
+    # Each pair contains a boolean scalar tensor and a proc that creates the tensors to be returned if the boolean evaluates to true.
+    # default is a proc generating a list of tensors. All the proc in pred_fn_pairs as well as default (if provided) should return the
+    # same number and types of tensors.
+    #
+    def case(args = {})
+      args = args.dup
+      default = args.delete(:default)
+      exclusive = args.delete(:exclusive)
+      strict = args.delete(:strict)
+      name = args.delete(:name)
+
+      predicates = []
+      functions = []
+
+      args.each do |k, v|
+        raise "Invalid argment or option #{k}" unless k.is_a?(Tensor)
+
+        predicates << k
+        functions << (v.is_a?(Proc) ? v.call : v)
+      end
+
+      _op(:case, predicates, default, *functions, exclusive: exclusive, strict: strict, name: name)
     end
 
     def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)

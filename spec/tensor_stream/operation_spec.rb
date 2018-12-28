@@ -32,7 +32,7 @@ RSpec.describe TensorStream::Operation do
     expect(h.is_const).to equal(false)
   end
 
-  context ".to_math" do
+  xcontext ".to_math" do
     specify "generates a math string for debugging" do
       a = tf.constant(1.0)
       b = tf.constant(2.0)

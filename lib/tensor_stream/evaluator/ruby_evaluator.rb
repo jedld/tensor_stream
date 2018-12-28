@@ -50,14 +50,10 @@ module TensorStream
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
                 eval_operation(tensor, child_context)
-              elsif tensor.is_a?(Variable)
-                eval_variable(tensor, child_context)
-              elsif tensor.is_a?(Placeholder)
-                resolve_placeholder(tensor, child_context)
-              elsif tensor.is_a?(OutputGroup)
-                tensor.outputs[0]
+              elsif !tensor.is_a?(Tensor)
+                tensor
               else
-                eval_tensor(tensor, child_context)
+                tensor.op
               end
         execution_context.deep_merge!(returns: child_context[:returns])
         res
@@ -88,7 +84,6 @@ module TensorStream
 
       def prepare_input(tensor, context, options = {})
         return nil unless tensor
-        tensor = resolve_placeholder(tensor)
         if options[:noop]
           tensor
         elsif options[:no_eval]
@@ -98,27 +93,16 @@ module TensorStream
         end
       end
 
-      def eval_variable(tensor, child_context)
-        value = tensor.read_value
-        raise "variable #{tensor.name} not initalized" if value.nil?
-
-        eval_tensor(value, child_context).tap do |val|
-          child_context[:returns] ||= {}
-          child_context[:returns][:vars] ||= []
-          child_context[:returns][:vars] << { name: tensor.name, val: val }
-        end
-      end
-
       register_op(:no_op, no_eval: true) do |_context, _tensor, inputs|
         inputs
       end
 
-      register_op(:const) do |_context, _tensor, inputs|
-        inputs[0]
+      register_op(:const) do |_context, tensor, _inputs|
+        tensor.options[:value]
       end
 
       register_op(:cast) do |context, tensor, inputs|
-        call_op(tensor, inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
+        call_op(inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
       end
 
       register_op(:sign) do |context, tensor, inputs|
@@ -134,7 +118,7 @@ module TensorStream
           end
         }
 
-        call_op(tensor, inputs[0], context, func)
+        call_op(inputs[0], context, func)
       end
 
       register_op(:logical_and) do |context, tensor, inputs|
@@ -149,14 +133,33 @@ module TensorStream
         call_vector_op(tensor, :not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
       end
 
-      def merge_dynamic_stitch(merged, indexes, data)
-        indexes.each_with_index do |ind, m|
-          if ind.is_a?(Array)
-            merge_dynamic_stitch(merged, ind, data[m])
-          else
-            merged[ind] = data[m]
+      register_op :placeholder, no_eval: true do |context, tensor, _inputs|
+        ph = @context[tensor.name.to_sym].tap do |c|
+          raise TensorStream::ValueError, "missing placeholder #{tensor.name}" if c.nil?
+
+          if tensor.shape.shape
+            value_shape = shape_eval(c)
+            placeholder_shape = tensor.shape.shape
+            placeholder_shape.zip(value_shape).each do |p_shape, v_shape|
+              next if p_shape.nil?
+              raise TensorStream::ValueError, "placeholder expects #{placeholder_shape}, got #{value_shape}" if p_shape != v_shape
+            end
           end
         end
+        if ph.is_a?(Tensor)
+          raise TensorStream::ValueError, "placeholder expects type #{tensor.data_type}, got #{ph.data_type}" if ph.data_type != tensor.data_type
+
+          global_eval(tensor, ph, context)
+        else
+          global_eval(tensor, Tensor.cast_dtype(ph, dtype: tensor.data_type), context)
+        end
+      end
+
+      register_op :variable_v2, no_eval: true do |_context, tensor, _inputs|
+        value = tensor.options[:container].read_value
+        raise "variable #{tensor.options[:container].name} not initalized" if value.nil?
+
+        value
       end
 
       register_op :stop_gradient, no_eval: true do |_context, _tensor, inputs|
@@ -165,38 +168,22 @@ module TensorStream
 
       register_op :assign, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
-        assign.value = global_eval(tensor, tensor.inputs[1], context)
-        assign.value
+        assign.container = global_eval(tensor, tensor.inputs[1], context)
+        assign.container
       end
 
       register_op :assign_add, noop: true do |context, tensor, _inputs|
-        tensor.inputs[0].value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
-        tensor.inputs[0].value
-      end
+        assign = tensor.inputs[0] || tensor
 
-      register_op :variable, noop: true do |_context, tensor, _inputs|
-        tensor.inputs[0].value
+        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
+        assign.container
       end
 
       register_op :assign_sub, noop: true do |context, tensor, _inputs|
-        tensor.inputs[0].value = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
-        tensor.inputs[0].value
-      end
+        assign = tensor.inputs[0] || tensor
 
-      register_op :transpose do |_context, _tensor, inputs|
-        shape = shape_eval(inputs[0])
-        rank = get_rank(inputs[0])
-        perm = inputs[1] || (0...rank).to_a.reverse
-        if rank == 2 && perm.nil? # use native transpose for general case
-          inputs[0].transpose
-        else
-          arr = inputs[0].flatten
-
-          new_shape = perm.map { |p| shape[p] }
-          new_arr = Array.new(shape.reduce(:*)) { 0 }
-          transpose_with_perm(arr, new_arr, shape, new_shape, perm)
-          TensorShape.reshape(new_arr, new_shape)
-        end
+        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
+        assign.container
       end
 
       register_op :less do |context, tensor, inputs|
@@ -277,7 +264,7 @@ module TensorStream
           raise TensorStream::InvalidArgumentError, "#{message} Invalid argument" if t.nan? || t.infinite?
           t
         }
-        call_op(tensor, inputs[0], context, f)
+        call_op(inputs[0], context, f)
       end
 
       def eval_operation(tensor, child_context)
@@ -289,14 +276,13 @@ module TensorStream
           # assertions to make sure inferred shapes == actual evaluated shapes
           if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
             if shape_eval(result) != tensor.shape.shape
-
               raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
             end
           end
 
           if tensor.breakpoint
-            a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-            b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
+            a = tensor.inputs[0] if tensor.inputs && tensor.inputs[0]
+            b = tensor.inputs[1] if tensor.inputs && tensor.inputs[1]
             a = complete_eval(a, child_context)
             b = complete_eval(b, child_context)
             tensor.breakpoint.call(tensor, a, b, complete_eval(result, child_context))
@@ -318,9 +304,7 @@ module TensorStream
       rescue TensorStreamError => e
         raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue StandardError => e
-        # a = resolve_placeholder(tensor.inputs[0], child_context) if tensor.inputs && tensor.inputs[0]
-        # b = resolve_placeholder(tensor.inputs[1], child_context) if tensor.inputs && tensor.inputs[1]
-        puts e.message
+         puts e.message
         puts e.backtrace.join("\n")
         # shape_a = a.shape.shape if a
         # shape_b = b.shape.shape if b
@@ -336,25 +320,6 @@ module TensorStream
         # File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
-      end
-
-      def eval_tensor(tensor, child_context)
-        return tensor unless tensor.is_a?(Tensor)
-
-        cache_key = "#{tensor.graph.object_id}_ruby_#{tensor.name}"
-        return @context[cache_key] if @context.key?(cache_key)
-        return @context[:_cache][cache_key] if @context[:_cache] && @context[:_cache].key?(tensor.name)
-
-        if tensor.value.is_a?(Array)
-          tensor.value.collect do |input|
-            input.is_a?(Tensor) ? run(input, child_context) : input
-          end
-        else
-          tensor.value.is_a?(Tensor) ? run(tensor.value, child_context) : tensor.value
-        end.tap do |result|
-          @context[cache_key] = result
-          @context[:_cache][cache_key] = result if @context[:_cache] && tensor.is_const
-        end
       end
 
       def convert_from_buffer(_tensor, result)
@@ -377,14 +342,7 @@ module TensorStream
         end
       end
 
-      def reduction(child_context, tensor, func)
-        val = global_eval(tensor, tensor.inputs[0], child_context)
-        axis = global_eval(tensor, tensor.inputs[1], child_context)
-        keep_dims = global_eval(tensor, tensor.options[:keepdims], child_context)
-        reduce(val, axis, keep_dims, func)
-      end
-
-      def call_op(op, a, child_context, func)
+      def call_op(a, child_context, func)
         a = complete_eval(a, child_context)
         process_function_op(a, func)
       end
@@ -419,7 +377,7 @@ module TensorStream
       def multi_array_op(func, *args)
         elem = args[0]
         if (elem.is_a?(Array))
-          elem.each_with_index.collect do |item, index|
+          elem.each_with_index.collect do |_item, index|
             indexed_args = args.collect { |a| a[index] }
             multi_array_op(func, *indexed_args)
           end
@@ -450,29 +408,6 @@ module TensorStream
             concat(i, b[index], axis - 1)
           end
         end
-      end
-
-      def resolve_placeholder(placeholder, _execution_context = {})
-        return nil if placeholder.nil?
-
-        var = if placeholder.is_a?(Placeholder)
-                @context[placeholder.name.to_sym].tap do |c|
-                  raise TensorStream::ValueError, "missing placeholder #{placeholder.name}" if c.nil?
-                  if placeholder.shape.shape
-                    value_shape = shape_eval(c)
-                    placeholder_shape = placeholder.shape.shape
-                    placeholder_shape.zip(value_shape).each do |p_shape, v_shape|
-                      next if p_shape.nil?
-                      raise TensorStream::ValueError, "placeholder expects #{placeholder_shape}, got #{value_shape}" if p_shape != v_shape
-                    end
-                  end
-                end
-              else
-                placeholder
-              end
-
-        return var unless placeholder.is_a?(Tensor)
-        Tensor.cast_dtype(var, placeholder.data_type)
       end
 
       # handle 3 tensor math operations

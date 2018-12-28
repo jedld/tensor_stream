@@ -4,11 +4,19 @@ module TensorStream
     include TensorStream::StringHelper
     include TensorStream::OpHelper
 
-    def get_string(tensor_or_graph, session = nil)
+    def get_string(tensor_or_graph, session = nil, graph_keys = nil)
       graph = tensor_or_graph.is_a?(Tensor) ? tensor_or_graph.graph : tensor_or_graph
       @lines = []
-      graph.node_keys.each do |k|
-        node = graph.get_tensor_by_name(k)
+
+      node_keys = graph_keys.nil? ? graph.node_keys : graph.node_keys.select { |k| graph_keys.include?(k) }
+
+      node_keys.each do |k|
+        node = if block_given?
+                 yield graph, k
+               else
+                 graph.get_tensor_by_name(k)
+               end
+
         @lines << "node {"
         @lines << "  name: #{node.name.to_json}"
         if node.is_a?(TensorStream::Operation)
@@ -20,16 +28,13 @@ module TensorStream
           end
           # type
           pb_attr('T', "type: #{sym_to_protobuf_type(node.data_type)}")
-          process_options(node)
-        elsif node.is_a?(TensorStream::Tensor) && node.is_const
-          @lines << "  op: \"Const\""
-          # type
-          pb_attr('T', "type: #{sym_to_protobuf_type(node.data_type)}")
-          pb_attr('value', tensor_value(node))
-        elsif node.is_a?(TensorStream::Variable)
-          @lines << "  op: \"VariableV2\""
-          pb_attr('T', "type: #{sym_to_protobuf_type(node.data_type)}")
-          pb_attr('shape', shape_buf(node, 'shape'))
+
+          case node.operation.to_s
+          when 'const'
+            pb_attr('value', tensor_value(node))
+          when 'variable_v2'
+            pb_attr('shape', shape_buf(node, 'shape'))
+          end
           process_options(node)
         end
         @lines << "}"
@@ -44,20 +49,50 @@ module TensorStream
 
     def process_options(node)
       return if node.options.nil?
-      node.options.each do |k, v|
-        next if %w[name].include?(k.to_s) || k.to_s.start_with?('__')
+      node.options.reject { |_k, v| v.nil? }.each do |k, v|
+        next if %w[name internal_name data_type].include?(k.to_s) || k.to_s.start_with?('__')
         @lines << "  attr {"
         @lines << "    key: \"#{k}\""
         @lines << "    value {"
-        if v.is_a?(TrueClass) || v.is_a?(FalseClass)
-          @lines << "      b: #{v}"
-        elsif v.is_a?(Integer)
-          @lines << "      int_val: #{v}"
-        elsif v.is_a?(Float)
-          @lines << "      float_val: #{v}"
-        end
+        attr_value(v, 6)
         @lines << "    }"
         @lines << "  }"
+      end
+    end
+
+    def attr_value(val, indent = 0)
+      spaces = " " * indent
+      case val.class.to_s
+      when 'TrueClass', 'FalseClass'
+        @lines << "#{spaces}b: #{val}"
+      when 'Integer'
+        @lines << "#{spaces}i: #{val}"
+      when 'String',
+        @lines << "#{spaces}s: #{val}"
+      when 'Float'
+        @lines << "#{spaces}f: #{val}"
+      when 'Symbol'
+        @lines << "#{spaces}sym: #{val}"
+      when 'Array'
+        @lines << "#{spaces}list {"
+        val.each do |v_item|
+          attr_value(v_item, indent + 2)
+        end
+        @lines << "#{spaces}}"
+      when 'TensorStream::TensorShape'
+        @lines << "#{spaces}shape {"
+        if val.shape
+          val.shape.each do |dim|
+            @lines << "#{spaces}  dim {"
+            @lines << "#{spaces}    size: #{dim}"
+            @lines << "#{spaces}  }"
+          end
+        end
+        @lines << "#{spaces}}"
+      when 'TensorStream::Variable'
+      else
+        binding.pry
+        raise "unknown type #{val.class}"
       end
     end
 
@@ -92,17 +127,17 @@ module TensorStream
 
       if tensor.rank > 0
         if TensorStream::Ops::FLOATING_POINT_TYPES.include?(tensor.data_type)
-          packed = pack_arr_float(tensor.value)
+          packed = pack_arr_float(tensor.const_value)
           arr << "  tensor_content: \"#{packed}\""
         elsif TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
-          packed = pack_arr_int(tensor.value)
+          packed = pack_arr_int(tensor.const_value)
           arr << "  tensor_content: \"#{packed}\""
         elsif tensor.data_type == :string
-          tensor.value.each do |v|
+          tensor.const_value.each do |v|
             arr << "  string_val: #{v.to_json}"
           end
         else
-          arr << "  tensor_content: #{tensor.value.flatten}"
+          arr << "  tensor_content: #{tensor.const_value.flatten}"
         end
       else
         val_type = if TensorStream::Ops::INTEGER_TYPES.include?(tensor.data_type)
@@ -114,7 +149,7 @@ module TensorStream
                    else
                      "val"
                    end
-        arr << "  #{val_type}: #{tensor.value.to_json}"
+        arr << "  #{val_type}: #{tensor.const_value.to_json}"
       end
       arr << "}"
       arr

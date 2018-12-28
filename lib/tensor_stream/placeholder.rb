@@ -11,13 +11,13 @@ module TensorStream
       @is_const = false
 
       @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
-      @graph.add_node(self)
+      @op = Graph.get_default_graph.add_op!(:placeholder, data_type: @data_type, shape: @shape, internal_name: @name)
     end
 
     private
 
     def build_name
-      "Placeholder#{graph.get_placeholder_counter}:#{@rank}"
+      "Placeholder#{graph.get_placeholder_counter}"
     end
   end
 end
