@@ -4,7 +4,7 @@ SimpleCov.start
 
 require "tensor_stream"
 require 'awesome_print'
-require 'pry-byebug'
+# require 'pry-byebug'
 
 Dir["./spec/support/**/*.rb"].sort.each { |f| require f }
 

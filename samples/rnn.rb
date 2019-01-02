@@ -8,7 +8,7 @@
 require "bundler/setup"
 require 'tensor_stream'
 # require 'tensor_stream/opencl'
-require 'pry-byebug'
+# require 'pry-byebug'
 
 
 tf = TensorStream
