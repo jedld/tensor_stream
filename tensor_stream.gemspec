@@ -35,12 +35,13 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "awesome_print"
   spec.add_development_dependency "rubocop"
-  spec.add_development_dependency "pry-byebug"
-  spec.add_development_dependency "byepry"
+  if RUBY_ENGINE == 'ruby'
+    spec.add_development_dependency "pry-byebug"
+    spec.add_development_dependency "byepry"
+  end
   spec.add_development_dependency "colorize"
   spec.add_development_dependency "rspec_junit_formatter"
   spec.add_development_dependency "mnist-learn"
-  spec.add_development_dependency "opencl_ruby_ffi"
   spec.add_development_dependency "simplecov"
   spec.add_dependency "deep_merge"
   spec.add_dependency "concurrent-ruby"
