@@ -100,18 +100,18 @@ module TensorStream
     end
 
     # handle 2 tensor math operations
-    def vector_op(vector, vector2, op = ->(a, b) { a + b }, switch = false, safe = true)
+    def vector_op(vector, vector2, switch = false, safe = true, &block)
       if get_rank(vector) < get_rank(vector2) # upgrade rank of A
         duplicated = Array.new(vector2.size) do
           vector
         end
-        return vector_op(duplicated, vector2, op, switch)
+        return vector_op(duplicated, vector2, switch, &block)
       end
 
-      return op.call(vector, vector2) unless vector.is_a?(Array)
+      return yield(vector, vector2) unless vector.is_a?(Array)
 
       vector.each_with_index.collect do |input, index|
-        next vector_op(input, vector2, op, switch) if input.is_a?(Array) && get_rank(vector) > get_rank(vector2)
+        next vector_op(input, vector2, switch, &block) if input.is_a?(Array) && get_rank(vector) > get_rank(vector2)
 
         if safe && vector2.is_a?(Array)
           next nil if vector2.size != 1 && index >= vector2.size
@@ -129,9 +129,9 @@ module TensorStream
             end
 
         if input.is_a?(Array)
-          vector_op(input, z, op, switch)
+          vector_op(input, z, switch, &block)
         else
-          switch ? op.call(z, input) : op.call(input, z)
+          switch ? yield(z, input) : yield(input, z)
         end
       end.compact
     end
@@ -165,12 +165,12 @@ module TensorStream
       end
     end
 
-    def process_function_op(a, op)
+    def process_function_op(a, &block)
       # ruby scalar
       if (a.is_a?(Tensor) && a.shape.rank > 0) || a.is_a?(Array)
-        vector_op(a, 0, op)
+        vector_op(a, 0, &block)
       else
-        op.call(a, 0)
+        yield a, 0
       end
     end
 
@@ -264,11 +264,11 @@ module TensorStream
       [new_arr, new_shape]
     end
 
-    def reduce_axis(current_axis, axis, val, keep_dims, f)
+    def reduce_axis(current_axis, axis, val, keep_dims, &block)
       return val unless val.is_a?(Array)
 
       r = val.collect do |v|
-        reduce_axis(current_axis + 1, axis, v, keep_dims, f)
+        reduce_axis(current_axis + 1, axis, v, keep_dims, &block)
       end
 
       should_reduce_axis = axis.nil? || (axis.is_a?(Array) && axis.include?(current_axis)) || (current_axis == axis)
@@ -276,9 +276,13 @@ module TensorStream
       if should_reduce_axis
         reduced_val = r[0]
         if r.size > 1
-          reduced_val = f.call(r[0..val.size])
+          if block_given?
+            reduced_val = yield(r[0..val.size])
+          else
+            reduced_val = r[0..val.size].reduce(:+)
+          end
         elsif r.empty?
-          reduced_val = f.call(nil)
+          reduced_val = yield(nil)
         end
         keep_dims ? [reduced_val] : reduced_val
       else
@@ -286,17 +290,9 @@ module TensorStream
       end
     end
 
-    def reduce(val, axis, keep_dims, func = nil)
+    def reduce(val, axis, keep_dims, &block)
       rank = get_rank(val)
       return val if axis && axis.is_a?(Array) && axis.empty?
-
-      func = lambda do |arr|
-        reduced_val = arr[0]
-        arr[1..arr.size].each do |v|
-          reduced_val = vector_op(reduced_val, v, ->(t, u) { t + u })
-        end
-        reduced_val
-      end if func.nil?
 
       axis = if axis.nil?
                nil
@@ -308,7 +304,7 @@ module TensorStream
                axis < 0 ? rank - axis.abs : axis
              end
 
-      reduce_axis(0, axis, val, keep_dims, func)
+      reduce_axis(0, axis, val, keep_dims, &block)
     end
 
     def arr_pad(arr, paddings, data_type = :float32, rank = 0)

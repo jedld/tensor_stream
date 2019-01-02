@@ -7,7 +7,7 @@ module TensorStream
           target_var, learning_rate, delta = inputs
           assign = tensor.inputs[0] || tensor
 
-          assign.container = process_vector_math_op(tensor, target_var, delta, context, ->(t, u) { t - u * learning_rate })
+          assign.container = process_vector_math_op(tensor, target_var, delta, context) { |t, u| t - u * learning_rate }
           assign.container
         end
 
@@ -111,7 +111,7 @@ module TensorStream
             end
             reshaped_losses = TensorShape.reshape(losses.flatten, input_shape)
             reshaped_backprops = TensorShape.reshape(backprobs.flatten, input_shape)
-            reshaped_losses = reduce(reshaped_losses, rank, false)
+            reshaped_losses = reduce(reshaped_losses, rank, false) { |a| a.reduce(:+) }
             TensorStream::Evaluator::OutputGroup.new([reshaped_losses, reshaped_backprops], [tensor.inputs[0].data_type, tensor.inputs[0].data_type])
           end
         end
@@ -210,7 +210,7 @@ module TensorStream
         end
 
         register_op :relu6 do |context, tensor, inputs|
-          call_vector_op(tensor, :relu6, inputs[0], inputs[1], context, ->(t, u) { [[t, 0].max, 6].min })
+          call_vector_op(tensor, :relu6, inputs[0], inputs[1], context) { |t, u| [[t, 0].max, 6].min }
         end
 
         register_op :conv2d do |_context, tensor, inputs|

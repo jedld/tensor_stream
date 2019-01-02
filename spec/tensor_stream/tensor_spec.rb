@@ -1,4 +1,5 @@
 require "spec_helper"
+require "tensor_stream/monkey_patches/op_patch"
 require 'benchmark'
 
 RSpec.describe TensorStream::Tensor do
