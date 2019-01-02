@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.10] - 2019-01-02
+- [BUG FIX] - remove pry-byebug include (Thanks @samgooi4189)
+- Update Changelog for 0.9.9
+
+## [0.9.9] - 2019-01-01
+- Basic Object mixins for Integer, Float, Array to improve model syntax
+- Internal code changes to improve model serialization
+
 ## [0.9.8] - 2018-11-25
 - [BUG FIX] - conv2d, conv2d_backprop_filter, conv2d_backprop_input -> stride support bug fixes
 

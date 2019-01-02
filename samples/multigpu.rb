@@ -1,7 +1,7 @@
 require "bundler/setup"
 require 'tensor_stream'
 require 'tensor_stream/evaluator/opencl/opencl_evaluator'
-require 'pry-byebug'
+# require 'pry-byebug'
 
 ts = TensorStream
 

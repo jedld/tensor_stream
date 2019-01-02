@@ -102,11 +102,11 @@ module TensorStream
       end
 
       register_op(:cast) do |context, tensor, inputs|
-        call_op(inputs[0], context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
+        call_op(inputs[0], context)  { |t, _b| Tensor.cast_dtype(t, tensor.data_type) }
       end
 
       register_op(:sign) do |context, tensor, inputs|
-        func = lambda { |x, _b|
+        call_op(inputs[0], context) do |x, _b|
           if x.zero? || (x.is_a?(Float) && x.nan?)
             0
           elsif x < 0
@@ -116,21 +116,19 @@ module TensorStream
           else
             raise 'assert: cannot be here'
           end
-        }
-
-        call_op(inputs[0], context, func)
+        end
       end
 
       register_op(:logical_and) do |context, tensor, inputs|
-        call_vector_op(tensor, :logical_and, inputs[0], inputs[1], context, ->(t, u) { t && u })
+        call_vector_op(tensor, :logical_and, inputs[0], inputs[1], context) { |t, u| t && u }
       end
 
       register_op(:equal) do |context, tensor, inputs|
-        call_vector_op(tensor, :equal, inputs[0], inputs[1], context, ->(t, u) { t == u })
+        call_vector_op(tensor, :equal, inputs[0], inputs[1], context) { |t, u| t == u }
       end
 
       register_op(:not_equal) do |context, tensor, inputs|
-        call_vector_op(tensor, :not_equal, inputs[0], inputs[1], context, ->(t, u) { t != u })
+        call_vector_op(tensor, :not_equal, inputs[0], inputs[1], context) { |t, u| t != u }
       end
 
       register_op :placeholder, no_eval: true do |context, tensor, _inputs|
@@ -175,35 +173,35 @@ module TensorStream
       register_op :assign_add, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
 
-        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t + u })
+        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context) { |t, u| t + u }
         assign.container
       end
 
       register_op :assign_sub, noop: true do |context, tensor, _inputs|
         assign = tensor.inputs[0] || tensor
 
-        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context, ->(t, u) { t - u })
+        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context) { |t, u| t - u }
         assign.container
       end
 
       register_op :less do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(tensor, :less, a, b, context, ->(t, u) { t < u })
+        call_vector_op(tensor, :less, a, b, context) { |t, u| t < u }
       end
 
       register_op :greater do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(tensor, :greater, a, b, context, ->(t, u) { t > u })
+        call_vector_op(tensor, :greater, a, b, context) { |t, u| t > u }
       end
 
       register_op :greater_equal do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(tensor, :greater_equal, a, b, context, ->(t, u) { t >= u })
+        call_vector_op(tensor, :greater_equal, a, b, context) { |t, u| t >= u }
       end
 
       register_op :less_equal do |context, tensor, inputs|
         a, b = inputs
-        call_vector_op(tensor, :greater_equal, a, b, context, ->(t, u) { t <= u })
+        call_vector_op(tensor, :greater_equal, a, b, context) { |t, u| t <= u }
       end
 
       register_op :broadcast_transform do |_context, _tensor, inputs|
@@ -220,7 +218,7 @@ module TensorStream
       end
 
       register_op %i[div real_div], noop: true do |context, tensor, inputs|
-        process_vector_math_op(tensor, inputs[0], inputs[1], context, ->(t, u) { t / u })
+        process_vector_math_op(tensor, inputs[0], inputs[1], context) { |t, u| t / u }
       end
 
       register_op :broadcast_gradient_args do |_context, tensor, inputs|
@@ -260,11 +258,10 @@ module TensorStream
 
       register_op :check_numerics do |context, tensor, inputs|
         message = tensor.options[:message]
-        f = lambda { |t, _b|
+        call_op(inputs[0], context) do |t, _b|
           raise TensorStream::InvalidArgumentError, "#{message} Invalid argument" if t.nan? || t.infinite?
           t
-        }
-        call_op(inputs[0], context, f)
+        end
       end
 
       def eval_operation(tensor, child_context)
@@ -342,18 +339,18 @@ module TensorStream
         end
       end
 
-      def call_op(a, child_context, func)
+      def call_op(a, child_context, &block)
         a = complete_eval(a, child_context)
-        process_function_op(a, func)
+        process_function_op(a, &block)
       end
 
-      def call_vector_op(tensor, op, a, b, child_context, func)
-        process_vector_math_op(tensor, a, b, child_context, func)
+      def call_vector_op(tensor, op, a, b, child_context, &block)
+        process_vector_math_op(tensor, a, b, child_context, &block)
       rescue FullEvalNotPossible
         TensorStream.send(op.to_sym, a, b)
       end
 
-      def process_vector_math_op(tensor, a, b,  child_context, op)
+      def process_vector_math_op(tensor, a, b,  child_context, &block)
         eval_a = global_eval(tensor, a, child_context) unless a.nil?
         eval_b = global_eval(tensor, b, child_context) unless b.nil?
 
@@ -361,7 +358,7 @@ module TensorStream
 
         # ruby scalar
         eval_a, eval_b = broadcast(eval_a, eval_b)
-        vector_op(eval_a, eval_b, op)
+        vector_op(eval_a, eval_b, &block)
         # if get_rank(eval_a).zero?
         #   if get_rank(eval_b).zero?
         #     op.call(eval_a, eval_b)
@@ -411,16 +408,16 @@ module TensorStream
       end
 
       # handle 3 tensor math operations
-      def call_3way_vector_op(v_a, v_b, v_c, child_context, op = ->(a, b, c) { a + b + c })
-        return op.call(v_a, v_b, v_c) unless v_a.is_a?(Array)
+      def call_3way_vector_op(v_a, v_b, v_c, child_context, &block)
+        return yield(v_a, v_b, v_c) unless v_a.is_a?(Array)
 
         v_a.each_with_index.collect do |v1, index|
           v2 = v_b[index]
           v3 = v_c.is_a?(Array) ? v_c[index] : v_c
           if v1.is_a?(Array)
-            call_3way_vector_op(v1, v2, v3, child_context, op)
+            call_3way_vector_op(v1, v2, v3, child_context, &block)
           else
-            op.call(v1, v2, v3)
+            yield(v1, v2, v3)
           end
         end
       end

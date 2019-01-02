@@ -335,7 +335,7 @@ module TensorStream
 
         register_op %i[select where] do |context, tensor, inputs|
           pred = inputs[0]
-          call_3way_vector_op(pred, inputs[1], inputs[2], context, ->(t, u, v) { t ? u : v })
+          call_3way_vector_op(pred, inputs[1], inputs[2], context) { |t, u, v| t ? u : v }
         end
 
         register_op :shape do |_context, tensor, inputs|
