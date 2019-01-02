@@ -3,12 +3,11 @@
 require "bundler/setup"
 require "tensor_stream"
 require 'tensor_stream/utils/freezer'
-require "byepry"
 
 if ARGV[0].nil?
   puts "source checkpoint folder not specified"
   puts "usage: model_utils <checkpoint folder> <target yaml>"
-  puts "example: model_utils sample_model frozen.yml"
+  puts "example: model_utils sample_model/ frozen.yml"
   exit(1)
 end
 
@@ -19,5 +18,7 @@ if ARGV[1].nil?
   exit(1)
 end
 
+sess = TensorStream.session
 freezer = TensorStream::Freezer.new
-freezer.convert(ARGV[0], ARGV[1])
+freezer.convert(sess, ARGV[0], ARGV[1])
+exit(0)

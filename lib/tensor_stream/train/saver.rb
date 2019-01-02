@@ -46,7 +46,10 @@ module TensorStream
       end
 
       def restore(_session, modelpath)
-        meta_data = JSON.parse(File.read(File.join(modelpath, "model.meta")))
+        meta_file = File.join(modelpath, "model.meta")
+        return unless File.exist?(meta_file)
+
+        meta_data = JSON.parse(File.read(meta_file))
         gs = meta_data['gs']
         input_dump = YAML.safe_load(File.read(File.join(modelpath, ['model', gs, '.ckpt'].compact.join('-'))))
 

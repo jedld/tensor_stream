@@ -9,7 +9,8 @@ RSpec.describe TensorStream::Freezer do
 
   specify "convert a checkpoint to a freezed model" do
     checkpoint_file = File.join('spec', 'fixtures', 'lg_model')
-    y1 = freezer.convert(checkpoint_file, '/tmp/lg_model_freezed.yaml')
+
+    y1 = freezer.convert(sess, checkpoint_file, '/tmp/lg_model_freezed.yaml')
     actual = File.read(File.join('/tmp', 'lg_model_freezed.yaml'))
     expected = File.read(File.join('spec', 'fixtures', 'lg_model_freezed.yaml'))
     expect(actual).to eq(expected)

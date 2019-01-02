@@ -5,12 +5,12 @@ module TensorStream
     ##
     # Utility class to convert variables to constants for production deployment
     #
-    def convert(checkpoint_folder, output_file)
+    def convert(session, checkpoint_folder, output_file)
       model_file = File.join(checkpoint_folder, 'model.yaml')
       TensorStream.graph.as_default do |current_graph|
         YamlLoader.new.load_from_string(File.read(model_file))
         saver = TensorStream::Train::Saver.new
-        saver.restore(nil, checkpoint_folder)
+        saver.restore(session, checkpoint_folder)
         output_buffer = TensorStream::Yaml.new.get_string(current_graph) do |graph, node_key|
           node = graph.get_tensor_by_name(node_key)
           if node.operation == :variable_v2
