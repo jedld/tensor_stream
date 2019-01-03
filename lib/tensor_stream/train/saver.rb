@@ -7,6 +7,16 @@ module TensorStream
     class Saver
       include TensorStream::OpHelper
 
+      def initialize
+        graph = TensorStream::Graph.get_default_graph
+        vars = graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
+
+        @filename = TensorStream.placeholder(:string, name: 'ts_filename', shape: [])
+
+        @save_op = _op(:save_ts, @filename, *vars)
+        @restore_op = _op(:restore_ts, @filename, *vars.map(&:name))
+      end
+
       def save(session, outputdir, global_step: nil,
                latest_filename: nil,
                meta_graph_suffix: 'meta',
@@ -19,25 +29,13 @@ module TensorStream
         variables = {}
 
         gs = eval_global_step(session, global_step)
-        output_dump = {
-          'variables' => variables,
-          'global_step' => gs
-        }
-
-        vars.each do |variable|
-          val = variable.read_value
-          packed_data = Zlib::Deflate.deflate(TensorStream::Packer.pack(val, variable.data_type))
-          variables[variable.name] = {
-            'shape' => shape_eval(val),
-            'data' => Base64.strict_encode64(packed_data)
-          }
-        end
 
         FileUtils.mkdir_p(outputdir)
         basename = 'model'
         File.write(File.join(outputdir, "#{basename}.meta"), { "gs" => gs }.to_json)
         new_filename = File.join(outputdir, [basename, gs, '.ckpt'].compact.join('-'))
-        File.write(new_filename, output_dump.to_yaml)
+        session.run(@save_op, feed_dict: { @filename => new_filename })
+
         if write_meta_graph
           graph_filename = "#{basename}.yaml"
           TensorStream.train.write_graph(graph, outputdir, graph_filename, serializer: :yaml)
@@ -45,23 +43,15 @@ module TensorStream
         outputdir
       end
 
-      def restore(_session, modelpath)
+      def restore(session, modelpath)
         meta_file = File.join(modelpath, "model.meta")
         return unless File.exist?(meta_file)
 
         meta_data = JSON.parse(File.read(meta_file))
         gs = meta_data['gs']
-        input_dump = YAML.safe_load(File.read(File.join(modelpath, ['model', gs, '.ckpt'].compact.join('-'))))
+        filename = File.join(modelpath, ['model', gs, '.ckpt'].compact.join('-'))
 
-        vars = TensorStream::Graph.get_default_graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
-        vars.each do |variable|
-          next unless input_dump['variables'].key?(variable.name)
-
-          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump['variables'][variable.name]['data'])), variable.data_type)
-          shape = input_dump['variables'][variable.name]['shape']
-          variable.buffer = nil
-          variable.value = TensorShape.reshape(data, shape)
-        end
+        session.run(@restore_op, feed_dict: { @filename => filename })
       end
 
       private

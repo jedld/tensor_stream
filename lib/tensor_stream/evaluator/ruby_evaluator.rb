@@ -239,21 +239,38 @@ module TensorStream
         outputfile = inputs[0]
         inputs = tensor.inputs.dup
 
-        basename = File.basename(outputfile)
-        path = File.dirname(outputfile)
-
-        new_filename = File.join(path, [basename, gs].compact.join('-'))
-
         inputs.shift
         variables = {}
         inputs.each do |savable|
-          variables[savable.name] = TensorStream::Packer.pack(savable.read_value, savable.data_type)
+          val = savable.container
+          packed_data = Zlib::Deflate.deflate(TensorStream::Packer.pack(val, savable.data_type))
+          variables[savable.name] = {
+            'shape' => shape_eval(val),
+            'data' => Base64.strict_encode64(packed_data)
+          }
         end
-        File.write(new_filename, variables.to_yaml)
+
+        File.write(outputfile, { 'variables' => variables }.to_yaml)
+        nil
       end
 
-      register_op :restore_v2 do |context, tensor, inputs|
-        # prefix, tensor_names, shape_and_slices = inputs[0..3]
+      register_op :restore_ts do |_context, tensor, inputs|
+        inputs = inputs.dup
+        filename = inputs.shift
+        tensor_names = inputs
+
+        input_dump = YAML.safe_load(File.read(filename), [Symbol])
+        vars = tensor.graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
+
+        vars.select! { |v| input_dump['variables'].key?(v.name) && tensor_names.include?(v.name) }
+        vars.each do |variable|
+          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump['variables'][variable.name]['data'])), variable.data_type)
+          shape = input_dump['variables'][variable.name]['shape']
+          variable.buffer = nil
+          variable.value = TensorShape.reshape(data, shape)
+        end
+
+        nil
       end
 
       register_op :check_numerics do |context, tensor, inputs|

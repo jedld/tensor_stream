@@ -10,6 +10,7 @@ module TensorStream
         inputs = op_def[:inputs].map { |i| @graph.get_tensor_by_name(i) }
         options = {}
 
+        new_var = nil
         if op_def.dig(:attrs, :container)
           new_var = Variable.new(op_def.dig(:attrs, :data_type))
           var_shape = op_def.dig(:attrs, :container, :shape)
@@ -30,6 +31,7 @@ module TensorStream
         new_op.data_type = new_op.set_data_type(op_def.dig(:attrs, :data_type))
         new_op.is_const = new_op.infer_const
         new_op.given_name = new_op.name
+        new_var.op = new_op if new_var
 
         @graph.add_node(new_op)
       end

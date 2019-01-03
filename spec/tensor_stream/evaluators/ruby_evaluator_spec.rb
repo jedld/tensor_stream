@@ -116,7 +116,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         reciprocal
         relu6
         reshape
-        restore_v2
+        restore_ts
         round
         save_ts
         select
