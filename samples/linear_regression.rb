@@ -6,7 +6,7 @@ tf = TensorStream # use tf to make it look like TensorFlow
 
 learning_rate = 0.01
 momentum = 0.5
-training_epochs = 3000
+training_epochs = 10000
 display_step = 50
 
 train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
