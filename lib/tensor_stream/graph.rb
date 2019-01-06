@@ -119,7 +119,7 @@ module TensorStream
     end
 
     def [](name)
-      get_tensor_by_name(name)
+      get_node(name)
     end
 
     def add_node!(name, node)

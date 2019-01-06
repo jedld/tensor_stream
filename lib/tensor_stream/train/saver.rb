@@ -11,7 +11,7 @@ module TensorStream
         graph = TensorStream::Graph.get_default_graph
         vars = graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
 
-        @filename = TensorStream.placeholder(:string, name: 'ts_filename', shape: [])
+        @filename = graph['ts_filename'] || TensorStream.placeholder(:string, name: 'ts_filename', shape: [])
 
         @save_op = _op(:save_ts, @filename, *vars)
         @restore_op = _op(:restore_ts, @filename, *vars.map(&:name))
