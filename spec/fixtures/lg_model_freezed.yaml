@@ -1583,3 +1583,42 @@
   - assign_2
   - assign_3
   :attrs: {}
+- :op: placeholder
+  :name: ts_filename
+  :data_type: :string
+  :inputs: []
+  :attrs:
+    :data_type: :string
+    :shape: []
+- :op: save_ts
+  :name: save_ts
+  :data_type: :string
+  :inputs:
+  - ts_filename
+  - weight
+  - bias
+  :attrs: {}
+- :op: const
+  :name: Const_6
+  :data_type: :string
+  :inputs: []
+  :attrs:
+    :value: weight
+    :data_type: :string
+    :shape: []
+- :op: const
+  :name: Const_7
+  :data_type: :string
+  :inputs: []
+  :attrs:
+    :value: bias
+    :data_type: :string
+    :shape: []
+- :op: restore_ts
+  :name: restore_ts
+  :data_type: :string
+  :inputs:
+  - ts_filename
+  - Const_6
+  - Const_7
+  :attrs: {}

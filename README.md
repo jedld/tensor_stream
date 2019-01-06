@@ -365,34 +365,45 @@ File.write("model.pbtext", result.graph.as_graph_def)
 ## Performance notes
 
 Comparative performance with respect to other ruby libraries have not yet been performed. However it is
-notable that TruffleRuby and ruby-2.6.0-preview2 with the --jit flag performs considerably better with respect
+notable that TruffleRuby and ruby-2.6.0 performs considerably better with respect
 to previous versions of ruby(< 2.6)
 
-Benchmarks running samples/linear_regression.rb on an Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz
+Benchmarks running samples/linear_regression.rb with tensor_stream 1.0.0 on an AMD(R) Ryzen(TM) 3 1300X CPU
 
-ruby 2.4
+
+ruby 2.5
 
 ```
 $ ruby -v
-ruby 2.4.0p0 (2016-12-24 revision 57164) [x86_64-linux]
+ruby 2.5.1p57 (2018-03-29 revision 63029) [x86_64-linux]
 $ ruby samples/linear_regression.rb
-495 seconds 10000 epochs
+296 seconds 3000 epochs
 ```
 
-ruby 2.6.0-preview2
+ruby 2.6.0
 
 ```
 $ ruby -v
-ruby 2.6.0preview2 (2018-05-31 trunk 63539) [x86_64-linux]
-$ ruby --jit samples/linear_regression.rb
-394 seconds 10000 epochs
+ruby 2.6.0p0 (2018-12-25 revision 66547) [x86_64-linux]
+$ ruby samples/linear_regression.rb
+232 seconds 10000 epochs
+
+ruby --jit samples/linear_regression.rb
+222 seconds 10000 epochs
 ```
 
 truffleruby
 ```
 $ ruby -v
-truffleruby 1.0.0-rc5, like ruby 2.4.4, GraalVM CE Native [x86_64-linux]
-219 seconds 10000 epochs
+truffleruby 1.0.0-rc10, like ruby 2.4.4, GraalVM CE Native [x86_64-linux]
+246 seconds 10000 epochs
+```
+
+jruby
+```
+$ ruby -v
+jruby 9.2.0.0 (2.5.0) 2018-05-24 81156a8 OpenJDK 64-Bit Server VM 25.191-b12 on 1.8.0_191-8u191-b12-0ubuntu0.18.04.1-b12 +jit [linux-x86_64]
+205 seconds 10000 epochs
 ```
 
 For training large networks that works on images, the opencl evaluator is the only way to go.
