@@ -118,6 +118,10 @@ module TensorStream
       get_node(name)
     end
 
+    def [](name)
+      get_tensor_by_name(name)
+    end
+
     def add_node!(name, node)
       @nodes[name] = node
       node
@@ -219,6 +223,7 @@ module TensorStream
       @placeholder_counter += 1
 
       return '' if @placeholder_counter == 1
+
       "_#{@placeholder_counter}"
     end
 

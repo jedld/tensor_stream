@@ -1,6 +1,6 @@
 module TensorStream
   class Freezer
-    include OpHelper
+    include TensorStream::OpHelper
 
     ##
     # Utility class to convert variables to constants for production deployment

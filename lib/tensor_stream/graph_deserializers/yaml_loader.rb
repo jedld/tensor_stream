@@ -1,9 +1,29 @@
 module TensorStream
+  ##
+  # Class for deserialization from a YAML file
   class YamlLoader
     def initialize(graph = nil)
       @graph = graph || TensorStream.get_default_graph
     end
 
+    ##
+    # Loads a model Yaml file and builds the model from it
+    #
+    # Args:
+    # filename: String - Location of Yaml file
+    #
+    # Returns: Graph where model is restored to
+    def load_from_file(filename)
+      load_from_string(File.read(filename))
+    end
+
+    ##
+    # Loads a model Yaml file and builds the model from it
+    #
+    # Args:
+    # buffer: String - String in Yaml format of the model
+    #
+    # Returns: Graph where model is restored to
     def load_from_string(buffer)
       serialized_ops = YAML.safe_load(buffer, [Symbol])
       serialized_ops.each do |op_def|
@@ -35,6 +55,7 @@ module TensorStream
 
         @graph.add_node(new_op)
       end
+      @graph
     end
   end
 end

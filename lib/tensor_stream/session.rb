@@ -66,6 +66,8 @@ module TensorStream
             raise "Cannot find placeholder with the name of #{k}" if node.operation != :placeholder
 
             context[k.to_sym] = options[:feed_dict][k]
+          elsif k.is_a?(Operation) && k.operation == :placeholder
+            context[k.name.to_sym] = options[:feed_dict][k]
           else
             raise "Invalid placeholder type passed key must be a string or a placeholder type"
           end

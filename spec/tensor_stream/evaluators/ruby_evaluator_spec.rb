@@ -18,6 +18,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   it_behaves_like "TensorStream::Train::Saver"
   it_behaves_like "optimizer evaluator"
   it_behaves_like "standard nn ops evaluator"
+  it_behaves_like "freezer ops"
 
   context "supported ops" do
     specify do
