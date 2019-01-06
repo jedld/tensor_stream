@@ -1,4 +1,4 @@
-[![Gem Version](https://badge.fury.io/rb/tensor_stream.svg)](https://badge.fury.io/rb/tensor_stream)[![CircleCI](https://circleci.com/gh/jedld/tensor_stream.svg?style=svg)](https://circleci.com/gh/jedld/tensor_stream) [![Join the chat at https://gitter.im/tensor_stream/Lobby](https://badges.gitter.im/tensor_stream/Lobby.svg)](https://gitter.im/tensor_stream/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Gem Version](https://badge.fury.io/rb/tensor_stream.svg)](https://badge.fury.io/rb/tensor_stream)[![Gem Version](https://badge.fury.io/rb/tensor_stream-opencl.svg)](https://badge.fury.io/rb/tensor_stream-opencl)[![CircleCI](https://circleci.com/gh/jedld/tensor_stream.svg?style=svg)](https://circleci.com/gh/jedld/tensor_stream) [![Join the chat at https://gitter.im/tensor_stream/Lobby](https://badges.gitter.im/tensor_stream/Lobby.svg)](https://gitter.im/tensor_stream/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # TensorStream
 
@@ -220,7 +220,7 @@ ts.session.run(f)
 For OpenCL support, make sure that the required OpenCL drivers for your hardware are correctly installed on your system.
 Also OpenCL only supports ruby-mri at the moment.
 
-Also include the following gem in your project:
+To use, include the following gem in your project:
 
 ```Gemfile
 gem 'tensor_stream-opencl'
@@ -293,6 +293,10 @@ end
 Note that the OpenCL evaluator provides speedup if you are using large tensors, tensors that are only using scalars like the linear regression sample will actually be slower.
 
 samples/nearest_neighbor.rb contains a sample that uses opencl.
+
+OpenCL support is maintained as a separate project at:
+
+https://github.com/jedld/tensor_stream-opencl
 
 ## Export Import Models from tensorflow
 
