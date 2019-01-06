@@ -16,6 +16,10 @@ module TensorStream
       @options = options
     end
 
+    def inspect
+      "Op(#{operation} name: #{name} shape: #{@shape || '?'} data_type: #{data_type})"
+    end
+
     def to_s
       @name
     end

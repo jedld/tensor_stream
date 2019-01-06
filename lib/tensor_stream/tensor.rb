@@ -10,6 +10,9 @@ module TensorStream
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
                   :internal, :source, :given_name, :outputs, :op
 
+    def inspect
+    end
+
     def internal?
       !!@internal
     end

@@ -14,6 +14,10 @@ module TensorStream
       @op = Graph.get_default_graph.add_op!(:placeholder, data_type: @data_type, shape: @shape, internal_name: @name)
     end
 
+    def inspect
+      "Placeholder(#{@name} shape: #{@shape || '?'} data_type: #{@data_type})"
+    end
+
     private
 
     def build_name
