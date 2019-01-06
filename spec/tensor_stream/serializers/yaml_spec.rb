@@ -154,7 +154,7 @@ RSpec.describe TensorStream::Yaml do
       train_X.zip(train_Y).each do |x,y|
         sess.run(optimizer, feed_dict: {"X" => x, "Y" => y})
       end
-      expect(sess.run(pred, feed_dict: {X => train_X[0], Y => train_Y[0]})).to eq(1.3576718783214332)
+      expect(sess.run(pred, feed_dict: {"X" => train_X[0], "Y" => train_Y[0]})).to eq(1.3576718783214332)
     end
   end
 end

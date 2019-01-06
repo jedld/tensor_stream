@@ -8,7 +8,7 @@ RSpec.shared_examples "freezer ops" do
   let(:output_file_location) { '/tmp/lg_model_freezed.yaml' }
 
   before do
-    File.delete(output_file_location)
+    File.delete(output_file_location) if File.exist?(output_file_location)
   end
 
   specify "convert a checkpoint to a freezed model" do

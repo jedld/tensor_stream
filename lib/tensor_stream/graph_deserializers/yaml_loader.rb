@@ -25,7 +25,7 @@ module TensorStream
     #
     # Returns: Graph where model is restored to
     def load_from_string(buffer)
-      serialized_ops = YAML.safe_load(buffer, [Symbol], aliases: true)
+      serialized_ops = YAML.safe_load(buffer, [Symbol], [], true)
       serialized_ops.each do |op_def|
         inputs = op_def[:inputs].map { |i| @graph.get_tensor_by_name(i) }
         options = {}
