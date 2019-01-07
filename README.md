@@ -2,9 +2,9 @@
 
 # TensorStream
 
-An opensource machine learning framework for ruby. Designed to run on a wide variety of ruby implementations (JRuby, TruffleRuby, MRI) as well as an option for High Performance computation (OpenCL).
+TensorStream is an opensource framework for machine learning for ruby, its goal is to allow machine learning models to be easily built and run them in various hardware like GPUs and CPUs. It is heavily based on TensorFlow with the goal of being able to easily port its higher level libraries and model examples. As such it is also based on data flow graphs wherein you define computations and data flows between those computations in order to achieve the desired output.
 
-This is a framework that is heavily influenced by tensorflow and aims to be familiar with tensorflow users. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default with support for an opencl evaluator for large models and datasets.
+TensorStream is designed to support various backends with a Pure Ruby and OpenCL implementation. These implementations are designed to work together, you can perform training on an OpenCL implementation (where you have a GPU) and then run the resulting trained model on a Pure Ruby implementation where you can deploy anywhere that you can run ruby on. TensorStream has been tested to run on most ruby implementations like MRI, JRuby and TruffleRuby.
 
 ## Goals & Features
 
@@ -12,6 +12,7 @@ This is a framework that is heavily influenced by tensorflow and aims to be fami
 - Replicates most of the commonly used low-level tensorflow ops (tf.add, tf.constant, tf.placeholder, tf.matmul, tf.sin etc...)
 - Supports auto-differentiation using formal derivation
 - Extensible - use your own opcode evaluator (OpenCL and Pure ruby currently supported)
+- wide support - Run on most ruby implementations as well as hardware acceleration on OpenCL supported hardware
 
 ## Compatibility
 
