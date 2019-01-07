@@ -5,7 +5,7 @@ This document describes the basic usage of TensorStream and serves as a walthrou
 
 Since TensorStream is heavily based on TensorFlow, if you have used TensorFlow before then aside from the syntax a lot of things will be quite familiar.
 
-What is TensorStream
+What is TensorStream?
 --------------------
 
 TensorStream is an opensource framework for machine learning for ruby, its goal is to allow machine learning models to be easily built and run them in various hardware like GPUs and CPUs. It is heavily based on TensorFlow with the goal of being able to easily port its higher level libraries and model examples. As such it is also based on data flow graphs wherein you define computations and data flows between those computations in order to achieve the desired output.
@@ -33,6 +33,28 @@ t1 = ts.constant(1.0)
 ```
 
 Notice that you can create a constant tensor by calling the .t method on an Integer, Float and an Array. You can also use the TensorStream.constant method to achieve the same effect.
+
+tensors can be referenced later by giving it a name (They automatically get a name if you don't give it one)
+
+```ruby
+t1 = 1.0.t(name: 'c1')
+t2 = [5.0].t
+t2.name
+=> "Const"
+
+# tensorflow style
+ts = TensorStream
+t1 = ts.constant(1.0, name: 'c1')
+
+# Reference later
+graph = ts.get_default_graph
+tx = graph['c1']
+tx.run
+=> 1.0
+```
+
+Tensor Shapes
+-------------
 
 The shape to use depends on what the data represents and what computation you want to achieve.
 
@@ -63,6 +85,8 @@ sum = t1 + t2
 sess = TensorStream.session
 sess.run(sum)
 => 3.0
+sess.run(t1, t2) # pass multiple tensors/ops
+=> [1.0, 2.0]
 
 # this also works as a shortcut and is equivalent to above
 sum.run
@@ -167,6 +191,38 @@ sess.run(acc, assign)
 => [3.0, 3.0]
 ```
 
+Variables can be trainable or non-trainable. This property is used by training algorithms to determine if these will be updated during training.
+
+```ruby
+v = TensorStream.variable(1.0, name: 'v', trainable: false)
+```
+
+Graphs
+------
+
+Graphs hold the entire model data structure, each operation defined is stored in a graph which is later used during runtime to perform operations as well as during serialization and deserialization.
+
+When there is no graph present when a tensor is defined, one will automatically be created and will serve as the "default" graph.
+
+Access to the graph can be accomplished using the get_default_graph method.
+
+```ruby
+ts = TensorStream
+graph = ts.get_default_graph
+
+# access nodes
+graph.nodes
+=> {"Const"=>Op(const name: Const shape: TensorShape([]) data_type: float32), "Const_1"=>Op(const name: Const_1 shape: TensorShape([]) data_type: float32)}
+
+```
+
+The graph object can also be used to access collections like a list of variables
+
+```ruby
+vars = graph.get_collection(TensorStream::GraphKeys::GLOBAL_VARIABLES)
+=> [Variable(Variable:0 shape: TensorShape([]) data_type: float32)]
+```
+
 Limitations
 -----------
 
@@ -175,3 +231,5 @@ Limitations
 ```ruby
 [[1, 2], [1], [2, 3]] # second array has a different size than the others
 ```
+
+- The ruby evaluator uses the ruby Float and Integer objects during computation as such the width of the data types (float32 vs float64, int32 vs int64) aren't really used. This however matters with the OpenCL evaluator that uses the width for determining the correct C data type to use in the OpenCL kernels.
