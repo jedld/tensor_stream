@@ -46,24 +46,24 @@ init = tf.global_variables_initializer()
 saver = tf::Train::Saver.new
 
 tf.session do |sess|
-    start_time = Time.now
-    sess.run(init)
-    (0..training_epochs).each do |epoch|
-      train_X.zip(train_Y).each do |x,y|
-        sess.run(optimizer, feed_dict: {X => x, Y => y})
-      end
-
-      if (epoch+1) % display_step == 0
-        # Save the variables to disk.
-        save_path = saver.save(sess, "/tmp/lg_model")
-        c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
-        puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
-            "W=", sess.run(W), "b=", sess.run(b))
-      end
+  start_time = Time.now
+  sess.run(init)
+  (0..training_epochs).each do |epoch|
+    train_X.zip(train_Y).each do |x,y|
+      sess.run(optimizer, feed_dict: {X => x, Y => y})
     end
 
-    puts("Optimization Finished!")
-    training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
-    puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')
-    puts("time elapsed ", Time.now.to_i - start_time.to_i)
+    if (epoch+1) % display_step == 0
+      # Save the variables to disk.
+      save_path = saver.save(sess, "/tmp/lg_model")
+      c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
+      puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
+          "W=", sess.run(W), "b=", sess.run(b))
+    end
+  end
+
+  puts("Optimization Finished!")
+  training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
+  puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')
+  puts("time elapsed ", Time.now.to_i - start_time.to_i)
 end
