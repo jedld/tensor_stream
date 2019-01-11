@@ -18,7 +18,7 @@ columns = (0..3).map do |i|
 end
 
 # Normalize data values before feeding into network
-normalize = -> (val, high, low) { (val - low) / (high - low) } # maps input to float between 0 and 1
+normalize = ->(val, high, low) { (val - low) / (high - low) } # maps input to float between 0 and 1
 
 transformed_data.map! do |row|
   row.map.with_index do |val, j|
