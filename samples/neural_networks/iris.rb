@@ -1,11 +1,11 @@
 require "bundler/setup"
 require "tensor_stream"
-# require 'tensor_stream/evaluator/opencl/opencl_evaluator'
+# require 'tensor_stream/opencl'
 
 # This neural network will predict the species of an iris based on sepal and petal size
 # Dataset: http://en.wikipedia.org/wiki/Iris_flower_data_set
 tf = TensorStream
-rows = File.readlines(File.join("samples", "iris.data")).map {|l| l.chomp.split(",") }
+rows = File.readlines("samples/datasets/iris.data").map {|l| l.chomp.split(",") }
 
 rows.shuffle!
 

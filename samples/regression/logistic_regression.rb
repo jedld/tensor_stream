@@ -5,7 +5,7 @@ require "tensor_stream"
 
 tf = TensorStream
 
-rows = File.readlines(File.join("samples", "iris.data")).map {|l| l.chomp.split(",") }
+rows = File.readlines(File.join("samples", "datasets", "iris.data")).map {|l| l.chomp.split(",") }
 
 iris = rows[0...100].shuffle!
 

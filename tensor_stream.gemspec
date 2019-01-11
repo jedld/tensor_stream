@@ -37,6 +37,7 @@ Gem::Specification.new do |spec|
   if RUBY_ENGINE == "ruby"
     spec.add_development_dependency "pry-byebug"
     spec.add_development_dependency "byepry"
+    spec.add_development_dependency "tensor_stream-opencl"
   end
   spec.add_development_dependency "colorize"
   spec.add_development_dependency "rspec_junit_formatter"

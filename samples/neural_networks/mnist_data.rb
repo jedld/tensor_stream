@@ -11,7 +11,8 @@ require "tensor_stream"
 require "mnist-learn"
 
 # Enable OpenCL hardware accelerated computation, not using OpenCL can be very slow
-# require 'tensor_stream/opencl'
+# gem install tensor_stream-opencl
+require 'tensor_stream/opencl'
 
 tf = TensorStream
 
