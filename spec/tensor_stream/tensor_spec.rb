@@ -1,9 +1,8 @@
 require "spec_helper"
 require "tensor_stream/monkey_patches/op_patch"
-require 'benchmark'
+require "benchmark"
 
 RSpec.describe TensorStream::Tensor do
-
   let(:tf) { TensorStream }
   before(:each) do
     described_class.reset_counters
@@ -48,30 +47,30 @@ RSpec.describe TensorStream::Tensor do
 
     it "makes sure passed arrays are dense" do
       expect {
-        TensorStream.constant([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0],[2.0]], name: 'a')
+        TensorStream.constant([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], [2.0]], name: "a")
       }.to raise_exception TensorStream::ValueError
 
       expect {
-        TensorStream.constant([[[1.0, 2.0],[3.0,4.0]], [[2.0],[4.0,5.0]]], name: 'b')
+        TensorStream.constant([[[1.0, 2.0], [3.0, 4.0]], [[2.0], [4.0, 5.0]]], name: "b")
       }.to raise_exception TensorStream::ValueError
     end
 
     it "automatically adjusts based on shape" do
-      b = TensorStream.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape: [3, 2], name: 'b')
+      b = TensorStream.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape: [3, 2], name: "b")
       expect(b.eval).to eq(
         [
-         [1.0, 2.0],
-         [3.0, 4.0],
-         [5.0, 6.0]
+          [1.0, 2.0],
+          [3.0, 4.0],
+          [5.0, 6.0],
         ]
       )
 
-      c = TensorStream.constant(0, shape: [2,2])
+      c = TensorStream.constant(0, shape: [2, 2])
       expect(c.eval).to eq(
         [[0.0, 0.0], [0.0, 0.0]]
       )
 
-      c = TensorStream.constant(1, shape: [2,3])
+      c = TensorStream.constant(1, shape: [2, 3])
       expect(c.eval).to eq(
         [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
       )
@@ -91,8 +90,8 @@ RSpec.describe TensorStream::Tensor do
     it "correctly gives the rank" do
       a = TensorStream.constant(3.0, dtype: TensorStream::Types.float32)
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
-      c = TensorStream.constant([[3.0],[1.0]])
-      d = TensorStream.constant([[[3.0,2.0]],[[1.0, 1.1]]], dtype: TensorStream::Types.float32)
+      c = TensorStream.constant([[3.0], [1.0]])
+      d = TensorStream.constant([[[3.0, 2.0]], [[1.0, 1.1]]], dtype: TensorStream::Types.float32)
       expect(a.rank).to eq(0)
       expect(b.rank).to eq(1)
       expect(c.rank).to eq(2)
@@ -110,8 +109,8 @@ RSpec.describe TensorStream::Tensor do
 
   describe "#consumers" do
     it "lists dependent nodes to this tensor" do
-      a = tf.constant([1,2,3,4,5])
-      b = tf.constant([1,2,3,4,5])
+      a = tf.constant([1, 2, 3, 4, 5])
+      b = tf.constant([1, 2, 3, 4, 5])
       f = a * 2
       g = f + b
       expect(a.consumers.to_a).to eq(["mul", "add"])
@@ -128,7 +127,7 @@ RSpec.describe TensorStream::Tensor do
     end
 
     it "create a vector of zeros with the same size as the number of columns in a given matrix" do
-      my_matrix = TensorStream.constant([[1.0,1.0], [1.0, 1.0]])
+      my_matrix = TensorStream.constant([[1.0, 1.0], [1.0, 1.0]])
       zeros = TensorStream.zeros(my_matrix.shape[1])
       expect(zeros.eval).to eq([0.0, 0.0])
     end
@@ -153,7 +152,7 @@ RSpec.describe TensorStream::Tensor do
     it "evaluates a tensor" do
       constant = TensorStream.constant([1, 2, 3])
       tensor = constant * constant
-      expect(tensor.eval()).to eq([1, 4, 9])
+      expect(tensor.eval).to eq([1, 4, 9])
     end
   end
 
@@ -169,7 +168,7 @@ RSpec.describe TensorStream::Tensor do
       x = TensorStream.placeholder(TensorStream::Types.float32)
       y = TensorStream.placeholder(TensorStream::Types.float32)
       z = x + y
-      expect(z.eval(feed_dict: { x =>  3.0, y => 4.5})).to eq(7.5)
+      expect(z.eval(feed_dict: {x => 3.0, y => 4.5})).to eq(7.5)
     end
 
     specify "placeholders can have types" do

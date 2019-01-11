@@ -1,13 +1,13 @@
 module TensorStream
   module MathOps
-    def MathOps.included(klass)
+    def self.included(klass)
       klass.class_eval do
         register_op :tanh, no_eval: true do |context, _tensor, inputs|
           call_op(inputs[0], context) { |t, _b| Math.tanh(t) }
         end
 
         register_op :tan, no_eval: true do |context, tensor, inputs|
-          call_op(inputs[0], context) { |t, _b| Math.tan(t) } 
+          call_op(inputs[0], context) { |t, _b| Math.tan(t) }
         end
 
         register_op :atan, no_eval: true do |context, _tensor, inputs|
@@ -20,7 +20,7 @@ module TensorStream
 
         register_op :add, no_eval: true do |context, tensor, inputs|
           a, b = inputs
-          call_vector_op(tensor, :add, a, b, context) { |t, u|  t + u }
+          call_vector_op(tensor, :add, a, b, context) { |t, u| t + u }
         end
 
         register_op :add_n, no_eval: true do |context, tensor, inputs|
@@ -58,7 +58,7 @@ module TensorStream
 
         register_op :mul, no_eval: true do |context, tensor, inputs|
           a, b = inputs
-          call_vector_op(tensor, :mul, a, b, context)  { |t, u| t * u }
+          call_vector_op(tensor, :mul, a, b, context) { |t, u| t * u }
         end
 
         register_op :pow, no_eval: true do |context, tensor, inputs|
@@ -141,11 +141,11 @@ module TensorStream
           raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
 
           new_shape = shape_eval(inputs[0])
-          ns = new_shape.each_with_index.collect do |shape, index|
+          ns = new_shape.each_with_index.collect { |shape, index|
             next nil if index == axis
 
             shape
-          end.compact
+          }.compact
 
           Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :max), ns), tensor.data_type)
         end
@@ -156,11 +156,11 @@ module TensorStream
           raise TensorStream::InvalidArgumentError, "Expected dimension in the range [#{-rank},#{rank}) but got #{axis}" if axis < -rank || axis >= rank
 
           new_shape = shape_eval(inputs[0])
-          ns = new_shape.each_with_index.collect do |shape, index|
+          ns = new_shape.each_with_index.collect { |shape, index|
             next nil if index == axis
 
             shape
-          end.compact
+          }.compact
 
           Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :min), ns), tensor.data_type)
         end
@@ -179,9 +179,9 @@ module TensorStream
               arr = [1] + arr if exclusive
 
               start_prod = arr[0]
-              mapped = arr[1...count].map do |v|
+              mapped = arr[1...count].map { |v|
                 start_prod = vector_op(start_prod, v) { |a, b| a * b }
-              end
+              }
 
               arr = [arr[0]] + mapped
               reverse_option ? arr.reverse : arr
@@ -190,7 +190,6 @@ module TensorStream
         end
 
         register_op :sum, noop: true do |context, tensor, _inputs|
-
           reduction(context, tensor) do |arr|
             reduced_val = arr[0]
             arr[1..arr.size].each do |v|

@@ -10,9 +10,9 @@ RSpec.describe TensorStream::Graph do
 
   context ".device placement" do
     specify do
-      v = tf.device("/device:GPU:1") do
+      v = tf.device("/device:GPU:1") {
         tf.get_variable("v", shape: [1])
-      end
+      }
       expect(v.device).to eq("/device:GPU:1")
     end
   end

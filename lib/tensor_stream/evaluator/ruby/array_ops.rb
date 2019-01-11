@@ -1,6 +1,6 @@
 module TensorStream
   module ArrayOps
-    def ArrayOps.included(klass)
+    def self.included(klass)
       klass.class_eval do
         register_op :slice do |context, tensor, inputs|
           input = inputs[0]
@@ -41,17 +41,17 @@ module TensorStream
           new_shape = [inputs.size]
           shape.inject(new_shape) { |ns, s| ns << s }
 
-          divisors = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          divisors = new_shape.dup.drop(1).reverse.inject([1]) { |a, s|
             a << s * a.last
-          end.reverse
+          }.reverse
 
           axis = rank + axis if axis < 0
           rotated_shape = Array.new(axis + 1) { new_shape.shift }
           new_shape = rotated_shape.rotate! + new_shape
 
-          multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          multipliers = new_shape.dup.drop(1).reverse.inject([1]) { |a, s|
             a << s * a.last
-          end.reverse
+          }.reverse
 
           inputs.each_with_index do |input, index|
             raw_input = input.is_a?(Array) ? input.flatten : [input]
@@ -85,18 +85,18 @@ module TensorStream
           new_shape = shape_eval(inputs[0])
           rank = new_shape.size - 1
 
-          divisors = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          divisors = new_shape.dup.drop(1).reverse.inject([1]) { |a, s|
             a << s * a.last
-          end.reverse
+          }.reverse
 
           axis = rank + axis if axis < 0
           rotated_shape = Array.new(axis + 1) { new_shape.shift }
           new_shape = rotated_shape.rotate!(-1) + new_shape
           output_buffer = Array.new(new_shape.reduce(:*)) { 0 }
 
-          multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+          multipliers = new_shape.dup.drop(1).reverse.inject([1]) { |a, s|
             a << s * a.last
-          end.reverse
+          }.reverse
 
           inputs.each_with_index do |input, index|
             raw_input = input.is_a?(Array) ? input.flatten : [input]
@@ -249,16 +249,16 @@ module TensorStream
 
         register_op %i[zeros ones zeros_like ones_like] do |_context, tensor, inputs|
           shape = if %i[zeros_like ones_like].include?(tensor.operation)
-                    shape_eval(inputs[0])
-                  else
-                    inputs[0] || tensor.shape.shape
-                  end
+            shape_eval(inputs[0])
+          else
+            inputs[0] || tensor.shape.shape
+          end
 
           func = if %i[zeros zeros_like].include?(tensor.operation)
-                   -> { int_type?(tensor.data_type) ? 0 : 0.0 }
-                 else
-                   -> { int_type?(tensor.data_type) ? 1 : 1.0 }
-                 end
+            -> { int_type?(tensor.data_type) ? 0 : 0.0 }
+          else
+            -> { int_type?(tensor.data_type) ? 1 : 1.0 }
+          end
           if shape.is_a?(Array) && shape.size.zero?
             func.call
           else
@@ -288,23 +288,23 @@ module TensorStream
 
           value_shape = shape_eval(value)
           res = if num_split.is_a?(Array)
-                  begin_index = 0
-                  num_split.collect do |num|
-                    end_index = begin_index + num
-                    arr = split_tensor(value, begin_index, end_index, axis)
-                    begin_index = end_index
-                    arr
-                  end
-                else
-                  raise TensorStream::ValueError, "#{num_split} does not divide #{value_shape[axis]} evenly" if value_shape[axis] % num_split != 0
+            begin_index = 0
+            num_split.collect do |num|
+              end_index = begin_index + num
+              arr = split_tensor(value, begin_index, end_index, axis)
+              begin_index = end_index
+              arr
+            end
+          else
+            raise TensorStream::ValueError, "#{num_split} does not divide #{value_shape[axis]} evenly" if value_shape[axis] % num_split != 0
 
-                  piece_sizes = value_shape[axis] / num_split
-                  Array.new(num_split) do |num|
-                    begin_index = num * piece_sizes
-                    end_index = begin_index + piece_sizes
-                    split_tensor(value, begin_index, end_index, axis)
-                  end
-                end
+            piece_sizes = value_shape[axis] / num_split
+            Array.new(num_split) do |num|
+              begin_index = num * piece_sizes
+              end_index = begin_index + piece_sizes
+              split_tensor(value, begin_index, end_index, axis)
+            end
+          end
           TensorStream::Evaluator::OutputGroup.new(res, res.map { tensor.inputs[0].data_type })
         end
 
@@ -326,7 +326,7 @@ module TensorStream
         register_op :tile do |_context, _tensor, inputs|
           input, multiples = inputs
           rank = get_rank(input)
-          raise '1D or higher tensor required' if rank.zero?
+          raise "1D or higher tensor required" if rank.zero?
           raise "invalid multiple size passed #{rank} != #{multiples.size}" if rank != multiples.size
 
           tile = tile_arr(input, 0, multiples)
@@ -343,9 +343,9 @@ module TensorStream
         end
 
         register_op :shape_n do |_context, tensor, inputs|
-          shapes = inputs.collect do |input|
+          shapes = inputs.collect { |input|
             shape_eval(input)
-          end
+          }
           TensorStream::Evaluator::OutputGroup.new(shapes, shapes.map { tensor.options[:out_type] })
         end
 
@@ -372,7 +372,7 @@ module TensorStream
 
           if tensor.options[:exclusive]
             p_true = pred.each_with_index.collect { |p, index| [p, index] }.select { |a| a[0] }
-            raise TensorStream::ValueError, "more than one predicate returns true pos #{p_true.map { |a| a[1] }.join(',')}" if p_true.size > 1
+            raise TensorStream::ValueError, "more than one predicate returns true pos #{p_true.map { |a| a[1] }.join(",")}" if p_true.size > 1
           end
 
           pred.each_with_index do |p, index|

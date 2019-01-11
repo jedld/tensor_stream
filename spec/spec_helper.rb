@@ -1,9 +1,9 @@
 require "bundler/setup"
-require 'simplecov'
+require "simplecov"
 SimpleCov.start
 
 require "tensor_stream"
-require 'awesome_print'
+require "awesome_print"
 # require 'pry-byebug'
 
 Dir["./spec/support/**/*.rb"].sort.each { |f| require f }
@@ -23,8 +23,6 @@ RSpec.configure do |config|
   end
 end
 
-
-
 # Helper function to truncate floating point values (for testing)
 # truncation is done in tests since different machines return the last digits of
 # fp values differently
@@ -35,7 +33,7 @@ def tr(t, places = 4)
     end
   end
 
-  return t unless t.kind_of?(Float)
+  return t unless t.is_a?(Float)
 
   t.round(places)
 end
@@ -47,6 +45,6 @@ def trf(t, places)
     end
   end
 
-  return t unless t.kind_of?(Float)
+  return t unless t.is_a?(Float)
   t.truncate(places)
 end

@@ -58,7 +58,7 @@ module TensorStream
     end
 
     def zero?
-      _op(:equal, self, TensorStream.constant(0, dtype: data_type, name: 'equal/is_zero?'))
+      _op(:equal, self, TensorStream.constant(0, dtype: data_type, name: "equal/is_zero?"))
     end
 
     def ==(other)
@@ -126,7 +126,7 @@ module TensorStream
                     :mean
                   else
                     raise "unsupported reduce op type #{op_type} valid values are :+, :*, :prod, :mean"
-                  end
+      end
       raise "blocks are not supported for tensors" if block_given?
 
       TensorStream.reduce(reduce_op, self, axis, keepdims: keepdims, name: name)

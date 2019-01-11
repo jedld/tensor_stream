@@ -11,7 +11,7 @@ module TensorStream
       @options = options
       @is_const = true
       @internal = options[:internal]
-      @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
+      @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join("/")
       @given_name = @name
 
       if options[:value]

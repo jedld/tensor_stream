@@ -12,10 +12,10 @@ module TensorStream
       return i_op(:ones_like, tensor) if tensor.equal?(wrt_dx)
       return i_op(:zeros_like, wrt_dx) unless wrt_dx.consumers.include?(tensor.name)
 
-      nodes_to_compute = wrt_dx.consumers.select do |t|
+      nodes_to_compute = wrt_dx.consumers.select { |t|
         node = tensor.graph.nodes[t]
         node.consumers.include?(tensor.name) || node.equal?(tensor)
-      end.compact + [wrt_dx.name]
+      }.compact + [wrt_dx.name]
 
       grad = i_op(:fill, ts.shape(tensor), ts.constant(1, dtype: wrt_dx.data_type))
 
@@ -30,12 +30,12 @@ module TensorStream
       computed_op = _compute_derivative(tensor, grad)
 
       if computed_op.is_a?(Array)
-        grads = computed_op.each_with_index.collect do |op_grad, index|
+        grads = computed_op.each_with_index.collect { |op_grad, index|
           next if op_grad.nil?
           next unless nodes_to_compute.include?(tensor.inputs[index].name)
 
           _propagate(op_grad, tensor.inputs[index], stop_tensor, nodes_to_compute, stop_gradients)
-        end.compact
+        }.compact
 
         return nil if grads.empty?
         grads.size > 1 ? ts.add_n(grads) : grads[0]
@@ -48,7 +48,7 @@ module TensorStream
       end
     end
 
-    #TODO: refactor and implement registerGradient
+    # TODO: refactor and implement registerGradient
     def self._compute_derivative(node, grad)
       node.graph.name_scope("#{node.name}_grad") do
         x = node.inputs[0] if node.inputs[0]
@@ -60,12 +60,12 @@ module TensorStream
           return [grad] * node.inputs.size
         when :add
           return [grad, grad] if shapes_fully_specified_and_equal(x, y)
-          sx = ts.shape(x, name: 'add/shape_x')
-          sy = ts.shape(y, name: 'add/shape_y')
+          sx = ts.shape(x, name: "add/shape_x")
+          sy = ts.shape(y, name: "add/shape_y")
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [ts.reshape(ts.reduce_sum(grad, rx, name: 'add/reduce_sum_x'), sx),
-           ts.reshape(ts.reduce_sum(grad, ry, name: 'add/reduce_sum_y'), sy)]
+          [ts.reshape(ts.reduce_sum(grad, rx, name: "add/reduce_sum_x"), sx),
+           ts.reshape(ts.reduce_sum(grad, ry, name: "add/reduce_sum_y"), sy),]
         when :asin
           ts.control_dependencies([grad]) do
             x2 = ts.square(x)
@@ -94,26 +94,26 @@ module TensorStream
         when :sub
           return [grad, -grad] if shapes_fully_specified_and_equal(x, y)
 
-          sx = ts.shape(x, name: 'sub/shape_x')
-          sy = ts.shape(y, name: 'sub/shape_y')
+          sx = ts.shape(x, name: "sub/shape_x")
+          sy = ts.shape(y, name: "sub/shape_y")
           rx, ry = _broadcast_gradient_args(sx, sy)
 
-          [ts.reshape(ts.reduce_sum(grad, rx, name: 'add/reduce_sub_x'), sx),
-           -ts.reshape(ts.reduce_sum(grad, ry, name: 'add/reduce_sub_y'), sy)]
+          [ts.reshape(ts.reduce_sum(grad, rx, name: "add/reduce_sub_x"), sx),
+           -ts.reshape(ts.reduce_sum(grad, ry, name: "add/reduce_sub_y"), sy),]
         when :mul
           sx = ts.shape(x)
           sy = ts.shape(y)
           rx, ry = _broadcast_gradient_args(sx, sy)
 
           [ts.reshape(ts.reduce_sum(ts.mul(grad, y), rx), sx),
-           ts.reshape(ts.reduce_sum(ts.mul(x, grad), ry), sy)]
+           ts.reshape(ts.reduce_sum(ts.mul(x, grad), ry), sy),]
         when :div
           sx = i_op(:shape, x)
           sy = i_op(:shape, y)
           rx, ry = _broadcast_gradient_args(sx, sy)
 
           [ts.reshape(ts.reduce_sum(ts.div(grad, y), rx), sx),
-           ts.reshape(ts.reduce_sum(grad * ts.div(ts.div(-x, y), y), ry), sy)]
+           ts.reshape(ts.reduce_sum(grad * ts.div(ts.div(-x, y), y), ry), sy),]
         when :mod
           sx = ts.shape(x)
           sy = ts.shape(y)
@@ -133,7 +133,7 @@ module TensorStream
           grad = ts.reshape(grad, output_shape_kept_dims)
           grad = ts.tile(grad, tile_scaling)
 
-          perm, reduced_num, other_num = ts.device("/cpu:0") do
+          perm, reduced_num, other_num = ts.device("/cpu:0") {
             rank = ts.rank(x)
             reduction_indices = (reduction_indices + rank) % rank
             reduced = ts.cast(reduction_indices, :int32)
@@ -141,8 +141,8 @@ module TensorStream
             other, = ts.setdiff1d(idx, reduced)
             [ts.concat([reduced, other], 0),
              ts.reduce_prod(ts.gather(input_shape, reduced)),
-             ts.reduce_prod(ts.gather(input_shape, other))]
-          end
+             ts.reduce_prod(ts.gather(input_shape, other)),]
+          }
 
           permuted = ts.transpose(x, perm)
           permuted_shape = ts.shape(permuted)
@@ -157,7 +157,7 @@ module TensorStream
           # Invert the transpose and reshape operations.
           # Make sure to set the statically known shape information through a reshape.
           out = grad * ts.transpose(y, ts.invert_permutation(perm))
-          [ts.reshape(out, input_shape, name: 'prod'), nil]
+          [ts.reshape(out, input_shape, name: "prod"), nil]
         when :squared_difference
           sx = i_op(:shape, x)
           sy = i_op(:shape, y)
@@ -166,7 +166,7 @@ module TensorStream
           x_grad = ts.mul(2.0, grad) * (x - y)
 
           [ts.reshape(ts.reduce_sum(x_grad, rx), sx),
-           ts.reshape(-ts.reduce_sum(x_grad, ry), sy)]
+           ts.reshape(-ts.reduce_sum(x_grad, ry), sy),]
         when :mat_mul
           t_a = node.options[:transpose_a]
           t_b = node.options[:transpose_b]
@@ -248,9 +248,9 @@ module TensorStream
         when :case
           n_preds = node.inputs.size - 2
 
-          case_grads = Array.new(n_preds) do |index|
+          case_grads = Array.new(n_preds) { |index|
             i_op(:case_grad, index, node.inputs[0], node.inputs[2 + index], grad)
-          end
+          }
 
           [nil, i_op(:case_grad, -1, node.inputs[0], node.inputs[1], grad)] + case_grads
         when :mean
@@ -294,9 +294,9 @@ module TensorStream
             multiplier = node.inputs[0].shape.shape[0]
             filler = ts.zeros_like(grad)
 
-            res = Array.new(multiplier) do |index|
+            res = Array.new(multiplier) { |index|
               index == node.inputs[1].const_value ? grad : filler
-            end
+            }
             [res]
           end
         when :squeeze
@@ -373,8 +373,8 @@ module TensorStream
       zeros = ts.zeros(gradshape, dtype: gdtype)
       xmask = selector_op.call(x, y)
       rx, ry = _broadcast_gradient_args(sx, sy)
-      xgrad = ts.where(xmask, grad, zeros, name: 'x')
-      ygrad = ts.where(xmask, zeros, grad, name: 'y')
+      xgrad = ts.where(xmask, grad, zeros, name: "x")
+      ygrad = ts.where(xmask, zeros, grad, name: "y")
       gx = ts.reshape(ts.reduce_sum(xgrad, rx), sx)
       gy = ts.reshape(ts.reduce_sum(ygrad, ry), sy)
       [gx, gy]
@@ -435,22 +435,22 @@ module TensorStream
 
       shape_0, shape_1 = ts.shape_n([op.inputs[0], op.inputs[1]])
       [
-          _op(:conv2d_backprop_input,
-              shape_0,
-              op.inputs[1],
-              grad,
-              strides: strides,
-              padding: padding,
-              use_cudnn_on_gpu: use_cudnn_on_gpu,
-              data_format: data_format),
-          _op(:conv2d_backprop_filter,
-              op.inputs[0],
-              shape_1,
-              grad,
-              strides: strides,
-              padding: padding,
-              use_cudnn_on_gpu: use_cudnn_on_gpu,
-              data_format: data_format)
+        _op(:conv2d_backprop_input,
+          shape_0,
+          op.inputs[1],
+          grad,
+          strides: strides,
+            padding: padding,
+            use_cudnn_on_gpu: use_cudnn_on_gpu,
+            data_format: data_format),
+        _op(:conv2d_backprop_filter,
+          op.inputs[0],
+          shape_1,
+          grad,
+          strides: strides,
+          padding: padding,
+          use_cudnn_on_gpu: use_cudnn_on_gpu,
+          data_format: data_format),
       ]
     end
   end

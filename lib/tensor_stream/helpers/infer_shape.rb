@@ -1,4 +1,4 @@
-require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
+require "tensor_stream/evaluator/operation_helpers/array_ops_helper"
 module TensorStream
   ##
   # Convenience class for guessing the shape of a tensor
@@ -10,17 +10,17 @@ module TensorStream
     def self.infer_shape(tensor)
       case tensor.operation
       when :case, :case_grad
-        tensor.inputs[2].shape.shape if tensor.inputs[2]
+        tensor.inputs[2]&.shape&.shape
       when :const
         shape_eval(tensor.options[:value])
       when :variable_v2
         tensor.shape ? tensor.shape.shape : nil
       when :assign
-        possible_shape = if tensor.inputs[0] && tensor.inputs[0].shape.shape
-                           tensor.inputs[0].shape.shape
-                         else
-                           tensor.inputs[1].shape.shape
-                         end
+        possible_shape = if tensor.inputs[0]&.shape&.shape
+          tensor.inputs[0].shape.shape
+        else
+          tensor.inputs[1].shape.shape
+        end
 
         possible_shape
       when :index
@@ -39,11 +39,11 @@ module TensorStream
 
         axis = tensor.inputs[1].nil? ? 0 : tensor.inputs[1].const_value
         new_shape = tensor.inputs[0].shape.shape
-        new_shape.each_with_index.collect do |shape, index|
+        new_shape.each_with_index.collect { |shape, index|
           next nil if index == axis
 
           shape
-        end.compact
+        }.compact
       when :mean, :prod, :sum, :arg_max
         return [] if tensor.inputs[1].nil?
         return nil if tensor.inputs[0].nil?
@@ -58,16 +58,16 @@ module TensorStream
         axis = [axis] unless axis.is_a?(Array)
         axis = axis.map { |a| a < 0 ? rank - a.abs : a }
 
-        input_shape.each_with_index.map do |item, index|
+        input_shape.each_with_index.map { |item, index|
           if axis.include?(index)
             next 1 if tensor.options[:keepdims]
 
             next nil
           end
           item
-        end.compact
+        }.compact
       when :reshape
-        new_shape = tensor.inputs[1] && tensor.inputs[1].const_value ? tensor.inputs[1].const_value : nil
+        new_shape = tensor.inputs[1]&.const_value ? tensor.inputs[1].const_value : nil
         return nil if new_shape.nil?
         return nil if tensor.inputs[0].shape.nil?
 
@@ -100,16 +100,16 @@ module TensorStream
         return nil if tensor.inputs[0].shape.shape.size != 2 || tensor.inputs[1].shape.shape.size != 2
 
         shape1, m = if tensor.options[:transpose_a]
-                      [tensor.inputs[0].shape.shape[0], tensor.inputs[0].shape.shape[1]]
-                    else
-                      [tensor.inputs[0].shape.shape[1], tensor.inputs[0].shape.shape[0]]
-                    end
+          [tensor.inputs[0].shape.shape[0], tensor.inputs[0].shape.shape[1]]
+        else
+          [tensor.inputs[0].shape.shape[1], tensor.inputs[0].shape.shape[0]]
+        end
 
         shape2, n = if tensor.options[:transpose_b]
-                      [tensor.inputs[1].shape.shape[1], tensor.inputs[1].shape.shape[0]]
-                    else
-                      [tensor.inputs[1].shape.shape[0], tensor.inputs[1].shape.shape[1]]
-                    end
+          [tensor.inputs[1].shape.shape[1], tensor.inputs[1].shape.shape[0]]
+        else
+          [tensor.inputs[1].shape.shape[0], tensor.inputs[1].shape.shape[1]]
+        end
 
         return nil if shape1.nil? || shape2.nil? || shape1 < 0 || shape2 < 0
 
@@ -190,10 +190,10 @@ module TensorStream
         strides = tensor.options[:strides]
 
         case tensor.options[:padding]
-        when 'SAME'
+        when "SAME"
           new_shape[1] /= strides[1]
           new_shape[2] /= strides[2]
-        when 'VALID'
+        when "VALID"
           new_shape[1] = (new_shape[1] - tensor.inputs[1].shape.shape[0]) / strides[1] + 1
           new_shape[2] = (new_shape[2] - tensor.inputs[1].shape.shape[1]) / strides[2] + 1
         else

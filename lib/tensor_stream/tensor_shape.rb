@@ -11,9 +11,9 @@ module TensorStream
     def to_s
       return "?" if @shape.nil?
 
-      dimensions = @shape.collect do |r|
+      dimensions = @shape.collect { |r|
         "Dimension(#{r})"
-      end.join(',')
+      }.join(",")
       "TensorShape([#{dimensions}])"
     end
 
@@ -53,14 +53,14 @@ module TensorStream
       reversed_a = shape_a.reverse
       reversed_b = shape_b.reverse
 
-      reversed_a.each_with_index.collect do |s, index|
+      reversed_a.each_with_index.collect { |s, index|
         next s if index >= reversed_b.size
         next nil if s.nil? || reversed_b[index].nil?
         next nil if s.is_a?(Tensor) || reversed_b[index].is_a?(Tensor)
         next reversed_b[index] if reversed_b[index] > s
 
         s
-      end.reverse
+      }.reverse
     end
 
     def self.reshape(arr, new_shape)

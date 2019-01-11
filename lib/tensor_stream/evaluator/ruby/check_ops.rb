@@ -1,6 +1,6 @@
 module TensorStream
   module CheckOps
-    def CheckOps.included(klass)
+    def self.included(klass)
       klass.class_eval do
         register_op :assert_equal do |context, tensor, inputs|
           result = call_vector_op(tensor, :equal, inputs[0], inputs[1], context) { |t, u| t == u }

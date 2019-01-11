@@ -12,10 +12,10 @@ module TensorStream
 
       node_keys.each do |k|
         node = if block_given?
-                 yield graph, k
-               else
-                 graph.get_tensor_by_name(k)
-               end
+          yield graph, k
+        else
+          graph.get_tensor_by_name(k)
+        end
         next unless node.is_a?(Operation)
 
         serialized_arr << node.to_h

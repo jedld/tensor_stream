@@ -1,4 +1,4 @@
-require 'tensor_stream/helpers/infer_shape'
+require "tensor_stream/helpers/infer_shape"
 module TensorStream
   # TensorStream class that defines an operation
   class Operation < Tensor
@@ -17,7 +17,7 @@ module TensorStream
     end
 
     def inspect
-      "Op(#{operation} name: #{name} shape: #{@shape || '?'} data_type: #{data_type})"
+      "Op(#{operation} name: #{name} shape: #{@shape || "?"} data_type: #{data_type})"
     end
 
     def to_s
@@ -30,7 +30,7 @@ module TensorStream
         name: name.to_s,
         data_type: @data_type,
         inputs: @inputs.map(&:name),
-        attrs: serialize_options
+        attrs: serialize_options,
       }
     end
 
@@ -145,11 +145,11 @@ module TensorStream
             when :slice
               "#{sub_input}[#{sub_input2}]"
             when :assign_sub
-              "(#{inputs[0] ? inputs[0].name : 'self'} -= #{auto_math(inputs[1], name_only, 1)})"
+              "(#{inputs[0] ? inputs[0].name : "self"} -= #{auto_math(inputs[1], name_only, 1)})"
             when :assign_add
-              "(#{inputs[0] ? inputs[0].name : 'self'} += #{auto_math(inputs[1], name_only, 1)})"
+              "(#{inputs[0] ? inputs[0].name : "self"} += #{auto_math(inputs[1], name_only, 1)})"
             when :assign
-              "(#{inputs[0] ? inputs[0].name : 'self'} = #{auto_math(inputs[1], name_only, 1)})"
+              "(#{inputs[0] ? inputs[0].name : "self"} = #{auto_math(inputs[1], name_only, 1)})"
             when :sin, :cos, :tanh
               "#{operation}(#{sub_input})"
             when :add
@@ -193,7 +193,7 @@ module TensorStream
             when :ones_like
               "ones_like(#{sub_input})"
             when :flow_group
-              "flow_group(#{inputs.collect { |i| auto_math(i, name_only, max_depth - 1, cur_depth) }.join(',')})"
+              "flow_group(#{inputs.collect { |i| auto_math(i, name_only, max_depth - 1, cur_depth) }.join(",")})"
             when :zeros
               "zeros(#{sub_input})"
             when :reshape
@@ -243,8 +243,8 @@ module TensorStream
             else
               "#{operation}(#{sub_input})" if sub_input
               "#{operation}(#{sub_input}, #{sub_input2})" if sub_input && sub_input2
-            end
-      ["\n", Array.new(cur_depth + 1) { ' ' }, out].flatten.join
+      end
+      ["\n", Array.new(cur_depth + 1) { " " }, out].flatten.join
     end
 
     def run
@@ -260,21 +260,21 @@ module TensorStream
     def serialize_options
       excludes = %i[internal_name source]
 
-      @options.reject { |k, v| excludes.include?(k) || v.nil? }.map do |k, v|
+      @options.reject { |k, v| excludes.include?(k) || v.nil? }.map { |k, v|
         v = case v.class.to_s
-            when 'TensorStream::TensorShape'
+            when "TensorStream::TensorShape"
               v.shape
-            when 'Array'
+            when "Array"
               v
-            when 'String', 'Integer', 'Float', 'Symbol', 'FalseClass', "TrueClass"
+            when "String", "Integer", "Float", "Symbol", "FalseClass", "TrueClass"
               v
-            when 'TensorStream::Variable'
-              { name: v.name, options: v.options, shape: v.shape.shape.dup }
+            when "TensorStream::Variable"
+              {name: v.name, options: v.options, shape: v.shape.shape.dup}
             else
               raise "unknown type #{v.class}"
-            end
+        end
         [k.to_sym, v]
-      end.to_h
+      }.to_h
     end
 
     def add_consumer(consumer)

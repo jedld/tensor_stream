@@ -1,4 +1,3 @@
-
 module TensorStream
   # module that contains helper functions useful for ops
   module OpHelper
@@ -7,7 +6,7 @@ module TensorStream
 
       op = default_graph.add_op!(code.to_sym, *args)
       if !default_graph.get_dependency_scope.nil?
-        i_op(:identity, op, default_graph.get_dependency_scope, name: [op.name, 'tuple', 'control_dependency'].join('/'))
+        i_op(:identity, op, default_graph.get_dependency_scope, name: [op.name, "tuple", "control_dependency"].join("/"))
       else
         op
       end
@@ -16,10 +15,10 @@ module TensorStream
     # same as op but with a marker that it was internal generated
     def i_op(code, *args)
       options = if args.last.is_a?(Hash)
-                  args.pop
-                else
-                  {}
-                end
+        args.pop
+      else
+        {}
+      end
 
       args << options.merge(internal: true)
       Graph.get_default_graph.add_op!(code.to_sym, *args)
@@ -65,8 +64,8 @@ module TensorStream
     end
 
     def format_source(trace)
-      grad_source = trace.detect { |c| c.to_s.include?(File.join('lib', 'tensor_stream', 'math_gradients')) }
-      source = trace.reject { |c| c.to_s.include?(File.join('lib', 'tensor_stream')) }.first
+      grad_source = trace.detect { |c| c.to_s.include?(File.join("lib", "tensor_stream", "math_gradients")) }
+      source = trace.reject { |c| c.to_s.include?(File.join("lib", "tensor_stream")) }.first
       [grad_source, trace].compact.join("\n")
     end
 
@@ -94,7 +93,7 @@ module TensorStream
       axes_shape = i_op(:shape, axes)
 
       TensorStream.dynamic_stitch([TensorStream.range(0, input_rank), axes],
-                                  [input_shape, i_op(:fill, axes_shape, 1)])
+        [input_shape, i_op(:fill, axes_shape, 1)])
     end
   end
 end

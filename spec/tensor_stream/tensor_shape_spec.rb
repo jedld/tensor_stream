@@ -1,5 +1,5 @@
 require "spec_helper"
-require 'benchmark'
+require "benchmark"
 
 RSpec.describe TensorStream::TensorShape do
   context ".infer_shape" do

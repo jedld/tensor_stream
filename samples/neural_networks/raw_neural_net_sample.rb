@@ -13,13 +13,13 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 The mnist-learn gem is required as well as an OpenCL compatible device with drivers correctly installed
 """
 require "bundler/setup"
-require 'tensor_stream'
-require 'mnist-learn'
+require "tensor_stream"
+require "mnist-learn"
 
 tf = TensorStream
 # Import MNIST data
 puts "downloading minst data"
-mnist = Mnist.read_data_sets('/tmp/data', one_hot: true)
+mnist = Mnist.read_data_sets("/tmp/data", one_hot: true)
 puts "downloading finished"
 
 # Parameters
@@ -41,27 +41,26 @@ Y = tf.placeholder(:float64, shape: [nil, num_classes])
 
 # Store layers weight & bias
 weights = {
-    'h1' => tf.variable(tf.random_normal([num_input, n_hidden_1]), dtype: :float64, name: 'h1'),
-    'h2' => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), dtype: :float64, name: 'h2'),
-    'out' => tf.variable(tf.random_normal([n_hidden_2, num_classes]), dtype: :float64, name: 'out')
+  "h1" => tf.variable(tf.random_normal([num_input, n_hidden_1]), dtype: :float64, name: "h1"),
+  "h2" => tf.variable(tf.random_normal([n_hidden_1, n_hidden_2]), dtype: :float64, name: "h2"),
+  "out" => tf.variable(tf.random_normal([n_hidden_2, num_classes]), dtype: :float64, name: "out"),
 }
 
 biases = {
-    'b1' => tf.variable(tf.random_normal([n_hidden_1]), dtype: :float64, name: 'b1'),
-    'b2' => tf.variable(tf.random_normal([n_hidden_2]), dtype: :float64, name: 'b2'),
-    'out' => tf.variable(tf.random_normal([num_classes]), dtype: :float64, name: 'out2')
+  "b1" => tf.variable(tf.random_normal([n_hidden_1]), dtype: :float64, name: "b1"),
+  "b2" => tf.variable(tf.random_normal([n_hidden_2]), dtype: :float64, name: "b2"),
+  "out" => tf.variable(tf.random_normal([num_classes]), dtype: :float64, name: "out2"),
 }
-
 
 # Create model
 def neural_net(x, weights, biases)
-    tf = TensorStream
-    # Hidden fully connected layer with 256 neurons
-    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    # Hidden fully connected layer with 256 neurons
-    layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
-    # Output fully connected layer with a neuron for each class
-    tf.matmul(layer_2, weights['out']) + biases['out']
+  tf = TensorStream
+  # Hidden fully connected layer with 256 neurons
+  layer_1 = tf.add(tf.matmul(x, weights["h1"]), biases["b1"])
+  # Hidden fully connected layer with 256 neurons
+  layer_2 = tf.add(tf.matmul(layer_1, weights["h2"]), biases["b2"])
+  # Output fully connected layer with a neuron for each class
+  tf.matmul(layer_2, weights["out"]) + biases["out"]
 end
 
 # Construct model
@@ -70,7 +69,8 @@ prediction = tf.nn.softmax(logits)
 
 # Define loss and optimizer
 loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-    logits: logits, labels: Y))
+  logits: logits, labels: Y
+))
 
 optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true)
 train_op = optimizer.minimize(loss_op)
@@ -86,27 +86,27 @@ init = tf.global_variables_initializer
 
 # Start training
 tf.session do |sess|
-    # Run the initializer
-    sess.run(init)
+  # Run the initializer
+  sess.run(init)
 
-    print("Testing Accuracy:", \
-        sess.run(accuracy, feed_dict: { X => mnist.test.images,
-                                        Y => mnist.test.labels}))
+  print("Testing Accuracy:", \
+    sess.run(accuracy, feed_dict: {X => mnist.test.images,
+                                   Y => mnist.test.labels,}))
 
-    (1..num_steps+1).each do |step|
-        batch_x, batch_y = mnist.train.next_batch(batch_size)
-        # Run optimization op (backprop)
-        sess.run(train_op, feed_dict: { X => batch_x, Y => batch_y })
-        if step % display_step == 0 || step == 1
-            # Calculate batch loss and accuracy
-            loss, acc = sess.run([loss_op, accuracy], feed_dict: { X => batch_x, Y => batch_y})
-            print("\nStep " + step.to_s + ", Minibatch Loss= " + \
-                    loss.to_s + ", Training Accuracy= " + \
-                    acc.to_s)
-        end
+  (1..num_steps + 1).each do |step|
+    batch_x, batch_y = mnist.train.next_batch(batch_size)
+    # Run optimization op (backprop)
+    sess.run(train_op, feed_dict: {X => batch_x, Y => batch_y})
+    if step % display_step == 0 || step == 1
+      # Calculate batch loss and accuracy
+      loss, acc = sess.run([loss_op, accuracy], feed_dict: {X => batch_x, Y => batch_y})
+      print("\nStep " + step.to_s + ", Minibatch Loss= " + \
+              loss.to_s + ", Training Accuracy= " + \
+              acc.to_s)
     end
-    print("\nOptimization Finished!")
-    print("\nTesting Accuracy after optimization:", \
-        sess.run(accuracy, feed_dict: { X => mnist.test.images,
-                                        Y => mnist.test.labels}))
+  end
+  print("\nOptimization Finished!")
+  print("\nTesting Accuracy after optimization:", \
+    sess.run(accuracy, feed_dict: {X => mnist.test.images,
+                                   Y => mnist.test.labels,}))
 end

@@ -7,8 +7,8 @@
 #   mnist-learn gem
 #   opencl_ruby_ffi gem
 require "bundler/setup"
-require 'tensor_stream'
-require 'mnist-learn'
+require "tensor_stream"
+require "mnist-learn"
 
 # Enable OpenCL hardware accelerated computation, not using OpenCL can be very slow
 # require 'tensor_stream/opencl'
@@ -17,7 +17,7 @@ tf = TensorStream
 
 # Import MNIST data
 puts "downloading minst data"
-mnist = Mnist.read_data_sets('/tmp/data', one_hot: true)
+mnist = Mnist.read_data_sets("/tmp/data", one_hot: true)
 puts "downloading finished"
 
 x = Float.placeholder shape: [nil, 784]
@@ -45,19 +45,18 @@ sess.run(init)
 (0...1000).each do |i|
   # load batch of images and correct answers
   batch_x, batch_y = mnist.train.next_batch(100)
-  train_data = { x => batch_x, y_ => batch_y }
+  train_data = {x => batch_x, y_ => batch_y}
 
   # train
   sess.run(train_step, feed_dict: train_data)
-  if (i % 10 == 0)
+  if i % 10 == 0
     # success? add code to print it
     a, c = sess.run([accuracy, cross_entropy], feed_dict: train_data)
     puts "#{i} train accuracy #{a}, error #{c}"
 
     # success on test data?
-    test_data = { x => mnist.test.images, y_ => mnist.test.labels }
+    test_data = {x => mnist.test.images, y_ => mnist.test.labels}
     a, c = sess.run([accuracy, cross_entropy], feed_dict: test_data)
     puts " test accuracy #{a}, error #{c}"
   end
 end
-

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 RSpec.describe TensorStream::Train::Utils do
   before(:each) do
@@ -23,7 +23,7 @@ RSpec.describe TensorStream::Train::Utils do
       global_step_var = TensorStream.train.create_global_step
       expect(global_step_var).to be
 
-      #should be in GLOBAL_STEP collection
+      # should be in GLOBAL_STEP collection
       expect(TensorStream.get_collection(TensorStream::GraphKeys::GLOBAL_STEP)).to eq([global_step_var])
     end
 

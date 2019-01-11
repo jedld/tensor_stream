@@ -7,7 +7,7 @@ module TensorStream
       attr_accessor :learning_rate
 
       def initialize(learning_rate, initial_accumulator_value = 0.1,
-                     use_locking: false, name: "Adagrad")
+        use_locking: false, name: "Adagrad")
         @learning_rate = learning_rate
         @initial_accumulator_value = initial_accumulator_value
         @learning_rate_tensor = nil
@@ -38,8 +38,8 @@ module TensorStream
       def apply_dense(grad, var)
         acc = get_slot(var, "accumulator")
         _op(:apply_adagrad,
-            var, acc, TensorStream.cast(@learning_rate_tensor, var.data_type),
-            grad, use_locking: @use_locking)
+          var, acc, TensorStream.cast(@learning_rate_tensor, var.data_type),
+          grad, use_locking: @use_locking)
       end
     end
   end

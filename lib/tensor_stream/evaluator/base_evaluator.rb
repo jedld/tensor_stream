@@ -34,20 +34,20 @@ module TensorStream
       ##
       # Query all supported devices
       def self.query_supported_devices
-        [Device.new('cpu', :cpu, self)]
+        [Device.new("cpu", :cpu, self)]
       end
 
       ##
       # Select the best device available in the system for this evaluator
       def self.default_device
-        Device.new('cpu', :cpu, self)
+        Device.new("cpu", :cpu, self)
       end
 
       ##
       # Selects the best device with the specified query, query can
       # be evaluator specific
       def self.fetch_device(_query = [])
-        Device.new('cpu', :cpu, self)
+        Device.new("cpu", :cpu, self)
       end
 
       ##
@@ -56,12 +56,12 @@ module TensorStream
         return default_device if query.nil? || query == :default
 
         all_devices = query_supported_devices
-        substrs = query.split('/')
+        substrs = query.split("/")
         substrs.each do |q|
-          components = q.split(':')
+          components = q.split(":")
           next if components.size.zero?
 
-          if components[0] == 'device' # use tensorflow convention
+          if components[0] == "device" # use tensorflow convention
             device_type = components[1]
             select_index = components[2].to_i
 
@@ -79,7 +79,7 @@ module TensorStream
 
             select_index = [devices.size - 1, select_index].min
             return devices[select_index]
-          elsif components[0] == 'ts' # tensorstream specific
+          elsif components[0] == "ts" # tensorstream specific
             evaluator_class = TensorStream::Evaluator.evaluators[components[1]][:class]
             return nil unless self == evaluator_class
             return evaluator_class.fetch_device(components[2..components.size]) if evaluator_class.respond_to?(:fetch_device)
@@ -95,10 +95,10 @@ module TensorStream
         @ops ||= {}
         if opcode.is_a?(Array)
           opcode.each do |op|
-            @ops[op.to_sym] = { options: options, block: block }
+            @ops[op.to_sym] = {options: options, block: block}
           end
         else
-          @ops[opcode.to_sym] = { options: options, block: block }
+          @ops[opcode.to_sym] = {options: options, block: block}
         end
       end
 
@@ -115,7 +115,7 @@ module TensorStream
         op = self.class.ops[tensor.operation.to_sym]
         op_options = op[:options]
 
-        resolved_inputs = tensor.inputs.map do |i|
+        resolved_inputs = tensor.inputs.map { |i|
           next if i.nil?
           next i if op_options[:noop]
 
@@ -124,25 +124,25 @@ module TensorStream
           end
 
           global_eval(tensor, i, execution_context, op_options)
-        end
+        }
 
         start_time = if profile_enabled?
-                       time = Time.now
-                       time.to_i * (10**9) + time.nsec
-                     end
+          time = Time.now
+          time.to_i * (10**9) + time.nsec
+        end
 
         instance_exec(execution_context, tensor, resolved_inputs, &op[:block]).tap do
           if profile_enabled?
             time = Time.now
             end_time = time.to_i * (10**9) + time.nsec
-            @context[:profile] ||= { step: 0, operations: {} }
+            @context[:profile] ||= {step: 0, operations: {}}
             @context[:profile][:step] += 1
-            @context[:profile][:operations][tensor.name] = { op: tensor.operation,
+            @context[:profile][:operations][tensor.name] = {op: tensor.operation,
                                                              step: @context[:profile][:step],
                                                              eval_time: end_time - start_time,
                                                              shape: tensor.shape ? tensor.shape.shape : nil,
                                                              data_type: tensor.data_type,
-                                                             tensor: tensor }
+                                                             tensor: tensor,}
           end
         end
       end
@@ -222,7 +222,7 @@ module TensorStream
 
     def self.register_evaluator(klass, name, index = 0)
       @evaluators ||= {}
-      @evaluators[name] = { name: name, class: klass, index: index }
+      @evaluators[name] = {name: name, class: klass, index: index}
     end
 
     def self.default_evaluators

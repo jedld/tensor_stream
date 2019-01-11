@@ -57,24 +57,24 @@ module TensorStream
     # +tensor_ys+ : A Tensor or list of tensors to be differentiated.
     # +wrt_xs+ : A Tensor or list of tensors to be used for differentiation.
     # +stop_gradients+ :  Optional. A Tensor or list of tensors not to differentiate through
-    def gradients(tensor_ys, wrt_xs, name: 'gradients', stop_gradients: nil)
+    def gradients(tensor_ys, wrt_xs, name: "gradients", stop_gradients: nil)
       tensor_ys = tensor_ys.op
-      gs = wrt_xs.map(&:op).collect do |x|
-        stops = stop_gradients ? stop_gradients.map(&:name).join('_') : ''
+      gs = wrt_xs.map(&:op).collect { |x|
+        stops = stop_gradients ? stop_gradients.map(&:name).join("_") : ""
         gradient_program_name = "grad_#{tensor_ys.name}_#{x.name}_#{stops}".to_sym
         tensor_graph = tensor_ys.graph
 
         tensor_program = if tensor_graph.node_added?(gradient_program_name)
-                           tensor_graph.get_node(gradient_program_name)
-                         else
-                           tensor_graph.name_scope("gradient_wrt_#{x.name}") do
-                             derivative_ops = TensorStream::MathGradients.derivative(tensor_ys, x, graph: tensor_graph,
-                                                                                                   stop_gradients: stop_gradients)
-                             tensor_graph.add_node!(gradient_program_name, derivative_ops)
-                           end
-                         end
+          tensor_graph.get_node(gradient_program_name)
+        else
+          tensor_graph.name_scope("gradient_wrt_#{x.name}") do
+            derivative_ops = TensorStream::MathGradients.derivative(tensor_ys, x, graph: tensor_graph,
+                                                                                  stop_gradients: stop_gradients)
+            tensor_graph.add_node!(gradient_program_name, derivative_ops)
+          end
+        end
         tensor_program
-      end
+      }
 
       gs
     end
@@ -82,21 +82,21 @@ module TensorStream
     ##
     # Outputs random values from a uniform distribution.
     def random_uniform(shape, dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
-      options = { dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name }
+      options = {dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name}
       _op(:random_uniform, shape, options)
     end
 
     ##
     # Outputs random values from a normal distribution.
     def random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
-      options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
+      options = {dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name}
       _op(:random_standard_normal, shape, options)
     end
 
     ##
     # Outputs random values from a truncated normal distribution.
     def truncated_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
-      options = { dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name }
+      options = {dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name}
       _op(:truncated_normal, shape, options)
     end
 
@@ -307,21 +307,21 @@ module TensorStream
     def reduce(op, input, axis = nil, keepdims: false, name: nil)
       input = TensorStream.convert_to_tensor(input)
       axis = if !axis.nil?
-               axis
-             elsif input.shape.scalar?
-               op
-             elsif input.shape.known?
-               (0...input.shape.ndims).to_a
-             else
-               range(0, rank(input))
-             end
+        axis
+      elsif input.shape.scalar?
+        op
+      elsif input.shape.known?
+        (0...input.shape.ndims).to_a
+      else
+        range(0, rank(input))
+      end
 
       _op(op, input, axis, keepdims: keepdims, name: name)
     end
 
     ##
     # Concatenates tensors along one dimension.
-    def concat(values, axis, name: 'concat')
+    def concat(values, axis, name: "concat")
       if values.is_a?(Array)
         _op(:concat, axis, *values, name: name)
       else
@@ -329,7 +329,7 @@ module TensorStream
       end
     end
 
-    def split(value, num_or_size_splits, axis: 0, num: nil, name: 'split')
+    def split(value, num_or_size_splits, axis: 0, num: nil, name: "split")
       value = convert_to_tensor(value)
       num_or_size_splits = convert_to_tensor(num_or_size_splits)
       axis = convert_to_tensor(axis)
@@ -339,33 +339,33 @@ module TensorStream
       res = _op(:split, value, num_or_size_splits, axis, name: name)
 
       pieces = if value.shape.known? && num_or_size_splits.is_const && num_or_size_splits.value && axis.is_const
-                if num_or_size_splits.shape.scalar?
-                  raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless (value.shape.shape[axis.value] % num_or_size_splits.value).zero?
+        if num_or_size_splits.shape.scalar?
+          raise TensorStream::ValueError, "num_or_size_splits must divide dimension #{value.shape.shape[axis.value]} evenly" unless (value.shape.shape[axis.value] % num_or_size_splits.value).zero?
 
-                  div = num_or_size_splits.value
-                  n = value.shape.shape[axis.value] / div
+          div = num_or_size_splits.value
+          n = value.shape.shape[axis.value] / div
 
-                  Array.new(div) do
-                    new_shape = value.shape.shape.dup
-                    new_shape[axis.value] = n
-                    new_shape
-                  end
-                elsif num_or_size_splits.shape.ndims == 1
-                  raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
+          Array.new(div) do
+            new_shape = value.shape.shape.dup
+            new_shape[axis.value] = n
+            new_shape
+          end
+        elsif num_or_size_splits.shape.ndims == 1
+          raise TensorStream::ValueError, "Sum of splits do not match total dimen in axis #{value.shape.shape[axis.value]} != #{num_or_size_splits.value.reduce(:+)}" if value.shape.shape[axis.value] != num_or_size_splits.value.reduce(:+)
 
-                  num_or_size_splits.value.collect do |v|
-                    new_shape = value.shape.shape.dup
-                    new_shape[axis.value] = v
-                    new_shape
-                  end
-                else
-                  raise TensorStream::ValueError, "Scalar or 1D Tensor expected for num_or_size_splits"
-                end
-               else
-                 raise TensorStream::ValueError, "Cannot automatically determine num, please specify num: in options" if num.nil?
+          num_or_size_splits.value.collect do |v|
+            new_shape = value.shape.shape.dup
+            new_shape[axis.value] = v
+            new_shape
+          end
+        else
+          raise TensorStream::ValueError, "Scalar or 1D Tensor expected for num_or_size_splits"
+        end
+      else
+        raise TensorStream::ValueError, "Cannot automatically determine num, please specify num: in options" if num.nil?
 
-                 Array.new(num) { nil }
-               end
+        Array.new(num) { nil }
+      end
 
       pieces.collect.with_index do |shape, i|
         op = index(res, i, name: "split/index:#{i}")
@@ -474,7 +474,7 @@ module TensorStream
       input_b = convert_to_tensor(input_b)
 
       input_a, input_b = check_data_types(input_a, input_b)
-       _op(:mod, input_a, input_b, name: name)
+      _op(:mod, input_a, input_b, name: name)
     end
 
     ##
@@ -484,7 +484,7 @@ module TensorStream
       _op(:floor_div, input_a, input_b, name: name)
     end
 
-    def range(start, limit, delta = 1, dtype: nil, name: 'range')
+    def range(start, limit, delta = 1, dtype: nil, name: "range")
       _op(:range, start, limit, delta, data_type: dtype, name: name)
     end
 
@@ -669,7 +669,7 @@ module TensorStream
       _op(:tanh, input, name: name)
     end
 
-        ##
+    ##
     # Computes sec of input element-wise.
     def sec(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
@@ -728,22 +728,22 @@ module TensorStream
     # Multiplies matrix a by matrix b, producing a * b.
     # The inputs must, following any transpositions, be tensors of rank 2 .
     def matmul(input_a, input_b, transpose_a: false,
-               transpose_b: false,
-               name: nil)
+      transpose_b: false,
+      name: nil)
       input_a, input_b = check_data_types(input_a, input_b)
       _op(:mat_mul, input_a, input_b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
     end
 
     ##
     # Transposes a. Permutes the dimensions according to perm.
-    def transpose(tensor, perm = nil, name: 'transpose')
+    def transpose(tensor, perm = nil, name: "transpose")
       _op(:transpose, tensor, perm, name: name)
     end
 
     ##
     # Pads a tensor.
     # This operation pads a tensor according to the paddings you specify.
-    def pad(tensor, paddings, mode: 'CONSTANT', name: nil)
+    def pad(tensor, paddings, mode: "CONSTANT", name: nil)
       _op(:pad, tensor, paddings, mode: mode, name: name)
     end
 
@@ -771,36 +771,36 @@ module TensorStream
     # Gather slices from params and axis according to indices.
     #
     def gather(params, indices, validate_indices: nil,
-                                name: nil,
-                                axis: 0)
+      name: nil,
+      axis: 0)
       _op(:gather, params, indices, validate_indices: validate_indices, name: name, axis: axis)
     end
 
     ##
     # Stacks a list of rank-R tensors into one rank-(R+1) tensor.
     #
-    def stack(values, axis: 0, name: 'stack')
+    def stack(values, axis: 0, name: "stack")
       _op(:stack, *values, axis: axis, name: name)
     end
 
     ##
     # Unpacks the given dimension of a rank-R tensor into rank-(R-1) tensors.
     #
-    def unstack(value, num: nil, axis: 0, name: 'unstack')
+    def unstack(value, num: nil, axis: 0, name: "unstack")
       res = _op(:unstack, value, num: num, axis: axis, name: name)
 
       num_vars = if value.shape.known?
-                   new_shape = value.shape.shape.dup
-                   rank = new_shape.size - 1
-                   axis = rank + axis if axis < 0
-                   rotated_shape = Array.new(axis + 1) { new_shape.shift }
-                   new_shape = rotated_shape.rotate!(-1) + new_shape
-                   new_shape[0]
-                 else
-                   raise TensorStream::ValueError, "num is unspecified and cannot be inferred." if num.nil?
+        new_shape = value.shape.shape.dup
+        rank = new_shape.size - 1
+        axis = rank + axis if axis < 0
+        rotated_shape = Array.new(axis + 1) { new_shape.shift }
+        new_shape = rotated_shape.rotate!(-1) + new_shape
+        new_shape[0]
+      else
+        raise TensorStream::ValueError, "num is unspecified and cannot be inferred." if num.nil?
 
-                   num
-                 end
+        num
+      end
 
       return res[0] if num_vars == 1
 
@@ -811,14 +811,14 @@ module TensorStream
 
     ##
     # Same as stack
-    def pack(values, axis: 0, name: 'pack')
+    def pack(values, axis: 0, name: "pack")
       _op(:stack, *values, axis: axis, name: name)
     end
 
     ##
     # Same as unstack
     #
-    def unpack(value, num: nil, axis: 0, name: 'unpack')
+    def unpack(value, num: nil, axis: 0, name: "unpack")
       unstack(value, num: num, axis: axis, name: name)
     end
 

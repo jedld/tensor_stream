@@ -29,11 +29,11 @@ module TensorStream
         create_slots(varlist)
         TensorStream.name_scope(name, default: @name) do
           prepare
-          apply_ops = grads_and_vars.map do |grad, var|
+          apply_ops = grads_and_vars.map { |grad, var|
             TensorStream.name_scope("update_" + var.op.name) do
               apply_dense(grad, var)
             end
-          end
+          }
 
           if global_step.nil?
             finish(apply_ops, name)
@@ -51,14 +51,14 @@ module TensorStream
       # This is the first part of minimize(). It returns a list of (gradient, variable) pairs where "gradient" is the gradient for "variable".
       def compute_gradients(loss, var_list: nil, grad_loss: nil)
         trainable_vars = if var_list
-                           raise "var_list must be an array" unless var_list.is_a?(Array)
+          raise "var_list must be an array" unless var_list.is_a?(Array)
 
-                           var_list.each_with_index { |var, index| raise "var #{index} not a Variable" unless var.is_a?(Variable) }
+          var_list.each_with_index { |var, index| raise "var #{index} not a Variable" unless var.is_a?(Variable) }
 
-                           var_list
-                         else
-                           loss.graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
-                         end
+          var_list
+        else
+          loss.graph.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)
+        end
         all_grads = grad_loss || TensorStream.gradients(loss, trainable_vars)
         trainable_vars.each_with_index.collect do |var, index|
           [all_grads[index], var]

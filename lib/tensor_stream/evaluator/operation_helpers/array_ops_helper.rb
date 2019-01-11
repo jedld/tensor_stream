@@ -16,10 +16,10 @@ module TensorStream
       start_index = start.shift
       current_size = size.shift
       dimen_size = if current_size == -1
-                     input.size - 1
-                   else
-                     start_index + current_size - 1
-                   end
+        input.size - 1
+      else
+        start_index + current_size - 1
+      end
 
       input[start_index..dimen_size].collect do |item|
         if item.is_a?(Array)
@@ -87,9 +87,9 @@ module TensorStream
       d = dims.shift
 
       if input.is_a?(Array) && (get_rank(input) - 1) == dims.size
-        row_to_dup = input.collect do |item|
+        row_to_dup = input.collect { |item|
           broadcast_dimensions(item, dims.dup)
-        end
+        }
 
         row_to_dup + Array.new(d) { row_to_dup }.flatten(1)
       elsif input.is_a?(Array)
@@ -102,15 +102,15 @@ module TensorStream
     # handle 2 tensor math operations
     def vector_op(vector, vector2, switch = false, safe = true, &block)
       if get_rank(vector) < get_rank(vector2) # upgrade rank of A
-        duplicated = Array.new(vector2.size) do
+        duplicated = Array.new(vector2.size) {
           vector
-        end
+        }
         return vector_op(duplicated, vector2, switch, &block)
       end
 
       return yield(vector, vector2) unless vector.is_a?(Array)
 
-      vector.each_with_index.collect do |input, index|
+      vector.each_with_index.collect { |input, index|
         next vector_op(input, vector2, switch, &block) if input.is_a?(Array) && get_rank(vector) > get_rank(vector2)
 
         if safe && vector2.is_a?(Array)
@@ -118,22 +118,22 @@ module TensorStream
         end
 
         z = if vector2.is_a?(Array)
-              if index < vector2.size
-                vector2[index]
-              else
-                raise 'incompatible tensor shapes used during op' if vector2.size != 1
-                vector2[0]
-              end
-            else
-              vector2
-            end
+          if index < vector2.size
+            vector2[index]
+          else
+            raise "incompatible tensor shapes used during op" if vector2.size != 1
+            vector2[0]
+          end
+        else
+          vector2
+        end
 
         if input.is_a?(Array)
           vector_op(input, z, switch, &block)
         else
           switch ? yield(z, input) : yield(input, z)
         end
-      end.compact
+      }.compact
     end
 
     def shape_diff(shape_a, shape_b)
@@ -142,11 +142,11 @@ module TensorStream
       reversed_a = shape_a.reverse
       reversed_b = shape_b.reverse
 
-      reversed_a.each_with_index.collect do |s, index|
+      reversed_a.each_with_index.collect { |s, index|
         next s if index >= reversed_b.size
         return nil if reversed_b[index] > s
         s - reversed_b[index]
-      end.reverse
+      }.reverse
     end
 
     def tile_arr(input, dimen, multiples)
@@ -155,9 +155,9 @@ module TensorStream
         return nil if t.zero?
         input * t # ruby array dup
       else
-        new_arr = input.collect do |sub|
+        new_arr = input.collect { |sub|
           tile_arr(sub, dimen + 1, multiples)
-        end.compact
+        }.compact
 
         return nil if new_arr.empty?
 
@@ -234,13 +234,13 @@ module TensorStream
     # general case transposition with flat arrays
     def transpose_with_perm(arr, new_arr, shape, new_shape, perm)
       arr_size = shape.reduce(:*)
-      divisors = shape.dup.drop(1).reverse.inject([1]) do |a, s|
+      divisors = shape.dup.drop(1).reverse.inject([1]) { |a, s|
         a << s * a.last
-      end.reverse
+      }.reverse
 
-      multipliers = new_shape.dup.drop(1).reverse.inject([1]) do |a, s|
+      multipliers = new_shape.dup.drop(1).reverse.inject([1]) { |a, s|
         a << s * a.last
-      end.reverse
+      }.reverse
 
       arr_size.times do |p|
         ptr = p
@@ -267,19 +267,19 @@ module TensorStream
     def reduce_axis(current_axis, axis, val, keep_dims, &block)
       return val unless val.is_a?(Array)
 
-      r = val.collect do |v|
+      r = val.collect { |v|
         reduce_axis(current_axis + 1, axis, v, keep_dims, &block)
-      end
+      }
 
       should_reduce_axis = axis.nil? || (axis.is_a?(Array) && axis.include?(current_axis)) || (current_axis == axis)
 
       if should_reduce_axis
         reduced_val = r[0]
         if r.size > 1
-          if block_given?
-            reduced_val = yield(r[0..val.size])
+          reduced_val = if block_given?
+            yield(r[0..val.size])
           else
-            reduced_val = r[0..val.size].reduce(:+)
+            r[0..val.size].reduce(:+)
           end
         elsif r.empty?
           reduced_val = yield(nil)
@@ -292,17 +292,17 @@ module TensorStream
 
     def reduce(val, axis, keep_dims, &block)
       rank = get_rank(val)
-      return val if axis && axis.is_a?(Array) && axis.empty?
+      return val if axis&.is_a?(Array) && axis&.empty?
 
       axis = if axis.nil?
-               nil
-             elsif axis.is_a?(Array)
-               return val if axis.empty?
+        nil
+      elsif axis.is_a?(Array)
+        return val if axis.empty?
 
-               axis.map { |a| a < 0 ? rank - a.abs : a }
-             else
-               axis < 0 ? rank - axis.abs : axis
-             end
+        axis.map { |a| a < 0 ? rank - a.abs : a }
+      else
+        axis < 0 ? rank - axis.abs : axis
+      end
 
       reduce_axis(0, axis, val, keep_dims, &block)
     end

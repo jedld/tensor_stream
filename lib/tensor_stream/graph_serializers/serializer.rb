@@ -4,6 +4,7 @@ module TensorStream
       File.write(filename, get_string(tensor, session, graph_keys = nil))
     end
 
-    def get_string(tensor, session = nil); end
+    def get_string(tensor, session = nil)
+    end
   end
 end

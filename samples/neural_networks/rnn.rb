@@ -6,10 +6,9 @@
 #
 
 require "bundler/setup"
-require 'tensor_stream'
+require "tensor_stream"
 # require 'tensor_stream/opencl'
 # require 'pry-byebug'
-
 
 tf = TensorStream
 
@@ -23,30 +22,27 @@ batch_size = 5
 num_batches = total_series_length / batch_size / truncated_backprop_length
 randomizer = TensorStream.random_uniform([total_series_length], minval: 0, maxval: 2)
 
-
 def generate_data(randomizer, total_series_length, batch_size, echo_step)
   x = randomizer.eval
   y = x.rotate(-echo_step)
 
   y[echo_step] = 0
 
-  x = TensorStream::TensorShape.reshape(x, [batch_size, -1])  # The first index changing slowest, subseries as rows
+  x = TensorStream::TensorShape.reshape(x, [batch_size, -1]) # The first index changing slowest, subseries as rows
   y = TensorStream::TensorShape.reshape(y, [batch_size, -1])
   [x, y]
 end
 
-batchX_placeholder = tf.placeholder(:float32, shape: [batch_size, truncated_backprop_length], name: 'batch_x')
-batchY_placeholder = tf.placeholder(:int32, shape: [batch_size, truncated_backprop_length], name: 'batch_y')
+batchX_placeholder = tf.placeholder(:float32, shape: [batch_size, truncated_backprop_length], name: "batch_x")
+batchY_placeholder = tf.placeholder(:int32, shape: [batch_size, truncated_backprop_length], name: "batch_y")
 
-init_state = tf.placeholder(:float32, shape: [batch_size, state_size], name: 'init_state')
+init_state = tf.placeholder(:float32, shape: [batch_size, state_size], name: "init_state")
 
+W = tf.variable(tf.random_uniform([state_size + 1, state_size]), dtype: :float32, name: "W")
+b = tf.variable(tf.zeros([state_size]), dtype: :float32, name: "b")
 
-W = tf.variable(tf.random_uniform([state_size+1, state_size]), dtype: :float32, name: 'W')
-b = tf.variable(tf.zeros([state_size]), dtype: :float32, name: 'b')
-
-W2 = tf.variable(tf.random_uniform([state_size, num_classes]), dtype: :float32, name: 'W2')
-b2 = tf.variable(tf.zeros([num_classes]), dtype: :float32, name: 'b2')
-
+W2 = tf.variable(tf.random_uniform([state_size, num_classes]), dtype: :float32, name: "W2")
+b2 = tf.variable(tf.zeros([num_classes]), dtype: :float32, name: "b2")
 
 inputs_series = tf.unpack(batchX_placeholder, axis: 1)
 labels_series = tf.unpack(batchY_placeholder, axis: 1)
@@ -56,23 +52,23 @@ states_series = []
 
 inputs_series.each do |current_input|
   current_input = tf.reshape(current_input, [batch_size, 1])
-  input_and_state_concatenated = tf.concat([current_input, current_state], 1)  # Increasing number of columns
-  next_state = tf.tanh(tf.matmul(input_and_state_concatenated, W) + b)  # Broadcasted addition
+  input_and_state_concatenated = tf.concat([current_input, current_state], 1) # Increasing number of columns
+  next_state = tf.tanh(tf.matmul(input_and_state_concatenated, W) + b) # Broadcasted addition
   states_series << next_state
   current_state = next_state
 end
 
-logits_series = states_series.collect do |state|
+logits_series = states_series.collect { |state|
   tf.matmul(state, W2) + b2
-end
+}
 
-predictions_series = logits_series.collect do |logits|
+predictions_series = logits_series.collect { |logits|
   tf.nn.softmax(logits)
-end
+}
 
-losses = logits_series.zip(labels_series).collect do |logits, labels|
+losses = logits_series.zip(labels_series).collect { |logits, labels|
   tf.nn.sparse_softmax_cross_entropy_with_logits(logits: logits, labels: labels)
-end
+}
 total_loss = tf.reduce_mean(losses)
 
 train_step = TensorStream::Train::AdagradOptimizer.new(0.1).minimize(total_loss)
@@ -93,15 +89,16 @@ tf.session do |sess|
       batchY = y.map { |y| y[start_idx...end_idx] }
 
       _total_loss, _train_step, _current_state, _predictions_series = sess.run(
-          [total_loss, train_step, current_state, predictions_series],
-          feed_dict: {
-              batchX_placeholder => batchX,
-              batchY_placeholder => batchY,
-              init_state => _current_state
-          })
+        [total_loss, train_step, current_state, predictions_series],
+        feed_dict: {
+          batchX_placeholder => batchX,
+          batchY_placeholder => batchY,
+          init_state => _current_state,
+        }
+      )
 
-      if batch_idx%10 == 0
-          print("Step",batch_idx, " Loss ", _total_loss, "\n")
+      if batch_idx % 10 == 0
+        print("Step", batch_idx, " Loss ", _total_loss, "\n")
       end
     end
   end

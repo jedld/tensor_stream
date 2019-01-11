@@ -1,4 +1,4 @@
-require 'base64'
+require "base64"
 
 module TensorStream
   # Utility class to handle data type serialization
@@ -7,36 +7,36 @@ module TensorStream
       value = value.is_a?(Array) ? value.flatten : [value]
       byte_value = case data_type
                    when :float64
-                     value.pack('d*')
+                     value.pack("d*")
                    when :float32, :float16, :float
-                     value.pack('f*')
+                     value.pack("f*")
                    when :uint32
-                     value.pack('L*')
+                     value.pack("L*")
                    when :int32, :int
-                     value.pack('l*')
+                     value.pack("l*")
                    when :int64
-                     value.pack('q*')
+                     value.pack("q*")
                    when :uint64
-                     value.pack('Q*')
+                     value.pack("Q*")
                    when :uint8
-                     value.pack('C*')
+                     value.pack("C*")
                    when :boolean
-                     value.map { |v| v ? 1 : 0 }.pack('C*')
+                     value.map { |v| v ? 1 : 0 }.pack("C*")
                    when :string
                      if value.is_a?(Array)
-                      value.to_yaml
+                       value.to_yaml
                      else
-                      value
+                       value
                      end
                    else
-                    raise "unknown type #{data_type}"
-                   end
+                     raise "unknown type #{data_type}"
+      end
 
       byte_value
     end
 
     def self.pack_to_str(value, data_type)
-      pack(value, data_type).bytes.map { |b| b.chr =~ /[^[:print:]]/ ? "\\#{sprintf("%o", b).rjust(3, '0')}" : b.chr }.join
+      pack(value, data_type).bytes.map { |b| /[^[:print:]]/.match?(b.chr) ? "\\#{sprintf("%o", b).rjust(3, "0")}" : b.chr }.join
     end
 
     def self.unpack_from_str(content, data_type)
@@ -47,21 +47,21 @@ module TensorStream
     def self.unpack(unpacked, data_type)
       case data_type
       when :float32, :float, :float16
-        unpacked.unpack('f*')
+        unpacked.unpack("f*")
       when :float64
-        unpacked.unpack('d*')
+        unpacked.unpack("d*")
       when :int32, :int
-        unpacked.unpack('L*')
+        unpacked.unpack("L*")
       when :uint32
-        unpacked.unpack('l*')
+        unpacked.unpack("l*")
       when :int64
-        unpacked.unpack('q*')
+        unpacked.unpack("q*")
       when :uint64
-        unpacked.unpack('Q*')
+        unpacked.unpack("Q*")
       when :uint8
-        unpacked.unpack('C*')
+        unpacked.unpack("C*")
       when :boolean
-        unpacked.unpack('C*').map { |v| v == 1 }
+        unpacked.unpack("C*").map { |v| v == 1 }
       end
     end
   end

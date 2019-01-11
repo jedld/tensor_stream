@@ -12,7 +12,7 @@ module TensorStream
       def exponential_decay(learning_rate, global_step, decay_steps, decay_rate, staircase: false, name: nil)
         raise TensorStream::ValueError, "global_step is required for exponential_decay." if global_step.nil?
 
-        name_scope(name, default: 'ExponentialDecay', values: [learning_rate, global_step, decay_steps, decay_rate]) do
+        name_scope(name, default: "ExponentialDecay", values: [learning_rate, global_step, decay_steps, decay_rate]) do
           learning_rate = convert_to_tensor(learning_rate, name: "learning_rate")
           data_type = learning_rate.data_type
           decay_steps = cast(decay_steps, data_type)

@@ -12,7 +12,7 @@ module TensorStream
       @node_keys = []
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
-        :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
+        :"#{GraphKeys::TRAINABLE_VARIABLES}" => [],
       }
       @constants = {}
     end
@@ -27,7 +27,7 @@ module TensorStream
       @node_keys = []
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
-        :"#{GraphKeys::TRAINABLE_VARIABLES}" => []
+        :"#{GraphKeys::TRAINABLE_VARIABLES}" => [],
       }
       @constants = {}
     end
@@ -85,14 +85,14 @@ module TensorStream
     end
 
     def add_node(node, name = nil)
-      raise 'Placeholder cannot be used when eager_execution is enabled' if @eager_execution && node.is_a?(Placeholder)
+      raise "Placeholder cannot be used when eager_execution is enabled" if @eager_execution && node.is_a?(Placeholder)
 
       if name.nil?
         node.name = if @nodes[node.name]
-                      uniqunify(node.name)
-                    else
-                      node.name
-                    end
+          uniqunify(node.name)
+        else
+          node.name
+        end
       end
 
       node.device = get_device_scope
@@ -129,10 +129,10 @@ module TensorStream
 
     def add_op(operation, *args)
       options = if args.last.is_a?(Hash)
-                  args.pop
-                else
-                  {}
-                end
+        args.pop
+      else
+        {}
+      end
 
       inputs = args.map { |i| TensorStream.convert_to_tensor(i) }.map { |i| i ? i.op : nil }
 
@@ -141,7 +141,7 @@ module TensorStream
       new_op.operation = operation
       new_op.shape = TensorShape.new(TensorStream::InferShape.infer_shape(new_op))
       new_op.rank = new_op.shape.rank
-      new_op.name = options[:internal_name] || [get_name_scope, options[:name] || set_operation_name(new_op)].compact.reject(&:empty?).join('/')
+      new_op.name = options[:internal_name] || [get_name_scope, options[:name] || set_operation_name(new_op)].compact.reject(&:empty?).join("/")
       new_op.internal = options[:internal]
 
       new_op.data_type = new_op.set_data_type(options[:data_type])
@@ -211,7 +211,7 @@ module TensorStream
     def get_operation_counter
       @op_counter ||= 0
 
-      name = @op_counter.zero? ? '' : "_#{@op_counter}"
+      name = @op_counter.zero? ? "" : "_#{@op_counter}"
 
       @op_counter += 1
 
@@ -222,7 +222,7 @@ module TensorStream
       @placeholder_counter ||= 0
       @placeholder_counter += 1
 
-      return '' if @placeholder_counter == 1
+      return "" if @placeholder_counter == 1
 
       "_#{@placeholder_counter}"
     end
@@ -231,14 +231,14 @@ module TensorStream
       @var_counter ||= 0
       @var_counter += 1
 
-      return '' if @var_counter == 1
+      return "" if @var_counter == 1
       "_#{@var_counter}"
     end
 
     def get_const_counter
       @const_counter ||= 0
 
-      name = @const_counter.zero? ? '' : "_#{@const_counter}"
+      name = @const_counter.zero? ? "" : "_#{@const_counter}"
 
       @const_counter += 1
       name
@@ -248,7 +248,7 @@ module TensorStream
       graph_thread_storage = Thread.current["ts_graph_#{object_id}"]
       return nil if graph_thread_storage.nil? || graph_thread_storage[:current_scope].nil?
 
-      graph_thread_storage[:current_scope].join('/')
+      graph_thread_storage[:current_scope].join("/")
     end
 
     def get_dependency_scope
@@ -279,7 +279,7 @@ module TensorStream
     protected
 
     def _variable_scope
-      return VariableScope.new(name: '', reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
+      return VariableScope.new(name: "", reuse: false, initializer: nil) if Thread.current[:tensor_stream_variable_scope].nil? || Thread.current[:tensor_stream_variable_scope].empty?
       scope = Thread.current[:tensor_stream_variable_scope].last
       scope
     end

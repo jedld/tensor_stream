@@ -1,34 +1,34 @@
 require "bundler/setup"
-require 'tensor_stream'
+require "tensor_stream"
 # require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 # This neural network will predict the species of an iris based on sepal and petal size
 # Dataset: http://en.wikipedia.org/wiki/Iris_flower_data_set
 tf = TensorStream
-rows = File.readlines(File.join("samples","iris.data")).map {|l| l.chomp.split(',') }
+rows = File.readlines(File.join("samples", "iris.data")).map {|l| l.chomp.split(",") }
 
 rows.shuffle!
 
 label_encodings = {
-  'Iris-setosa'     => [1, 0, 0],
-  'Iris-versicolor' => [0, 1, 0],
-  'Iris-virginica'  => [0, 0, 1]
+  "Iris-setosa" => [1, 0, 0],
+  "Iris-versicolor" => [0, 1, 0],
+  "Iris-virginica" => [0, 0, 1],
 }
 
-x_data = rows.map {|row| row[0,4].map(&:to_f) }
+x_data = rows.map {|row| row[0, 4].map(&:to_f) }
 y_data = rows.map {|row| label_encodings[row[4]] }
 
 # Normalize data values before feeding into network
-normalize = -> (val, high, low) {  (val - low) / (high - low) } # maps input to float between 0 and 1
+normalize = ->(val, high, low) { (val - low) / (high - low) } # maps input to float between 0 and 1
 
-columns = (0..3).map do |i|
+columns = (0..3).map { |i|
   x_data.map {|row| row[i] }
-end
+}
 
 x_data.map! do |row|
   row.map.with_index do |val, j|
     max, min = columns[j].max, columns[j].min
-    normalize.(val, max, min)
+    normalize.call(val, max, min)
   end
 end
 
@@ -45,10 +45,8 @@ end
 
 validation_cases = []
 x_test.each_with_index do |x, index|
-  validation_cases << [x, y_test[index] ]
+  validation_cases << [x, y_test[index]]
 end
-
-
 
 def init_weights(shape)
   # Weight initialization
@@ -58,8 +56,8 @@ end
 def forwardprop(x, w_1, w_2)
   # Forward-propagation.
   # IMPORTANT: yhat is not softmax since TensorFlow's softmax_cross_entropy_with_logits() does that internally.
-  h  = TensorStream.nn.sigmoid(x.matmul w_1)  # The \sigma function
-  h.matmul w_2  # The \varphi function
+  h = TensorStream.nn.sigmoid(x.matmul(w_1)) # The \sigma function
+  h.matmul w_2 # The \varphi function
 end
 
 x_size = x_train[0].size
@@ -81,15 +79,15 @@ cost    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels: y, logi
 
 # updates =  TensorStream::Train::GradientDescentOptimizer.new(0.01).minimize(cost)
 # updates =  TensorStream::Train::MomentumOptimizer.new(0.01, 0.5, use_nesterov: true).minimize(cost)
-updates =  TensorStream::Train::RMSPropOptimizer.new(0.01).minimize(cost)
+updates = TensorStream::Train::RMSPropOptimizer.new(0.01).minimize(cost)
 
 # Run SGD
 sess = tf.session
 init = tf.global_variables_initializer
 sess.run(init)
-loss = sess.run(cost, feed_dict: { X => x_test, y => y_test })
+loss = sess.run(cost, feed_dict: {X => x_test, y => y_test})
 puts "loss test data set #{loss}"
-loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
+loss = sess.run(cost, feed_dict: {X => x_train, y => y_train})
 puts "Testing the untrained network..."
 puts loss
 start_time = Time.now
@@ -98,12 +96,12 @@ start_time = Time.now
     sess.run(updates, feed_dict: {X => [x_train[i]], y => [y_train[i]]})
   end
 
-  loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
+  loss = sess.run(cost, feed_dict: {X => x_train, y => y_train})
   puts "epoch: #{epoch}, loss #{loss}"
 end
 
-loss = sess.run(cost, feed_dict: { X => x_train, y => y_train })
+loss = sess.run(cost, feed_dict: {X => x_train, y => y_train})
 puts "loss after training #{loss}"
-loss = sess.run(cost, feed_dict: { X => x_test, y => y_test })
+loss = sess.run(cost, feed_dict: {X => x_test, y => y_test})
 puts "loss test data set #{loss}"
 puts("time elapsed ", Time.now.to_i - start_time.to_i)

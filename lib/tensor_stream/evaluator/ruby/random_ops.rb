@@ -1,7 +1,7 @@
 module TensorStream
   ## Collection of machine learning related ops
   module RandomOps
-    def RandomOps.included(klass)
+    def self.included(klass)
       klass.class_eval do
         register_op :glorot_uniform, no_eval: true do |_context, tensor, _inputs|
           seed = tensor.options[:seed]
@@ -9,12 +9,12 @@ module TensorStream
 
           shape = tensor.options[:shape] || tensor.shape.shape
           fan_in, fan_out = if shape.size.zero?
-                              [1, 1]
-                            elsif shape.size == 1
-                              [1, shape[0]]
-                            else
-                              [shape[0], shape.last]
-                            end
+            [1, 1]
+          elsif shape.size == 1
+            [1, shape[0]]
+          else
+            [shape[0], shape.last]
+          end
 
           limit = Math.sqrt(6.0 / (fan_in + fan_out))
 
@@ -46,7 +46,6 @@ module TensorStream
           generate_vector(shape, generator: generator)
         end
 
-        
         register_op :truncated_normal, no_eval: true do |_context, tensor, inputs|
           seed = tensor.options[:seed]
           random = _get_randomizer(tensor, seed)
@@ -54,14 +53,14 @@ module TensorStream
           random = _get_randomizer(tensor, seed)
           generator = -> { r.rand }
           shape = inputs[0] || tensor.shape.shape
-          random_values = Array.new(shape.reduce(:*) || 1) do
+          random_values = Array.new(shape.reduce(:*) || 1) {
             generator.call
-          end
+          }
           mean = random_values.reduce(:+) / random_values.size
 
           # standard deviation
 
-          stddev = Math.sqrt( random_values.map { |v| ( v - mean )**2 }.reduce(:+) / (random_values.size - 1) )
+          stddev = Math.sqrt(random_values.map { |v| (v - mean)**2 }.reduce(:+) / (random_values.size - 1))
           minval = random_values.min
           maxval = random_values.max
           max_iterations = 100
@@ -73,14 +72,14 @@ module TensorStream
             maxval = a
             stddev = -stddev
           end
-          
-          norm_min = (minval - mean) / stddev;
-          norm_max = (maxval - mean) / stddev;
-          sqrt_factor = Math.sqrt((norm_min * norm_min) + 4.0);
-          cutoff = 2.0 * Math.exp( 0.5 + (norm_min * (norm_min - sqrt_factor)) / 4.0 ) / (norm_min + sqrt_factor)
-          diff = norm_max - norm_min;
 
-          val = random_values.map do |v|
+          norm_min = (minval - mean) / stddev
+          norm_max = (maxval - mean) / stddev
+          sqrt_factor = Math.sqrt((norm_min * norm_min) + 4.0)
+          cutoff = 2.0 * Math.exp(0.5 + (norm_min * (norm_min - sqrt_factor)) / 4.0) / (norm_min + sqrt_factor)
+          diff = norm_max - norm_min
+
+          val = random_values.map { |v|
             iterations = 0
             pick = v
             while (pick > norm_max) || (pick < norm_min)
@@ -92,8 +91,8 @@ module TensorStream
               end
             end
 
-            pick 
-          end
+            pick
+          }
 
           TensorShape.reshape(val, shape)
         end

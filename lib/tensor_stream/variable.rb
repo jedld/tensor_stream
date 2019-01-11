@@ -18,7 +18,7 @@ module TensorStream
 
       scope_name = variable_scope ? variable_scope.name : nil
       variable_scope_initializer = variable_scope ? variable_scope.initializer : nil
-      @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join('/')
+      @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join("/")
       @initalizer_tensor = options[:initializer] || variable_scope_initializer || TensorStream.glorot_uniform_initializer
       shape = @initalizer_tensor.shape.shape if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
 
@@ -77,7 +77,7 @@ module TensorStream
     end
 
     def inspect
-      "Variable(#{@name} shape: #{@shape || '?'} data_type: #{@data_type})"
+      "Variable(#{@name} shape: #{@shape || "?"} data_type: #{@data_type})"
     end
 
     protected

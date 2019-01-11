@@ -1,4 +1,4 @@
-require 'ostruct'
+require "ostruct"
 
 module TensorStream
   # Base class that defines a tensor like interface
@@ -8,7 +8,7 @@ module TensorStream
 
     attr_reader :graph, :value
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const,
-                  :internal, :source, :given_name, :outputs, :op
+      :internal, :source, :given_name, :outputs, :op
 
     def inspect
     end

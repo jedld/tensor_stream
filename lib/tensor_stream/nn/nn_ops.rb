@@ -27,7 +27,7 @@ module TensorStream
         TensorStream.name_scope(name, "dropout", values: [x]) do
           x = TensorStream.convert_to_tensor(x, name: "x")
           raise TensorStream::ValueError, "x has to be a floating point tensor since it's going to be scaled. Got a #{x.data_type} tensor instead." unless fp_type?(x.data_type)
-          raise TensorStream::ValueError, "keep_prob must be a scalar tensor or a float in the range (0, 1], got #{keep_prob}" if keep_prob.is_a?(Float) && !(0 < keep_prob && keep_prob <= 1)
+          raise TensorStream::ValueError, "keep_prob must be a scalar tensor or a float in the range (0, 1], got #{keep_prob}" if keep_prob.is_a?(Float) && !(keep_prob > 0 && keep_prob <= 1)
 
           return x if keep_prob.is_a?(Float) && keep_prob.to_f == 1.0
 
@@ -35,10 +35,10 @@ module TensorStream
           return x if keep_prob.value == 1.0
 
           noise_shape = if noise_shape.nil?
-                          TensorStream.shape(x)
-                        else
-                          noise_shape
-                        end
+            TensorStream.shape(x)
+          else
+            noise_shape
+          end
 
           random_tensor = keep_prob
           random_tensor += TensorStream.random_uniform(noise_shape, seed: seed, dtype: x.dtype)
@@ -57,10 +57,10 @@ module TensorStream
       end
 
       def softmax_cross_entropy_with_logits_v2(labels: nil, logits: nil, name: nil)
-        TensorStream.name_scope(name, default: 'softmax_cross_entropy_with_logits', values: [logits, labels]) do
+        TensorStream.name_scope(name, default: "softmax_cross_entropy_with_logits", values: [logits, labels]) do
           ts = TensorStream
-          logits = ts.convert_to_tensor(logits, name: 'logits')
-          labels = ts.convert_to_tensor(labels, name: 'labels')
+          logits = ts.convert_to_tensor(logits, name: "logits")
+          labels = ts.convert_to_tensor(labels, name: "labels")
           labels = ts.cast(labels, logits.dtype)
 
           output = _op(:softmax_cross_entropy_with_logits_v2, logits, labels)
@@ -80,11 +80,13 @@ module TensorStream
           static_shapes_fully_defined = labels_static_shape.known? && logits.shape.known?
 
           raise TensorStream::ValueError, "Logits cannot be scalars - received shape #{logits.shape.shape}." if logits.shape.known? && logits.shape.scalar?
-          raise TensorStream::ValueError, "Rank mismatch: Rank of labels (received #{labels_static_shape.ndims}) " +
-            "should equal rank of logits minus 1 (received #{logits.shape.ndims})." if logits.shape.known? && (labels_static_shape.known? && labels_static_shape.ndims != logits.shape.ndims - 1)
+          if logits.shape.known? && (labels_static_shape.known? && labels_static_shape.ndims != logits.shape.ndims - 1)
+            raise TensorStream::ValueError, "Rank mismatch: Rank of labels (received #{labels_static_shape.ndims}) " \
+                                            "should equal rank of logits minus 1 (received #{logits.shape.ndims})."
+          end
           if logits.shape.ndims == 2
             cost = _op(:sparse_softmax_cross_entropy_with_logits,
-                precise_logits, labels, name: name)
+              precise_logits, labels, name: name)
             if logits.data_type == :float16
               return tf.cast(cost[0], :float16)
             else
@@ -118,17 +120,17 @@ module TensorStream
       end
 
       def sigmoid_cross_entropy_with_logits(labels: nil, logits: nil, name: nil)
-        TensorStream.name_scope(name, default: 'logistic_loss', values: [logits, labels]) do |_name|
+        TensorStream.name_scope(name, default: "logistic_loss", values: [logits, labels]) do |_name|
           tf = TensorStream
-          logits = tf.convert_to_tensor(logits, name: 'logits')
-          labels = tf.convert_to_tensor(labels, name: 'labels')
+          logits = tf.convert_to_tensor(logits, name: "logits")
+          labels = tf.convert_to_tensor(labels, name: "labels")
           zeros = tf.zeros_like(logits, dtype: logits.dtype)
           cond = (logits >= zeros)
           relu_logits = tf.where(cond, logits, zeros)
           neg_abs_logits = tf.where(cond, -logits, logits)
 
           tf.add(relu_logits - logits * labels,
-                 tf.log1p(tf.exp(neg_abs_logits)), name: name)
+            tf.log1p(tf.exp(neg_abs_logits)), name: name)
         end
       end
 
