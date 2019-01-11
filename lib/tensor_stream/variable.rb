@@ -76,6 +76,10 @@ module TensorStream
       variables_initializer(TensorStream::GraphKeys::GLOBAL_VARIABLES)
     end
 
+    def inspect
+      "Variable(#{@name} shape: #{@shape || '?'} data_type: #{@data_type})"
+    end
+
     protected
 
     def build_name

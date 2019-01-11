@@ -91,7 +91,6 @@ module TensorStream
         @lines << "#{spaces}}"
       when 'TensorStream::Variable'
       else
-        binding.pry
         raise "unknown type #{val.class}"
       end
     end

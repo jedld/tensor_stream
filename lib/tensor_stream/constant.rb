@@ -32,6 +32,10 @@ module TensorStream
       @name = @op.name
     end
 
+    def inspect
+      "Constant(#{@value}, name: #{@name}, shape: #{@shape}, data_type: #{@data_type})"
+    end
+
     protected
 
     def build_name

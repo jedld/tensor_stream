@@ -84,6 +84,7 @@ module TensorStream
 
       def prepare_input(tensor, context, options = {})
         return nil unless tensor
+
         if options[:noop]
           tensor
         elsif options[:no_eval]
@@ -102,10 +103,10 @@ module TensorStream
       end
 
       register_op(:cast) do |context, tensor, inputs|
-        call_op(inputs[0], context)  { |t, _b| Tensor.cast_dtype(t, tensor.data_type) }
+        call_op(inputs[0], context) { |t, _b| Tensor.cast_dtype(t, tensor.data_type) }
       end
 
-      register_op(:sign) do |context, tensor, inputs|
+      register_op(:sign) do |context, _tensor, inputs|
         call_op(inputs[0], context) do |x, _b|
           if x.zero? || (x.is_a?(Float) && x.nan?)
             0
@@ -239,27 +240,45 @@ module TensorStream
         outputfile = inputs[0]
         inputs = tensor.inputs.dup
 
-        basename = File.basename(outputfile)
-        path = File.dirname(outputfile)
-
-        new_filename = File.join(path, [basename, gs].compact.join('-'))
-
         inputs.shift
         variables = {}
         inputs.each do |savable|
-          variables[savable.name] = TensorStream::Packer.pack(savable.read_value, savable.data_type)
+          val = savable.container
+          packed_data = Zlib::Deflate.deflate(TensorStream::Packer.pack(val, savable.data_type))
+          variables[savable.name] = {
+            'shape' => shape_eval(val),
+            'data' => Base64.strict_encode64(packed_data)
+          }
         end
-        File.write(new_filename, variables.to_yaml)
+
+        File.write(outputfile, { 'variables' => variables }.to_yaml)
+        nil
       end
 
-      register_op :restore_v2 do |context, tensor, inputs|
-        # prefix, tensor_names, shape_and_slices = inputs[0..3]
+      register_op :restore_ts do |_context, tensor, inputs|
+        inputs = inputs.dup
+        filename = inputs.shift
+        tensor_names = inputs
+
+        input_dump = YAML.safe_load(File.read(filename), [Symbol])
+        vars = tensor.graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
+
+        vars.select! { |v| input_dump['variables'].key?(v.name) && tensor_names.include?(v.name) }
+        vars.each do |variable|
+          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump['variables'][variable.name]['data'])), variable.data_type)
+          shape = input_dump['variables'][variable.name]['shape']
+          variable.buffer = nil
+          variable.value = TensorShape.reshape(data, shape)
+        end
+
+        nil
       end
 
       register_op :check_numerics do |context, tensor, inputs|
         message = tensor.options[:message]
         call_op(inputs[0], context) do |t, _b|
           raise TensorStream::InvalidArgumentError, "#{message} Invalid argument" if t.nan? || t.infinite?
+
           t
         end
       end
@@ -272,9 +291,7 @@ module TensorStream
           # puts "result done ruby #{object_id}: #{tensor.name}"
           # assertions to make sure inferred shapes == actual evaluated shapes
           if tensor.shape.known? && (result.is_a?(Array) || result.is_a?(Float) || result.is_a?(Integer))
-            if shape_eval(result) != tensor.shape.shape
-              raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}"
-            end
+            raise "assert error #{tensor.name} #{shape_eval(result)} != #{tensor.shape.shape}" if shape_eval(result) != tensor.shape.shape
           end
 
           if tensor.breakpoint
@@ -301,21 +318,8 @@ module TensorStream
       rescue TensorStreamError => e
         raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue StandardError => e
-         puts e.message
+        puts e.message
         puts e.backtrace.join("\n")
-        # shape_a = a.shape.shape if a
-        # shape_b = b.shape.shape if b
-        # dtype_a = a.data_type if a
-        # dtype_b = b.data_type if b
-        # a = complete_eval(a, child_context)
-        # b = complete_eval(b, child_context)
-        # puts "name: #{tensor.given_name}"
-        # # puts "op: #{tensor.to_math(true, 1)}"
-        # puts "A #{shape_a} #{dtype_a}: #{a}" if a
-        # puts "B #{shape_b} #{dtype_b}: #{b}" if b
-        # dump_intermediates if @log_intermediates
-        # File.write('/home/jedld/workspace/tensor_stream/samples/error.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
-        # File.write('/Users/josephemmanueldayo/workspace/gradients.graphml', TensorStream::Graphml.new.get_string(tensor, @session))
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
       end
 
@@ -373,7 +377,7 @@ module TensorStream
       # multi array ops on ruby arrays with same sizes
       def multi_array_op(func, *args)
         elem = args[0]
-        if (elem.is_a?(Array))
+        if elem.is_a?(Array)
           elem.each_with_index.collect do |_item, index|
             indexed_args = args.collect { |a| a[index] }
             multi_array_op(func, *indexed_args)

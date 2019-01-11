@@ -5,13 +5,13 @@ module TensorStream
     def self.profile_for(session, order_by: :slowest)
       context = session.last_session_context
       eval_times = context[:profile][:operations].map do |name, profile|
-        [name, profile[:eval_time], profile[:shape], profile[:tensor].source]
+        [name, profile[:op], profile[:eval_time], profile[:shape]]
       end
 
       if order_by == :slowest
-        eval_times.sort_by { |a| a[1] }.reverse!
+        eval_times.sort_by { |a| a[2] }.reverse!
       else
-        eval_times.sort_by { |a| a[1] }
+        eval_times.sort_by { |a| a[2] }
       end
     end
   end

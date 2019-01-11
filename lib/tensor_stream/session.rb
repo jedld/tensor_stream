@@ -51,7 +51,8 @@ module TensorStream
 
       context = {
         _cache: @session_cache,
-        _options: options.merge(@evaluator_options)
+        _options: options.merge(@evaluator_options),
+        profile: { step: 0, operations: {} },
       }
 
       # scan for placeholders and assign value
@@ -62,17 +63,16 @@ module TensorStream
           elsif k.is_a?(String)
             target_graph = args[0].graph
             node = target_graph.get_node(k)
-            if node.operation == :placeholder
-              context[k.to_sym] = options[:feed_dict][k]
-            else
-              raise "Cannot find placeholder with the name of #{k}"
-            end
+            raise "Cannot find placeholder with the name of #{k}" if node.operation != :placeholder
+
+            context[k.to_sym] = options[:feed_dict][k]
+          elsif k.is_a?(Operation) && k.operation == :placeholder
+            context[k.name.to_sym] = options[:feed_dict][k]
           else
             raise "Invalid placeholder type passed key must be a string or a placeholder type"
           end
         end
       end
-
 
       args.each { |t| prepare_evaluators(t, context) }
       @last_session_context = context
@@ -119,6 +119,7 @@ module TensorStream
       graph = tensor.graph
       graph.nodes.select { |k, v| selector.call(k, v) }.collect do |k, node|
         next unless @last_session_context[node.name]
+
         "#{k} #{node.to_math(true, 1)} = #{@last_session_context[node.name]}"
       end.compact
     end

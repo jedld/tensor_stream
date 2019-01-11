@@ -1,10 +1,10 @@
-[![Gem Version](https://badge.fury.io/rb/tensor_stream.svg)](https://badge.fury.io/rb/tensor_stream)[![CircleCI](https://circleci.com/gh/jedld/tensor_stream.svg?style=svg)](https://circleci.com/gh/jedld/tensor_stream) [![Join the chat at https://gitter.im/tensor_stream/Lobby](https://badges.gitter.im/tensor_stream/Lobby.svg)](https://gitter.im/tensor_stream/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Gem Version](https://badge.fury.io/rb/tensor_stream.svg)](https://badge.fury.io/rb/tensor_stream)[![Gem Version](https://badge.fury.io/rb/tensor_stream-opencl.svg)](https://badge.fury.io/rb/tensor_stream-opencl)[![CircleCI](https://circleci.com/gh/jedld/tensor_stream.svg?style=svg)](https://circleci.com/gh/jedld/tensor_stream) [![Join the chat at https://gitter.im/tensor_stream/Lobby](https://badges.gitter.im/tensor_stream/Lobby.svg)](https://gitter.im/tensor_stream/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # TensorStream
 
-An opensource machine learning framework for ruby. Designed to run on a wide variety of ruby implementations (JRuby, TruffleRuby, MRI) as well as an option for High Performance computation (OpenCL).
+TensorStream is an opensource framework for machine learning for ruby, its goal is to allow machine learning models to be easily built and run them in various hardware like GPUs and CPUs. It is heavily based on TensorFlow with the goal of being able to easily port its higher level libraries and model examples. As such it is also based on data flow graphs wherein you define computations and data flows between those computations in order to achieve the desired output.
 
-This is a framework is heavily influenced by tensorflow and aims to be familiar with tensorflow users. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default with support for an opencl evaluator for large models and datasets.
+TensorStream is designed to support various backends with a Pure Ruby and OpenCL implementation. These implementations are designed to work together, you can perform training on an OpenCL implementation (where you have a GPU) and then run the resulting trained model on a Pure Ruby implementation where you can deploy anywhere that you can run ruby on. TensorStream has been tested to run on most ruby implementations like MRI, JRuby and TruffleRuby.
 
 ## Goals & Features
 
@@ -12,6 +12,7 @@ This is a framework is heavily influenced by tensorflow and aims to be familiar 
 - Replicates most of the commonly used low-level tensorflow ops (tf.add, tf.constant, tf.placeholder, tf.matmul, tf.sin etc...)
 - Supports auto-differentiation using formal derivation
 - Extensible - use your own opcode evaluator (OpenCL and Pure ruby currently supported)
+- wide support - Run on most ruby implementations as well as hardware acceleration on OpenCL supported hardware
 
 ## Compatibility
 
@@ -68,32 +69,30 @@ learning_rate = 0.01
 training_epochs = 1000
 display_step = 50
 
-train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
-7.042,10.791,5.313,7.997,5.654,9.27,3.1]
-train_Y = [1.7,2.76,2.09,3.19,1.694,1.573,3.366,2.596,2.53,1.221,
-2.827,3.465,1.65,2.904,2.42,2.94,1.3]
+train_x = [3.3, 4.4, 5.5, 6.71, 6.93, 4.168, 9.779, 6.182, 7.59, 2.167,
+           7.042, 10.791, 5.313, 7.997, 5.654, 9.27, 3.1]
 
-n_samples = train_X.size
+train_y = [1.7, 2.76, 2.09, 3.19, 1.694, 1.573, 3.366, 2.596, 2.53, 1.221,
+           2.827, 3.465, 1.65, 2.904, 2.42, 2.94, 1.3]
 
-# X = tf.placeholder("float")
-X = Float.placeholder
+n_samples = train_x.size
 
-# Y = tf.placeholder("float")
-Y = Float.placeholder
+x_value = Float.placeholder
+y_value = Float.placeholder
 
 # Set model weights
-# W = tf.variable(rand, name: "weight")
-W = rand.t.var name: "weight"
+weight = rand.t.var name: "weight"
 
-# b = tf.variable(rand, name: "bias")
-b = rand.t.var name: "bias"
+bias = rand.t.var name: "bias"
 
 # Construct a linear model
-pred = X * W + b
+pred = x_value * weight + bias
 
 # Mean squared error
-cost = ((pred - Y) ** 2).reduce / ( 2 * n_samples)
+cost = ((pred - y_value)**2).reduce / (2 * n_samples)
 
+# Other optimizers --
+#
 # optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: true).minimize(cost)
 # optimizer = TensorStream::Train::AdamOptimizer.new(learning_rate).minimize(cost)
 # optimizer = TensorStream::Train::AdadeltaOptimizer.new(1.0).minimize(cost)
@@ -102,27 +101,28 @@ cost = ((pred - Y) ** 2).reduce / ( 2 * n_samples)
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)
-init = tf.global_variables_initializer()
+init = tf.global_variables_initializer
 
 tf.session do |sess|
   start_time = Time.now
   sess.run(init)
+
   (0..training_epochs).each do |epoch|
-    train_X.zip(train_Y).each do |x,y|
-      sess.run(optimizer, feed_dict: {X => x, Y => y})
+    train_x.zip(train_y).each do |x, y|
+      sess.run(optimizer, feed_dict: { x_value => x, y_value => y })
     end
 
-    if (epoch+1) % display_step == 0
-      c = sess.run(cost, feed_dict: { X => train_X, Y => train_Y })
-      puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
-          "W=", sess.run(W), "b=", sess.run(b))
+    if (epoch + 1) % display_step == 0
+      c = sess.run(cost, feed_dict: { x_value => train_x, y_value => train_y })
+      puts("Epoch:", '%04d' % (epoch + 1), "cost=", c, \
+           "W=", sess.run(weight), "b=", sess.run(bias))
     end
   end
 
-  puts("Optimization Finished!")
-  training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
-  puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')
-  puts("time elapsed ", Time.now.to_i - start_time.to_i)
+  puts "Optimization Finished!"
+  training_cost = sess.run(cost, feed_dict: { x_value => train_x, y_value => train_y })
+  puts "Training cost=", training_cost, "W=", sess.run(weight), "b=", sess.run(bias), '\n'
+  puts "time elapsed ", Time.now.to_i - start_time.to_i
 end
 ```
 
@@ -220,7 +220,7 @@ ts.session.run(f)
 For OpenCL support, make sure that the required OpenCL drivers for your hardware are correctly installed on your system.
 Also OpenCL only supports ruby-mri at the moment.
 
-Also include the following gem in your project:
+To use, include the following gem in your project:
 
 ```Gemfile
 gem 'tensor_stream-opencl'
@@ -294,6 +294,10 @@ Note that the OpenCL evaluator provides speedup if you are using large tensors, 
 
 samples/nearest_neighbor.rb contains a sample that uses opencl.
 
+OpenCL support is maintained as a separate project at:
+
+https://github.com/jedld/tensor_stream-opencl
+
 ## Export Import Models from tensorflow
 
 Experimental support for parsing and exporting pbtext files are supported:
@@ -365,34 +369,45 @@ File.write("model.pbtext", result.graph.as_graph_def)
 ## Performance notes
 
 Comparative performance with respect to other ruby libraries have not yet been performed. However it is
-notable that TruffleRuby and ruby-2.6.0-preview2 with the --jit flag performs considerably better with respect
+notable that TruffleRuby and ruby-2.6.0 performs considerably better with respect
 to previous versions of ruby(< 2.6)
 
-Benchmarks running samples/linear_regression.rb on an Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz
+Benchmarks running samples/linear_regression.rb with tensor_stream 1.0.0 on an AMD(R) Ryzen(TM) 3 1300X CPU
 
-ruby 2.4
+
+ruby 2.5
 
 ```
 $ ruby -v
-ruby 2.4.0p0 (2016-12-24 revision 57164) [x86_64-linux]
+ruby 2.5.1p57 (2018-03-29 revision 63029) [x86_64-linux]
 $ ruby samples/linear_regression.rb
-495 seconds 10000 epochs
+296 seconds 3000 epochs
 ```
 
-ruby 2.6.0-preview2
+ruby 2.6.0
 
 ```
 $ ruby -v
-ruby 2.6.0preview2 (2018-05-31 trunk 63539) [x86_64-linux]
-$ ruby --jit samples/linear_regression.rb
-394 seconds 10000 epochs
+ruby 2.6.0p0 (2018-12-25 revision 66547) [x86_64-linux]
+$ ruby samples/linear_regression.rb
+232 seconds 10000 epochs
+
+ruby --jit samples/linear_regression.rb
+222 seconds 10000 epochs
 ```
 
 truffleruby
 ```
 $ ruby -v
-truffleruby 1.0.0-rc5, like ruby 2.4.4, GraalVM CE Native [x86_64-linux]
-219 seconds 10000 epochs
+truffleruby 1.0.0-rc10, like ruby 2.4.4, GraalVM CE Native [x86_64-linux]
+246 seconds 10000 epochs
+```
+
+jruby
+```
+$ ruby -v
+jruby 9.2.0.0 (2.5.0) 2018-05-24 81156a8 OpenJDK 64-Bit Server VM 25.191-b12 on 1.8.0_191-8u191-b12-0ubuntu0.18.04.1-b12 +jit [linux-x86_64]
+205 seconds 10000 epochs
 ```
 
 For training large networks that works on images, the opencl evaluator is the only way to go.

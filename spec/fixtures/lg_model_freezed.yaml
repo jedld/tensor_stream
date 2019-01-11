@@ -27,13 +27,6 @@
     :value: 0.24959364533424377
     :data_type: :float32
     :shape: []
-- :op: assign
-  :name: assign
-  :data_type: :float32
-  :inputs:
-  - weight
-  - Const
-  :attrs: {}
 - :op: const
   :name: Const_1
   :data_type: :float32
@@ -50,13 +43,6 @@
     :value: 0.801466166973114
     :data_type: :float32
     :shape: []
-- :op: assign
-  :name: assign_1
-  :data_type: :float32
-  :inputs:
-  - bias
-  - Const_1
-  :attrs: {}
 - :op: mul
   :name: mul
   :data_type: :float
@@ -1562,24 +1548,42 @@
   - GradientDescent/update_weight/apply_gradient_descent
   - GradientDescent/update_bias/apply_gradient_descent
   :attrs: {}
-- :op: assign
-  :name: assign_2
-  :data_type: :float32
+- :op: placeholder
+  :name: ts_filename
+  :data_type: :string
+  :inputs: []
+  :attrs:
+    :data_type: :string
+    :shape: []
+- :op: save_ts
+  :name: save_ts
+  :data_type: :string
   :inputs:
+  - ts_filename
   - weight
-  - assign
-  :attrs: {}
-- :op: assign
-  :name: assign_3
-  :data_type: :float32
-  :inputs:
   - bias
-  - assign_1
   :attrs: {}
-- :op: flow_group
-  :name: "/flow_group"
-  :data_type: :float32
+- :op: const
+  :name: Const_6
+  :data_type: :string
+  :inputs: []
+  :attrs:
+    :value: weight
+    :data_type: :string
+    :shape: []
+- :op: const
+  :name: Const_7
+  :data_type: :string
+  :inputs: []
+  :attrs:
+    :value: bias
+    :data_type: :string
+    :shape: []
+- :op: restore_ts
+  :name: restore_ts
+  :data_type: :string
   :inputs:
-  - assign_2
-  - assign_3
+  - ts_filename
+  - Const_6
+  - Const_7
   :attrs: {}

@@ -46,7 +46,7 @@ RSpec.shared_examples "TensorStream::Train::Saver" do
 
     # Later, launch the model, use the saver to restore variables from disk, and
     # do some work with the model.
-    
+
     # Restore variables from disk.
     saver.restore(sess, "/tmp/model")
     print("Model restored.")

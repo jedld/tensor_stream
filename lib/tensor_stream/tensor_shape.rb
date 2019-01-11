@@ -9,7 +9,7 @@ module TensorStream
     end
 
     def to_s
-      return "" if @shape.nil?
+      return "?" if @shape.nil?
 
       dimensions = @shape.collect do |r|
         "Dimension(#{r})"
