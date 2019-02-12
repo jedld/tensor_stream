@@ -1,10 +1,10 @@
 require "bundler/setup"
 require "simplecov"
 SimpleCov.start
-
+require 'pry-byebug'
 require "tensor_stream"
 require "awesome_print"
-# require 'pry-byebug'
+
 
 Dir["./spec/support/**/*.rb"].sort.each { |f| require f }
 

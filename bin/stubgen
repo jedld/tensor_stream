@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+# Script to auto generate op stub file from the opdef folder
+
+require "bundler/setup"
+require "tensor_stream"
+require "erb"
+
+target = File.join(__dir__, '..', 'lib', 'tensor_stream', 'generated_stub')
+
+FileUtils.mkdir_p(target)
+
+stub_file = File.join(target, 'ops.rb')
+File.delete(stub_file) if File.exist?(stub_file)
+
+f = File.open(stub_file, 'wb')
+
+template = File.read(File.join(target, 'stub_file.erb'))
+f << ERB.new(template, nil, '%').result(binding)
+f.close

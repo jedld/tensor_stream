@@ -1,6 +1,12 @@
+
 module TensorStream
   # Class that defines all available ops supported by TensorStream
   module Ops
+    if File.exists?(File.join(__dir__, 'generated_stub', 'ops.rb'))
+      require 'tensor_stream/generated_stub/ops'
+      include TensorStream::OpStub
+    end
+
     class OutputHolder
       def initialize(op)
         @op = op
@@ -9,30 +15,6 @@ module TensorStream
     FLOATING_POINT_TYPES = %i[float32 float64 float float16].freeze
     INTEGER_TYPES = %i[uint8 int32 int int16 uint16 int64 uint32 uint64].freeze
     NUMERIC_TYPES = FLOATING_POINT_TYPES + INTEGER_TYPES
-
-    ##
-    # Returns the index with the largest value across axes of a tensor.
-    #
-    # Argmuments
-    #
-    # +input+ A Tensor. Must be one of the following types: float32, float64, int32, int16
-    # +axis+  Describes which axis of the input Tensor to reduce across. For vectors, use axis = 0
-    # +output_type+ Output data type defaults to int32
-    def argmax(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
-      _op(:argmax, input, axis, name: name, dimension: dimension, data_type: output_type)
-    end
-
-    ##
-    # Returns the index with the smallest value across axes of a tensor.
-    #
-    # Argmuments
-    #
-    # +input+ A Tensor. Must be one of the following types: float32, float64, int32, int16
-    # +axis+  Describes which axis of the input Tensor to reduce across. For vectors, use axis = 0
-    # +output_type+ Output data type defaults to int32
-    def argmin(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
-      _op(:argmin, input, axis, name: name, dimension: dimension, data_type: output_type)
-    end
 
     ##
     # Assert the condition x == y holds element-wise.
@@ -80,13 +62,6 @@ module TensorStream
     end
 
     ##
-    # Outputs random values from a uniform distribution.
-    def random_uniform(shape, dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
-      options = {dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name}
-      _op(:random_uniform, shape, options)
-    end
-
-    ##
     # Outputs random values from a normal distribution.
     def random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
       options = {dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name}
@@ -118,14 +93,6 @@ module TensorStream
       _op(:expand_dims, input, axis, name: name)
     end
 
-    ##
-    # This operation returns a 1-D integer tensor representing the shape of input
-    def shape(input, name: nil, out_type: :int32)
-      return constant(shape_eval(input, out_type), dtype: out_type, name: "Shape/#{name}") if input.is_a?(Array) && !input[0].is_a?(Tensor)
-      return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}_c") if shape_full_specified(input)
-
-      _op(:shape, input, name: name, out_type: out_type)
-    end
 
     def shape_n(inputs, name: nil, out_type: :int32)
       shapes_known = true
@@ -144,29 +111,6 @@ module TensorStream
           res[index]
         end
       end
-    end
-
-    ##
-    # Constructs a tensor by tiling a given tensor.
-    #
-    # This operation creates a new tensor by replicating input multiples times.
-    # The output tensor's i'th dimension has input.dims(i) * multiples[i] elements,
-    # and the values of input are replicated multiples[i] times along the 'i'th dimension. For example, tiling [a b c d] by [2] produces [a b c d a b c d].
-    def tile(input, multiples, name: nil)
-      _op(:tile, input, multiples, name: name)
-    end
-
-    ##
-    # Returns the rank of a tensor.
-    def rank(input, name: nil)
-      input = convert_to_tensor(input)
-      return cons(input.shape.ndims) if input.shape.known?
-
-      _op(:rank, input, name: name)
-    end
-
-    def constant_initializer(value, dtype: nil, verify_shape: false)
-      TensorStream::Initializer.new(-> { _op(:fill, nil, convert_to_tensor(value, dtype: dtype)) })
     end
 
     ##
@@ -210,68 +154,24 @@ module TensorStream
     end
 
     ##
-    # Creates a tensor with all elements set to zero
-    def zeros(shape, dtype: :float32, name: nil)
-      _op(:zeros, shape, data_type: dtype, name: name)
-    end
-
-    ##
     # Creates a tensor with all elements set to 1.
     def ones(shape, dtype: :float32, name: nil)
       _op(:ones, shape, data_type: dtype, name: name)
     end
 
     ##
-    # Returns element-wise largest integer not greater than x.
-    def floor(input, name: nil)
-      check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:floor, input, name: name)
-    end
-
-    ##
-    # Returns element-wise smallest integer in not less than x
-    def ceil(input, name: nil)
-      check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:ceil, input, name: name)
-    end
-
-    ##
     # Returns the truth value of (x < y) element-wise.
     # This operation supports broadcasting
     def less(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
+      check_data_types(input_a, input_b)
       _op(:less, input_a, input_b, name: name)
     end
 
     ##
     # Returns the truth value of x AND y element-wise.
     def logical_and(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
+      check_data_types(input_a, input_b)
       _op(:logical_and, input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns the truth value of (x > y) element-wise.
-    # This operation supports broadcasting
-    def greater(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:greater, input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns the truth value of (x >= y) element-wise.
-    #
-    # This operation supports broadcasting
-    def greater_equal(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:greater_equal, input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns the truth value of (x <= y) element-wise.
-    def less_equal(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:less_equal, input_a, input_b, name: name)
     end
 
     ##
@@ -280,41 +180,11 @@ module TensorStream
       reduce(:mean, input_tensor, axis, keepdims: keepdims, name: name)
     end
 
-    ##
-    # Computes the sum of elements across dimensions of a tensor.
-    #
-    # Reduces input_tensor along the dimensions given in axis. Unless keepdims is true,
-    # the rank of the tensor is reduced by 1 for each entry in axis. If keepdims is true,
-    # the reduced dimensions are retained with length 1.
-    # If axis has no entries, all dimensions are reduced, and a tensor with a single element
-    # is returned.
-    def reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
-      reduce(:sum, input_tensor, axis, keepdims: keepdims, name: name)
-    end
-
-    ##
-    # Computes the product of elements across dimensions of a tensor.
-    #
-    # Reduces input_tensor along the dimensions given in axis. Unless keepdims is true, the rank of the
-    # tensor is reduced by 1 for each entry in axis. If keepdims is true, the reduced dimensions are
-    # retained with length 1.
-    #
-    # If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned.
-    def reduce_prod(input, axis = nil, keepdims: false, name: nil)
-      reduce(:prod, input, axis, keepdims: keepdims, name: name)
-    end
-
     def reduce(op, input, axis = nil, keepdims: false, name: nil)
       input = TensorStream.convert_to_tensor(input)
-      axis = if !axis.nil?
-        axis
-      elsif input.shape.scalar?
-        op
-      elsif input.shape.known?
-        (0...input.shape.ndims).to_a
-      else
-        range(0, rank(input))
-      end
+      return input if input.shape.scalar?
+
+      axis = cast_axis(input, axis)
 
       _op(op, input, axis, keepdims: keepdims, name: name)
     end
@@ -396,13 +266,6 @@ module TensorStream
     end
 
     ##
-    # Rounds the values of a tensor to the nearest integer, element-wise
-    def round(tensor, name: nil)
-      check_allowed_types(tensor, FLOATING_POINT_TYPES)
-      _op(:round, tensor, name: name)
-    end
-
-    ##
     # Computes the reciprocal of x element-wise.
     def reciprocal(tensor, name: nil)
       _op(:reciprocal, tensor, name: name)
@@ -418,15 +281,6 @@ module TensorStream
     # Return the elements, either from x or y, depending on the condition.
     def where(condition, true_t = nil, false_t = nil, name: nil)
       _op(:where, condition, true_t, false_t, name: name)
-    end
-
-    ##
-    # Returns x + y element-wise.
-    #
-    # This operation supports broadcasting
-    def add(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:add, input_a, input_b, name: name)
     end
 
     ##
@@ -459,73 +313,10 @@ module TensorStream
     end
 
     ##
-    # Returns x - y element-wise.
-    #
-    # This operation supports boradcasting
-    def sub(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:sub, input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns element-wise remainder of division.
-    def mod(input_a, input_b, name: nil)
-      input_a = convert_to_tensor(input_a)
-      input_b = convert_to_tensor(input_b)
-
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:mod, input_a, input_b, name: name)
-    end
-
-    ##
     # Returns element-wise integer divistion.
     def floor_div(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
+      check_data_types(input_a, input_b)
       _op(:floor_div, input_a, input_b, name: name)
-    end
-
-    def range(start, limit, delta = 1, dtype: nil, name: "range")
-      _op(:range, start, limit, delta, data_type: dtype, name: name)
-    end
-
-    ##
-    # Returns x - y element-wise.
-    #
-    # This operation supports boradcasting
-    def subtract(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      sub(input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns the max of x and y (i.e. x > y ? x : y) element-wise.
-    def max(input_a, input_b, name: nil)
-      check_allowed_types(input_a, NUMERIC_TYPES)
-      check_allowed_types(input_b, NUMERIC_TYPES)
-
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:max, input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns the max of x and y (i.e. x > y ? x : y) element-wise.
-    def maximum(input_a, input_b, name: nil)
-      max(input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns the min of x and y (i.e. x < y ? x : y) element-wise.
-    def min(input_a, input_b, name: nil)
-      check_allowed_types(input_a, NUMERIC_TYPES)
-      check_allowed_types(input_b, NUMERIC_TYPES)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:min, input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns the min of x and y (i.e. x < y ? x : y) element-wise.
-    def minimum(input_a, input_b, name: nil)
-      min(input_a, input_b, name: name)
     end
 
     ##
@@ -538,6 +329,18 @@ module TensorStream
     end
 
     ##
+    # Returns the max of x and y (i.e. x > y ? x : y) element-wise.
+    def maximum(input_a, input_b, name: nil)
+      max(input_a, input_b, name: name)
+    end
+
+    ##
+    # Returns the min of x and y (i.e. x < y ? x : y) element-wise.
+    def minimum(input_a, input_b, name: nil)
+      min(input_a, input_b, name: name)
+    end
+
+    ##
     # Prints a list of tensors.
     #
     # This is an identity op (behaves like tf.identity) with the side effect of printing data when evaluating.
@@ -547,28 +350,15 @@ module TensorStream
 
     ##
     # Computes numerical negative value element-wise.
-    def negate(input, name: nil)
-      _op(:negate, input, name: name)
-    end
-
-    ##
-    # Computes numerical negative value element-wise.
     def negative(input, name: nil)
       negate(input, name: name)
-    end
-
-    ##
-    # Returns the truth value of (x == y) element-wise.
-    def equal(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:equal, input_a, input_b, name: name)
     end
 
     ##
     # Returns the truth value of (x != y) element-wise.
     # This ops supports broadcasting
     def not_equal(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
+      check_data_types(input_a, input_b)
       _op(:not_equal, input_a, input_b, name: name)
     end
 
@@ -600,73 +390,14 @@ module TensorStream
     # Returns x * y element-wise.
     # This operation supports broadcasting
     def multiply(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
+      check_data_types(input_a, input_b)
       _op(:mul, input_a, input_b, name: name)
-    end
-
-    ##
-    # Returns x * y element-wise.
-    # This operation supports broadcasting
-    def mul(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:mul, input_a, input_b, name: name)
-    end
-
-    ##
-    # Divides x / y elementwise
-    # This operation supports broadcasting
-    def div(input_a, input_b, name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:div, input_a, input_b, name: name)
-    end
-
-    ##
-    # Computes the power of one value to another.
-    def pow(input_a, input_e, name: nil)
-      input_a, input_e = check_data_types(input_a, input_e)
-      _op(:pow, input_a, input_e, name: name)
     end
 
     ##
     # Computes the absolute value of a tensor.
     def abs(input, name: nil)
       _op(:abs, input, name: name)
-    end
-
-    ##
-    # Returns an element-wise indication of the sign of a number.
-    # y = sign(x) = -1 if x < 0; 0 if x == 0 or tf.is_nan(x); 1 if x > 0.
-    # Zero is returned for NaN inputs.
-    def sign(input, name: nil)
-      _op(:sign, input, name: name)
-    end
-
-    ##
-    # Computes sin of input element-wise.
-    def sin(input, name: nil)
-      check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:sin, input, name: name)
-    end
-
-    ##
-    # Computes cos of input element-wise.
-    def cos(input, name: nil)
-      check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:cos, input, name: name)
-    end
-
-    ##
-    # Computes tan of input element-wise.
-    def tan(input, name: nil)
-      check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:tan, input, name: name)
-    end
-
-    ##
-    # Computes tanh of input element-wise.
-    def tanh(input, name: nil)
-      check_allowed_types(input, FLOATING_POINT_TYPES)
-      _op(:tanh, input, name: name)
     end
 
     ##
@@ -705,33 +436,10 @@ module TensorStream
     end
 
     ##
-    # Creates a tensor filled with a scalar value.
-    #
-    # This operation creates a tensor of shape dims and fills it with value.
-    #
-    # For example:
-    # Output tensor has shape [2, 3].
-    # fill([2, 3], 9) => [[9, 9, 9]
-    #                    [9, 9, 9]]
-    def fill(dims, value, name: nil)
-      _op(:fill, dims, value, name: name)
-    end
-
-    ##
     # Computes sigmoid of x element-wise.
     def sigmoid(input, name: nil)
       check_allowed_types(input, FLOATING_POINT_TYPES)
       _op(:sigmoid, input, name: name)
-    end
-
-    ##
-    # Multiplies matrix a by matrix b, producing a * b.
-    # The inputs must, following any transpositions, be tensors of rank 2 .
-    def matmul(input_a, input_b, transpose_a: false,
-      transpose_b: false,
-      name: nil)
-      input_a, input_b = check_data_types(input_a, input_b)
-      _op(:mat_mul, input_a, input_b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
     end
 
     ##
@@ -752,10 +460,6 @@ module TensorStream
     # When run, reports an InvalidArgument error if tensor has any values that are not a number (NaN) or infinity (Inf). Otherwise, passes tensor as-is.
     def check_numerics(tensor, message, name: nil)
       _op(:check_numerics, tensor, message: message, name: name)
-    end
-
-    def size(tensor, name: nil, out_type: :int32)
-      _op(:size, tensor, name: name, out_type: out_type)
     end
 
     def squared_difference(input_a, input_b, name: nil)
@@ -877,6 +581,16 @@ module TensorStream
 
     def invert_permutation(x, name: nil)
       _op(:invert_permutation, x, name: name)
+    end
+
+    def cast_axis(input, axis)
+      if !axis.nil?
+        axis
+      elsif input.shape.known?
+        (0...input.shape.ndims).to_a
+      else
+        range(0, rank(input))
+      end
     end
   end
 end

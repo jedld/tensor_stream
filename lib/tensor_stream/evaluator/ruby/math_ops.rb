@@ -147,7 +147,7 @@ module TensorStream
             shape
           }.compact
 
-          Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :max), ns), tensor.data_type)
+          Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :max), ns), tensor.options[:output_type])
         end
 
         register_op(%i[argmin arg_min]) do |_context, tensor, inputs|
@@ -162,7 +162,7 @@ module TensorStream
             shape
           }.compact
 
-          Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :min), ns), tensor.data_type)
+          Tensor.cast_dtype(TensorShape.reshape(get_op_with_axis(inputs[0], axis, 0, :min), ns), tensor.options[:output_type])
         end
 
         register_op :cumprod do |context, tensor, inputs|

@@ -45,7 +45,7 @@ module TensorStream
     end
 
     def assign(value, name: nil, use_locking: false)
-      _a, value = TensorStream.check_data_types(self, value)
+      TensorStream.check_data_types(self, value)
       _op(:assign, self, value, name: name)
     end
 
@@ -55,7 +55,7 @@ module TensorStream
     end
 
     def assign_add(value, name: nil)
-      _a, value = TensorStream.check_data_types(self, value)
+      TensorStream.check_data_types(self, value)
       _op(:assign_add, self, value, data_type: data_type, name: name)
     end
 
@@ -64,7 +64,7 @@ module TensorStream
     end
 
     def assign_sub(value)
-      _a, value = TensorStream.check_data_types(self, value)
+      TensorStream.check_data_types(self, value)
       _op(:assign_sub, self, value)
     end
 

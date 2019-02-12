@@ -1,7 +1,7 @@
 module TensorStream
   module TensorMixins
     def +(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:add, self, other)
     end
 
@@ -10,22 +10,22 @@ module TensorStream
     end
 
     def *(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def **(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def /(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
@@ -62,47 +62,47 @@ module TensorStream
     end
 
     def ==(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:equal, self, other)
     end
 
     def <(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:less, self, other)
     end
 
     def !=(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:not_equal, self, other)
     end
 
     def >(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:greater, self, other)
     end
 
     def >=(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:greater_equal, self, other)
     end
 
     def <=(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:less_equal, self, other)
     end
 
     def and(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:logical_and, self, other)
     end
 
     def matmul(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:mat_mul, self, other)
     end
 
     def dot(other)
-      _a, other = TensorStream.check_data_types(self, other)
+      TensorStream.check_data_types(self, other)
       _op(:mat_mul, self, other)
     end
 

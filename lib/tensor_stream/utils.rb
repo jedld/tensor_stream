@@ -278,21 +278,22 @@ module TensorStream
       raise "#{input.source}: Parameter data type #{input.data_type} passed not in #{types.join(",")}" unless types.include?(input.data_type.to_sym)
     end
 
-    def check_data_types(input_a, input_b)
-      if !input_a.is_a?(Tensor) && input_b.is_a?(Tensor)
-        input_a = convert_to_tensor(input_a, dtype: input_b.data_type)
-      elsif !input_b.is_a?(Tensor) && input_a.is_a?(Tensor)
-        input_b = convert_to_tensor(input_b, dtype: input_a.data_type)
-      else
-        input_a = convert_to_tensor(input_a)
-        input_b = convert_to_tensor(input_b)
+    def check_data_types(*args)
+      unique_types = args.select { |a| a.is_a?(Tensor) }. map { |a| norm_dtype(a.data_type) }.uniq
+
+      if unique_types.size > 1
+        raise TensorStream::ValueError, "Value Error: Tensor conversion requested dtypes are different -> #{unique_types}"
       end
 
-      if norm_dtype(input_a.data_type) != norm_dtype(input_b.data_type)
-        raise TensorStream::ValueError, "Value Error: Tensor conversion requested dtype #{input_a.data_type} for tensor type #{input_b.data_type}"
-      end
+      unique_types.first
+    end
 
-      [input_a, input_b]
+    ##
+    # Auto cast ruby constant data types to the same
+    # tensor types of other operands
+    def apply_data_type_coercion(*args)
+      coerced_type = check_data_types(*args)
+      args.map { |a| a.is_a?(Tensor) ? a : convert_to_tensor(a, dtype: coerced_type) }
     end
 
     def norm_dtype(dtype)

@@ -46,6 +46,7 @@ require "tensor_stream/monkey_patches/float"
 require "tensor_stream/monkey_patches/array"
 require "tensor_stream/ops"
 require "tensor_stream/trainer"
+require "tensor_stream/op_maker"
 
 # module that exposes TensorStream top level functions
 module TensorStream
