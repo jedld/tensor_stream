@@ -6,7 +6,7 @@ TensorStream::OpMaker.define_operation :random_uniform do |op|
   op.option :name, "Optional name", :nil
   op.option :dtype, "The type of the output: float16, float32, float64, int32, or int64", ":float32"
   op.option :minval, "A 0-D Tensor or ruby value of type dtype. The lower bound on the range of random values to generate. Defaults to 0.", 0
-  op.option :maxval, "A 0-D Tensor or ruby value of type dtype. The upper bound on the range of random values to generate. Defaults to 1 if dtype is floating point.", 0
+  op.option :maxval, "A 0-D Tensor or ruby value of type dtype. The upper bound on the range of random values to generate. Defaults to 1 if dtype is floating point.", 1
   op.option :seed, " A ruby integer. Used to create a random seed for the distribution. See set_random_seed for behavior.", :nil
 
   op.define_shape do |tensor|

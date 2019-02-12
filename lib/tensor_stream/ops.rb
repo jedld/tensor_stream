@@ -127,6 +127,10 @@ module TensorStream
       TensorStream::Initializer.new(-> { _op(:ones, data_type: dtype) })
     end
 
+    def constant_initializer(value, dtype: nil, verify_shape: false)
+      TensorStream::Initializer.new(-> { _op(:fill, nil, convert_to_tensor(value, dtype: dtype)) })
+    end
+
     ##
     # The Glorot uniform initializer, also called Xavier uniform initializer.
     #

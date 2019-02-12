@@ -524,9 +524,9 @@ module TensorStream
     # +:name+:: Optional name
     # +:dtype+:: The type of the output: float16, float32, float64, int32, or int64 default (:float32)
     # +:minval+:: A 0-D Tensor or ruby value of type dtype. The lower bound on the range of random values to generate. Defaults to 0. default (0)
-    # +:maxval+:: A 0-D Tensor or ruby value of type dtype. The upper bound on the range of random values to generate. Defaults to 1 if dtype is floating point. default (0)
+    # +:maxval+:: A 0-D Tensor or ruby value of type dtype. The upper bound on the range of random values to generate. Defaults to 1 if dtype is floating point. default (1)
     # +:seed+::  A ruby integer. Used to create a random seed for the distribution. See set_random_seed for behavior.
-    def random_uniform(shape, name: nil, dtype: :float32, minval: 0, maxval: 0, seed: nil)
+    def random_uniform(shape, name: nil, dtype: :float32, minval: 0, maxval: 1, seed: nil)
 
 
 

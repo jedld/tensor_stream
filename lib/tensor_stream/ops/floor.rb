@@ -5,6 +5,10 @@ TensorStream::OpMaker.define_operation :floor do |op|
 
   op.option :name, "Optional name", :nil
 
+  op.define_gradient do |grad, node, params|
+    nil
+  end
+
   op.define_shape do |tensor|
     tensor.inputs[0].shape.shape
   end
