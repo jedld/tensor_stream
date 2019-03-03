@@ -32,7 +32,7 @@ class TensorStream::OpMaker
   end
 
   def self.scan
-    op_files = Dir[File.join("lib", "tensor_stream", "ops", "*.rb")]
+    op_files = Dir[File.join(File.dirname(__FILE__), "ops", "*.rb")]
     op_files.each { |file|
       load File.join("tensor_stream", "ops", File.basename(file))
     }
