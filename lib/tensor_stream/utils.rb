@@ -279,7 +279,7 @@ module TensorStream
     end
 
     def check_data_types(*args)
-      unique_types = args.select { |a| a.is_a?(Tensor) }. map { |a| norm_dtype(a.data_type) }.uniq
+      unique_types = args.select { |a| a.is_a?(Tensor) }. map { |a| DataTypeUtils.norm_dtype(a.data_type) }.uniq
 
       if unique_types.size > 1
         raise TensorStream::ValueError, "Value Error: Tensor conversion requested dtypes are different -> #{unique_types}"
@@ -294,18 +294,6 @@ module TensorStream
     def apply_data_type_coercion(*args)
       coerced_type = check_data_types(*args)
       args.map { |a| a.is_a?(Tensor) ? a : convert_to_tensor(a, dtype: coerced_type) }
-    end
-
-    def norm_dtype(dtype)
-      dtype = dtype.to_sym
-      case dtype
-      when :int
-        :int32
-      when :float
-        :float32
-      else
-        dtype
-      end
     end
   end
 end

@@ -114,8 +114,8 @@ RSpec.shared_examples "standard ops evaluator" do
 
     n_samples = train_X.size
 
-    X = TensorStream.placeholder("float")
-    Y = TensorStream.placeholder("float")
+    X = TensorStream.placeholder(:float32)
+    Y = TensorStream.placeholder(:float32)
 
     # Set model weights
     W = TensorStream.variable(rand, name: "weight")

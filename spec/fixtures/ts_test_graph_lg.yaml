@@ -1,17 +1,17 @@
 ---
 - :op: placeholder
   :name: X
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
-    :data_type: :float
+    :data_type: :float32
     :shape: 
 - :op: placeholder
   :name: Y
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
-    :data_type: :float
+    :data_type: :float32
     :shape: 
 - :op: const
   :name: Const
@@ -65,21 +65,21 @@
   :attrs: {}
 - :op: mul
   :name: mul
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - X
   - weight
   :attrs: {}
 - :op: add
   :name: add
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - mul
   - bias
   :attrs: {}
 - :op: sub
   :name: sub
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - add
   - Y
@@ -94,7 +94,7 @@
     :shape: []
 - :op: pow
   :name: pow
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   - Const_2
@@ -133,7 +133,7 @@
     :output_type: :int32
 - :op: sum
   :name: sum
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - pow
   - range
@@ -141,15 +141,15 @@
     :keepdims: false
 - :op: const
   :name: Const_5
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 34.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: div
   :name: div
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sum
   - Const_5
@@ -252,20 +252,20 @@
   :attrs: {}
 - :op: negate
   :name: gradient_wrt_weight/div_grad/negate
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sum
   :attrs: {}
 - :op: div
   :name: gradient_wrt_weight/div_grad/div_1
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_weight/div_grad/negate
   - Const_5
   :attrs: {}
 - :op: div
   :name: gradient_wrt_weight/div_grad/div_2
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_weight/div_grad/div_1
   - Const_5
@@ -542,7 +542,7 @@
   :attrs: {}
 - :op: pow
   :name: gradient_wrt_weight/pow_grad/pow
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   - gradient_wrt_weight/pow_grad/sub
@@ -579,19 +579,19 @@
   :attrs: {}
 - :op: log
   :name: gradient_wrt_weight/pow_grad/log
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: zeros_like
   :name: gradient_wrt_weight/pow_grad/zeros_like
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: where
   :name: gradient_wrt_weight/pow_grad/where
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_weight/pow_grad/greater
   - gradient_wrt_weight/pow_grad/log
@@ -870,14 +870,14 @@
   :attrs: {}
 - :op: mul
   :name: gradient_wrt_weight/mul_grad/mul_1
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - X
   - gradient_wrt_weight/add_grad/reshape
   :attrs: {}
 - :op: sum
   :name: gradient_wrt_weight/mul_grad/sum_1
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_weight/mul_grad/mul_1
   - gradient_wrt_weight/mul_grad/index_1
@@ -885,7 +885,7 @@
     :keepdims: false
 - :op: reshape
   :name: gradient_wrt_weight/mul_grad/reshape_1
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_weight/mul_grad/sum_1
   - gradient_wrt_weight/mul_grad/shape_1
@@ -988,20 +988,20 @@
   :attrs: {}
 - :op: negate
   :name: gradient_wrt_bias/div_grad/negate
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sum
   :attrs: {}
 - :op: div
   :name: gradient_wrt_bias/div_grad/div_1
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_bias/div_grad/negate
   - Const_5
   :attrs: {}
 - :op: div
   :name: gradient_wrt_bias/div_grad/div_2
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_bias/div_grad/div_1
   - Const_5
@@ -1278,7 +1278,7 @@
   :attrs: {}
 - :op: pow
   :name: gradient_wrt_bias/pow_grad/pow
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   - gradient_wrt_bias/pow_grad/sub
@@ -1315,19 +1315,19 @@
   :attrs: {}
 - :op: log
   :name: gradient_wrt_bias/pow_grad/log
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: zeros_like
   :name: gradient_wrt_bias/pow_grad/zeros_like
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: where
   :name: gradient_wrt_bias/pow_grad/where
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - gradient_wrt_bias/pow_grad/greater
   - gradient_wrt_bias/pow_grad/log
@@ -1539,19 +1539,12 @@
     :value: 0.01
     :data_type: :float32
     :shape: []
-- :op: cast
-  :name: GradientDescent/update_weight/cast
-  :data_type: :float
-  :inputs:
-  - GradientDescent/learning_rate
-  :attrs:
-    :data_type: :float
 - :op: apply_gradient_descent
   :name: GradientDescent/update_weight/apply_gradient_descent
   :data_type: :float32
   :inputs:
   - weight
-  - GradientDescent/update_weight/cast
+  - GradientDescent/learning_rate
   - gradient_wrt_weight/mul_grad/reshape_1
   :attrs:
     :internal: true
