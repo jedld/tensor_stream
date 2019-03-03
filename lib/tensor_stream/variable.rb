@@ -18,7 +18,7 @@ module TensorStream
 
       scope_name = variable_scope ? variable_scope.name : nil
       variable_scope_initializer = variable_scope ? variable_scope.initializer : nil
-      @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join('/')
+      @name = [scope_name, options[:name] || build_name].compact.reject(&:empty?).join("/")
       @initalizer_tensor = options[:initializer] || variable_scope_initializer || TensorStream.glorot_uniform_initializer
       shape = @initalizer_tensor.shape.shape if shape.nil? && @initalizer_tensor && @initalizer_tensor.shape
 
@@ -45,7 +45,7 @@ module TensorStream
     end
 
     def assign(value, name: nil, use_locking: false)
-      _a, value = TensorStream.check_data_types(self, value)
+      TensorStream.check_data_types(self, value)
       _op(:assign, self, value, name: name)
     end
 
@@ -55,7 +55,7 @@ module TensorStream
     end
 
     def assign_add(value, name: nil)
-      _a, value = TensorStream.check_data_types(self, value)
+      TensorStream.check_data_types(self, value)
       _op(:assign_add, self, value, data_type: data_type, name: name)
     end
 
@@ -64,7 +64,7 @@ module TensorStream
     end
 
     def assign_sub(value)
-      _a, value = TensorStream.check_data_types(self, value)
+      TensorStream.check_data_types(self, value)
       _op(:assign_sub, self, value)
     end
 
@@ -77,7 +77,7 @@ module TensorStream
     end
 
     def inspect
-      "Variable(#{@name} shape: #{@shape || '?'} data_type: #{@data_type})"
+      "Variable(#{@name} shape: #{@shape || "?"} data_type: #{@data_type})"
     end
 
     protected

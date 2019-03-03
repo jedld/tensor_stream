@@ -20,18 +20,18 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::AdamOptimizer.new.minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq(0.0)
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
         expect(tr(m.read_value)).to eq(0.001)
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
         expect(tr(m.read_value)).to eq(0.002)
         expect(sess.run(global_step)).to eq(2)
       end
@@ -47,36 +47,36 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::AdamOptimizer.new.minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq([0.0, 0.0])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
         expect(tr(m.read_value)).to eq([0.001, 0.001])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
         expect(tr(m.read_value)).to eq([0.002, 0.002])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
         expect(tr(m.read_value)).to eq([0.003, 0.003])
         expect(sess.run(global_step)).to eq(3)
       end
 
       specify ".compute_gradients" do
-          m = ts.variable([0.0, 0.0], dtype: :float32)
-          b = ts.variable([0.0, 0.0], dtype: :float32)
-          global_step = ts.variable(0, trainable: false)
-          x = ts.placeholder(:float32)
-          y = ts.placeholder(:float32)
+        m = ts.variable([0.0, 0.0], dtype: :float32)
+        b = ts.variable([0.0, 0.0], dtype: :float32)
+        global_step = ts.variable(0, trainable: false)
+        x = ts.placeholder(:float32)
+        y = ts.placeholder(:float32)
 
-          pred = m * x + b
-          optimizer = TensorStream::Train::AdamOptimizer.new
-          expect { optimizer.compute_gradients(pred, var_list: x) }.to raise_error
-          expect { optimizer.compute_gradients(pred, var_list: [x]) }.to raise_error
-          expect(optimizer.compute_gradients(pred, var_list: [m]).map { |g, v| g.name}).to be
+        pred = m * x + b
+        optimizer = TensorStream::Train::AdamOptimizer.new
+        expect { optimizer.compute_gradients(pred, var_list: x) }.to raise_error
+        expect { optimizer.compute_gradients(pred, var_list: [x]) }.to raise_error
+        expect(optimizer.compute_gradients(pred, var_list: [m]).map { |g, v| g.name}).to be
       end
     end
   end
@@ -94,18 +94,18 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::GradientDescentOptimizer.new(0.01).minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq(0.0)
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
         expect(tr(m.read_value)).to eq(0.3261)
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
         expect(tr(m.read_value)).to eq(0.6265)
         expect(sess.run(global_step)).to eq(2)
       end
@@ -121,18 +121,18 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::GradientDescentOptimizer.new(0.01).minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq([0.0, 0.0])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
         expect(tr(m.read_value)).to eq([0.3261, 0.1925])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
         expect(tr(m.read_value)).to eq([0.6265, 0.3799])
         expect(sess.run(global_step)).to eq(2)
       end
@@ -159,12 +159,11 @@ RSpec.shared_examples "optimizer evaluator" do
       let(:learning_rate) { 0.01 }
 
       [true, false].each do |use_nesterov|
-
         let(:expect_values) do
           # use_nesterov => { rank => expected }
           {
-            false => { 0 => 0.3261, 1 => [0.3261, 0.1925] },
-            true => { 0 => 0.9526, 1 =>  [0.9526, 0.5724] },
+            false => {0 => 0.3261, 1 => [0.3261, 0.1925]},
+            true => {0 => 0.9526, 1 => [0.9526, 0.5724]},
           }
         end
 
@@ -180,17 +179,17 @@ RSpec.shared_examples "optimizer evaluator" do
 
             pred = m * x + b
 
-            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+            cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
             optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: use_nesterov).minimize(cost, global_step: global_step)
 
-            init = ts.global_variables_initializer()
+            init = ts.global_variables_initializer
 
             sess.run(init)
 
             expect(m.read_value).to eq(0.0)
-            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+            sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
+            sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
             expect(tr(m.read_value)).to eq(expect_values[use_nesterov][0])
             expect(sess.run(global_step)).to eq(2)
           end
@@ -206,17 +205,17 @@ RSpec.shared_examples "optimizer evaluator" do
 
             pred = m * x + b
 
-            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+            cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
             optimizer = TensorStream::Train::MomentumOptimizer.new(learning_rate, momentum, use_nesterov: use_nesterov).minimize(cost, global_step: global_step)
 
-            init = ts.global_variables_initializer()
+            init = ts.global_variables_initializer
 
             sess.run(init)
 
             expect(m.read_value).to eq([0.0, 0.0])
-            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
-            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
+            sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
 
             expect(tr(m.read_value)).to eq(expect_values[use_nesterov][1])
             expect(sess.run(global_step)).to eq(2)
@@ -253,18 +252,18 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::AdadeltaOptimizer.new.minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq(0.0)
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-        expect(tr(m.read_value,6)).to eq(1.0e-06)
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
+        expect(tr(m.read_value, 6)).to eq(1.0e-06)
         expect(sess.run(global_step)).to eq(2)
       end
 
@@ -279,17 +278,17 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::AdadeltaOptimizer.new.minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq([0.0, 0.0])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
         expect(tr(m.read_value, 6)).to eq([1.0e-06, 1.0e-06])
         expect(sess.run(global_step)).to eq(2)
       end
@@ -323,18 +322,18 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::AdagradOptimizer.new(0.01).minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq(0.0)
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-        sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
-        expect(tr(m.read_value,5)).to eq(1.80532)
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
+        sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
+        expect(tr(m.read_value, 5)).to eq(1.80532)
         expect(sess.run(global_step)).to eq(2)
       end
 
@@ -349,17 +348,17 @@ RSpec.shared_examples "optimizer evaluator" do
 
         pred = m * x + b
 
-        cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+        cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
         optimizer = TensorStream::Train::AdagradOptimizer.new(0.01).minimize(cost, global_step: global_step)
 
-        init = ts.global_variables_initializer()
+        init = ts.global_variables_initializer
 
         sess.run(init)
 
         expect(m.read_value).to eq([0.0, 0.0])
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
-        sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
+        sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
         expect(tr(m.read_value, 5)).to eq([1.80532, 1.16646])
         expect(sess.run(global_step)).to eq(2)
       end
@@ -383,11 +382,11 @@ RSpec.shared_examples "optimizer evaluator" do
   context "RMSProp optimizer" do
     [true, false].each do |centered|
       let(:expectation) do
-        { false  => { 0 => [ 0.0315, 0.0543], 1 => [[0.0315, 0.0312], [0.0543, 0.054], [0.0734, 0.0731]] },
-          true => { 0 => [ 0.0315, 0.0549], 1 => [[0.0315, 0.0312], [0.0549, 0.0546], [0.0743, 0.074]] } }
+        {false => {0 => [0.0315, 0.0543], 1 => [[0.0315, 0.0312], [0.0543, 0.054], [0.0734, 0.0731]]},
+         true => {0 => [0.0315, 0.0549], 1 => [[0.0315, 0.0312], [0.0549, 0.0546], [0.0743, 0.074]]},}
       end
 
-      context "#{centered ? 'centered' : 'non-centered'}" do
+      context (centered ? "centered" : "non-centered").to_s do
         supported_op :apply_rms_prop do
           specify "rank 0" do
             n_samples = 5
@@ -400,18 +399,18 @@ RSpec.shared_examples "optimizer evaluator" do
 
             pred = m * x + b
 
-            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+            cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
             optimizer = TensorStream::Train::RMSPropOptimizer.new(0.01, centered: centered).minimize(cost, global_step: global_step)
 
-            init = ts.global_variables_initializer()
+            init = ts.global_variables_initializer
 
             sess.run(init)
 
             expect(m.read_value).to eq(0.0)
-            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+            sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
             expect(tr(m.read_value)).to eq(expectation[centered][0][0])
-            sess.run(optimizer, feed_dict: { x => 6.2, y => 26.3 })
+            sess.run(optimizer, feed_dict: {x => 6.2, y => 26.3})
             expect(tr(m.read_value)).to eq(expectation[centered][0][1])
             expect(sess.run(global_step)).to eq(2)
           end
@@ -427,20 +426,20 @@ RSpec.shared_examples "optimizer evaluator" do
 
             pred = m * x + b
 
-            cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+            cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
             optimizer = TensorStream::Train::RMSPropOptimizer.new(0.01, centered: centered).minimize(cost, global_step: global_step)
 
-            init = ts.global_variables_initializer()
+            init = ts.global_variables_initializer
 
             sess.run(init)
 
             expect(m.read_value).to eq([0.0, 0.0])
-            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
             expect(tr(m.read_value)).to eq(expectation[centered][1][0])
-            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
             expect(tr(m.read_value)).to eq(expectation[centered][1][1])
-            sess.run(optimizer, feed_dict: { x => [6.2, 3.5], y => [26.3, 27.5] })
+            sess.run(optimizer, feed_dict: {x => [6.2, 3.5], y => [26.3, 27.5]})
             expect(tr(m.read_value)).to eq(expectation[centered][1][2])
             expect(sess.run(global_step)).to eq(3)
           end

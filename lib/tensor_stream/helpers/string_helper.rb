@@ -4,28 +4,28 @@ module TensorStream
   module StringHelper
     def camelize(string, uppercase_first_letter = true)
       string = if uppercase_first_letter
-                 string.sub(/^[a-z\d]*/) { $&.capitalize }
-               else
-                 string.sub(/^(?:(?=\b|[A-Z_])|\w)/) { $&.downcase }
-               end
-      string.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }.gsub('/', '::')
+        string.sub(/^[a-z\d]*/) { $&.capitalize }
+      else
+        string.sub(/^(?:(?=\b|[A-Z_])|\w)/) { $&.downcase }
+      end
+      string.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }.gsub("/", "::")
     end
 
     def underscore(string)
-      string.gsub(/::/, '/')
-            .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-            .gsub(/([a-z\d])([A-Z])/, '\1_\2')
-            .tr("-", "_").downcase
+      string.gsub(/::/, "/").
+        gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').
+        gsub(/([a-z\d])([A-Z])/, '\1_\2').
+        tr("-", "_").downcase
     end
 
     def symbolize_keys(hash)
-      hash.map do |k, v|
+      hash.map { |k, v|
         [k.to_sym, v]
-      end.to_h
+      }.to_h
     end
 
     def constantize(camel_cased_word)
-      names = camel_cased_word.split('::')
+      names = camel_cased_word.split("::")
 
       # Trigger a built-in NameError exception including the ill-formed constant in the message.
       Object.const_get(camel_cased_word) if names.empty?
@@ -43,11 +43,11 @@ module TensorStream
 
           # Go down the ancestors to check if it is owned directly. The check
           # stops when we reach Object or the end of ancestors tree.
-          constant = constant.ancestors.inject do |const, ancestor|
+          constant = constant.ancestors.inject { |const, ancestor|
             break const    if ancestor == Object
             break ancestor if ancestor.const_defined?(name, false)
             const
-          end
+          }
 
           # owner is in Object, so raise
           constant.const_get(name, false)

@@ -33,12 +33,12 @@ module TensorStream
     # Returns:
     # - An array containing the names of those devices
     def list_local_devices
-      local_name = 'job:localhost'
-      TensorStream::Evaluator.evaluators.collect do |k, v|
+      local_name = "job:localhost"
+      TensorStream::Evaluator.evaluators.collect { |k, v|
         v[:class].query_supported_devices.collect do |device_str|
-          [local_name, "ts:#{k}:#{device_str.name}"].join('/')
+          [local_name, "ts:#{k}:#{device_str.name}"].join("/")
         end
-      end.flatten
+      }.flatten
     end
 
     ##
@@ -51,17 +51,17 @@ module TensorStream
         name: name,
         graph: graph,
         dtype: dtype,
-        trainable: trainable
+        trainable: trainable,
       }
       tensor = if value.is_a?(String)
-                 i_var(dtype || :string, 0, [], get_variable_scope, common_options)
-               elsif value.is_a?(Integer)
-                 i_var(dtype || :int32, 0, [], get_variable_scope, common_options)
-               elsif value.is_a?(Float)
-                 i_var(dtype || :float32, 0, [], get_variable_scope, common_options)
-               else
-                 i_var(dtype || :float32, 0, nil, get_variable_scope, common_options)
-               end
+        i_var(dtype || :string, 0, [], get_variable_scope, common_options)
+      elsif value.is_a?(Integer)
+        i_var(dtype || :int32, 0, [], get_variable_scope, common_options)
+      elsif value.is_a?(Float)
+        i_var(dtype || :float32, 0, [], get_variable_scope, common_options)
+      else
+        i_var(dtype || :float32, 0, nil, get_variable_scope, common_options)
+      end
       op.set_input(0, tensor.op)
       Graph.get_default_graph.add_node(op)
       tensor
@@ -70,7 +70,7 @@ module TensorStream
     ##
     # Defines a variable context manager
     def variable_scope(scope = nil, default_name = nil, reuse: nil, initializer: nil)
-      Thread.current[:tensor_stream_variable_scope] ||= [ VariableScope.new ]
+      Thread.current[:tensor_stream_variable_scope] ||= [VariableScope.new]
 
       # uniquenifier
       if scope.nil? && default_name
@@ -117,7 +117,7 @@ module TensorStream
     end
 
     def get_variable_scope
-      if !Thread.current[:tensor_stream_variable_scope]
+      unless Thread.current[:tensor_stream_variable_scope]
         variable_scope = VariableScope.new
         Thread.current[:tensor_stream_variable_scope] = [variable_scope]
         return variable_scope
@@ -127,7 +127,7 @@ module TensorStream
     end
 
     def __v_scope_name
-      Thread.current[:tensor_stream_variable_scope].map(&:name).compact.reject(&:empty?).join('/')
+      Thread.current[:tensor_stream_variable_scope].map(&:name).compact.reject(&:empty?).join("/")
     end
 
     ##
@@ -160,8 +160,8 @@ module TensorStream
       TensorStream::Layers
     end
 
-    def constant(value, dtype: nil, shape: nil, internal: false, name: 'Const')
-      shared_options = { const: true, value: value, name: name, internal: internal }
+    def constant(value, dtype: nil, shape: nil, internal: false, name: "Const")
+      shared_options = {const: true, value: value, name: name, internal: internal}
 
       if value.is_a?(Float)
         TensorStream::Constant.new(dtype || :float32, 0, shape || [], shared_options)
@@ -275,24 +275,25 @@ module TensorStream
       return input unless input.is_a?(Tensor)
       return input if input.data_type.nil?
 
-      raise "#{input.source}: Parameter data type #{input.data_type} passed not in #{types.join(',')}" unless types.include?(input.data_type.to_sym)
+      raise "#{input.source}: Parameter data type #{input.data_type} passed not in #{types.join(",")}" unless types.include?(input.data_type.to_sym)
     end
 
-    def check_data_types(input_a, input_b)
-      if !input_a.is_a?(Tensor) && input_b.is_a?(Tensor)
-        input_a = convert_to_tensor(input_a, dtype: input_b.data_type)
-      elsif !input_b.is_a?(Tensor) && input_a.is_a?(Tensor)
-        input_b = convert_to_tensor(input_b, dtype: input_a.data_type)
-      else
-        input_a = convert_to_tensor(input_a)
-        input_b = convert_to_tensor(input_b)
+    def check_data_types(*args)
+      unique_types = args.select { |a| a.is_a?(Tensor) }. map { |a| norm_dtype(a.data_type) }.uniq
+
+      if unique_types.size > 1
+        raise TensorStream::ValueError, "Value Error: Tensor conversion requested dtypes are different -> #{unique_types}"
       end
 
-      if norm_dtype(input_a.data_type) != norm_dtype(input_b.data_type)
-        raise TensorStream::ValueError, "Value Error: Tensor conversion requested dtype #{input_a.data_type} for tensor type #{input_b.data_type}"
-      end
+      unique_types.first
+    end
 
-      [input_a, input_b]
+    ##
+    # Auto cast ruby constant data types to the same
+    # tensor types of other operands
+    def apply_data_type_coercion(*args)
+      coerced_type = check_data_types(*args)
+      args.map { |a| a.is_a?(Tensor) ? a : convert_to_tensor(a, dtype: coerced_type) }
     end
 
     def norm_dtype(dtype)

@@ -1,6 +1,6 @@
 require "spec_helper"
-require 'benchmark'
-require 'matrix'
+require "benchmark"
+require "matrix"
 
 RSpec.describe "create layers sample" do
   xit "creates a dense layers that accepts input vectors" do

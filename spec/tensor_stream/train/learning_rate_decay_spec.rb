@@ -3,7 +3,6 @@ require "spec_helper"
 RSpec.describe TensorStream::Train::LearningRateDecay do
   let(:ts) { TensorStream }
 
-
   context ".exponential_decay" do
     specify "Applies exponential decay to the learning rate" do
       n_samples = 5
@@ -16,9 +15,9 @@ RSpec.describe TensorStream::Train::LearningRateDecay do
 
       pred = m * x + b
 
-      cost = ((pred - y) ** 2).reduce(:+) / ( 2 * n_samples)
+      cost = ((pred - y)**2).reduce(:+) / (2 * n_samples)
 
-      init = ts.global_variables_initializer()
+      init = ts.global_variables_initializer
       sess = ts.session
       sess.run(init)
 
@@ -27,17 +26,17 @@ RSpec.describe TensorStream::Train::LearningRateDecay do
         3, 0.96, staircase: true)
 
       learning_step = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost, global_step: global_step)
-      sess.run(learning_step, feed_dict: { x => 6.2, y => 26.3 })
+      sess.run(learning_step, feed_dict: {x => 6.2, y => 26.3})
       expect(sess.run(learning_rate)).to eq(0.1)
-      sess.run(learning_step, feed_dict: { x => 6.2, y => 26.3 })
+      sess.run(learning_step, feed_dict: {x => 6.2, y => 26.3})
       expect(sess.run(learning_rate)).to eq(0.1)
-      sess.run(learning_step, feed_dict: { x => 6.2, y => 26.3 })
+      sess.run(learning_step, feed_dict: {x => 6.2, y => 26.3})
       expect(sess.run(learning_rate)).to eq(0.096)
-      sess.run(learning_step, feed_dict: { x => 6.2, y => 26.3 })
+      sess.run(learning_step, feed_dict: {x => 6.2, y => 26.3})
       expect(sess.run(learning_rate)).to eq(0.096)
-      sess.run(learning_step, feed_dict: { x => 6.2, y => 26.3 })
+      sess.run(learning_step, feed_dict: {x => 6.2, y => 26.3})
       expect(sess.run(learning_rate)).to eq(0.096)
-      sess.run(learning_step, feed_dict: { x => 6.2, y => 26.3 })
+      sess.run(learning_step, feed_dict: {x => 6.2, y => 26.3})
       expect(sess.run(learning_rate)).to eq(0.09216)
     end
   end

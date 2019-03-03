@@ -1,13 +1,13 @@
-require 'tensor_stream/evaluator/operation_helpers/random_gaussian'
-require 'tensor_stream/evaluator/operation_helpers/array_ops_helper'
-require 'tensor_stream/evaluator/operation_helpers/math_helper'
-require 'tensor_stream/evaluator/base_evaluator'
-require 'tensor_stream/evaluator/ruby/math_ops'
-require 'tensor_stream/evaluator/ruby/nn_ops'
-require 'tensor_stream/evaluator/ruby/array_ops'
-require 'tensor_stream/evaluator/ruby/random_ops'
-require 'tensor_stream/evaluator/ruby/images_ops'
-require 'tensor_stream/evaluator/ruby/check_ops'
+require "tensor_stream/evaluator/operation_helpers/random_gaussian"
+require "tensor_stream/evaluator/operation_helpers/array_ops_helper"
+require "tensor_stream/evaluator/operation_helpers/math_helper"
+require "tensor_stream/evaluator/base_evaluator"
+require "tensor_stream/evaluator/ruby/math_ops"
+require "tensor_stream/evaluator/ruby/nn_ops"
+require "tensor_stream/evaluator/ruby/array_ops"
+require "tensor_stream/evaluator/ruby/random_ops"
+require "tensor_stream/evaluator/ruby/images_ops"
+require "tensor_stream/evaluator/ruby/check_ops"
 
 module TensorStream
   module Evaluator
@@ -49,12 +49,12 @@ module TensorStream
 
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
-                eval_operation(tensor, child_context)
-              elsif !tensor.is_a?(Tensor)
-                tensor
-              else
-                tensor.op
-              end
+          eval_operation(tensor, child_context)
+        elsif !tensor.is_a?(Tensor)
+          tensor
+        else
+          tensor.op
+        end
         execution_context.deep_merge!(returns: child_context[:returns])
         res
       end
@@ -115,7 +115,7 @@ module TensorStream
           elsif x > 0
             1
           else
-            raise 'assert: cannot be here'
+            raise "assert: cannot be here"
           end
         end
       end
@@ -214,7 +214,7 @@ module TensorStream
       end
 
       register_op :print do |_context, tensor, inputs|
-        puts "#{tensor.options.fetch(:message, '')} #{inputs[1]}"
+        puts "#{tensor.options.fetch(:message, "")} #{inputs[1]}"
         inputs[0]
       end
 
@@ -246,12 +246,12 @@ module TensorStream
           val = savable.container
           packed_data = Zlib::Deflate.deflate(TensorStream::Packer.pack(val, savable.data_type))
           variables[savable.name] = {
-            'shape' => shape_eval(val),
-            'data' => Base64.strict_encode64(packed_data)
+            "shape" => shape_eval(val),
+            "data" => Base64.strict_encode64(packed_data),
           }
         end
 
-        File.write(outputfile, { 'variables' => variables }.to_yaml)
+        File.write(outputfile, {"variables" => variables}.to_yaml)
         nil
       end
 
@@ -263,10 +263,10 @@ module TensorStream
         input_dump = YAML.safe_load(File.read(filename), [Symbol])
         vars = tensor.graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
 
-        vars.select! { |v| input_dump['variables'].key?(v.name) && tensor_names.include?(v.name) }
+        vars.select! { |v| input_dump["variables"].key?(v.name) && tensor_names.include?(v.name) }
         vars.each do |variable|
-          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump['variables'][variable.name]['data'])), variable.data_type)
-          shape = input_dump['variables'][variable.name]['shape']
+          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump["variables"][variable.name]["data"])), variable.data_type)
+          shape = input_dump["variables"][variable.name]["shape"]
           variable.buffer = nil
           variable.value = TensorShape.reshape(data, shape)
         end
@@ -308,7 +308,7 @@ module TensorStream
               shape: shape_eval(result),
               source: tensor.source,
               description: tensor.to_math(true, 1),
-              value: result
+              value: result,
             }
           end
           @context[tensor.name] = result
@@ -317,7 +317,7 @@ module TensorStream
         raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
       rescue TensorStreamError => e
         raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
-      rescue StandardError => e
+      rescue => e
         puts e.message
         puts e.backtrace.join("\n")
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"
@@ -354,7 +354,7 @@ module TensorStream
         TensorStream.send(op.to_sym, a, b)
       end
 
-      def process_vector_math_op(tensor, a, b,  child_context, &block)
+      def process_vector_math_op(tensor, a, b, child_context, &block)
         eval_a = global_eval(tensor, a, child_context) unless a.nil?
         eval_b = global_eval(tensor, b, child_context) unless b.nil?
 
@@ -484,10 +484,10 @@ module TensorStream
         end
         arr << "============== end ====================="
         str = arr.join("\n")
-        File.write('/tmp/intermediates.txt', str)
+        File.write("/tmp/intermediates.txt", str)
       end
     end
   end
 end
 
-TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::RubyEvaluator, 'ruby')
+TensorStream::Evaluator.register_evaluator(TensorStream::Evaluator::RubyEvaluator, "ruby")

@@ -86,11 +86,11 @@
   :attrs: {}
 - :op: const
   :name: Const_2
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 2.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: pow
   :name: pow
@@ -130,6 +130,7 @@
   - Const_4
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: sum
   :name: sum
   :data_type: :float
@@ -350,6 +351,7 @@
   - gradient_wrt_weight/sum_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_weight/sum_grad/Const_2
   :data_type: :int32
@@ -525,15 +527,15 @@
   :attrs: {}
 - :op: const
   :name: gradient_wrt_weight/pow_grad/Const_2
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 1.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: sub
   :name: gradient_wrt_weight/pow_grad/sub
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - Const_2
   - gradient_wrt_weight/pow_grad/Const_2
@@ -562,11 +564,11 @@
     :keepdims: false
 - :op: const
   :name: gradient_wrt_weight/pow_grad/Const_3
-  :data_type: :float
+  :data_type: :int32
   :inputs: []
   :attrs:
-    :value: 0.0
-    :data_type: :float
+    :value: 0
+    :data_type: :int32
     :shape: []
 - :op: greater
   :name: gradient_wrt_weight/pow_grad/greater
@@ -677,8 +679,8 @@
   - gradient_wrt_weight/pow_grad/sum
   - gradient_wrt_weight/sub_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_weight/sub_grad/reshape
   :data_type: :float32
@@ -693,8 +695,8 @@
   - gradient_wrt_weight/pow_grad/sum
   - gradient_wrt_weight/sub_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_weight/sub_grad/reshape_1
   :data_type: :float32
@@ -768,8 +770,8 @@
   - gradient_wrt_weight/sub_grad/reshape
   - gradient_wrt_weight/add_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_weight/add_grad/reshape
   :data_type: :float32
@@ -784,8 +786,8 @@
   - gradient_wrt_weight/sub_grad/reshape
   - gradient_wrt_weight/add_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_weight/add_grad/reshape_1
   :data_type: :float32
@@ -1085,6 +1087,7 @@
   - gradient_wrt_bias/sum_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_bias/sum_grad/Const_2
   :data_type: :int32
@@ -1260,15 +1263,15 @@
   :attrs: {}
 - :op: const
   :name: gradient_wrt_bias/pow_grad/Const_2
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 1.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: sub
   :name: gradient_wrt_bias/pow_grad/sub
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - Const_2
   - gradient_wrt_bias/pow_grad/Const_2
@@ -1297,11 +1300,11 @@
     :keepdims: false
 - :op: const
   :name: gradient_wrt_bias/pow_grad/Const_3
-  :data_type: :float
+  :data_type: :int32
   :inputs: []
   :attrs:
-    :value: 0.0
-    :data_type: :float
+    :value: 0
+    :data_type: :int32
     :shape: []
 - :op: greater
   :name: gradient_wrt_bias/pow_grad/greater
@@ -1412,8 +1415,8 @@
   - gradient_wrt_bias/pow_grad/sum
   - gradient_wrt_bias/sub_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_bias/sub_grad/reshape
   :data_type: :float32
@@ -1428,8 +1431,8 @@
   - gradient_wrt_bias/pow_grad/sum
   - gradient_wrt_bias/sub_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_bias/sub_grad/reshape_1
   :data_type: :float32
@@ -1503,8 +1506,8 @@
   - gradient_wrt_bias/sub_grad/reshape
   - gradient_wrt_bias/add_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_bias/add_grad/reshape
   :data_type: :float32
@@ -1519,8 +1522,8 @@
   - gradient_wrt_bias/sub_grad/reshape
   - gradient_wrt_bias/add_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_bias/add_grad/reshape_1
   :data_type: :float32

@@ -1,5 +1,5 @@
 require "spec_helper"
-require 'benchmark'
+require "benchmark"
 
 RSpec.describe TensorStream::NN do
   let(:tf) { TensorStream } # Tensorflow compatibility alias

@@ -22,7 +22,7 @@ module TensorStream
       # name: Optional name for the operations created when applying gradients.
       #   Defaults to "Adam".
       def initialize(learning_rate = 0.001, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8,
-                     use_locking: false, name: "Adam")
+        use_locking: false, name: "Adam")
         @learning_rate = learning_rate
         @beta1 = beta1
         @beta2 = beta2
@@ -44,7 +44,7 @@ module TensorStream
       def get_beta_accumulators
         graph = TensorStream.get_default_graph
         [get_non_slot_variable("beta1_power", graph: graph),
-         get_non_slot_variable("beta2_power", graph: graph)]
+         get_non_slot_variable("beta2_power", graph: graph),]
       end
 
       def prepare
@@ -76,14 +76,14 @@ module TensorStream
         v = get_slot(var, "v")
         beta1_power, beta2_power = get_beta_accumulators
         _op(:apply_adam,
-            var, m, v,
-            TensorStream.cast(beta1_power, var.data_type),
-            TensorStream.cast(beta2_power, var.data_type),
-            TensorStream.cast(@lr_t, var.data_type),
-            TensorStream.cast(@beta1_t, var.data_type),
-            TensorStream.cast(@beta2_t, var.data_type),
-            TensorStream.cast(@epsilon_t, var.data_type),
-            grad, use_locking: @use_locking)
+          var, m, v,
+          TensorStream.cast(beta1_power, var.data_type),
+          TensorStream.cast(beta2_power, var.data_type),
+          TensorStream.cast(@lr_t, var.data_type),
+          TensorStream.cast(@beta1_t, var.data_type),
+          TensorStream.cast(@beta2_t, var.data_type),
+          TensorStream.cast(@epsilon_t, var.data_type),
+          grad, use_locking: @use_locking)
       end
 
       def finish(update_ops, name_scope)

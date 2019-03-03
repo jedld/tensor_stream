@@ -1,6 +1,6 @@
 require "spec_helper"
-require 'benchmark'
-require 'matrix'
+require "benchmark"
+require "matrix"
 # require 'tensor_stream/evaluator/opencl/opencl_evaluator'
 
 RSpec.describe TensorStream::Graph do
@@ -38,7 +38,7 @@ RSpec.describe TensorStream::Graph do
 
   xdescribe ".parse_from_string" do
     specify do
-      pbtext = File.read(File.join('spec','fixtures','linear_regression.pbtxt'))
+      pbtext = File.read(File.join("spec", "fixtures", "linear_regression.pbtxt"))
       graph = TensorStream::Graph.parse_from_string(pbtext)
       # expect(graph.as_graph_def).to eq(pbtext)
       expect(graph.nodes.keys.size).to eq(127)
@@ -169,12 +169,12 @@ RSpec.describe TensorStream::Graph do
         "weight",
         "weight/Assign",
         "weight/initial_value",
-        "weight/read"]
-      )
+        "weight/read",
+      ])
     end
 
     xspecify "reload simple operation" do
-      pbtext = File.read(File.join('spec','fixtures','matmul_graph.pbtxt'))
+      pbtext = File.read(File.join("spec", "fixtures", "matmul_graph.pbtxt"))
       graph = TensorStream::Graph.parse_from_string(pbtext)
       tensor = graph.get_tensor_by_name("tanh_2:0")
       graph.as_default do
@@ -184,10 +184,10 @@ RSpec.describe TensorStream::Graph do
     end
 
     xspecify "reload gradient operation" do
-      pbtext = File.read(File.join('spec','fixtures','gradients.pbtxt'))
+      pbtext = File.read(File.join("spec", "fixtures", "gradients.pbtxt"))
       graph = TensorStream::Graph.parse_from_string(pbtext)
       tensor_2 = graph.get_tensor_by_name("gradients/add_grad/Reshape_1")
-      tensor_1 =  graph.get_tensor_by_name("gradients/add_grad/Reshape")
+      tensor_1 = graph.get_tensor_by_name("gradients/add_grad/Reshape")
       graph.as_default do
         sess = ts.session
         expect(tr(sess.run(tensor_1))).to eq([[1, 1], [1, 1], [1, 1]])
@@ -196,9 +196,8 @@ RSpec.describe TensorStream::Graph do
     end
 
     xspecify "complex" do
-      pbtext = File.read(File.join('spec','fixtures','neural_network.pbtxt'))
+      pbtext = File.read(File.join("spec", "fixtures", "neural_network.pbtxt"))
       graph = TensorStream::Graph.parse_from_string(pbtext)
-
     end
   end
 end

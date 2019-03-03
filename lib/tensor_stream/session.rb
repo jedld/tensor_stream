@@ -19,16 +19,16 @@ module TensorStream
 
     def get_evaluator_classes(evaluators)
       @evaluator_classes = if evaluators.is_a?(Array)
-                             if evaluators.empty?
-                               TensorStream::Evaluator.default_evaluators
-                             else
-                               evaluators.collect { |name| Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
-                             end
-                           elsif evaluators.nil?
-                             TensorStream::Evaluator.default_evaluators
-                           else
-                             [Object.const_get("TensorStream::Evaluator::#{camelize(evaluators.to_s)}")]
-                           end
+        if evaluators.empty?
+          TensorStream::Evaluator.default_evaluators
+        else
+          evaluators.collect { |name| Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
+        end
+      elsif evaluators.nil?
+        TensorStream::Evaluator.default_evaluators
+      else
+        [Object.const_get("TensorStream::Evaluator::#{camelize(evaluators.to_s)}")]
+      end
     end
 
     def clear_session_cache
@@ -41,10 +41,10 @@ module TensorStream
 
     def run(*args)
       options = if args.last.is_a?(Hash)
-                  args.pop
-                else
-                  {}
-                end
+        args.pop
+      else
+        {}
+      end
 
       @evaluator_options[:thread_pool] = @thread_pool
       @evaluator_options[:log_intermediates] = options[:log_intermediates]
@@ -52,25 +52,23 @@ module TensorStream
       context = {
         _cache: @session_cache,
         _options: options.merge(@evaluator_options),
-        profile: { step: 0, operations: {} },
+        profile: {step: 0, operations: {}},
       }
 
       # scan for placeholders and assign value
-      if options[:feed_dict]
-        options[:feed_dict].each_key do |k|
-          if k.is_a?(Placeholder)
-            context[k.name.to_sym] = options[:feed_dict][k]
-          elsif k.is_a?(String)
-            target_graph = args[0].graph
-            node = target_graph.get_node(k)
-            raise "Cannot find placeholder with the name of #{k}" if node.operation != :placeholder
+      options[:feed_dict]&.each_key do |k|
+        if k.is_a?(Placeholder)
+          context[k.name.to_sym] = options[:feed_dict][k]
+        elsif k.is_a?(String)
+          target_graph = args[0].graph
+          node = target_graph.get_node(k)
+          raise "Cannot find placeholder with the name of #{k}" if node.operation != :placeholder
 
-            context[k.to_sym] = options[:feed_dict][k]
-          elsif k.is_a?(Operation) && k.operation == :placeholder
-            context[k.name.to_sym] = options[:feed_dict][k]
-          else
-            raise "Invalid placeholder type passed key must be a string or a placeholder type"
-          end
+          context[k.to_sym] = options[:feed_dict][k]
+        elsif k.is_a?(Operation) && k.operation == :placeholder
+          context[k.name.to_sym] = options[:feed_dict][k]
+        else
+          raise "Invalid placeholder type passed key must be a string or a placeholder type"
         end
       end
 
@@ -82,21 +80,21 @@ module TensorStream
           puts "#{k} : #{v[0].name}"
         end
       end
-      result = args.collect do |e|
+      result = args.collect { |e|
         next e.value if e.is_a?(Tensor) && e.is_const && e.value
 
         value = delegate_to_evaluator(e, context, {})
         recursive_eval(value)
-      end
+      }
       args.size == 1 ? result.first : result
     end
 
     def list_devices
-      TensorStream::Evaluator.evaluators.collect do |_k, v|
+      TensorStream::Evaluator.evaluators.collect { |_k, v|
         v[:class].query_supported_devices.collect do |device|
           device
         end
-      end.flatten
+      }.flatten
     end
 
     def close
@@ -117,11 +115,11 @@ module TensorStream
 
     def dump_ops(tensor, selector)
       graph = tensor.graph
-      graph.nodes.select { |k, v| selector.call(k, v) }.collect do |k, node|
+      graph.nodes.select { |k, v| selector.call(k, v) }.collect { |k, node|
         next unless @last_session_context[node.name]
 
         "#{k} #{node.to_math(true, 1)} = #{@last_session_context[node.name]}"
-      end.compact
+      }.compact
     end
 
     def graph_ml(tensor, filename)
@@ -143,12 +141,12 @@ module TensorStream
     end
 
     def assign_evaluator(tensor)
-      device = @evaluator_classes.map do |klass|
+      device = @evaluator_classes.map { |klass|
         next nil if tensor.is_a?(Operation) && !klass.ops.include?(tensor.operation.to_sym)
         next klass.default_device if tensor.device.nil?
 
         klass.query_device(tensor.device)
-      end.compact.first
+      }.compact.first
 
       raise "no evaluator available to execute #{tensor.operation}" if device.nil?
 

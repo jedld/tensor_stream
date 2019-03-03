@@ -2,10 +2,10 @@ module TensorStream
   module OpPatch
     def self.included(klass)
       ops = if klass == Array
-              {:+ => 'add', :- => 'sub', :* => 'mul'}
-            else
-              {:+ => 'add', :- => 'sub', :/ => 'div', :% => 'mod', :* => 'mul', :** => 'pow' }
-            end
+        {:+ => "add", :- => "sub", :* => "mul"}
+      else
+        {:+ => "add", :- => "sub", :/ => "div", :% => "mod", :* => "mul", :** => "pow"}
+      end
 
       ops.each do |m, name|
         klass.send(:alias_method, :"_tensor_stream_#{name}_orig", m)

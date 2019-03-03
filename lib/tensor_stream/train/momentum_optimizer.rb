@@ -13,7 +13,7 @@ module TensorStream
       #   name: Optional name prefix
       #   use_nesterov: boolean - Flag that indicates if nesterov momentum is to be used. http://jmlr.org/proceedings/papers/v28/sutskever13.pdf
       #   use_locking: boolean - filler argument for compatibility, not used at the moment
-      def initialize(learning_rate, momentum, name: 'momentum', use_nesterov: false, use_locking: false)
+      def initialize(learning_rate, momentum, name: "momentum", use_nesterov: false, use_locking: false)
         @learning_rate = learning_rate
         @momentum = momentum
         @use_nesterov = use_nesterov
@@ -37,11 +37,11 @@ module TensorStream
         mom = get_slot(var, "momentum")
 
         _op(:apply_momentum, var, mom,
-            TensorStream.cast(@learning_rate_tensor, var.data_type),
-            grad,
-            TensorStream.cast(@momentum_tensor, var.data_type),
-            use_locking: @use_locking,
-            use_nesterov: @use_nesterov)
+          TensorStream.cast(@learning_rate_tensor, var.data_type),
+          grad,
+          TensorStream.cast(@momentum_tensor, var.data_type),
+          use_locking: @use_locking,
+          use_nesterov: @use_nesterov)
       end
     end
   end

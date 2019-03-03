@@ -1,4 +1,4 @@
-require 'json'
+require "json"
 require "zlib"
 
 module TensorStream
@@ -11,18 +11,18 @@ module TensorStream
         graph = TensorStream::Graph.get_default_graph
         vars = graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
 
-        @filename = graph['ts_filename'] || TensorStream.placeholder(:string, name: 'ts_filename', shape: [])
+        @filename = graph["ts_filename"] || TensorStream.placeholder(:string, name: "ts_filename", shape: [])
 
         @save_op = _op(:save_ts, @filename, *vars)
         @restore_op = _op(:restore_ts, @filename, *vars.map(&:name))
       end
 
       def save(session, outputdir, global_step: nil,
-               latest_filename: nil,
-               meta_graph_suffix: 'meta',
-               write_meta_graph: true,
-               write_state: true,
-               strip_default_attrs: false)
+        latest_filename: nil,
+        meta_graph_suffix: "meta",
+        write_meta_graph: true,
+        write_state: true,
+        strip_default_attrs: false)
         graph = TensorStream::Graph.get_default_graph
         vars = graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
 
@@ -31,10 +31,10 @@ module TensorStream
         gs = eval_global_step(session, global_step)
 
         FileUtils.mkdir_p(outputdir)
-        basename = 'model'
-        File.write(File.join(outputdir, "#{basename}.meta"), { "gs" => gs }.to_json)
-        new_filename = File.join(outputdir, [basename, gs, '.ckpt'].compact.join('-'))
-        session.run(@save_op, feed_dict: { @filename => new_filename })
+        basename = "model"
+        File.write(File.join(outputdir, "#{basename}.meta"), {"gs" => gs}.to_json)
+        new_filename = File.join(outputdir, [basename, gs, ".ckpt"].compact.join("-"))
+        session.run(@save_op, feed_dict: {@filename => new_filename})
 
         if write_meta_graph
           graph_filename = "#{basename}.yaml"
@@ -48,10 +48,10 @@ module TensorStream
         return unless File.exist?(meta_file)
 
         meta_data = JSON.parse(File.read(meta_file))
-        gs = meta_data['gs']
-        filename = File.join(modelpath, ['model', gs, '.ckpt'].compact.join('-'))
+        gs = meta_data["gs"]
+        filename = File.join(modelpath, ["model", gs, ".ckpt"].compact.join("-"))
 
-        session.run(@restore_op, feed_dict: { @filename => filename })
+        session.run(@restore_op, feed_dict: {@filename => filename})
       end
 
       private

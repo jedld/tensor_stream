@@ -38,14 +38,14 @@ module TensorStream
         accum = get_slot(var, "accum")
         accum_update = get_slot(var, "accum_update")
         _op(:apply_adadelta,
-            var,
-            accum,
-            accum_update,
-            TensorStream.cast(@learning_rate_tensor, var.data_type),
-            TensorStream.cast(@rho_t, var.data_type),
-            TensorStream.cast(@epsilon_t, var.data_type),
-            grad,
-            use_locking: @use_locking)
+          var,
+          accum,
+          accum_update,
+          TensorStream.cast(@learning_rate_tensor, var.data_type),
+          TensorStream.cast(@rho_t, var.data_type),
+          TensorStream.cast(@epsilon_t, var.data_type),
+          grad,
+          use_locking: @use_locking)
       end
     end
   end

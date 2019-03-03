@@ -1,8 +1,8 @@
-require 'chunky_png'
+require "chunky_png"
 
 module TensorStream
   module ImagesOps
-    def ImagesOps.included(klass)
+    def self.included(klass)
       klass.class_eval do
         register_op :decode_png do |_context, tensor, inputs|
           content = inputs[0]
@@ -26,26 +26,26 @@ module TensorStream
             end
           end
 
-          image_data = image.pixels.collect do |pixel|
+          image_data = image.pixels.collect { |pixel|
             color_values = if channels == 4
-                             [ChunkyPNG::Color.r(pixel),
-                              ChunkyPNG::Color.g(pixel),
-                              ChunkyPNG::Color.b(pixel),
-                              ChunkyPNG::Color.a(pixel)]
-                           elsif channels == 3
-                             [ChunkyPNG::Color.r(pixel),
-                              ChunkyPNG::Color.g(pixel),
-                              ChunkyPNG::Color.b(pixel)]
-                           elsif channels == 1
-                             [ChunkyPNG::Color.r(pixel)]
-                           else
-                             raise "Invalid channel value #{channels}"
-                           end
+              [ChunkyPNG::Color.r(pixel),
+               ChunkyPNG::Color.g(pixel),
+               ChunkyPNG::Color.b(pixel),
+               ChunkyPNG::Color.a(pixel),]
+            elsif channels == 3
+              [ChunkyPNG::Color.r(pixel),
+               ChunkyPNG::Color.g(pixel),
+               ChunkyPNG::Color.b(pixel),]
+            elsif channels == 1
+              [ChunkyPNG::Color.r(pixel)]
+            else
+              raise "Invalid channel value #{channels}"
+            end
 
             color_values.map!(&:to_f) if fp_type?(tensor.data_type)
 
             color_values
-          end
+          }
           TensorShape.reshape(image_data, [image.height, image.width, channels])
         end
 

@@ -8,7 +8,7 @@ module TensorStream
       @options = options
       @operation = :"flow_#{flow_type}"
       @inputs = inputs
-      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
+      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join("/")
       @ops = ops
       @consumers = Set.new
       @shape = TensorShape.new([inputs.size])

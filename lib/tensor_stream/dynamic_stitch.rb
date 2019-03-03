@@ -12,7 +12,7 @@ module TensorStream
 
       @consumers = Set.new
       @data_type = Tensor.detect_type(inputs[1])
-      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join('/')
+      @name = [@graph.get_name_scope, options[:name] || set_name].compact.join("/")
       @ops = ops
       @shape = TensorShape.new(nil)
       @graph.add_node(self)

@@ -48,7 +48,7 @@ module TensorStream
     private
 
     def add_to_group(groups, name, arr_buf)
-      name_parts = name.split('/')
+      name_parts = name.split("/")
       return false if name_parts.size < 2
 
       prefix = name_parts.shift
@@ -67,35 +67,35 @@ module TensorStream
     end
 
     def find_or_create_group(prefix, groups)
-      if !groups[prefix]
-        groups[prefix] = { buf: [], group: {} }
+      unless groups[prefix]
+        groups[prefix] = {buf: [], group: {}}
       end
 
-      return groups[prefix]
+      groups[prefix]
     end
 
     def create_group(id, title, group)
       arr_buf = []
       arr_buf << "<node id=\"#{id}\" yfiles.foldertype=\"group\">"
       arr_buf << '<data key="d9">'
-      arr_buf << '<y:ProxyAutoBoundsNode>'
+      arr_buf << "<y:ProxyAutoBoundsNode>"
       arr_buf << '<y:Realizers active="0">'
-      arr_buf << '<y:GroupNode>'
+      arr_buf << "<y:GroupNode>"
       arr_buf << '<y:Fill color="#CAECFF84" transparent="false"/>'
       arr_buf << '<y:BorderStyle color="#666699" type="dotted" width="1.0"/>'
-      arr_buf << '<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">' + title + '</y:NodeLabel>'
+      arr_buf << '<y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="67.18603515625" x="-8.593017578125" y="0.0">' + title + "</y:NodeLabel>"
       arr_buf << '<y:Shape type="roundrectangle"/>'
-      arr_buf << '</y:GroupNode>'
-      arr_buf << '</y:Realizers>'
-      arr_buf << '</y:ProxyAutoBoundsNode>'
-      arr_buf << '</data>'
+      arr_buf << "</y:GroupNode>"
+      arr_buf << "</y:Realizers>"
+      arr_buf << "</y:ProxyAutoBoundsNode>"
+      arr_buf << "</data>"
       arr_buf << '<graph edgedefault="directed" id="n105:">'
       arr_buf << group[:buf]
       group[:group].each do |k, g|
         arr_buf << create_group(k, k, g)
       end
-      arr_buf << '</graph>'
-      arr_buf << '</node>'
+      arr_buf << "</graph>"
+      arr_buf << "</node>"
       arr_buf
     end
 
@@ -120,17 +120,17 @@ module TensorStream
       end
       node_buf << "<data key=\"d9\">"
       node_buf << "<y:ShapeNode>"
-      if tensor.internal?
-        node_buf << "  <y:Fill color=\"#FFFF99\" transparent=\"false\"/>"
+      node_buf << if tensor.internal?
+        "  <y:Fill color=\"#FFFF99\" transparent=\"false\"/>"
       else
-        node_buf << "  <y:Fill color=\"#99CC00\" transparent=\"false\"/>"
+        "  <y:Fill color=\"#99CC00\" transparent=\"false\"/>"
       end
       node_buf << "  <y:NodeLabel alignment=\"center\">#{tensor.operation}</y:NodeLabel>"
       node_buf << "</y:ShapeNode>"
       node_buf << "</data>"
       node_buf << "</node>"
 
-      if !add_to_group(groups, tensor.name, node_buf)
+      unless add_to_group(groups, tensor.name, node_buf)
         add_to_group(groups, "program/#{tensor.name}", node_buf)
       end
 
@@ -176,10 +176,10 @@ module TensorStream
           input_buf << "<y:ShapeNode>"
 
           input_buf << if input.internal?
-                         "  <y:Fill color=\"#C0C0C0\" transparent=\"false\"/>"
-                       else
-                         "  <y:Fill color=\"#FFFFFF\" transparent=\"false\"/>"
-                       end
+            "  <y:Fill color=\"#C0C0C0\" transparent=\"false\"/>"
+          else
+            "  <y:Fill color=\"#FFFFFF\" transparent=\"false\"/>"
+          end
 
           input_buf << "  <y:NodeLabel alignment=\"center\">#{input.name}</y:NodeLabel>"
 
@@ -204,7 +204,7 @@ module TensorStream
     end
 
     def _gml_string(str)
-      str.tr('/', '-')
+      str.tr("/", "-")
     end
 
     def output_edge(input, tensor, arr_buf, index = 0)
@@ -215,19 +215,19 @@ module TensorStream
       arr_buf << "<y:PolyLineEdge>"
       arr_buf << "<y:EdgeLabel >"
       arr_buf << if !@last_session_context.empty?
-                   "<![CDATA[  #{_val(input)}  ]]>"
-                 elsif input.shape.shape.nil?
-                   "<![CDATA[ #{input.data_type} ? ]]>"
-                 else
-                   "<![CDATA[ #{input.data_type} #{input.shape.shape.empty? ? 'scalar' : input.shape.shape.to_json}  ]]>"
-                 end
+        "<![CDATA[  #{_val(input)}  ]]>"
+      elsif input.shape.shape.nil?
+        "<![CDATA[ #{input.data_type} ? ]]>"
+      else
+        "<![CDATA[ #{input.data_type} #{input.shape.shape.empty? ? "scalar" : input.shape.shape.to_json}  ]]>"
+      end
       arr_buf << "</y:EdgeLabel >"
       arr_buf << "<y:Arrows source=\"none\" target=\"standard\"/>"
       arr_buf << if index.zero?
-                  "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
-                 else
-                   "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
-                 end
+        "<y:LineStyle color=\"#FF0000\" type=\"line\" width=\"1.0\"/>"
+      else
+        "<y:LineStyle color=\"#0000FF\" type=\"line\" width=\"1.0\"/>"
+      end
       arr_buf << "</y:PolyLineEdge>"
       arr_buf << "</data>"
       arr_buf << "</edge>"

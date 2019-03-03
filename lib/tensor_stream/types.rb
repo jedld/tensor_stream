@@ -1,4 +1,4 @@
-require 'ostruct'
+require "ostruct"
 
 module TensorStream
   # Convenience class for specifying valid data_types

@@ -1,5 +1,5 @@
 require "spec_helper"
-require 'benchmark'
+require "benchmark"
 
 RSpec.describe TensorStream::Session do
   let(:tf) { TensorStream }
@@ -49,8 +49,8 @@ RSpec.describe TensorStream::Session do
       z = x + y + p
       sess = TensorStream.session(:ruby_evaluator)
 
-      expect(sess.run(z, feed_dict: { x =>  3, y => 4.5, "my_placeholder" => 1})).to eql(8.5)
-      expect(sess.run(z, feed_dict: { x => [1, 3], y=> [2, 4], "my_placeholder" => [1, 1]})).to eql([4.0, 8.0])
+      expect(sess.run(z, feed_dict: {x => 3, y => 4.5, "my_placeholder" => 1})).to eql(8.5)
+      expect(sess.run(z, feed_dict: {x => [1, 3], y => [2, 4], "my_placeholder" => [1, 1]})).to eql([4.0, 8.0])
     end
 
     context "#close" do
@@ -84,7 +84,7 @@ RSpec.describe TensorStream::Session do
         session = TensorStream::Session.default_session
         x = tf.placeholder(:float32)
         a = tf.constant(1.0) + x
-        session.run(a, feed_dict: { x => 1 })
+        session.run(a, feed_dict: {x => 1})
         expect {
           session.run(a)
         }.to raise_error TensorStream::ValueError

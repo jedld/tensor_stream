@@ -352,6 +352,7 @@
   - Const_7
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: mean
   :name: mean
   :data_type: :float64
@@ -442,6 +443,7 @@
   - gradient_wrt_h1/mean_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_h1/mean_grad/Const_2
   :data_type: :int32
@@ -600,6 +602,7 @@
   - gradient_wrt_h1/mean_grad/Const_6
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_h1/mean_grad/prod
   :data_type: :int32
@@ -639,6 +642,7 @@
   - gradient_wrt_h1/mean_grad/Const_8
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_h1/mean_grad/prod_1
   :data_type: :int32
@@ -793,8 +797,8 @@
   - gradient_wrt_h1/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_h1/add_2_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h1/add_2_grad/reshape
   :data_type: :float64
@@ -809,8 +813,8 @@
   - gradient_wrt_h1/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_h1/add_2_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h1/add_2_grad/reshape_1
   :data_type: :float64
@@ -896,8 +900,8 @@
   - gradient_wrt_h1/mat_mul_2_grad/mat_mul
   - gradient_wrt_h1/add_1_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h1/add_1_grad/reshape
   :data_type: :float64
@@ -912,8 +916,8 @@
   - gradient_wrt_h1/mat_mul_2_grad/mat_mul
   - gradient_wrt_h1/add_1_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h1/add_1_grad/reshape_1
   :data_type: :float64
@@ -999,8 +1003,8 @@
   - gradient_wrt_h1/mat_mul_1_grad/mat_mul
   - gradient_wrt_h1/add_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h1/add_grad/reshape
   :data_type: :float64
@@ -1015,8 +1019,8 @@
   - gradient_wrt_h1/mat_mul_1_grad/mat_mul
   - gradient_wrt_h1/add_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h1/add_grad/reshape_1
   :data_type: :float64
@@ -1124,6 +1128,7 @@
   - gradient_wrt_h2/mean_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_h2/mean_grad/Const_2
   :data_type: :int32
@@ -1282,6 +1287,7 @@
   - gradient_wrt_h2/mean_grad/Const_6
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_h2/mean_grad/prod
   :data_type: :int32
@@ -1321,6 +1327,7 @@
   - gradient_wrt_h2/mean_grad/Const_8
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_h2/mean_grad/prod_1
   :data_type: :int32
@@ -1475,8 +1482,8 @@
   - gradient_wrt_h2/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_h2/add_2_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h2/add_2_grad/reshape
   :data_type: :float64
@@ -1491,8 +1498,8 @@
   - gradient_wrt_h2/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_h2/add_2_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h2/add_2_grad/reshape_1
   :data_type: :float64
@@ -1578,8 +1585,8 @@
   - gradient_wrt_h2/mat_mul_2_grad/mat_mul
   - gradient_wrt_h2/add_1_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h2/add_1_grad/reshape
   :data_type: :float64
@@ -1594,8 +1601,8 @@
   - gradient_wrt_h2/mat_mul_2_grad/mat_mul
   - gradient_wrt_h2/add_1_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_h2/add_1_grad/reshape_1
   :data_type: :float64
@@ -1703,6 +1710,7 @@
   - gradient_wrt_out/mean_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_out/mean_grad/Const_2
   :data_type: :int32
@@ -1861,6 +1869,7 @@
   - gradient_wrt_out/mean_grad/Const_6
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_out/mean_grad/prod
   :data_type: :int32
@@ -1900,6 +1909,7 @@
   - gradient_wrt_out/mean_grad/Const_8
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_out/mean_grad/prod_1
   :data_type: :int32
@@ -2054,8 +2064,8 @@
   - gradient_wrt_out/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_out/add_2_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_out/add_2_grad/reshape
   :data_type: :float64
@@ -2070,8 +2080,8 @@
   - gradient_wrt_out/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_out/add_2_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_out/add_2_grad/reshape_1
   :data_type: :float64
@@ -2179,6 +2189,7 @@
   - gradient_wrt_b1/mean_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_b1/mean_grad/Const_2
   :data_type: :int32
@@ -2337,6 +2348,7 @@
   - gradient_wrt_b1/mean_grad/Const_6
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_b1/mean_grad/prod
   :data_type: :int32
@@ -2376,6 +2388,7 @@
   - gradient_wrt_b1/mean_grad/Const_8
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_b1/mean_grad/prod_1
   :data_type: :int32
@@ -2530,8 +2543,8 @@
   - gradient_wrt_b1/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_b1/add_2_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b1/add_2_grad/reshape
   :data_type: :float64
@@ -2546,8 +2559,8 @@
   - gradient_wrt_b1/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_b1/add_2_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b1/add_2_grad/reshape_1
   :data_type: :float64
@@ -2633,8 +2646,8 @@
   - gradient_wrt_b1/mat_mul_2_grad/mat_mul
   - gradient_wrt_b1/add_1_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b1/add_1_grad/reshape
   :data_type: :float64
@@ -2649,8 +2662,8 @@
   - gradient_wrt_b1/mat_mul_2_grad/mat_mul
   - gradient_wrt_b1/add_1_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b1/add_1_grad/reshape_1
   :data_type: :float64
@@ -2736,8 +2749,8 @@
   - gradient_wrt_b1/mat_mul_1_grad/mat_mul
   - gradient_wrt_b1/add_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b1/add_grad/reshape
   :data_type: :float64
@@ -2752,8 +2765,8 @@
   - gradient_wrt_b1/mat_mul_1_grad/mat_mul
   - gradient_wrt_b1/add_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b1/add_grad/reshape_1
   :data_type: :float64
@@ -2843,6 +2856,7 @@
   - gradient_wrt_b2/mean_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_b2/mean_grad/Const_2
   :data_type: :int32
@@ -3001,6 +3015,7 @@
   - gradient_wrt_b2/mean_grad/Const_6
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_b2/mean_grad/prod
   :data_type: :int32
@@ -3040,6 +3055,7 @@
   - gradient_wrt_b2/mean_grad/Const_8
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_b2/mean_grad/prod_1
   :data_type: :int32
@@ -3194,8 +3210,8 @@
   - gradient_wrt_b2/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_b2/add_2_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b2/add_2_grad/reshape
   :data_type: :float64
@@ -3210,8 +3226,8 @@
   - gradient_wrt_b2/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_b2/add_2_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b2/add_2_grad/reshape_1
   :data_type: :float64
@@ -3297,8 +3313,8 @@
   - gradient_wrt_b2/mat_mul_2_grad/mat_mul
   - gradient_wrt_b2/add_1_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b2/add_1_grad/reshape
   :data_type: :float64
@@ -3313,8 +3329,8 @@
   - gradient_wrt_b2/mat_mul_2_grad/mat_mul
   - gradient_wrt_b2/add_1_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_b2/add_1_grad/reshape_1
   :data_type: :float64
@@ -3404,6 +3420,7 @@
   - gradient_wrt_out2/mean_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
   :name: gradient_wrt_out2/mean_grad/Const_2
   :data_type: :int32
@@ -3562,6 +3579,7 @@
   - gradient_wrt_out2/mean_grad/Const_6
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_out2/mean_grad/prod
   :data_type: :int32
@@ -3601,6 +3619,7 @@
   - gradient_wrt_out2/mean_grad/Const_8
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: prod
   :name: gradient_wrt_out2/mean_grad/prod_1
   :data_type: :int32
@@ -3755,8 +3774,8 @@
   - gradient_wrt_out2/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_out2/add_2_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_out2/add_2_grad/reshape
   :data_type: :float64
@@ -3771,8 +3790,8 @@
   - gradient_wrt_out2/softmax_cross_entropy_with_logits/softmax_cross_entropy_with_logits_v2_grad/mul
   - gradient_wrt_out2/add_2_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
   :name: gradient_wrt_out2/add_2_grad/reshape_1
   :data_type: :float64
@@ -3797,7 +3816,7 @@
   :inputs:
   - Const_8
   :attrs:
-    :data_type: :float64
+    :dtype: :float64
 - :op: variable_v2
   :name: h1/momentum
   :data_type: :float32
@@ -3827,7 +3846,7 @@
   :inputs:
   - Const_9
   :attrs:
-    :data_type: :float64
+    :dtype: :float64
 - :op: variable_v2
   :name: h2/momentum
   :data_type: :float32
@@ -3857,7 +3876,7 @@
   :inputs:
   - Const_10
   :attrs:
-    :data_type: :float64
+    :dtype: :float64
 - :op: variable_v2
   :name: out/momentum
   :data_type: :float32
@@ -3886,7 +3905,7 @@
   :inputs:
   - Const_11
   :attrs:
-    :data_type: :float64
+    :dtype: :float64
 - :op: variable_v2
   :name: b1/momentum
   :data_type: :float32
@@ -3914,7 +3933,7 @@
   :inputs:
   - Const_12
   :attrs:
-    :data_type: :float64
+    :dtype: :float64
 - :op: variable_v2
   :name: b2/momentum
   :data_type: :float32
@@ -3942,7 +3961,7 @@
   :inputs:
   - Const_13
   :attrs:
-    :data_type: :float64
+    :dtype: :float64
 - :op: variable_v2
   :name: out2/momentum
   :data_type: :float32
@@ -4147,12 +4166,12 @@
     :shape: []
 - :op: argmax
   :name: argmax
-  :data_type: :int32
+  :data_type: :float64
   :inputs:
   - softmax
   - Const_14
   :attrs:
-    :data_type: :int32
+    :output_type: :int32
 - :op: const
   :name: Const_15
   :data_type: :int32
@@ -4163,12 +4182,12 @@
     :shape: []
 - :op: argmax
   :name: argmax_1
-  :data_type: :int32
+  :data_type: :float64
   :inputs:
   - Placeholder_2
   - Const_15
   :attrs:
-    :data_type: :int32
+    :output_type: :int32
 - :op: equal
   :name: equal
   :data_type: :boolean
@@ -4214,6 +4233,7 @@
   - Const_17
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: mean
   :name: mean_1
   :data_type: :float32

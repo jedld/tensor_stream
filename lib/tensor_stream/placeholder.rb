@@ -10,12 +10,12 @@ module TensorStream
       @value = nil
       @is_const = false
 
-      @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join('/')
+      @name = [@graph.get_name_scope, options[:name] || build_name].compact.reject(&:empty?).join("/")
       @op = Graph.get_default_graph.add_op!(:placeholder, data_type: @data_type, shape: @shape, internal_name: @name)
     end
 
     def inspect
-      "Placeholder(#{@name} shape: #{@shape || '?'} data_type: #{@data_type})"
+      "Placeholder(#{@name} shape: #{@shape || "?"} data_type: #{@data_type})"
     end
 
     private

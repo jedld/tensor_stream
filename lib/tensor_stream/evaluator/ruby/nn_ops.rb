@@ -1,7 +1,7 @@
 module TensorStream
   ## Collection of machine learning related ops
   module NNOps
-    def NNOps.included(klass)
+    def self.included(klass)
       klass.class_eval do
         register_op :apply_gradient_descent do |context, tensor, inputs|
           target_var, learning_rate, delta = inputs
@@ -17,10 +17,10 @@ module TensorStream
           assign_acc = tensor.inputs[1]
           assign_acc.container = multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad)
           assign.container = if tensor.options[:use_nesterov]
-                               multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
-                             else
-                               multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
-                             end
+            multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
+          else
+            multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
+          end
 
           assign.container
         end
@@ -52,9 +52,9 @@ module TensorStream
           assign_m = tensor.inputs[1]
           assign_v = tensor.inputs[2]
 
-          assign_m.container = multi_array_op(->(u_d , g) { u_d + (g - u_d) * (1.0 - beta1_t) }, m, grad)
-          assign_v.container = multi_array_op(->(u_d , v_d) { u_d + (v_d**2 - u_d) * (1.0 - beta2_t)},  v, grad)
-          assign.container = multi_array_op(->(t, m_d , v_d) { t - ((m_d * alpha) / (Math.sqrt(v_d) + epsilon_t)) }, target_var, assign_m.container, assign_v.container)
+          assign_m.container = multi_array_op(->(u_d, g) { u_d + (g - u_d) * (1.0 - beta1_t) }, m, grad)
+          assign_v.container = multi_array_op(->(u_d, v_d) { u_d + (v_d**2 - u_d) * (1.0 - beta2_t)}, v, grad)
+          assign.container = multi_array_op(->(t, m_d, v_d) { t - ((m_d * alpha) / (Math.sqrt(v_d) + epsilon_t)) }, target_var, assign_m.container, assign_v.container)
           assign.container
         end
 
@@ -123,11 +123,11 @@ module TensorStream
           labels = last_axis(inputs[1])
           num_classes = input_shape.last
 
-          labels = labels.map do |l|
+          labels = labels.map { |l|
             one_hot = Array.new(num_classes) { 0 }
             one_hot[l] = 1
             one_hot
-          end
+          }
 
           func = lambda { |logits, label|
             c = logits.max
@@ -173,9 +173,9 @@ module TensorStream
           if input_shape.size == 1
             func.call(last_dimen_list)
           else
-            arr = last_dimen_list.collect do |list|
+            arr = last_dimen_list.collect { |list|
               func.call(list)
-            end
+            }
             TensorShape.reshape(arr, input_shape)
           end
         end
@@ -202,9 +202,9 @@ module TensorStream
           if input_shape.size == 1
             func.call(last_dimen_list, last_grad_list)
           else
-            arr = last_dimen_list.zip(last_grad_list).collect do |list, last_grad|
+            arr = last_dimen_list.zip(last_grad_list).collect { |list, last_grad|
               func.call(list, last_grad)
-            end
+            }
             TensorShape.reshape(arr, input_shape)
           end
         end
@@ -226,32 +226,31 @@ module TensorStream
 
           _batch, height, width, _channels = shape_eval(inputs[0])
           padding = conv2d_padding_options(padding_option, filter_shape, height, width, height_stride, width_stride)
-          inputs[0].collect do |image|
+          inputs[0].collect { |image|
             f_height, f_width, _input_channels, _output_channels = filter_shape
-            (-padding[0]...height).step(height_stride).map do |y|
+            (-padding[0]...height).step(height_stride).map { |y|
               next if (y + f_height) > (height + padding[2])
 
-              (-padding[1]...width).step(width_stride).map do |x|
+              (-padding[1]...width).step(width_stride).map { |x|
                 next if (x + f_width) > (width + padding[3])
 
-                filter_result = (0...f_height).map do |f_y|
-                  (0...f_width).map do |f_x|
+                filter_result = (0...f_height).map { |f_y|
+                  (0...f_width).map { |f_x|
                     f_element = filter[f_y][f_x]
 
                     next if (x + f_x >= width) || (x + f_x < 0)
                     next if (y + f_y >= height) || (y + f_y < 0)
 
-
                     image[y + f_y][x + f_x].zip(f_element).map do |image_channel, filter_channels|
                       filter_channels.map { |c| image_channel * c }
                     end
-                  end.compact
-                end.flatten(2)
+                  }.compact
+                }.flatten(2)
 
                 filter_result.transpose.map { |e| e.reduce(:+) }
-              end.compact
-            end.compact
-          end.compact
+              }.compact
+            }.compact
+          }.compact
         end
 
         register_op :conv2d_backprop_input do |_context, tensor, inputs|
@@ -285,15 +284,14 @@ module TensorStream
                     img_grad = grad[b][(y + padding[0]) / height_stride][(x + padding[1]) / width_stride]
 
                     channels.times.each do |c|
-                      g = Array.new(output_channels) do |o_c|
+                      g = Array.new(output_channels) { |o_c|
                         filter[f_y][f_x][c][o_c] * img_grad[o_c]
-                      end.reduce(:+)
+                      }.reduce(:+)
 
                       image_gradient[y + f_y][x + f_x][c] += g
                     end
                   end
                 end
-
               end
             end
 
@@ -319,19 +317,19 @@ module TensorStream
 
             ((0 - padding[0])...height).step(height_stride).each do |y|
               ((0 - padding[1])...width).step(width_stride).each do |x|
-                filter_result = (0...f_height).map do |f_y|
+                filter_result = (0...f_height).map { |f_y|
                   (0...f_width).map do |f_x|
                     next Array.new(input_channels * output_channels) { 0.0 } if x + f_x >= width || (x + f_x < 0) || ((x + f_width) > (width + padding[3]))
                     next Array.new(input_channels * output_channels) { 0.0 } if y + f_y >= height || (y + f_y < 0) || ((y + f_height) > (height + padding[2]))
 
-                    image_grad = grad[index][(y + padding[0]) / height_stride][(x + padding[1])/ width_stride]
+                    image_grad = grad[index][(y + padding[0]) / height_stride][(x + padding[1]) / width_stride]
                     image[y + f_y][x + f_x].map do |image_channel|
                       Array.new(output_channels) do |o_c|
                         image_channel * image_grad[o_c]
                       end
                     end
                   end
-                end.flatten
+                }.flatten
 
                 filter_gradient_sum = multi_array_op(->(a, b) { a + b }, filter_gradient_sum, filter_result)
               end
@@ -341,17 +339,16 @@ module TensorStream
           TensorShape.reshape(filter_gradient_sum, filter_shape)
         end
 
-
         def conv2d_padding_options(padding_option, filter_shape, height, width, h_stride, w_stride)
           case padding_option
-          when 'SAME'
+          when "SAME"
             [
               calc_pad(height, h_stride, filter_shape[0]),
               calc_pad(width, w_stride, filter_shape[1]),
               calc_pad(height, h_stride, filter_shape[0], true),
-              calc_pad(width, w_stride, filter_shape[1], true)
+              calc_pad(width, w_stride, filter_shape[1], true),
             ]
-          when 'VALID'
+          when "VALID"
             [0, 0, 0, 0]
           else
             raise TensorStream::ValueError, "Unsupported padding value #{padding_option}, valid values 'SAME', 'VALID'"

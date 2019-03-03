@@ -12,7 +12,7 @@ module TensorStream
       #
       # [paper](http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf).
       def initialize(learning_rate, decay = 0.9, momentum = 0.0, epsilon = 1e-10, centered: false,
-                     use_locking: false, name: "RMSProp")
+        use_locking: false, name: "RMSProp")
         @learning_rate = learning_rate
         @decay = decay
         @momentum = momentum
@@ -46,10 +46,10 @@ module TensorStream
         # Create slots for the first and second moments.
         var_list.each do |v|
           init_rms = if v.shape.known?
-                       TensorStream.ones_initializer(dtype: v.data_type)
-                     else
-                       TensorStream.ones_like(v)
-                     end
+            TensorStream.ones_initializer(dtype: v.data_type)
+          else
+            TensorStream.ones_like(v)
+          end
 
           get_or_make_slot_with_initializer(v, init_rms, v.shape, v.data_type, "rms", @name)
 
@@ -65,18 +65,18 @@ module TensorStream
         if @centered
           mg = get_slot(var, "mg")
           _op(:apply_centered_rms_prop, var, mg, rms, mom,
-              TensorStream.cast(@learning_rate_tensor, var.data_type),
-              TensorStream.cast(@decay_tensor, var.data_type),
-              TensorStream.cast(@momentum_tensor, var.data_type),
-              TensorStream.cast(@epsilon_tensor, var.data_type),
-              grad, use_locking: @use_locking)
+            TensorStream.cast(@learning_rate_tensor, var.data_type),
+            TensorStream.cast(@decay_tensor, var.data_type),
+            TensorStream.cast(@momentum_tensor, var.data_type),
+            TensorStream.cast(@epsilon_tensor, var.data_type),
+            grad, use_locking: @use_locking)
         else
           _op(:apply_rms_prop, var, rms, mom,
-              TensorStream.cast(@learning_rate_tensor, var.data_type),
-              TensorStream.cast(@decay_tensor, var.data_type),
-              TensorStream.cast(@momentum_tensor, var.data_type),
-              TensorStream.cast(@epsilon_tensor, var.data_type),
-              grad, use_locking: @use_locking)
+            TensorStream.cast(@learning_rate_tensor, var.data_type),
+            TensorStream.cast(@decay_tensor, var.data_type),
+            TensorStream.cast(@momentum_tensor, var.data_type),
+            TensorStream.cast(@epsilon_tensor, var.data_type),
+            grad, use_locking: @use_locking)
         end
       end
     end

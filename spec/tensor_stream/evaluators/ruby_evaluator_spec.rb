@@ -1,10 +1,10 @@
 require "spec_helper"
-require 'benchmark'
+require "benchmark"
 
 RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   let(:tf) { TensorStream }
   let(:sess) { TensorStream.session(:ruby_evaluator) }
-  let(:execution_context) { Hash.new }
+  let(:execution_context) { {} }
   let(:instance) { described_class.new(sess, {})}
 
   include TensorStream::OpHelper
@@ -155,18 +155,19 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         variable_v2
         where
         zeros
-        zeros_like])
+        zeros_like
+      ])
     end
   end
 
   context "#shape_diff" do
     it "computes for the difference in shapes" do
-      expect(instance.shape_diff([5],[])).to eq([5])
-      expect(instance.shape_diff([5, 2],[])).to eq([5, 2])
-      expect(instance.shape_diff([5, 2],[2])).to eq([5, 0])
-      expect(instance.shape_diff([5, 4],[2, 1])).to eq([3, 3])
-      expect(instance.shape_diff([5, 4],[5, 5])).to be_nil
-      expect(instance.shape_diff([2, 2],[1])).to eq([2, 1])
+      expect(instance.shape_diff([5], [])).to eq([5])
+      expect(instance.shape_diff([5, 2], [])).to eq([5, 2])
+      expect(instance.shape_diff([5, 2], [2])).to eq([5, 0])
+      expect(instance.shape_diff([5, 4], [2, 1])).to eq([3, 3])
+      expect(instance.shape_diff([5, 4], [5, 5])).to be_nil
+      expect(instance.shape_diff([2, 2], [1])).to eq([2, 1])
     end
   end
 end

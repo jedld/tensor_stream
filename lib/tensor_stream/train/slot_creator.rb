@@ -54,13 +54,13 @@ module TensorStream
         dtype = primary.data_type if dtype.nil?
         slot_shape = primary.shape
         slot_shape = if slot_shape.fully_defined?
-                       slot_shape.shape
-                     else
-                       TensorStream.shape(primary.initialized_value)
-                     end
+          slot_shape.shape
+        else
+          TensorStream.shape(primary.initialized_value)
+        end
         val = TensorStream.zeros(slot_shape, dtype: dtype)
         create_slot(primary, val, name,
-                           colocate_with_primary: colocate_with_primary)
+          colocate_with_primary: colocate_with_primary)
       end
     end
   end
