@@ -711,8 +711,10 @@ z = tf.constant([[8, 9],[10, 11]])
     it "computes for the gradient" do
       b = tf.constant([1.0, 3.0])
       d = tf.constant([3.0, 1.1])
-      g = tf.gradients(tf.max(b,d), [b, d])
-      expect(sess.run(g)).to eq([[0.0, 1.0], [1.0, 0.0]])
+      f = tf.max(b,d)
+      g = tf.gradients(f, [b, d])
+      result = sess.run(g)
+      expect(result).to eq([[0.0, 1.0], [1.0, 0.0]])
     end
   end
 

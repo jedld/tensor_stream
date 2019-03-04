@@ -564,11 +564,11 @@
     :keepdims: false
 - :op: const
   :name: gradient_wrt_weight/pow_grad/Const_3
-  :data_type: :int32
+  :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0
-    :data_type: :int32
+    :value: 0.0
+    :data_type: :float32
     :shape: []
 - :op: greater
   :name: gradient_wrt_weight/pow_grad/greater
@@ -1300,11 +1300,11 @@
     :keepdims: false
 - :op: const
   :name: gradient_wrt_bias/pow_grad/Const_3
-  :data_type: :int32
+  :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0
-    :data_type: :int32
+    :value: 0.0
+    :data_type: :float32
     :shape: []
 - :op: greater
   :name: gradient_wrt_bias/pow_grad/greater

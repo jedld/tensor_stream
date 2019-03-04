@@ -100,6 +100,8 @@ module TensorStream
         :boolean
       when :shape, :rank, :shape_n
         options[:out_type] || :int32
+      when :zeros, :ones
+        options[:dtype] || :float32
       when :random_standard_normal, :random_uniform, :glorot_uniform, :truncated_normal
         passed_data_type || :float32
       when :concat
