@@ -1,8 +1,7 @@
 module TensorStream
   module TensorMixins
     def +(other)
-      TensorStream.check_data_types(self, other)
-      _op(:add, self, other)
+      _op(:add, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def [](index)
@@ -10,22 +9,18 @@ module TensorStream
     end
 
     def *(other)
-      TensorStream.check_data_types(self, other)
       _op(:mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def **(other)
-      TensorStream.check_data_types(self, other)
       _op(:pow, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def /(other)
-      TensorStream.check_data_types(self, other)
       _op(:div, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def -(other)
-      TensorStream.check_data_types(self, other)
       _op(:sub, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
@@ -67,43 +62,35 @@ module TensorStream
     end
 
     def <(other)
-      TensorStream.check_data_types(self, other)
-      _op(:less, self, other)
+      _op(:less, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def !=(other)
-      TensorStream.check_data_types(self, other)
-      _op(:not_equal, self, other)
+      _op(:not_equal, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def >(other)
-      TensorStream.check_data_types(self, other)
-      _op(:greater, self, other)
+      _op(:greater, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def >=(other)
-      TensorStream.check_data_types(self, other)
-      _op(:greater_equal, self, other)
+      _op(:greater_equal, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def <=(other)
-      TensorStream.check_data_types(self, other)
-      _op(:less_equal, self, other)
+      _op(:less_equal, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def and(other)
-      TensorStream.check_data_types(self, other)
-      _op(:logical_and, self, other)
+      _op(:logical_and, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def matmul(other)
-      TensorStream.check_data_types(self, other)
-      _op(:mat_mul, self, other)
+      _op(:mat_mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def dot(other)
-      TensorStream.check_data_types(self, other)
-      _op(:mat_mul, self, other)
+      _op(:mat_mul, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
 
     def cast(data_type = :float32, name: nil)

@@ -114,8 +114,8 @@ RSpec.shared_examples "standard ops evaluator" do
 
     n_samples = train_X.size
 
-    X = TensorStream.placeholder(:float32)
-    Y = TensorStream.placeholder(:float32)
+    X = TensorStream.placeholder("float")
+    Y = TensorStream.placeholder("float")
 
     # Set model weights
     W = TensorStream.variable(rand, name: "weight")
@@ -1094,7 +1094,7 @@ z = tf.constant([[8, 9],[10, 11]])
       context "shape #{shape}" do
         it "adds a value to the current variable" do
           v = TensorStream.get_variable("v", shape: shape, initializer: TensorStream.zeros_initializer)
-          assignment = v.assign_add(1)
+          assignment = v.assign_add(1.0)
           sess.run(TensorStream.global_variables_initializer)
           expect(sess.run(assignment)).to eq(expected)
         end
@@ -1106,7 +1106,7 @@ z = tf.constant([[8, 9],[10, 11]])
     specify "assign should set value" do
       w = TensorStream.variable(rand, name: "weight", initializer: TensorStream.zeros_initializer)
       sess.run(TensorStream.global_variables_initializer)
-      sess.run(w.assign(2))
+      sess.run(w.assign(2.0))
       expect(tr(w.read_value)).to eq(2)
     end
   end
