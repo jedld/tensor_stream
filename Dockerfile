@@ -1,4 +1,4 @@
-FROM circleci/ruby:2.4.1-node-browsers
+FROM circleci/ruby:2.6.1-node-browsers
 RUN sudo apt-get update -q && sudo apt-get install --no-install-recommends -yq alien wget unzip clinfo \
     && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN export DEVEL_URL="https://software.intel.com/file/531197/download" \
