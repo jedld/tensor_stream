@@ -10,8 +10,8 @@ RSpec.shared_examples "images ops" do
 
   supported_op ".decode_png" do
     it "converts png file to a tensor" do
-      file_path = File.join("spec", "fixtures", "ruby_16.png")
-      decoded_image = tf.image.decode_png(File.read(file_path))
+      image_1 = File.open( File.join("spec", "fixtures", "ruby_16.png"), 'rb') { |io| io.read }
+      decoded_image = tf.image.decode_png(image_1)
 
       expect(sess.run(decoded_image)).to eq([[[0, 0, 0, 0],
                                               [0, 0, 0, 0],
@@ -272,8 +272,8 @@ RSpec.shared_examples "images ops" do
     end
 
     it "supports grayscale" do
-      file_path = File.join("spec", "fixtures", "ruby_16.png")
-      decoded_image = tf.image.decode_png(File.read(file_path), channels: 1)
+      image_1 = File.open( File.join("spec", "fixtures", "ruby_16.png"), 'rb') { |io| io.read }
+      decoded_image = tf.image.decode_png(image_1, channels: 1)
 
       expect(sess.run(decoded_image)).to eq([[[0], [0], [0], [0], [0], [0], [55], [66], [99], [142], [91], [63], [56], [47], [38], [0]],
                                              [[0], [0], [0], [0], [35], [64], [72], [71], [68], [80], [135], [153], [113], [73], [41], [34]],
@@ -294,8 +294,8 @@ RSpec.shared_examples "images ops" do
     end
 
     it "supports other data types" do
-      file_path = File.join("spec", "fixtures", "ruby_16.png")
-      decoded_image = tf.image.decode_png(File.read(file_path), channels: 1, dtype: :float32)
+      image_1 = File.open( File.join("spec", "fixtures", "ruby_16.png"), 'rb') { |io| io.read }
+      decoded_image = tf.image.decode_png(image_1, channels: 1, dtype: :float32)
       expect(sess.run(decoded_image)).to eq([[[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [55.0], [66.0], [99.0], [142.0], [91.0], [63.0], [56.0], [47.0], [38.0], [0.0]],
                                              [[0.0], [0.0], [0.0], [0.0], [35.0], [64.0], [72.0], [71.0], [68.0], [80.0], [135.0], [153.0], [113.0], [73.0], [41.0], [34.0]],
                                              [[0.0], [0.0], [0.0], [35.0], [66.0], [72.0], [70.0], [69.0], [66.0], [157.0], [167.0], [125.0], [97.0], [31.0], [34.0], [36.0]],
@@ -315,8 +315,8 @@ RSpec.shared_examples "images ops" do
     end
 
     specify "resampling" do
-      file_path = File.join("spec", "fixtures", "ruby_16.png")
-      decoded_image = tf.image.decode_png(File.read(file_path), new_shape: [32, 32])
+      image_1 = File.open( File.join("spec", "fixtures", "ruby_16.png"), 'rb') { |io| io.read }
+      decoded_image = tf.image.decode_png(image_1, new_shape: [32, 32])
       expect(sess.run(tf.shape(decoded_image))).to eq([32, 32, 4])
     end
   end

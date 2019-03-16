@@ -36,8 +36,10 @@ RSpec.shared_examples "freezer ops" do
   specify "load a freezed model and eval it" do
     target_graph = TensorStream::YamlLoader.new.load_from_file(File.join("spec", "fixtures", "mnist.yaml"))
     # Load test images
-    decoded_image_1 = TensorStream.image.decode_png(File.read(File.join("spec", "fixtures", "0_image.png")), channels: 1)
-    decoded_image_2 = TensorStream.image.decode_png(File.read(File.join("spec", "fixtures", "1_image.png")), channels: 1)
+    image_1 = File.open(File.join("spec", "fixtures", "0_image.png"), 'rb') { |io| io.read }
+    image_2 = File.open(File.join("spec", "fixtures", "1_image.png"), 'rb') { |io| io.read }
+    decoded_image_1 = TensorStream.image.decode_png(image_1, channels: 1)
+    decoded_image_2 = TensorStream.image.decode_png(image_2, channels: 1)
 
     input = target_graph["Placeholder"]
     output = TensorStream.argmax(target_graph["out"], 1)
