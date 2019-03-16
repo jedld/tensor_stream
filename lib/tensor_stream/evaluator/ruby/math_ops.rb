@@ -37,6 +37,24 @@ module TensorStream
           end
         end
 
+        register_op :bias_add do |_context, _tensor, inputs|
+          value, bias = inputs
+          arr = value.flatten.each_slice(bias.size).map do |slice|
+            slice.each_with_index.map { |elem, index| elem + bias[index] }
+          end
+          TensorShape.reshape(arr, shape_eval(value))
+        end
+
+        register_op :bias_add_grad do |_context, _tensor, inputs|
+          received_grad = inputs[0]
+          bias_size = shape_eval(received_grad).last
+          grad_sum = Array.new(bias_size) { 0.0 }
+          received_grad.flatten.each_slice(bias_size) do |slice|
+            slice.each_with_index.map { |elem, index| grad_sum[index] += elem }
+          end
+          grad_sum
+        end
+
         register_op :sub, no_eval: true do |context, tensor, inputs|
           a, b = inputs
           call_vector_op(tensor, :sub, a, b, context) { |t, u| t - u }
