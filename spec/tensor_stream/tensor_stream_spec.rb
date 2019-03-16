@@ -10,7 +10,7 @@ RSpec.describe TensorStream do
 
   describe ".VERSION" do
     it "returns the version" do
-      expect(TensorStream.version).to eq("1.0.5")
+      expect(TensorStream.version).to eq("1.5.0")
     end
   end
 

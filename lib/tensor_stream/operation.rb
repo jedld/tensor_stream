@@ -119,15 +119,7 @@ module TensorStream
           @inputs[0].data_type
         end
       else
-        return passed_data_type if passed_data_type
-
-        if @inputs[0]
-          @inputs[0].data_type
-        elsif @inputs[1]
-          @inputs[1].data_type
-        else
-          :unknown
-        end
+        OpMaker.infer_data_type(self, self, passed_data_type)
       end
     end
 
