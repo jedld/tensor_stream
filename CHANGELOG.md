@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2019-03-20
+- [BUG FIX] - Fix not wrapping a stack op on some arrays. Should fix rnn sample
+
 ## [0.9.10] - 2019-01-02
 - [BUG FIX] - remove pry-byebug include (Thanks @samgooi4189)
 - Update Changelog for 0.9.9

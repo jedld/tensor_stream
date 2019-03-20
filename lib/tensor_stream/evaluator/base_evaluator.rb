@@ -131,7 +131,7 @@ module TensorStream
           time.to_i * (10**9) + time.nsec
         end
 
-        instance_exec(execution_context, tensor, resolved_inputs, &op[:block]).tap do
+        instance_exec(execution_context, tensor, resolved_inputs, &op[:block]).tap do |result|
           if profile_enabled?
             time = Time.now
             end_time = time.to_i * (10**9) + time.nsec

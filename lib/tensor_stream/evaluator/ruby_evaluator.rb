@@ -77,7 +77,7 @@ module TensorStream
           break unless tensor.is_a?(Tensor)
         end
 
-        tensor.is_a?(OutputGroup) ? tensor.outputs[0] : tensor
+        tensor.is_a?(OutputGroup) ? tensor.outputs : tensor
       end
 
       protected

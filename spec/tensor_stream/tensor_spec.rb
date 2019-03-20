@@ -278,6 +278,7 @@ RSpec.describe TensorStream::Tensor do
       expect(f.run).to eql(3)
     end
 
+
     specify "explicit conversion" do
       f = 1.t(dtype: :float)
       expect(f.eval).to eql(1.0)
@@ -298,6 +299,14 @@ RSpec.describe TensorStream::Tensor do
         expect(1.shape).to eq([])
         expect(1.0.shape).to eq([])
         expect([[1.0, 1.0], [2.0, 2.0]].shape).to eq([2, 2])
+      end
+
+      specify "convert to a tf stack if there is a tensor element" do
+        a = tf.placeholder(:int32)
+        arr = [1, 2, 3, a]
+        sum = tf.sum(arr)
+        sess = tf.session
+        expect(sess.run(sum, feed_dict: { a => 7 })).to eq(13)
       end
     end
   end

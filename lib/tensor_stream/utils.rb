@@ -242,7 +242,7 @@ module TensorStream
       return convert_to_tensor(value.call) if value.is_a?(Proc)
       # raise "Invalid tensor value" if value.nil?
 
-      if value.is_a?(Array) && value[0].is_a?(Tensor)
+      if value.is_a?(Array) && value.detect { |v| v.is_a?(Tensor) }
         return TensorStream.stack(value) if value.size > 1
 
         return TensorStream.expand_dims(value[0], 0)
