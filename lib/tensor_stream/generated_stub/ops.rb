@@ -222,6 +222,23 @@ module TensorStream
 
 
     ##
+    # Returns the truth value of (x < y) element-wise.
+    #
+    # This operation supports broadcasting
+    #
+    # @param input_a tensor X
+    # @param input_b tensor Y
+    #
+    # Options:
+    # @option name Optional name
+    # @return Tensor
+    def less(input_a, input_b, name: nil)
+      input_a, input_b = apply_data_type_coercion(input_a, input_b)
+      _op(:less, input_a, input_b, name: name)
+    end
+
+
+    ##
     # Returns the truth value of (x <= y) element-wise.
     #
     # This operation supports broadcasting
@@ -355,6 +372,23 @@ module TensorStream
     # @return Tensor
     def negate(input, name: nil)
       _op(:negate, input, name: name)
+    end
+
+
+    ##
+    # Returns the truth value of (x != y) element-wise.
+    #
+    # This operation supports broadcasting
+    #
+    # @param input_a tensor X
+    # @param input_b tensor Y
+    #
+    # Options:
+    # @option name Optional name
+    # @return Tensor
+    def not_equal(input_a, input_b, name: nil)
+      input_a, input_b = apply_data_type_coercion(input_a, input_b)
+      _op(:not_equal, input_a, input_b, name: name)
     end
 
 

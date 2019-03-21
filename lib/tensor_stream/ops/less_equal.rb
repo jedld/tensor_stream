@@ -12,4 +12,8 @@ TensorStream::OpMaker.define_operation :less_equal do |op|
   op.define_gradient do |grad, node, params|
     _min_or_max_grad(node.inputs, grad, ->(a, b) { ts.greater_equal(a, b) })
   end
+
+  op.define_data_type do
+    :boolean
+  end
 end

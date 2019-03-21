@@ -8,4 +8,8 @@ TensorStream::OpMaker.define_operation :greater do |op|
   op.supports_broadcasting!
 
   op.option :name, "Optional name", :nil
+
+  op.define_data_type do
+    :boolean
+  end
 end

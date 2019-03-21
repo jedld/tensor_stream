@@ -96,7 +96,7 @@ module TensorStream
         options[:data_type]
       when :fill
         @inputs[1].data_type
-      when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
+      when :logical_and
         :boolean
       when :shape, :rank, :shape_n
         options[:out_type] || :int32
