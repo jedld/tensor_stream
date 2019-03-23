@@ -223,6 +223,74 @@ vars = graph.get_collection(TensorStream::GraphKeys::GLOBAL_VARIABLES)
 => [Variable(Variable:0 shape: TensorShape([]) data_type: float32)]
 ```
 
+High Performance Computing
+--------------------------
+
+TensorStream has been designed from the ground up to support multiple execution backends.
+
+What this means is you can build your models once and then be able to execute them later on specialized hardware when available like GPUs.
+
+An OpenCL backend is available that you can use for compute intensive taks like machine learning, especially those that use convolutional networks.
+
+Using OpenCL is as simple as installing the tensorstream-opencl gem
+
+```
+gem install tensor_stream-opencl
+```
+
+You can then require the library in your programs and it will get used automatically (assuming you also installed OpenCL drivers for your system)
+
+```ruby
+require 'tensor_stream'
+
+# enable OpenCL
+require 'tensor_stream/opencl'
+
+tf = TensorStream
+
+srand(5)
+seed = 5
+tf.set_random_seed(seed)
+
+SHAPES = [32, 32]
+tf = TensorStream
+sess = tf.session
+large_tensor = tf.constant(sess.run(tf.random_uniform([256, 256])))
+
+sum_axis_1 = tf.reduce_sum(large_tensor, 1)
+sess.run(sum_axis_1)
+```
+
+Using OpenCL can improve performance dramatically in scenarios involving large tensors:
+
+```
+Linux 4.15.0-46-generic #49-Ubuntu SMP
+model name	: AMD Ryzen 3 1300X Quad-Core Processor
+OpenCL device NVIDIA CUDA GeForce GTX 1060 6GB
+ruby 2.6.2p47 (2019-03-13 revision 67232) [x86_64-linux]
+
+                                           user     system      total        real
+pure ruby softmax        :             0.024724   0.000000   0.024724 (  0.024731)
+opencl    softmax        :             0.006237   0.003945   0.010182 (  0.009005)
+pure ruby matmul         :             0.679538   0.000000   0.679538 (  0.680048)
+opencl    matmul         :             0.003456   0.007965   0.011421 (  0.008568)
+pure ruby sum            :             3.210619   0.000000   3.210619 (  3.210064)
+opencl sum               :             0.002431   0.008030   0.010461 (  0.007522)
+pure ruby sum axis 1     :             3.208789   0.000000   3.208789 (  3.208125)
+opencl sum axis 1        :             0.006075   0.003963   0.010038 (  0.007679)
+pure ruby conv2d_backprop      :       3.738167   0.000000   3.738167 (  3.737946)
+opencl conv2d_backprop         :       0.031267   0.003958   0.035225 (  0.030381)
+pure ruby conv2d      :                0.794182   0.000000   0.794182 (  0.794100)
+opencl conv2d         :                0.015865   0.004020   0.019885 (  0.016878)
+```
+
+A quick glance shows not a marginal increase but an order of magnitude performance increase in most operations.
+In fact we are looking at almost a 200x faster compute on operations like matmul and softmax (essential operations in machine learning). This is not a surprise because of the "embarrasingly" parallel nature of machine learning computation. Because of this, GPUs are basically a requirement in most machine learning tasks.
+
+The code containing these benchmarks can be found at:
+
+tensor_stream-opencl/benchmark/benchmark.rb
+
 Limitations
 -----------
 

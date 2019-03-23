@@ -137,6 +137,19 @@ module TensorStream
       def conv2d(input, filter, strides, padding, name: nil)
         _op(:conv2d, input, filter, strides: strides, padding: padding, name: name)
       end
+
+      ##
+      # Adds bias to value.
+      #
+      # This is a narrow version of tf add where the bias is restructed to 1-D only
+      def bias_add(value, bias, data_format: nil, name: nil)
+        value = TensorStream.convert_to_tensor(value, name: "input")
+        bias = TensorStream.convert_to_tensor(bias, dtype: value.dtype, name: "bias")
+
+        raise TensorStreamError, "value must be at least rank 2" if value.shape.known? && value.shape.ndims < 2
+
+        _op(:bias_add, value, bias, data_format: data_format, name: name)
+      end
     end
   end
 

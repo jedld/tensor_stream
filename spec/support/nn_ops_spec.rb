@@ -423,4 +423,19 @@ RSpec.shared_examples "standard nn ops evaluator" do
       expect(tr(sess.run(r2))).to eq([-0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 70.0])
     end
   end
+
+  context ".bias_add" do
+    specify do
+      func = ts.nn.bias_add([[1.0, 2.0],[1.0,2.0]], [1.0, 2.0])
+      expect(tr(sess.run(func))).to eq([[2.0, 4.0], [2.0, 4.0]])
+    end
+
+    it "computes gradients" do
+      a = ts.constant([[1.0, 2.0],[1.0,2.0]])
+      b = ts.constant([1.0, 2.0])
+      func = ts.nn.bias_add(a, b)
+      g = ts.gradients(func, [a, b])
+      expect(tr(sess.run(g))).to eq([[[1.0, 1.0], [1.0, 1.0]], [2.0, 2.0]])
+    end
+  end
 end

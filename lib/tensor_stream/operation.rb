@@ -96,7 +96,7 @@ module TensorStream
         options[:data_type]
       when :fill
         @inputs[1].data_type
-      when :greater, :less, :equal, :not_equal, :greater_equal, :less_equal, :logical_and
+      when :logical_and
         :boolean
       when :shape, :rank, :shape_n
         options[:out_type] || :int32
@@ -119,15 +119,7 @@ module TensorStream
           @inputs[0].data_type
         end
       else
-        return passed_data_type if passed_data_type
-
-        if @inputs[0]
-          @inputs[0].data_type
-        elsif @inputs[1]
-          @inputs[1].data_type
-        else
-          :unknown
-        end
+        OpMaker.infer_data_type(self, self, passed_data_type)
       end
     end
 

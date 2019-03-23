@@ -2,7 +2,8 @@ class TensorStream::OpMaker
   attr_reader :operation, :description, :parameters,
               :options, :gradient, :check_types,
               :supports_broadcast, :data_type_coercion,
-              :aliases, :custom, :infer_type_proc, :exclude
+              :aliases, :custom, :infer_type_proc, :exclude,
+              :data_type_block
 
   def initialize(op)
     @operation = op
@@ -56,6 +57,22 @@ class TensorStream::OpMaker
     return nil unless @ops[tensor.operation]
 
     context_caller.instance_exec(tensor, &@ops[tensor.operation].infer_type_proc)
+  end
+
+  def self.infer_data_type(context_caller, tensor, passed_data_type)
+    return passed_data_type if passed_data_type
+
+    if @ops[tensor.operation] && @ops[tensor.operation].data_type_block
+      context_caller.instance_exec(tensor, &@ops[tensor.operation].data_type_block)
+    else
+      if tensor.inputs[0]
+        tensor.inputs[0].data_type
+      elsif tensor.inputs[1]
+        tensor.inputs[1].data_type
+      else
+        :unknown
+      end
+    end
   end
 
   def self.each_op(&block)
@@ -120,6 +137,10 @@ class TensorStream::OpMaker
 
   def define_shape(&block)
     @infer_type_proc = block
+  end
+
+  def define_data_type(&block)
+    @data_type_block = block
   end
 
   def expand_params(print_defaults)

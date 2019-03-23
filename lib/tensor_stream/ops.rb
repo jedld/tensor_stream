@@ -164,14 +164,6 @@ module TensorStream
     end
 
     ##
-    # Returns the truth value of (x < y) element-wise.
-    # This operation supports broadcasting
-    def less(input_a, input_b, name: nil)
-      check_data_types(input_a, input_b)
-      _op(:less, input_a, input_b, name: name)
-    end
-
-    ##
     # Returns the truth value of x AND y element-wise.
     def logical_and(input_a, input_b, name: nil)
       check_data_types(input_a, input_b)

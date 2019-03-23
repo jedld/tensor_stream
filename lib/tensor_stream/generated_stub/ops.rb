@@ -9,12 +9,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def add(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:add, input_a, input_b, name: name)
@@ -25,14 +25,14 @@ module TensorStream
     # Returns the index with the largest value across axes of a tensor.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type NUMERIC_TYPES)
-    # +axis+:: Describes which axis of the input tensor to reduce across. For vectors, use axis = 0 (of type INTEGER_TYPES)
+    # @param input_a tensor X (of type NUMERIC_TYPES)
+    # @param axis Describes which axis of the input tensor to reduce across. For vectors, use axis = 0 (of type INTEGER_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
-    # +:dimension+:: Same as axis
-    # +:output_type+:: Output data type defaults to int32 default (:int32)
+    # @option name Optional name
+    # @option dimension Same as axis
+    # @option output_type Output data type defaults to int32 default (:int32)
+    # @return Tensor
     def argmax(input_a, axis = nil, name: nil, dimension: nil, output_type: :int32)
       check_allowed_types(input_a, TensorStream::Ops::NUMERIC_TYPES)
       check_allowed_types(axis, TensorStream::Ops::INTEGER_TYPES)
@@ -44,14 +44,14 @@ module TensorStream
     # Returns the index with the smallest value across axes of a tensor.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type NUMERIC_TYPES)
-    # +axis+:: Describes which axis of the input tensor to reduce across. For vectors, use axis = 0 (of type INTEGER_TYPES)
+    # @param input_a tensor X (of type NUMERIC_TYPES)
+    # @param axis Describes which axis of the input tensor to reduce across. For vectors, use axis = 0 (of type INTEGER_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
-    # +:dimension+:: Same as axis
-    # +:output_type+:: Output data type defaults to int32 default (:int32)
+    # @option name Optional name
+    # @option dimension Same as axis
+    # @option output_type Output data type defaults to int32 default (:int32)
+    # @return Tensor
     def argmin(input_a, axis = nil, name: nil, dimension: nil, output_type: :int32)
       check_allowed_types(input_a, TensorStream::Ops::NUMERIC_TYPES)
       check_allowed_types(axis, TensorStream::Ops::INTEGER_TYPES)
@@ -63,11 +63,11 @@ module TensorStream
     # Returns element-wise smallest integer in not less than x
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def ceil(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:ceil, input_a, name: name)
@@ -78,11 +78,11 @@ module TensorStream
     # Computes cos of input element-wise.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def cos(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:cos, input_a, name: name)
@@ -94,12 +94,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def div(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:div, input_a, input_b, name: name)
@@ -111,12 +111,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def equal(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:equal, input_a, input_b, name: name)
@@ -129,12 +129,12 @@ module TensorStream
     # dimension index axis starts at zero; if you specify a negative number for axis it is counted backward from the end.
     #
     #
-    # Params:
-    # +input+:: A tensor
-    # +axis+:: Specifies the dimension index at which to expand the shape of input. Must be in the range [-rank(input) - 1, rank(input)].
+    # @param input A tensor
+    # @param axis Specifies the dimension index at which to expand the shape of input. Must be in the range [-rank(input) - 1, rank(input)].
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def expand_dims(input, axis, name: nil)
       _op(:expand_dims, input, axis, name: name)
     end
@@ -144,12 +144,12 @@ module TensorStream
     # This operation creates a tensor of shape dims and fills it with value.
     #
     #
-    # Params:
-    # +dims+:: tensor shape
-    # +value+:: scalar value to fill with
+    # @param dims tensor shape
+    # @param value scalar value to fill with
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def fill(dims, value, name: nil)
       _op(:fill, dims, value, name: name)
     end
@@ -159,11 +159,11 @@ module TensorStream
     # Returns element-wise largest integer not greater than x.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def floor(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:floor, input_a, name: name)
@@ -175,12 +175,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def floor_div(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:floor_div, input_a, input_b, name: name)
@@ -192,12 +192,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def greater(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:greater, input_a, input_b, name: name)
@@ -209,15 +209,32 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def greater_equal(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:greater_equal, input_a, input_b, name: name)
+    end
+
+
+    ##
+    # Returns the truth value of (x < y) element-wise.
+    #
+    # This operation supports broadcasting
+    #
+    # @param input_a tensor X
+    # @param input_b tensor Y
+    #
+    # Options:
+    # @option name Optional name
+    # @return Tensor
+    def less(input_a, input_b, name: nil)
+      input_a, input_b = apply_data_type_coercion(input_a, input_b)
+      _op(:less, input_a, input_b, name: name)
     end
 
 
@@ -226,12 +243,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def less_equal(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:less_equal, input_a, input_b, name: name)
@@ -242,11 +259,11 @@ module TensorStream
     # Computes natural logarithm of x element-wise.
     #
     #
-    # Params:
-    # +input+:: tensor X
+    # @param input tensor X
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def log(input, name: nil)
       _op(:log, input, name: name)
     end
@@ -257,14 +274,14 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:transpose_a+:: Transpose matrix A first default (false)
-    # +:transpose_b+:: Transpose matrix B first default (false)
-    # +:name+:: Optional name
+    # @option transpose_a Transpose matrix A first default (false)
+    # @option transpose_b Transpose matrix B first default (false)
+    # @option name Optional name
+    # @return Tensor
     def mat_mul(input_a, input_b, transpose_a: false, transpose_b: false, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:mat_mul, input_a, input_b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
@@ -277,12 +294,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X (of type NUMERIC_TYPES)
-    # +input_b+:: tensor Y (of type NUMERIC_TYPES)
+    # @param input_a tensor X (of type NUMERIC_TYPES)
+    # @param input_b tensor Y (of type NUMERIC_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def max(input_a, input_b, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::NUMERIC_TYPES)
       check_allowed_types(input_b, TensorStream::Ops::NUMERIC_TYPES)
@@ -296,12 +313,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X (of type NUMERIC_TYPES)
-    # +input_b+:: tensor Y (of type NUMERIC_TYPES)
+    # @param input_a tensor X (of type NUMERIC_TYPES)
+    # @param input_b tensor Y (of type NUMERIC_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def min(input_a, input_b, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::NUMERIC_TYPES)
       check_allowed_types(input_b, TensorStream::Ops::NUMERIC_TYPES)
@@ -315,12 +332,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def mod(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:mod, input_a, input_b, name: name)
@@ -332,12 +349,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def mul(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:mul, input_a, input_b, name: name)
@@ -348,13 +365,30 @@ module TensorStream
     # Computes numerical negative value element-wise.
     #
     #
-    # Params:
-    # +input+:: tensor X
+    # @param input tensor X
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def negate(input, name: nil)
       _op(:negate, input, name: name)
+    end
+
+
+    ##
+    # Returns the truth value of (x != y) element-wise.
+    #
+    # This operation supports broadcasting
+    #
+    # @param input_a tensor X
+    # @param input_b tensor Y
+    #
+    # Options:
+    # @option name Optional name
+    # @return Tensor
+    def not_equal(input_a, input_b, name: nil)
+      input_a, input_b = apply_data_type_coercion(input_a, input_b)
+      _op(:not_equal, input_a, input_b, name: name)
     end
 
 
@@ -365,12 +399,12 @@ module TensorStream
     # Optionally, you can specify a new type (dtype) for the returned tensor.
     #
     #
-    # Params:
-    # +input+:: A tensor
+    # @param input A tensor
     #
     # Options:
-    # +:dtype+:: Optional new data type to cast into
-    # +:name+:: Optional name
+    # @option dtype Optional new data type to cast into
+    # @option name Optional name
+    # @return Tensor
     def ones_like(input, dtype: nil, name: nil)
       _op(:ones_like, input, data_type: dtype, name: name)
     end
@@ -381,12 +415,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def pow(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:pow, input_a, input_b, name: name)
@@ -401,13 +435,13 @@ module TensorStream
     # If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned.
     #
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +axis+:: tensor X (of type INTEGER_TYPES)
+    # @param input_a tensor X
+    # @param axis tensor X (of type INTEGER_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
-    # +:keepdims+:: If true, retains reduced dimensions with length 1. default (false)
+    # @option name Optional name
+    # @option keepdims If true, retains reduced dimensions with length 1. default (false)
+    # @return Tensor
     def prod(input_a, axis = nil, name: nil, keepdims: false)
       check_allowed_types(axis, TensorStream::Ops::INTEGER_TYPES)
       input_a = TensorStream.convert_to_tensor(input_a)
@@ -422,15 +456,15 @@ module TensorStream
     # Outputs random values from a uniform distribution.
     #
     #
-    # Params:
-    # +shape+:: A 1-D integer Tensor or array. The shape of the output tensor.
+    # @param shape A 1-D integer Tensor or array. The shape of the output tensor.
     #
     # Options:
-    # +:name+:: Optional name
-    # +:dtype+:: The type of the output: float16, float32, float64, int32, or int64 default (:float32)
-    # +:minval+:: A 0-D Tensor or ruby value of type dtype. The lower bound on the range of random values to generate. Defaults to 0. default (0)
-    # +:maxval+:: A 0-D Tensor or ruby value of type dtype. The upper bound on the range of random values to generate. Defaults to 1 if dtype is floating point. default (1)
-    # +:seed+::  A ruby integer. Used to create a random seed for the distribution. See set_random_seed for behavior.
+    # @option name Optional name
+    # @option dtype The type of the output: float16, float32, float64, int32, or int64 default (:float32)
+    # @option minval A 0-D Tensor or ruby value of type dtype. The lower bound on the range of random values to generate. Defaults to 0. default (0)
+    # @option maxval A 0-D Tensor or ruby value of type dtype. The upper bound on the range of random values to generate. Defaults to 1 if dtype is floating point. default (1)
+    # @option seed  A ruby integer. Used to create a random seed for the distribution. See set_random_seed for behavior.
+    # @return Tensor
     def random_uniform(shape, name: nil, dtype: :float32, minval: 0, maxval: 1, seed: nil)
       _op(:random_uniform, shape, name: name, dtype: dtype, minval: minval, maxval: maxval, seed: seed)
     end
@@ -441,15 +475,15 @@ module TensorStream
     # Creates a sequence of numbers that begins at start and extends by increments of delta up to but not including limit.
     #
     #
-    # Params:
-    # +start+:: Acts as first entry in the range if limit is not nil; otherwise, acts as range limit and first entry defaults to 0.
-    # +limit+:: Upper limit of sequence, exclusive. If nil, defaults to the value of start while the first entry of the range defaults to 0.
-    # +delta+:: Number that increments start. Defaults to 1.
+    # @param start Acts as first entry in the range if limit is not nil; otherwise, acts as range limit and first entry defaults to 0.
+    # @param limit Upper limit of sequence, exclusive. If nil, defaults to the value of start while the first entry of the range defaults to 0.
+    # @param delta Number that increments start. Defaults to 1.
     #
     # Options:
-    # +:name+::  A name for the operation. Defaults to "range". default ("range")
-    # +:dtype+:: The type of the elements of the resulting tensor.
-    # +:output_type+:: Output data type defaults to int32 default (:int32)
+    # @option name  A name for the operation. Defaults to "range". default ("range")
+    # @option dtype The type of the elements of the resulting tensor.
+    # @option output_type Output data type defaults to int32 default (:int32)
+    # @return Tensor
     def range(start = 0, limit = 0, delta = 1, name: "range", dtype: nil, output_type: :int32)
       _op(:range, start, limit, delta, name: name, dtype: dtype, output_type: output_type)
     end
@@ -459,11 +493,11 @@ module TensorStream
     # Returns the rank of a tensor
     #
     #
-    # Params:
-    # +input+:: A tensor
+    # @param input A tensor
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def rank(input, name: nil)
       input = convert_to_tensor(input)
       return cons(input.shape.ndims) if input.shape.known?
@@ -476,12 +510,12 @@ module TensorStream
     # Given tensor, this operation returns a tensor that has the same values as tensor with shape shape.
     #
     #
-    # Params:
-    # +input+:: A tensor
-    # +shape+:: A new tensor shape
+    # @param input A tensor
+    # @param shape A new tensor shape
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def reshape(input, shape, name: nil)
       _op(:reshape, input, shape, name: name)
     end
@@ -491,11 +525,11 @@ module TensorStream
     # Rounds the values of a tensor to the nearest integer, element-wise
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def round(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:round, input_a, name: name)
@@ -506,12 +540,12 @@ module TensorStream
     # This operation returns a 1-D integer tensor representing the shape of input
     #
     #
-    # Params:
-    # +input+:: A tensor
+    # @param input A tensor
     #
     # Options:
-    # +:name+:: Optional name
-    # +:out_type+:: Optional output type default (:int32)
+    # @option name Optional name
+    # @option out_type Optional output type default (:int32)
+    # @return Tensor
     def shape(input, name: nil, out_type: :int32)
       return constant(shape_eval(input, out_type), dtype: out_type, name: "Shape/#{name}") if input.is_a?(Array) && !input[0].is_a?(Tensor)
       return constant(input.shape.shape, dtype: out_type, name: "Shape/#{input.name}_c") if shape_full_specified(input)
@@ -523,11 +557,11 @@ module TensorStream
     # Computes sigmoid of x element-wise.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def sigmoid(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:sigmoid, input_a, name: name)
@@ -540,11 +574,11 @@ module TensorStream
     # Zero is returned for NaN inputs.
     #
     #
-    # Params:
-    # +input_a+:: tensor X
+    # @param input_a tensor X
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def sign(input_a, name: nil)
       _op(:sign, input_a, name: name)
     end
@@ -554,11 +588,11 @@ module TensorStream
     # Computes sin of input element-wise.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def sin(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:sin, input_a, name: name)
@@ -570,12 +604,12 @@ module TensorStream
     # Returns a 0-D Tensor representing the number of elements in input of type out_type. Defaults to :int32.
     #
     #
-    # Params:
-    # +input+:: A tensor
+    # @param input A tensor
     #
     # Options:
-    # +:name+:: Optional name
-    # +:out_type+:: Optional output type default (:int32)
+    # @option name Optional name
+    # @option out_type Optional output type default (:int32)
+    # @return Tensor
     def size(input, name: nil, out_type: :int32)
       _op(:size, input, name: name, out_type: out_type)
     end
@@ -586,12 +620,12 @@ module TensorStream
     #
     # This operation supports broadcasting
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +input_b+:: tensor Y
+    # @param input_a tensor X
+    # @param input_b tensor Y
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def sub(input_a, input_b, name: nil)
       input_a, input_b = apply_data_type_coercion(input_a, input_b)
       _op(:sub, input_a, input_b, name: name)
@@ -607,13 +641,13 @@ module TensorStream
     # If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned.
     #
     #
-    # Params:
-    # +input_a+:: tensor X
-    # +axis+:: tensor X (of type INTEGER_TYPES)
+    # @param input_a tensor X
+    # @param axis tensor X (of type INTEGER_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
-    # +:keepdims+:: If true, retains reduced dimensions with length 1. default (false)
+    # @option name Optional name
+    # @option keepdims If true, retains reduced dimensions with length 1. default (false)
+    # @return Tensor
     def sum(input_a, axis = nil, name: nil, keepdims: false)
       check_allowed_types(axis, TensorStream::Ops::INTEGER_TYPES)
       input_a = TensorStream.convert_to_tensor(input_a)
@@ -628,11 +662,11 @@ module TensorStream
     # Computes tan of input element-wise.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def tan(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:tan, input_a, name: name)
@@ -643,11 +677,11 @@ module TensorStream
     # Computes tanh of input element-wise.
     #
     #
-    # Params:
-    # +input_a+:: tensor X (of type FLOATING_POINT_TYPES)
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def tanh(input_a, name: nil)
       check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
       _op(:tanh, input_a, name: name)
@@ -661,12 +695,12 @@ module TensorStream
     # and the values of input are replicated multiples[i] times along the 'i'th dimension. For example, tiling [a b c d] by [2] produces [a b c d a b c d].
     #
     #
-    # Params:
-    # +input+:: A tensor
-    # +multiples+:: Must be one of the following types: int32, int64. 1-D. Length must be the same as the number of dimensions in input
+    # @param input A tensor
+    # @param multiples Must be one of the following types: int32, int64. 1-D. Length must be the same as the number of dimensions in input
     #
     # Options:
-    # +:name+:: Optional name
+    # @option name Optional name
+    # @return Tensor
     def tile(input, multiples, name: nil)
       _op(:tile, input, multiples, name: name)
     end
@@ -676,12 +710,12 @@ module TensorStream
     # Creates a tensor with all elements set to zero
     #
     #
-    # Params:
-    # +shape+:: A 1-D integer Tensor or ruby array. The shape of the output tensor.
+    # @param shape A 1-D integer Tensor or ruby array. The shape of the output tensor.
     #
     # Options:
-    # +:dtype+:: Optional name default (:float32)
-    # +:name+:: Optional name
+    # @option dtype Optional name default (:float32)
+    # @option name Optional name
+    # @return Tensor
     def zeros(shape, dtype: :float32, name: nil)
       _op(:zeros, shape, dtype: dtype, name: name)
     end
