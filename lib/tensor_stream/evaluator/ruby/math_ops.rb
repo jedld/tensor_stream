@@ -264,8 +264,13 @@ module TensorStream
 
           # check matrix dimensions
           raise TensorStream::ValueError, "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
-
-          (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
+          if (rank_a >=3 )
+            matrix_a.zip(matrix_b).map do |m_a, m_b|
+              (Matrix[*m_a] * Matrix[*m_b]).to_a
+            end
+          else
+            (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
+          end
         end
 
         register_op %i[max maximum], noop: true do |context, tensor, inputs|
