@@ -1755,7 +1755,7 @@ end
     end
 
     specify do
-      range = tf.range(3, 1, -0.5)
+      range = tf.range(3, 1, -0.5, output_type: :float32)
       expect(sess.run(range)).to eq([3, 2.5, 2, 1.5])
     end
   end
