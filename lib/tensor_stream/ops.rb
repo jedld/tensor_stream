@@ -524,6 +524,9 @@ module TensorStream
       _op(:squeeze, value, axis: axis, name: nil)
     end
 
+    def clip_by_norm(tensor, clip_norm, axes: nil, name: nil)
+    end
+
     ##
     # Computes the difference between two lists of numbers or strings.
     # Given a list x and a list y, this operation returns a list out that represents all values

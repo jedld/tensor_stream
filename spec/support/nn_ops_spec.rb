@@ -438,4 +438,19 @@ RSpec.shared_examples "standard nn ops evaluator" do
       expect(tr(sess.run(g))).to eq([[[1.0, 1.0], [1.0, 1.0]], [2.0, 2.0]])
     end
   end
+
+  context ".embedding_lookup" do
+    specify do
+      params = ts.constant([10,20,30,40])
+      ids = ts.constant([0,1,2,3])
+      expect(sess.run(ts.nn.embedding_lookup(params, ids))).to eq([10, 20, 30, 40])
+      ids = ts.constant([1,1,3])
+      expect(sess.run(ts.nn.embedding_lookup(params,ids))).to eq([20, 20, 40])
+      params1 = ts.constant([1,2])
+      params2 = ts.constant([10,20])
+      ids = ts.constant([2,0,2,1,2,3])
+      result = tf.nn.embedding_lookup([params1, params2], ids)
+      expect(sess.run(result)). to eq([])
+    end
+  end
 end

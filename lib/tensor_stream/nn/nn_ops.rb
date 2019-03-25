@@ -1,7 +1,9 @@
+require 'tensor_stream/nn/embedding_lookup'
 module TensorStream
   # High level machine learning functions
   class NN
     extend TensorStream::OpHelper
+    extend TensorStream::EmbeddingLookup
 
     class << self
       def softmax(logits, axis: nil, name: nil)
