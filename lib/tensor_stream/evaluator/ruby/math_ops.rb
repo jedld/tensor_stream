@@ -259,18 +259,22 @@ module TensorStream
           raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
           raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
 
-          matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
-          matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-
           # check matrix dimensions
-          raise TensorStream::ValueError, "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
-          if (rank_a >=3 )
+          if rank_a >= 3
             matrix_a.zip(matrix_b).map do |m_a, m_b|
-              (Matrix[*m_a] * Matrix[*m_b]).to_a
+              matmul(m_a, m_b, tensor)
             end
           else
-            (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
+            matmul(matrix_a, matrix_b, tensor)
           end
+        end
+
+        def matmul(m_a, m_b, tensor)
+          m_a = m_a.transpose if tensor.options[:transpose_a]
+          m_b = m_b.transpose if tensor.options[:transpose_b]
+          raise TensorStream::ValueError, "incompatible shape sizes for matrix multiplication (#{m_a[0].size} != #{m_b.size}) #{shape_eval(m_a)} vs #{shape_eval(m_b)}" if m_a[0].size != m_b.size
+
+          (Matrix[*m_a] * Matrix[*m_b]).to_a
         end
 
         register_op %i[max maximum], noop: true do |context, tensor, inputs|
