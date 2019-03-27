@@ -195,6 +195,15 @@ module TensorStream
       end
     end
 
+    ##
+    # Partitions data into num_partitions tensors using indices from partitions
+    def dynamic_partition(data, partitions, num_partitions, name: nil)
+      result = _op(:dynamic_partition, data, partitions, num_partitions: num_partitions, name: nil)
+      num_partitions.times.map do |index|
+        result[index]
+      end
+    end
+
     def split(value, num_or_size_splits, axis: 0, num: nil, name: "split")
       value = convert_to_tensor(value)
       num_or_size_splits = convert_to_tensor(num_or_size_splits)

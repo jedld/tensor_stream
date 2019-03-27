@@ -39,6 +39,7 @@ module TensorStream
             p_assignments = flat_ids % np
             new_ids = floor_div(flat_ids, np)
           elsif partition_strategy == "div"
+            raise "not yet supported!"
           else
             raise TensorStream::ValueError, "Unrecognized partition strategy: " + partition_strategy
           end
@@ -47,7 +48,45 @@ module TensorStream
           gather_ids = TensorStream.dynamic_partition(new_ids, p_assignments, np)
           pindices = TensorStream.dynamic_partition(original_indices, p_assignments, np)
           partitioned_result = []
-          binding.pry
+          (0...np).each do |p|
+            pids = gather_ids[p]
+            result = nil
+            TensorStream.colocate_with(params[p]) do
+              result = TensorStream.gather(params[p], pids)
+              if transform_fn
+                # If transform_fn is provided, the clip_by_norm precedes
+                # the transform and hence must be co-located. See below
+                # for the counterpart if transform_fn is not proveded.
+                result = transform_fn.call(_clip(result, pids, max_norm))
+              end
+            end
+            partitioned_result << result
+          end
+          ret = TensorStream.dynamic_stitch(pindices, partitioned_result, name: name)
+
+          if transform_fn.nil?
+            element_shape_s = params[0].shape[1..nil]
+            params[1..nil].each { |p| element_shape_s = element_shape_s.merge_with(p.shape[1..nil]) }
+          else
+            element_shape_s = ret.shape[1..nil]
+          end
+
+           # Compute the dynamic element shape.
+          element_shape_d = if element_shape_s.fully_defined?
+                               element_shape_s
+                            elsif transform_fn.nil?
+                              # It's important that we compute params[0].shape on the right device
+                              # to avoid data motion.
+                              TensorStream.colocate_with(params[0]) do
+                                params_shape = TensorStream.shape(params[0])
+                                params_shape[1..nil]
+                              end
+                            else
+                              TensorStream.shape(ret)[1..nil]
+                            end
+          ret = TensorStream.reshape(ret, TensorStream.concat([TensorStream.shape(ids), element_shape_d], 0))
+          ret = _clip(ret, ids, max_norm) unless transform_fn
+          ret
         end
       end
     end

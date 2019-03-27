@@ -216,7 +216,14 @@ module TensorStream
 
         register_op :range do |_context, _tensor, inputs|
           start, limit, delta = inputs
+
           raise " delta !=0 " if delta.zero?
+
+          if limit.zero?
+            limit = start
+            start = 0
+          end
+
           raise " Requires start <= limit when delta > 0" if (start > limit) && delta > 0
           raise " Requires start >= limit when delta < 0" if (start < limit) && delta < 0
 
@@ -397,6 +404,17 @@ module TensorStream
             shape = shape_eval(func)
             generate_vector(shape, generator: func)
           end
+        end
+
+        register_op :dynamic_partition do |context, tensor, inputs|
+          data, partitions = inputs
+          num_partitions = tensor.options[:num_partitions]
+          output_arr = Array.new(num_partitions) { [] }
+
+          partitions.each_with_index do |part, index|
+            output_arr[part] << data[index]
+          end
+          TensorStream::Evaluator::OutputGroup.new(output_arr, num_partitions.times.map { tensor.data_type })
         end
 
         def merge_dynamic_stitch(merged, indexes, data, context)

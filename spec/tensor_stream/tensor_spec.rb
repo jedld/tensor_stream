@@ -123,7 +123,7 @@ RSpec.describe TensorStream::Tensor do
   describe "#shape" do
     it "gives the shape of the tensor" do
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
-      expect(b.shape[0]).to eq(1)
+      expect(b.shape[0].value).to eq(1)
     end
 
     it "create a vector of zeros with the same size as the number of columns in a given matrix" do

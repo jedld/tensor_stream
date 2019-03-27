@@ -485,6 +485,18 @@ RSpec.shared_examples "standard ops evaluator" do
     end
   end
 
+  supported_op ".dynamic_partition" do
+    specify do
+      partitions = [0, 0, 1, 1, 0]
+      num_partitions = 2
+      data = [10, 20, 30, 40, 50]
+
+      part1, part2 = tf.dynamic_partition(data, partitions, num_partitions)
+      expect(sess.run(part1)).to eq([10, 20, 50])
+      expect(sess.run(part2)).to eq([30, 40])
+    end
+  end
+
   context ".gradients" do
     it "Constructs symbolic derivatives of sum of ys w.r.t. x in xs." do
       a = tf.constant(0.0)

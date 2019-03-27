@@ -248,6 +248,10 @@ module TensorStream
         return TensorStream.expand_dims(value[0], 0)
       end
 
+      if value.is_a?(TensorShape)
+        value = value.shape
+      end
+
       check_if_dense(value)
       i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
     end
