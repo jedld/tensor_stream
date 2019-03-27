@@ -67,10 +67,10 @@ module TensorStream
           ret = TensorStream.dynamic_stitch(pindices, partitioned_result, name: name)
 
           if transform_fn.nil?
-            element_shape_s = params[0].shape[1..nil]
-            params[1..nil].each { |p| element_shape_s = element_shape_s.merge_with(p.shape[1..nil]) }
+            element_shape_s = params[0].shape[1..-1]
+            params[1..-1].each { |p| element_shape_s = element_shape_s.merge_with(p.shape[1..-1]) }
           else
-            element_shape_s = ret.shape[1..nil]
+            element_shape_s = ret.shape[1..-1]
           end
 
            # Compute the dynamic element shape.
@@ -81,10 +81,10 @@ module TensorStream
                               # to avoid data motion.
                               TensorStream.colocate_with(params[0]) do
                                 params_shape = TensorStream.shape(params[0])
-                                params_shape[1..nil]
+                                params_shape[1..-1]
                               end
                             else
-                              TensorStream.shape(ret)[1..nil]
+                              TensorStream.shape(ret)[1..-1]
                             end
           ret = TensorStream.reshape(ret, TensorStream.concat([TensorStream.shape(ids), element_shape_d], 0))
           ret = _clip(ret, ids, max_norm) unless transform_fn

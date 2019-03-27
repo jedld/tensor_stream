@@ -22,8 +22,9 @@ module TensorStream
           merged
         end
 
-        register_op :gather do |_context, _tensor, inputs|
+        register_op :gather do |_context, tensor, inputs|
           params, indexes = inputs
+          raise "axis !=0 not supported" if tensor.options[:axis] != 0
           gather(params, indexes)
         end
 
@@ -415,6 +416,15 @@ module TensorStream
             output_arr[part] << data[index]
           end
           TensorStream::Evaluator::OutputGroup.new(output_arr, num_partitions.times.map { tensor.data_type })
+        end
+
+        register_op :gather_grad do |context, tensor, inputs|
+          grad, indexes, input_shape = inputs
+          output = Array.new(input_shape.reduce(:*)) { fp_type?(tensor.data_type) ? 0.0 : 0 }
+          indexes.each_with_index.map do |x, index|
+            output[x] += grad[index]
+          end
+          TensorShape.reshape(output, input_shape)
         end
 
         def merge_dynamic_stitch(merged, indexes, data, context)

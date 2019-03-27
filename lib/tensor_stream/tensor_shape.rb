@@ -19,7 +19,7 @@ module TensorStream
 
     def [](index)
       new_shape = @shape[index]
-      TensorShape.new(@shape[index], new_shape.size)
+      TensorShape.new(@shape[index])
     end
 
     def ndims

@@ -1184,9 +1184,17 @@ z = tf.constant([[8, 9],[10, 11]])
 
       specify "matrices" do
         param = tf.constant([[1, 2, 3], [ 4, 5, 6], [7, 8, 9]])
-        indexes = tf.constant([ [1, 2]])
+        indexes = tf.constant([[1, 2]])
         f = tf.gather(param, indexes)
       end
+    end
+
+    specify "gradients" do
+      param = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.1])
+      indexes = tf.constant([5, 4, 3, 2, 1, 2])
+      f = tf.gather(tf.sin(param), indexes)
+      g = tf.gradients(f, [param, indexes])
+      expect(tr(sess.run(g))).to eq([[0.0, -0.4161, -1.98, -0.6536, 0.2837, 0.9833], [0, 0, 0, 0, 0, 0]])
     end
   end
 

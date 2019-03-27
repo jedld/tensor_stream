@@ -22,7 +22,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(132)
+      expect(described_class.ops.keys.size).to eq(133)
     end
 
     specify do
@@ -81,6 +81,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         flow_dynamic_stitch
         flow_group
         gather
+        gather_grad
         glorot_uniform
         greater
         greater_equal
