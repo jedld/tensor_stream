@@ -1,5 +1,7 @@
 require 'tensor_stream/utils/py_ports'
-
+##
+# ruby port of https://github.com/tensorflow/tensorflow/blob/r1.13/tensorflow/python/ops/embedding_ops.py
+#
 module TensorStream
   module EmbeddingLookup
     include TensorStream::PyPorts
