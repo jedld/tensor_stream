@@ -7,9 +7,9 @@ module TensorStream
     class Saver
       include TensorStream::OpHelper
 
-      def initialize
+      def initialize(var_list = nil)
         graph = TensorStream::Graph.get_default_graph
-        vars = graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
+        vars = var_list || graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
 
         @filename = graph["ts_filename"] || TensorStream.placeholder(:string, name: "ts_filename", shape: [])
 

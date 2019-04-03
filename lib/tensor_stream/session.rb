@@ -98,6 +98,9 @@ module TensorStream
     end
 
     def close
+      # unlink resources to save memory
+      @last_session_context = nil
+      @session_cache = {}
       @closed = true
     end
 
