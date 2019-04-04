@@ -219,6 +219,10 @@ module TensorStream
       TensorStream::Trainer
     end
 
+    def math
+      TensorStream::Maths
+    end
+
     def image
       TensorStream::Images
     end

@@ -184,7 +184,7 @@ class TensorStream::OpMaker
   end
 
   def options_call
-    @options.map { |k, v|
+    @options.reject { |k, v| v.dig(:options, :exclude) }.map { |k, v|
       if v.dig(:options, :alias)
         "#{v.dig(:options, :alias)}: #{k}"
       else

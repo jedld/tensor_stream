@@ -129,6 +129,15 @@ module TensorStream
           call_op(inputs[0], context) { |t, _b| Math.sqrt(t) }
         end
 
+        register_op :rsqrt, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context) { |t, _b|  1 / Math.sqrt(t) }
+        end
+
+        register_op :rsqrt_grad, no_eval: true do |context, tensor, inputs|
+          y, grad = inputs
+          call_vector_op(tensor, :rsqrt_grad, y, grad, context) { |_y, g| 0.5 * g * (_y ** 3) }
+        end
+
         register_op :floor, no_eval: true do |context, _tensor, inputs|
           call_op(inputs[0], context) { |t, _b| t.floor }
         end
@@ -151,6 +160,22 @@ module TensorStream
 
         register_op :tanh_grad, no_eval: true do |context, _tensor, inputs|
           call_op(inputs[0], context) { |t, _b| 1 - Math.tanh(t) * Math.tanh(t) }
+        end
+
+        register_op :top_k do |context, tensor, inputs|
+          values = inputs[0]
+          v_shape = shape_eval(values)
+          k = tensor.options[:k]
+          sorted = tensor.options[:sorted]
+          work_values = TensorShape.reshape(values, [-1, v_shape.last])
+          work_values.map! do |row|
+            last_k = row.sort!.last(k)
+            last_k.reverse! if sorted
+            last_k
+          end
+
+          v_shape[-1] = k
+          TensorShape.reshape(work_values, v_shape)
         end
 
         register_op(%i[argmax arg_max]) do |_context, tensor, inputs|

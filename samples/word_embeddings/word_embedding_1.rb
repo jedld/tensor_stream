@@ -1,8 +1,11 @@
-# A ruby port of https://github.com/guillaume-chevalier/GloVe-as-a-TensorFlow-Embedding-Layer
+#
+# A ruby port of https://github.com/guillaume-chevalier/GloVe-as-a-TensorFlow-Embedding-Layer by Guillaume Chevalier
+#
+# This is a port so some weird python like conventions may have been left behind
 require "bundler/setup"
 require "tensor_stream"
 require "chakin-rb/chakin"
-require 'pry-byebug'
+# require 'pry-byebug'
 require 'zip'
 
 tf = TensorStream
@@ -13,7 +16,7 @@ SUBFOLDER_NAME = "glove.twitter.27B"
 
 DATA_FOLDER = "embeddings"
 ZIP_FILE = File.join(DATA_FOLDER, "#{SUBFOLDER_NAME}.zip")
-ZIP_FILE_ALT = "glove" + ZIP_FILE[5..]  # sometimes it's lowercase only...
+ZIP_FILE_ALT = "glove" + ZIP_FILE[5..nil]  # sometimes it's lowercase only...
 UNZIP_FOLDER = File.join(DATA_FOLDER, SUBFOLDER_NAME)
 
 if SUBFOLDER_NAME[-1] == "d"
@@ -174,6 +177,7 @@ variables_to_save = [tf_embedding]
 embedding_saver = tf::Train::Saver.new(variables_to_save)
 embedding_saver.save(sess, TF_EMBEDDINGS_FILE_NAME)
 puts "TF embeddings saved to '#{TF_EMBEDDINGS_FILE_NAME}'."
+
 sess.close
 
 File.open(DICT_WORD_TO_INDEX_FILE_NAME, 'w') do |f|
@@ -185,5 +189,4 @@ words_B = "like absolutely crazy not hate bag sand rock soap"
 r = words_B.split.map { |w| word_to_index[w.strip()] }
 puts words_B
 puts r.inspect
-
 puts "done"

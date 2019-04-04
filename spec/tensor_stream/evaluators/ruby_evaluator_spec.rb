@@ -22,7 +22,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(133)
+      expect(described_class.ops.keys.size).to eq(135)
     end
 
     specify do
@@ -123,6 +123,8 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         reshape
         restore_ts
         round
+        rsqrt
+        rsqrt_grad
         save_ts
         select
         setdiff1d

@@ -4,6 +4,7 @@ module TensorStream
   class NN
     extend TensorStream::OpHelper
     extend TensorStream::EmbeddingLookup
+    extend TensorStream::Maths::MathFunctions
 
     class << self
       def softmax(logits, axis: nil, name: nil)
