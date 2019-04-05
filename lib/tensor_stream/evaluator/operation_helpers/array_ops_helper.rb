@@ -337,8 +337,18 @@ module TensorStream
       selection = current_slice.shift
       return value if selection.nil?
 
-      _start, _end, stride = selection
-      (_start..._end).step(stride).map do |index|
+      b, e, stride = selection
+
+      b = value.size + b if b < 0
+      e = value.size + e + 1 if e < 0
+
+      indexes = if stride < 0
+                  b.downto(e).select.with_index { |elem, index| (index % stride.abs) == 0 }
+                else
+                  (b...e).step(stride)
+                end
+
+      indexes.map do |index|
         strided_slice(value[index], current_slice)
       end
     end
