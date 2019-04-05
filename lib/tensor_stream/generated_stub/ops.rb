@@ -631,6 +631,28 @@ module TensorStream
 
 
     ##
+    # Extracts a strided slice of a tensor 
+    # this op extracts a slice of size `(end-begin)/stride`
+    #   from the given `input_` tensor. Starting at the location specified by `begin`
+    #   the slice continues by adding `stride` to the index until all dimensions are
+    #   not less than `end`.
+    #   Note that a stride can be negative, which causes a reverse slice.
+    #
+    #
+    # @param input A tensor
+    # @param _begin start index
+    # @param _end end index
+    # @param strides end index
+    #
+    # Options:
+    # @option name Optional name
+    # @return Tensor
+    def strided_slice(input, _begin, _end, strides = nil, name: nil)
+      _op(:strided_slice, input, _begin, _end, strides, name: name)
+    end
+
+
+    ##
     # Returns x - y element-wise.
     #
     # This operation supports broadcasting
@@ -728,14 +750,15 @@ module TensorStream
     #
     #
     # @param input 1-D or higher `Tensor` with last dimension at least `k`.
+    # @param k 0-D `int32` `Tensor`.  Number of top elements to look for along the last dimension (along each row for matrices)
     #
     # Options:
-    # @option k 0-D `int32` `Tensor`.  Number of top elements to look for along the last dimension (along each row for matrices) default (1)
     # @option sorted If true the resulting `k` elements will be sorted by the values in descending order. default (true)
     # @option name Optional name
     # @return Tensor
-    def top_k(input, k: 1, sorted: true, name: nil)
-      _op(:top_k, input, k: k, sorted: sorted, name: name)
+    def top_k(input, k = 1, sorted: true, name: nil)
+      result = _op(:top_k, input, k, sorted: sorted, name: name)
+      [result[0], result[1]]
     end
 
 

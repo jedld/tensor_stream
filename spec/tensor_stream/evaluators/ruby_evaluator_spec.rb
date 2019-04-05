@@ -22,7 +22,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(135)
+      expect(described_class.ops.keys.size).to eq(137)
     end
 
     specify do
@@ -148,12 +148,14 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         squeeze
         stack
         stop_gradient
+        strided_slice
         sub
         sum
         tan
         tanh
         tanh_grad
         tile
+        top_k
         transpose
         truncate
         truncated_normal

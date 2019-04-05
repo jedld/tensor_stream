@@ -2,7 +2,7 @@ class TensorStream::OpMaker
   attr_reader :operation, :description, :parameters,
               :options, :gradient, :check_types,
               :supports_broadcast, :data_type_coercion,
-              :aliases, :custom, :infer_type_proc, :exclude,
+              :aliases, :custom, :custom_post, :infer_type_proc, :exclude,
               :data_type_block
 
   def initialize(op)
@@ -16,6 +16,7 @@ class TensorStream::OpMaker
     @description = []
     @aliases = []
     @custom = []
+    @custom_post = []
     @infer_type_proc = lambda { |tensor|
       next nil if tensor.inputs[0].nil?
       next tensor.inputs[0].shape.shape if tensor.inputs.size == 1
@@ -30,6 +31,10 @@ class TensorStream::OpMaker
 
   def add_custom(custom_code)
     @custom << custom_code
+  end
+
+  def add_custom_post(custom_code)
+    @custom_post << custom_code
   end
 
   def self.scan
@@ -111,7 +116,14 @@ class TensorStream::OpMaker
     custom.each do |c|
       body << c
     end
-    body << "_op(:#{operation}, #{(expand_params(false) + options_call).join(', ')})"
+    if custom_post.empty?
+      body << "_op(:#{operation}, #{(expand_params(false) + options_call).join(', ')})"
+    else
+      body << "result = _op(:#{operation}, #{(expand_params(false) + options_call).join(', ')})"
+    end
+    custom_post.each do |c|
+      body << c
+    end
     body.map { |line| "      #{line}"}.join("\n")
   end
 

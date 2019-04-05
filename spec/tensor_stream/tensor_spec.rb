@@ -105,6 +105,13 @@ RSpec.describe TensorStream::Tensor do
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
       expect(b[0].to_s).to eq("index")
     end
+
+    it "access range indexes" do
+      b = tf.constant([3.0, 2.5, 3.1, 6.0, 7.0], dtype: TensorStream::Types.float32)
+      expect(b[0..3].run).to eq([3.0, 2.5, 3.1, 6.0])
+      expect(b[1...3].run).to eq([2.5, 3.1])
+      expect(b[1...nil].run).to eq([2.5, 3.1, 6.0, 7.0])
+    end
   end
 
   describe "#consumers" do

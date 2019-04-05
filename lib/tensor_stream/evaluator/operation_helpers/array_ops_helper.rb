@@ -331,5 +331,16 @@ module TensorStream
         value.nil? ? arr : value
       end
     end
+
+    def strided_slice(value, slices = [])
+      current_slice = slices.dup
+      selection = current_slice.shift
+      return value if selection.nil?
+
+      _start, _end, stride = selection
+      (_start..._end).step(stride).map do |index|
+        strided_slice(value[index], current_slice)
+      end
+    end
   end
 end

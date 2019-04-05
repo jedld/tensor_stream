@@ -173,16 +173,35 @@ tf_all_cosine_similarities = cosine_similarity_tensorflow(
 # Getting the top cosine similarities.
 tf_top_cosine_similarities, tf_top_word_indices = tf.top_k(
     tf_all_cosine_similarities,
-    k: tf_nb_similar_words_to_get+1,
+    tf_nb_similar_words_to_get + 1,
     sorted: true
 )
 
 # Discard the first word because it's the input word itself:
-tf_top_cosine_similarities = tf_top_cosine_similarities[1:]
-tf_top_word_indices = tf_top_word_indices[1:]
+tf_top_cosine_similarities = tf_top_cosine_similarities[1..nil]
+tf_top_word_indices = tf_top_word_indices[1..nil]
 
 # Get the top words' representations by fetching
 # tf_top_words_representation = "tf_embedding[tf_top_word_indices]":
-tf_top_words_representation = tf.gather(
-    tf_embedding,
-    tf_top_word_indices)
+tf_top_words_representation = tf.gather(tf_embedding, tf_top_word_indices)
+
+# Fetch 10 similar words:
+nb_similar_words_to_get = 10
+
+
+word = "king"
+word_id = word_to_index[word]
+
+top_cosine_similarities, top_word_indices, top_words_representation = sess.run(
+    [tf_top_cosine_similarities, tf_top_word_indices, tf_top_words_representation],
+    feed_dict: {
+      tf_word_id => [word_id],
+      tf_nb_similar_words_to_get => nb_similar_words_to_get
+    }
+)
+
+puts "Top similar words to \"#{word}\":\n"
+top_cosine_similarities.zip(top_word_indices).zip(top_words_representation).each do |w, word_repr|
+  cos_sim, word_id = w
+  puts "#{(index_to_word[word_id]+ ":").ljust(15)}#{(cos_sim.to_s + ",").ljust(15)}#{Vector::elements(word_repr).norm}"
+end

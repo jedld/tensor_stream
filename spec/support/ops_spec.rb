@@ -2247,16 +2247,18 @@ end
         5, 4, 3, 2, 10, 11, 12, 0
       ])
 
-      f = tf.top_k(a, k: 3)
+      f, indices = tf.top_k(a, 3)
       expect(sess.run(f)).to eq([12, 11, 10])
+      expect(sess.run(indices)).to eq([6, 5, 4])
     end
 
     specify "rank 2" do
       a = tf.constant([[
         5, 4, 3, 2, 10, 11, 12, 0
       ], [15, 24, 30, 2, 10, 11, 12, 0]])
-      f = tf.top_k(a, k: 4)
+      f, indices = tf.top_k(a, 4)
       expect(sess.run(f)).to eq([[12, 11, 10, 5], [30, 24, 15, 12]])
+      expect(sess.run(indices)).to eq([[6, 5, 4, 0], [2, 1, 0, 6]])
     end
   end
 
@@ -2323,6 +2325,34 @@ end
       exp = tf.gradients(r, [z, u])
 
       expect(sess.run(exp)).to eq([1, 0])
+    end
+  end
+
+  supported_op ".strided_slice" do
+    let(:t) do
+      [[[1, 1, 1], [2, 2, 2]],
+       [[3, 3, 3], [4, 4, 4]],
+       [[5, 5, 5], [6, 6, 6]]].t
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1, 0, 0], [2, 1, 3], [1, 1, 1])
+      expect(sess.run(f)).to eq([[[3, 3, 3]]])
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1, 0, 0], [2, 2, 3], [1, 1, 1])
+      expect(sess.run(f)).to eq([[[3, 3, 3],[4, 4, 4]]])
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1, -1, 0], [2, -3, 3], [1, -1, 1])
+      expect(sess.run(f)).to eq([[[4, 4, 4], [3, 3, 3]]])
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1], [2], [1])
+      expect(sess.run(f)).to eq([[[3, 3, 3],[4, 4, 4]]])
     end
   end
 end

@@ -163,19 +163,22 @@ module TensorStream
         end
 
         register_op :top_k do |context, tensor, inputs|
-          values = inputs[0]
+          values, k = inputs
           v_shape = shape_eval(values)
-          k = tensor.options[:k]
+
           sorted = tensor.options[:sorted]
           work_values = TensorShape.reshape(values, [-1, v_shape.last])
           work_values.map! do |row|
-            last_k = row.sort!.last(k)
+            last_k = row.map.with_index { |r, index| [r, index] }.sort! { |a,b| a[0] <=> b[0] }.last(k) rescue binding.pry
             last_k.reverse! if sorted
             last_k
           end
 
+          top_k = work_values.map { |row| row.map { |r| r[0] } }
+          top_indices = work_values.map { |row| row.map { |r| r[1] } }
           v_shape[-1] = k
-          TensorShape.reshape(work_values, v_shape)
+
+          TensorStream::Evaluator::OutputGroup.new([TensorShape.reshape(top_k, v_shape), TensorShape.reshape(top_indices, v_shape)], [tensor.inputs[0].data_type, :int32])
         end
 
         register_op(%i[argmax arg_max]) do |_context, tensor, inputs|

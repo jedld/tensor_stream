@@ -427,6 +427,17 @@ module TensorStream
           TensorShape.reshape(output, input_shape)
         end
 
+        register_op :strided_slice do |context, tensor, inputs|
+          value, _begin, _end, stride = inputs
+          out = []
+          slices = _begin.zip(_end).zip(stride).map do |params|
+            selection, stride = params
+            _start, _end = selection
+            [_start, _end, stride]
+          end
+          strided_slice(value, slices)
+        end
+
         def merge_dynamic_stitch(merged, indexes, data, context)
           indexes.each_with_index do |ind, m|
             if ind.is_a?(Array)
