@@ -2,10 +2,16 @@ module TensorStream
   # Evaluator base module
   module Evaluator
     class OutputGroup
+      include Enumerable
+
       attr_accessor :outputs, :data_types
       def initialize(outputs = [], data_types = [])
         @outputs = outputs
         @data_types = data_types
+      end
+
+      def each
+        @outputs.map { |output| yield output }
       end
     end
 

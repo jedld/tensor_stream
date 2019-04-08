@@ -22,7 +22,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(131)
+      expect(described_class.ops.keys.size).to eq(138)
     end
 
     specify do
@@ -67,6 +67,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         cumprod
         decode_png
         div
+        dynamic_partition
         dynamic_stitch
         encode_png
         equal
@@ -80,6 +81,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         flow_dynamic_stitch
         flow_group
         gather
+        gather_grad
         glorot_uniform
         greater
         greater_equal
@@ -121,6 +123,8 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         reshape
         restore_ts
         round
+        rsqrt
+        rsqrt_grad
         save_ts
         select
         setdiff1d
@@ -144,12 +148,15 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         squeeze
         stack
         stop_gradient
+        strided_slice
+        strided_slice_grad
         sub
         sum
         tan
         tanh
         tanh_grad
         tile
+        top_k
         transpose
         truncate
         truncated_normal

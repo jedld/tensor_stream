@@ -18,7 +18,8 @@ module TensorStream
     end
 
     def [](index)
-      @shape[index]
+      new_shape = @shape[index]
+      TensorShape.new(@shape[index])
     end
 
     def ndims
@@ -40,6 +41,36 @@ module TensorStream
 
     def fully_defined?
       known?
+    end
+
+    def merge_with(other)
+      assert_compatible_with(other)
+
+      if @shape.nil?
+        TensorShape.new(other)
+      else
+        TensorShape.new(@shape)
+      end
+    end
+
+    def compatible_with?(other)
+      other = as_dimension(other)
+
+      shape.nil? || other.nil? || shape == other
+    end
+
+    def as_dimension(value)
+      value.is_a?(TensorShape) ? value.shape : value
+    end
+
+    def value
+      shape
+    end
+
+    ##
+    # Raises an exception if `other` is not compatible with this shape.
+    def assert_compatible_with(other)
+      raise TensorStream::ValueError, "Dimensions #{self} and #{other} are not compatible" unless compatible_with?(other)
     end
 
     def self.infer_shape(shape_a, shape_b)

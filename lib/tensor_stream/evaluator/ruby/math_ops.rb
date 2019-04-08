@@ -129,6 +129,15 @@ module TensorStream
           call_op(inputs[0], context) { |t, _b| Math.sqrt(t) }
         end
 
+        register_op :rsqrt, no_eval: true do |context, _tensor, inputs|
+          call_op(inputs[0], context) { |t, _b|  1 / Math.sqrt(t) }
+        end
+
+        register_op :rsqrt_grad, no_eval: true do |context, tensor, inputs|
+          y, grad = inputs
+          call_vector_op(tensor, :rsqrt_grad, y, grad, context) { |_y, g| 0.5 * g * (_y ** 3) }
+        end
+
         register_op :floor, no_eval: true do |context, _tensor, inputs|
           call_op(inputs[0], context) { |t, _b| t.floor }
         end
@@ -151,6 +160,25 @@ module TensorStream
 
         register_op :tanh_grad, no_eval: true do |context, _tensor, inputs|
           call_op(inputs[0], context) { |t, _b| 1 - Math.tanh(t) * Math.tanh(t) }
+        end
+
+        register_op :top_k do |context, tensor, inputs|
+          values, k = inputs
+          v_shape = shape_eval(values)
+
+          sorted = tensor.options[:sorted]
+          work_values = TensorShape.reshape(values, [-1, v_shape.last])
+          work_values.map! do |row|
+            last_k = row.map.with_index { |r, index| [r, index] }.sort! { |a,b| a[0] <=> b[0] }.last(k) rescue binding.pry
+            last_k.reverse! if sorted
+            last_k
+          end
+
+          top_k = work_values.map { |row| row.map { |r| r[0] } }
+          top_indices = work_values.map { |row| row.map { |r| r[1] } }
+          v_shape[-1] = k
+
+          TensorStream::Evaluator::OutputGroup.new([TensorShape.reshape(top_k, v_shape), TensorShape.reshape(top_indices, v_shape)], [tensor.inputs[0].data_type, :int32])
         end
 
         register_op(%i[argmax arg_max]) do |_context, tensor, inputs|
@@ -259,13 +287,22 @@ module TensorStream
           raise "#{tensor.inputs[0].name} rank must be greater than 1" if rank_a < 2
           raise "#{tensor.inputs[1].name} rank must be greater than 1" if rank_b < 2
 
-          matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
-          matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-
           # check matrix dimensions
-          raise TensorStream::ValueError, "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+          if rank_a >= 3
+            matrix_a.zip(matrix_b).map do |m_a, m_b|
+              matmul(m_a, m_b, tensor)
+            end
+          else
+            matmul(matrix_a, matrix_b, tensor)
+          end
+        end
 
-          (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
+        def matmul(m_a, m_b, tensor)
+          m_a = m_a.transpose if tensor.options[:transpose_a]
+          m_b = m_b.transpose if tensor.options[:transpose_b]
+          raise TensorStream::ValueError, "incompatible shape sizes for matrix multiplication (#{m_a[0].size} != #{m_b.size}) #{shape_eval(m_a)} vs #{shape_eval(m_b)}" if m_a[0].size != m_b.size
+
+          (Matrix[*m_a] * Matrix[*m_b]).to_a
         end
 
         register_op %i[max maximum], noop: true do |context, tensor, inputs|

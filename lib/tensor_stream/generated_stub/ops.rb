@@ -537,6 +537,21 @@ module TensorStream
 
 
     ##
+    # Computes reciprocal of square root of x element-wise.
+    #
+    #
+    # @param input_a tensor X (of type FLOATING_POINT_TYPES)
+    #
+    # Options:
+    # @option name Optional name
+    # @return Tensor
+    def rsqrt(input_a, name: nil)
+      check_allowed_types(input_a, TensorStream::Ops::FLOATING_POINT_TYPES)
+      _op(:rsqrt, input_a, name: name)
+    end
+
+
+    ##
     # This operation returns a 1-D integer tensor representing the shape of input
     #
     #
@@ -616,6 +631,28 @@ module TensorStream
 
 
     ##
+    # Extracts a strided slice of a tensor 
+    # this op extracts a slice of size `(end-begin)/stride`
+    #   from the given `input_` tensor. Starting at the location specified by `begin`
+    #   the slice continues by adding `stride` to the index until all dimensions are
+    #   not less than `end`.
+    #   Note that a stride can be negative, which causes a reverse slice.
+    #
+    #
+    # @param input A tensor
+    # @param _begin start index
+    # @param _end end index
+    # @param strides end index
+    #
+    # Options:
+    # @option name Optional name
+    # @return Tensor
+    def strided_slice(input, _begin, _end, strides = nil, name: nil)
+      _op(:strided_slice, input, _begin, _end, strides, name: name)
+    end
+
+
+    ##
     # Returns x - y element-wise.
     #
     # This operation supports broadcasting
@@ -642,18 +679,20 @@ module TensorStream
     #
     #
     # @param input_a tensor X
-    # @param axis tensor X (of type INTEGER_TYPES)
+    # @param axis_p tensor X (of type INTEGER_TYPES)
     #
     # Options:
+    # @option axis axis
     # @option name Optional name
     # @option keepdims If true, retains reduced dimensions with length 1. default (false)
     # @return Tensor
-    def sum(input_a, axis = nil, name: nil, keepdims: false)
-      check_allowed_types(axis, TensorStream::Ops::INTEGER_TYPES)
+    def sum(input_a, axis_p = nil, axis: nil, name: nil, keepdims: false)
+      check_allowed_types(axis_p, TensorStream::Ops::INTEGER_TYPES)
       input_a = TensorStream.convert_to_tensor(input_a)
       return input_a if input_a.shape.scalar?
-      axis = cast_axis(input_a, axis)
-      _op(:sum, input_a, axis, name: name, keepdims: keepdims)
+      axis_p = axis_p || axis
+      axis_p = cast_axis(input_a, axis_p)
+      _op(:sum, input_a, axis_p, name: name, keepdims: keepdims)
     end
 
     alias_method :reduce_sum, :sum
@@ -703,6 +742,23 @@ module TensorStream
     # @return Tensor
     def tile(input, multiples, name: nil)
       _op(:tile, input, multiples, name: name)
+    end
+
+
+    ##
+    # Finds values and indices of the `k` largest entries for the last dimension.
+    #
+    #
+    # @param input 1-D or higher `Tensor` with last dimension at least `k`.
+    # @param k 0-D `int32` `Tensor`.  Number of top elements to look for along the last dimension (along each row for matrices)
+    #
+    # Options:
+    # @option sorted If true the resulting `k` elements will be sorted by the values in descending order. default (true)
+    # @option name Optional name
+    # @return Tensor
+    def top_k(input, k = 1, sorted: true, name: nil)
+      result = _op(:top_k, input, k, sorted: sorted, name: name)
+      [result[0], result[1]]
     end
 
 

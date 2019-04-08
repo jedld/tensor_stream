@@ -136,7 +136,7 @@ module TensorStream
         when :sparse_softmax_cross_entropy_with_logits
           output = node
           [_broadcast_mul(grad, output[1]), nil]
-         when :zeros_like
+        when :zeros_like
           # non differentiable
           nil
         when :transpose
@@ -165,10 +165,24 @@ module TensorStream
           ts.stack(grad, axis: node.options[:axis])
         when :conv2d
           _Conv2DGrad(node, grad)
+        when :flow_dynamic_stitch
+          num_values = node.inputs.size / 2
+          indices_grad = [nil] * num_values
+
+          inputs = (0...num_values).map { |i| _int32(node, node.inputs[i]) }
+
+          values_grad = inputs.map { |inp| TensorStream.gather(grad, inp) }
+          indices_grad + values_grad
+        when :gather
+          [_op(:gather_grad, grad, node.inputs[1], TensorStream.shape(node.inputs[0])), nil]
         else
           TensorStream::OpMaker.gradient_op(self, node, grad)
         end
       end
+    end
+
+    def self._int32(node, x)
+      (node.inputs[0].data_type == :int32 ? x : TensorStream.cast(x, :int32))
     end
 
     def self._reshape_to_input(node, grad)

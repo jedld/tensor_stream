@@ -30,6 +30,16 @@ module TensorStream
       end
     end
 
+    def array_set!(input, value)
+        input.each_with_index do |element, index|
+          if element.is_a?(Array)
+            array_set(element, value) 
+          else
+            input[index] = value[index]
+          end
+        end
+    end
+
     def truncate(input, target_shape)
       rank = get_rank(input)
       return input if rank.zero?
@@ -329,6 +339,56 @@ module TensorStream
         end
       else
         value.nil? ? arr : value
+      end
+    end
+
+    def strided_slice(value, slices = [])
+      current_slice = slices.dup
+      selection = current_slice.shift
+      return value if selection.nil?
+
+      b, e, stride = selection
+
+      b = value.size + b if b < 0
+      e = value.size + e + 1 if e < 0
+
+      indexes = if stride < 0
+                  b.downto(e).select.with_index { |elem, index| (index % stride.abs) == 0 }
+                else
+                  (b...e).step(stride)
+                end
+
+      indexes.map do |index|
+        strided_slice(value[index], current_slice)
+      end
+    end
+
+    def strided_slice_grad(value, grad, x, slices)
+      current_slice = slices.dup
+      selection = current_slice.shift
+      current_shape = x.shift
+
+      if selection.nil?
+        array_set!(value, grad)
+      end
+
+      b, e, stride = selection
+
+      b = value.size + b if b < 0
+      e = value.size + e + 1 if e < 0
+
+      indexes = if stride < 0
+                  b.downto(e).select.with_index { |elem, index| (index % stride.abs) == 0 }
+                else
+                  (b...e).step(stride)
+                end
+
+      indexes.each_with_index do |index, grad_index|
+        if (value[index].is_a?(Array))
+          strided_slice_grad(value[index], grad[grad_index], x.dup, current_slice.dup)
+        else
+          value[index] = grad[grad_index]
+        end
       end
     end
   end
