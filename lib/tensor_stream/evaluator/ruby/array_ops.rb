@@ -445,7 +445,10 @@ module TensorStream
             [s, e, stride]
           end
 
-          generate_vector(x, generator: ->() { fp_type?(tensor.data_type) ? 0.0 : 0 })
+          target_val = generate_vector(x, generator: ->() { fp_type?(tensor.data_type) ? 0.0 : 0 })
+
+          strided_slice_grad(target_val, nil, grad, x.dup, slices.dup)
+          target_val
         end
 
         def merge_dynamic_stitch(merged, indexes, data, context)

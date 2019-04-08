@@ -353,12 +353,15 @@ module TensorStream
       end
     end
 
-    def strided_slice_grad(grad, x, slices)
+    def strided_slice_grad(value, index, grad, x, slices)
       current_slice = slices.dup
       selection = current_slice.shift
       current_shape = x.shift
 
-      return value if selection.nil?
+      if selection.nil?
+        value[index] = 1.0
+        return
+      end
 
       b, e, stride = selection
 
@@ -371,8 +374,8 @@ module TensorStream
                   (b...e).step(stride)
                 end
 
-      indexes.map do |index|
-        strided_slice(value[index], current_slice)
+      indexes.each do |index|
+        strided_slice_grad(value, index, grad, x.dup, current_slice.dup)
       end
     end
   end
