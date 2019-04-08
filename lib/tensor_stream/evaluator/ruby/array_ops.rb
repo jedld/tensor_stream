@@ -427,15 +427,25 @@ module TensorStream
           TensorShape.reshape(output, input_shape)
         end
 
-        register_op :strided_slice do |context, tensor, inputs|
-          value, _begin, _end, stride = inputs
-          out = []
-          slices = _begin.zip(_end).zip(stride).map do |params|
+        register_op :strided_slice do |_context, _tensor, inputs|
+          value, b_index, e_index, stride = inputs
+          slices = b_index.zip(e_index).zip(stride).map do |params|
             selection, stride = params
-            _start, _end = selection
-            [_start, _end, stride]
+            s, e = selection
+            [s, e, stride]
           end
           strided_slice(value, slices)
+        end
+
+        register_op :strided_slice_grad do |_context, tensor, inputs|
+          x, b_index, e_index, stride, grad = inputs
+          slices = b_index.zip(e_index).zip(stride).map do |params|
+            selection, stride = params
+            s, e = selection
+            [s, e, stride]
+          end
+
+          generate_vector(x, generator: ->() { fp_type?(tensor.data_type) ? 0.0 : 0 })
         end
 
         def merge_dynamic_stitch(merged, indexes, data, context)

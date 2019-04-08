@@ -2354,5 +2354,11 @@ end
       f = tf.strided_slice(t, [1], [2], [1])
       expect(sess.run(f)).to eq([[[3, 3, 3],[4, 4, 4]]])
     end
+
+    specify "gradients" do
+      f = tf.strided_slice(t, [1, 0, 0], [2, 1, 3], [1, 1, 1])
+      g = tf.gradients(f, [t])
+      expect(sess.run(g)).to eq([])
+    end
   end
 end

@@ -13,6 +13,10 @@ TensorStream::OpMaker.define_operation :strided_slice do |op|
   op.option :name, "Optional name", :nil
 
   op.define_gradient do |grad, node, params|
+    b_index, e_index, strides = params
+    x = ts.shape(b_index, out_type: node.inputs[0].data_type)
+
+    _op(:strided_slice_grad, x, b_index, e_index, strides, grad)
   end
 
   op.define_shape do |tensor|
