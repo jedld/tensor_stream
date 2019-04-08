@@ -22,8 +22,9 @@ module TensorStream
           merged
         end
 
-        register_op :gather do |_context, _tensor, inputs|
+        register_op :gather do |_context, tensor, inputs|
           params, indexes = inputs
+          raise "axis !=0 not supported" if tensor.options[:axis] != 0
           gather(params, indexes)
         end
 
@@ -216,7 +217,14 @@ module TensorStream
 
         register_op :range do |_context, _tensor, inputs|
           start, limit, delta = inputs
+
           raise " delta !=0 " if delta.zero?
+
+          if limit.zero?
+            limit = start
+            start = 0
+          end
+
           raise " Requires start <= limit when delta > 0" if (start > limit) && delta > 0
           raise " Requires start >= limit when delta < 0" if (start < limit) && delta < 0
 
@@ -397,6 +405,50 @@ module TensorStream
             shape = shape_eval(func)
             generate_vector(shape, generator: func)
           end
+        end
+
+        register_op :dynamic_partition do |context, tensor, inputs|
+          data, partitions = inputs
+          num_partitions = tensor.options[:num_partitions]
+          output_arr = Array.new(num_partitions) { [] }
+
+          partitions.each_with_index do |part, index|
+            output_arr[part] << data[index]
+          end
+          TensorStream::Evaluator::OutputGroup.new(output_arr, num_partitions.times.map { tensor.data_type })
+        end
+
+        register_op :gather_grad do |context, tensor, inputs|
+          grad, indexes, input_shape = inputs
+          output = Array.new(input_shape.reduce(:*)) { fp_type?(tensor.data_type) ? 0.0 : 0 }
+          indexes.each_with_index.map do |x, index|
+            output[x] += grad[index]
+          end
+          TensorShape.reshape(output, input_shape)
+        end
+
+        register_op :strided_slice do |_context, _tensor, inputs|
+          value, b_index, e_index, stride = inputs
+          slices = b_index.zip(e_index).zip(stride).map do |params|
+            selection, stride = params
+            s, e = selection
+            [s, e, stride]
+          end
+          strided_slice(value, slices)
+        end
+
+        register_op :strided_slice_grad do |_context, tensor, inputs|
+          x, b_index, e_index, stride, grad = inputs
+          slices = b_index.zip(e_index).zip(stride).map do |params|
+            selection, stride = params
+            s, e = selection
+            [s, e, stride]
+          end
+
+          target_val = generate_vector(x, generator: ->() { fp_type?(tensor.data_type) ? 0.0 : 0 })
+
+          strided_slice_grad(target_val, grad, x.dup, slices.dup)
+          target_val
         end
 
         def merge_dynamic_stitch(merged, indexes, data, context)

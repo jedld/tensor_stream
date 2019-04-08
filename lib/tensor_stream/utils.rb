@@ -219,6 +219,10 @@ module TensorStream
       TensorStream::Trainer
     end
 
+    def math
+      TensorStream::Maths
+    end
+
     def image
       TensorStream::Images
     end
@@ -246,6 +250,10 @@ module TensorStream
         return TensorStream.stack(value) if value.size > 1
 
         return TensorStream.expand_dims(value[0], 0)
+      end
+
+      if value.is_a?(TensorShape)
+        value = value.shape
       end
 
       check_if_dense(value)
