@@ -169,7 +169,7 @@ module TensorStream
           sorted = tensor.options[:sorted]
           work_values = TensorShape.reshape(values, [-1, v_shape.last])
           work_values.map! do |row|
-            last_k = row.map.with_index { |r, index| [r, index] }.sort! { |a,b| a[0] <=> b[0] }.last(k) rescue binding.pry
+            last_k = row.map.with_index { |r, index| [r, index] }.sort! { |a,b| a[0] <=> b[0] }.last(k)
             last_k.reverse! if sorted
             last_k
           end

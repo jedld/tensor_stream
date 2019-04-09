@@ -49,12 +49,12 @@ module TensorStream
 
         child_context = execution_context.dup
         res = if tensor.is_a?(Operation)
-          eval_operation(tensor, child_context)
-        elsif !tensor.is_a?(Tensor)
-          tensor
-        else
-          tensor.op
-        end
+                eval_operation(tensor, child_context)
+              elsif !tensor.is_a?(Tensor)
+                tensor
+              else
+                tensor.op
+              end
         execution_context.deep_merge!(returns: child_context[:returns])
         res
       end
