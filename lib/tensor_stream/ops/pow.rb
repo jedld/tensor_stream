@@ -1,15 +1,15 @@
 TensorStream::OpMaker.define_operation :pow do |op|
-  op.what_it_does "Computes the power of one value to another X^Y element wise"
+  what_it_does "Computes the power of one value to another X^Y element wise"
 
-  op.parameter :input_a, "tensor X"
-  op.parameter :input_b, "tensor Y"
+  parameter :input_a, "tensor X"
+  parameter :input_b, "tensor Y"
 
-  op.apply_data_type_coercion!
-  op.supports_broadcasting!
+  apply_data_type_coercion!
+  supports_broadcasting!
 
-  op.option :name, "Optional name", :nil
+  option :name, "Optional name", :nil
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     x, y = params
     z = node
     sx = ts.shape(x)

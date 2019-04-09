@@ -1,7 +1,7 @@
-TensorStream::OpMaker.define_operation :case do |op|
-  op.exclude!
+TensorStream::OpMaker.define_operation :case do
+  exclude!
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     n_preds = node.inputs.size - 2
 
     case_grads = Array.new(n_preds) { |index|
@@ -11,7 +11,7 @@ TensorStream::OpMaker.define_operation :case do |op|
     [nil, i_op(:case_grad, -1, node.inputs[0], node.inputs[1], grad)] + case_grads
   end
 
-  op.define_shape do |tensor|
+  define_shape do |tensor|
     tensor.inputs[2]&.shape&.shape
   end
 end

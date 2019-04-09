@@ -1,18 +1,18 @@
 TensorStream::OpMaker.define_operation :mat_mul do |op|
   op.other_names %w(matmul)
-  op.what_it_does "Multiplies matrix a by matrix b, producing a * b. The inputs must, following any transpositions, be tensors of rank 2 ."
+  what_it_does "Multiplies matrix a by matrix b, producing a * b. The inputs must, following any transpositions, be tensors of rank 2 ."
 
-  op.parameter :input_a, "tensor X"
-  op.parameter :input_b, "tensor Y"
+  parameter :input_a, "tensor X"
+  parameter :input_b, "tensor Y"
 
-  op.apply_data_type_coercion!
-  op.supports_broadcasting!
+  apply_data_type_coercion!
+  supports_broadcasting!
 
-  op.option :transpose_a, "Transpose matrix A first", :false
-  op.option :transpose_b, "Transpose matrix B first", :false
-  op.option :name, "Optional name", :nil
+  option :transpose_a, "Transpose matrix A first", :false
+  option :transpose_b, "Transpose matrix B first", :false
+  option :name, "Optional name", :nil
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     x, y = params
     t_a = node.options[:transpose_a]
     t_b = node.options[:transpose_b]

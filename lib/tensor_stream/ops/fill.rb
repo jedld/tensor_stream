@@ -1,12 +1,12 @@
 TensorStream::OpMaker.define_operation :fill do |op|
-  op.what_it_does "This operation creates a tensor of shape dims and fills it with value."
+  what_it_does "This operation creates a tensor of shape dims and fills it with value."
 
-  op.parameter :dims, "tensor shape"
-  op.parameter :value, "scalar value to fill with"
+  parameter :dims, "tensor shape"
+  parameter :value, "scalar value to fill with"
 
-  op.option :name, "Optional name", :nil
+  option :name, "Optional name", :nil
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     [nil, TensorStream.reduce_sum(grad)]
   end
 

@@ -1,12 +1,12 @@
 TensorStream::OpMaker.define_operation :reshape do |op|
-  op.what_it_does "Reshapes a tensor."
-  op.what_it_does "Given tensor, this operation returns a tensor that has the same values as tensor with shape shape."
+  what_it_does "Reshapes a tensor."
+  what_it_does "Given tensor, this operation returns a tensor that has the same values as tensor with shape shape."
 
-  op.parameter :input, "A tensor"
-  op.parameter :shape, "A new tensor shape"
-  op.option :name, "Optional name", :nil
+  parameter :input, "A tensor"
+  parameter :shape, "A new tensor shape"
+  option :name, "Optional name", :nil
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     [ts.reshape(grad, ts.shape(node.inputs[0])), nil]
   end
 

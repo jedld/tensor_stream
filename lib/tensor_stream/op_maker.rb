@@ -47,7 +47,7 @@ class TensorStream::OpMaker
   def self.define_operation(op_code, &block)
     @ops ||= {}
     op_maker = TensorStream::OpMaker.new(op_code.to_sym)
-    block.call(op_maker)
+    op_maker.instance_eval &block
     @ops[op_code.to_sym] = op_maker
   end
 

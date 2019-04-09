@@ -1,22 +1,22 @@
 TensorStream::OpMaker.define_operation :prod do |op|
   op.other_names %w(reduce_prod)
-  op.what_it_does "Computes the product of elements across dimensions of a tensor."
-  op.what_it_does "Reduces input_tensor along the dimensions given in axis. Unless keepdims is true, the rank of the"
-  op.what_it_does "tensor is reduced by 1 for each entry in axis. If keepdims is true, the reduced dimensions are"
-  op.what_it_does "retained with length 1."
-  op.what_it_does "If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned."
+  what_it_does "Computes the product of elements across dimensions of a tensor."
+  what_it_does "Reduces input_tensor along the dimensions given in axis. Unless keepdims is true, the rank of the"
+  what_it_does "tensor is reduced by 1 for each entry in axis. If keepdims is true, the reduced dimensions are"
+  what_it_does "retained with length 1."
+  what_it_does "If axis has no entries, all dimensions are reduced, and a tensor with a single element is returned."
 
-  op.parameter :input_a, "tensor X"
-  op.parameter :axis, "tensor X", :nil, validate: 'INTEGER_TYPES'
+  parameter :input_a, "tensor X"
+  parameter :axis, "tensor X", :nil, validate: 'INTEGER_TYPES'
 
-  op.option :name, "Optional name", :nil
-  op.option :keepdims, "If true, retains reduced dimensions with length 1.", :false
+  option :name, "Optional name", :nil
+  option :keepdims, "If true, retains reduced dimensions with length 1.", :false
 
   op.add_custom "input_a = TensorStream.convert_to_tensor(input_a)"
   op.add_custom "return input_a if input_a.shape.scalar?"
   op.add_custom "axis = cast_axis(input_a, axis)"
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     x, y = params
     input_shape = ts.shape(x)
     y = ts.range(0, ts.rank(x)) if y.nil?

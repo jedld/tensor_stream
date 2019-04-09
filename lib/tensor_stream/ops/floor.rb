@@ -1,11 +1,11 @@
 TensorStream::OpMaker.define_operation :floor do |op|
-  op.what_it_does "Returns element-wise largest integer not greater than x."
+  what_it_does "Returns element-wise largest integer not greater than x."
 
-  op.parameter :input_a, "tensor X", validate: 'FLOATING_POINT_TYPES'
+  parameter :input_a, "tensor X", validate: 'FLOATING_POINT_TYPES'
 
-  op.option :name, "Optional name", :nil
+  option :name, "Optional name", :nil
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     nil
   end
 

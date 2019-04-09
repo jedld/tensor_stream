@@ -1,10 +1,10 @@
 TensorStream::OpMaker.define_operation :zeros do |op|
-  op.what_it_does "Creates a tensor with all elements set to zero"
+  what_it_does "Creates a tensor with all elements set to zero"
 
-  op.parameter :shape, "A 1-D integer Tensor or ruby array. The shape of the output tensor."
+  parameter :shape, "A 1-D integer Tensor or ruby array. The shape of the output tensor."
 
-  op.option :dtype, "Optional name", ":float32"
-  op.option :name, "Optional name", :nil
+  option :dtype, "Optional name", ":float32"
+  option :name, "Optional name", :nil
 
   op.define_shape do |tensor|
     a_shape = tensor.inputs[0] ? tensor.inputs[0].const_value : tensor.options[:shape]

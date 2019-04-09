@@ -1,15 +1,15 @@
-TensorStream::OpMaker.define_operation :add do |op|
-  op.what_it_does "Returns x + y element-wise."
+TensorStream::OpMaker.define_operation :add do
+  what_it_does "Returns x + y element-wise."
 
-  op.parameter :input_a, "tensor X"
-  op.parameter :input_b, "tensor Y"
+  parameter :input_a, "tensor X"
+  parameter :input_b, "tensor Y"
 
-  op.apply_data_type_coercion!
-  op.supports_broadcasting!
+  apply_data_type_coercion!
+  supports_broadcasting!
 
-  op.option :name, "Optional name", :nil
+  option :name, "Optional name", :nil
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     x, y = params
     next [grad, grad] if shapes_fully_specified_and_equal(x, y)
 

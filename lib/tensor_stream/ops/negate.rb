@@ -1,11 +1,11 @@
 TensorStream::OpMaker.define_operation :negate do |op|
-  op.what_it_does "Computes numerical negative value element-wise."
+  what_it_does "Computes numerical negative value element-wise."
 
-  op.parameter :input, "tensor X"
-  op.option :name, "Optional name", :nil
+  parameter :input, "tensor X"
+  option :name, "Optional name", :nil
   op.other_names :negative
 
-  op.define_gradient do |grad, node, params|
+  define_gradient do |grad, node, params|
     -grad
   end
 
