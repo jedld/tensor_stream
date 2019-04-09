@@ -383,12 +383,12 @@ RSpec.shared_examples "standard ops evaluator" do
       tf.set_random_seed(1000)
       a = tf.random_uniform([1])
       sess = tf.session
-      expect(sess.run(a)).to eq([0.6535895854646095])
-      expect(sess.run(a)).to eq([0.11500694312440574])
+      expect(tr(sess.run(a))).to eq([0.6536])
+      expect(tr(sess.run(a))).to eq([0.115])
 
       sess2 = tf.session
-      expect(sess2.run(a)).to eq([0.6535895854646095])
-      expect(sess2.run(a)).to eq([0.11500694312440574])
+      expect(tr(sess2.run(a))).to eq([0.6536])
+      expect(tr(sess2.run(a))).to eq([0.115])
     end
   end
 
@@ -1056,12 +1056,12 @@ z = tf.constant([[8, 9],[10, 11]])
     it "is able to set an op level seed" do
       a = tf.random_uniform([1], seed: 1)
       sess = tf.session
-      expect(sess.run(a)).to eq([0.417022004702574])
-      expect(sess.run(a)).to eq([0.7203244934421581])
+      expect(tr(sess.run(a))).to eq([0.417])
+      expect(tr(sess.run(a))).to eq([0.7203])
 
       sess2 = tf.session
-      expect(sess2.run(a)).to eq([0.417022004702574])
-      expect(sess2.run(a)).to eq([0.7203244934421581])
+      expect(tr(sess2.run(a))).to eq([0.417])
+      expect(tr(sess2.run(a))).to eq([0.7203])
     end
   end
 
