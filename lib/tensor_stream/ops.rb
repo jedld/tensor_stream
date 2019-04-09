@@ -199,7 +199,7 @@ module TensorStream
     # Partitions data into num_partitions tensors using indices from partitions
     def dynamic_partition(data, partitions, num_partitions, name: nil)
       result = _op(:dynamic_partition, data, partitions, num_partitions: num_partitions, name: nil)
-      num_partitions.times.map do |index|
+      Array.new(num_partitions) do |index|
         result[index]
       end
     end
@@ -351,12 +351,6 @@ module TensorStream
     # This is an identity op (behaves like tf.identity) with the side effect of printing data when evaluating.
     def print(input, data, message: nil, name: nil)
       _op(:print, input, data, message: message, name: name)
-    end
-
-    ##
-    # Computes numerical negative value element-wise.
-    def negative(input, name: nil)
-      negate(input, name: name)
     end
 
     ##

@@ -25,8 +25,8 @@ class TensorStream::OpMaker
     }
   end
 
-  def other_names(aliases)
-    @aliases += aliases
+  def other_names(*aliases)
+    @aliases += aliases.flatten
   end
 
   def add_custom(custom_code)

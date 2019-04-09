@@ -315,6 +315,11 @@ RSpec.describe TensorStream::Tensor do
         sess = tf.session
         expect(sess.run(sum, feed_dict: { a => 7 })).to eq(13)
       end
+
+      specify "auto convert tensor to ruby array" do
+        tensor = [1, 2, 3, 4].t
+        expect(tensor.map { |a| a}).to eq([1, 2, 3, 4])
+      end
     end
   end
 end

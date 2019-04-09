@@ -1,5 +1,7 @@
 module TensorStream
   module TensorMixins
+    include Enumerable
+
     def +(other)
       _op(:add, self, TensorStream.convert_to_tensor(other, dtype: data_type))
     end
@@ -15,6 +17,11 @@ module TensorStream
       else
         _op(:index, self, index)
       end
+    end
+
+    def each(&block)
+      result = Session.default_session.run(self)
+      result.each(&block)
     end
 
     def *(other)

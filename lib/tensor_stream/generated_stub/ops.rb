@@ -374,6 +374,7 @@ module TensorStream
       _op(:negate, input, name: name)
     end
 
+    alias_method :negative, :negate
 
     ##
     # Returns the truth value of (x != y) element-wise.
