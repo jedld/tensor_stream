@@ -9,7 +9,7 @@ TensorStream::OpMaker.define_operation :max do |op|
 
   option :name, "Optional name", :nil
 
-  define_gradient do |grad, node, params|
+  define_gradient do |grad, node, _params|
     _min_or_max_grad(node.inputs, grad, ->(a, b) { ts.greater_equal(a, b) })
   end
 end

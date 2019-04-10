@@ -1,5 +1,6 @@
-TensorStream::OpMaker.define_operation :mat_mul do |op|
-  op.other_names %w(matmul)
+TensorStream::OpMaker.define_operation :mat_mul do
+  other_names :matmul
+
   what_it_does "Multiplies matrix a by matrix b, producing a * b. The inputs must, following any transpositions, be tensors of rank 2 ."
 
   parameter :input_a, "tensor X"
@@ -34,22 +35,22 @@ TensorStream::OpMaker.define_operation :mat_mul do |op|
     [grad_a, grad_b]
   end
 
-  op.define_shape do |tensor|
+  define_shape do |tensor|
     next nil if tensor.inputs[0].shape.shape.nil? || tensor.inputs[1].shape.shape.nil?
     next [] if tensor.inputs[0].shape.shape.empty? || tensor.inputs[1].shape.shape.empty?
     next nil if tensor.inputs[0].shape.shape.size != 2 || tensor.inputs[1].shape.shape.size != 2
 
     shape1, m = if tensor.options[:transpose_a]
-      [tensor.inputs[0].shape.shape[0], tensor.inputs[0].shape.shape[1]]
-    else
-      [tensor.inputs[0].shape.shape[1], tensor.inputs[0].shape.shape[0]]
-    end
+                  [tensor.inputs[0].shape.shape[0], tensor.inputs[0].shape.shape[1]]
+                else
+                  [tensor.inputs[0].shape.shape[1], tensor.inputs[0].shape.shape[0]]
+                end
 
     shape2, n = if tensor.options[:transpose_b]
-      [tensor.inputs[1].shape.shape[1], tensor.inputs[1].shape.shape[0]]
-    else
-      [tensor.inputs[1].shape.shape[0], tensor.inputs[1].shape.shape[1]]
-    end
+                  [tensor.inputs[1].shape.shape[1], tensor.inputs[1].shape.shape[0]]
+                else
+                  [tensor.inputs[1].shape.shape[0], tensor.inputs[1].shape.shape[1]]
+                end
 
     next nil if shape1.nil? || shape2.nil? || shape1 < 0 || shape2 < 0
 

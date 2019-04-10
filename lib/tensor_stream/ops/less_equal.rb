@@ -1,4 +1,4 @@
-TensorStream::OpMaker.define_operation :less_equal do |op|
+TensorStream::OpMaker.define_operation :less_equal do
   what_it_does "Returns the truth value of (x <= y) element-wise."
 
   parameter :input_a, "tensor X"

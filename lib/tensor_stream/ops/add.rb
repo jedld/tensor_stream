@@ -9,7 +9,7 @@ TensorStream::OpMaker.define_operation :add do
 
   option :name, "Optional name", :nil
 
-  define_gradient do |grad, node, params|
+  define_gradient do |grad, _node, params|
     x, y = params
     next [grad, grad] if shapes_fully_specified_and_equal(x, y)
 
