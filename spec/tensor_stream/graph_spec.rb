@@ -38,11 +38,13 @@ RSpec.describe TensorStream::Graph do
 
   describe ".prevent_feeding" do
     it "marks tensors as unfeedable" do
-      c = ts.constant(5.0)
+      c = 5.0.t
+      x = Float.placeholder
+      f = x + c
       sess = TensorStream.session
-      expect(sess.run(c)).to eq(0.0)
+      expect(sess.run(f, feed_dict: { x => c })).to eq(10.0)
       c.graph.prevent_feeding(c)
-      expect(sess.run(c)).to eq(0.0)
+      expect { sess.run(f, feed_dict: { x => c }) }.to raise_exception(TensorStream::ValueError)
     end
   end
 

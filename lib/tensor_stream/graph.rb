@@ -3,7 +3,7 @@ module TensorStream
   class Graph
     include OpHelper
 
-    attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants
+    attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants, :unfeedable
     attr_reader :node_keys
 
     def initialize

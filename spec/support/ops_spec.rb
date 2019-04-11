@@ -1,11 +1,20 @@
 RSpec.shared_examples "standard ops evaluator" do
   extend SupportedOp
 
+
   before(:each) do
     TensorStream::Tensor.reset_counters
     # TensorStream::Operation.reset_counters
     tf.reset_default_graph
     sess.clear_session_cache
+  end
+
+  context ".constant" do
+    include TensorStream::TensorUtils
+    specify do
+      c = 5.0.t
+      expect(constant_value(c)).to eq(5.0)
+    end
   end
 
   context ".assert_equal" do

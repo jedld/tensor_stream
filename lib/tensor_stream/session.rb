@@ -41,32 +41,36 @@ module TensorStream
 
     def run(*args)
       options = if args.last.is_a?(Hash)
-        args.pop
-      else
-        {}
-      end
+                  args.pop
+                else
+                  {}
+                end
 
       @evaluator_options[:thread_pool] = @thread_pool
       @evaluator_options[:log_intermediates] = options[:log_intermediates]
+      options[:feed_dict] ||= {}
 
       context = {
         _cache: @session_cache,
         _options: options.merge(@evaluator_options),
-        profile: {step: 0, operations: {}},
+        profile: { step: 0, operations: {} },
       }
 
+      target_graph = args[0].is_a?(Array) ? args[0].flatten.first.graph : args[0].graph
       # scan for placeholders and assign value
-      options[:feed_dict]&.each_key do |k|
+      options[:feed_dict].each_key do |k|
+        v = options[:feed_dict][k]
+        raise TensorStream::ValueError, "Tensor #{v.name} may not be fed." if target_graph.unfeedable.include?(v)
+
         if k.is_a?(Placeholder)
-          context[k.name.to_sym] = options[:feed_dict][k]
+          context[k.name.to_sym] = v
         elsif k.is_a?(String)
-          target_graph = args[0].graph
           node = target_graph.get_node(k)
           raise "Cannot find placeholder with the name of #{k}" if node.operation != :placeholder
 
-          context[k.to_sym] = options[:feed_dict][k]
+          context[k.to_sym] = v
         elsif k.is_a?(Operation) && k.operation == :placeholder
-          context[k.name.to_sym] = options[:feed_dict][k]
+          context[k.name.to_sym] = v
         else
           raise "Invalid placeholder type passed key must be a string or a placeholder type"
         end

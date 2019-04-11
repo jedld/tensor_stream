@@ -11,7 +11,7 @@ module TensorStream
     end
 
     def _constvalue(tensor, partial)
-      TensorStream::OpMaker.constant_op(tensor, partial)
+      TensorStream::OpMaker.constant_op(self, tensor, partial)
     end
   end
 end

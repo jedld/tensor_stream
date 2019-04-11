@@ -6,13 +6,14 @@ module TensorStream
                 :options, :gradient, :check_types,
                 :supports_broadcast, :data_type_coercion,
                 :aliases, :custom, :custom_post, :infer_type_proc, :exclude,
-                :data_type_block
+                :data_type_block, :constant
 
     def initialize(op)
       @operation = op
       @parameters = []
       @options = {}
       @gradient = nil
+      @constant = nil
       @supports_broadcast = false
       @data_type_coercion = false
       @exclude = false
@@ -59,6 +60,15 @@ module TensorStream
       raise "No derivative op defined for #{node.operation}" if @ops[node.operation].nil? || @ops[node.operation].gradient.nil?
 
       context_caller.instance_exec(grad, node, node.inputs, &@ops[node.operation].gradient)
+    end
+
+    # call an operations' gradient definition
+    def self.constant_op(context_caller, node, partial)
+      node = node.op unless node.is_a?(Operation)
+
+      return nil if @ops[node.operation].nil? || @ops[node.operation].constant.nil?
+
+      context_caller.instance_exec(node, partial, &@ops[node.operation].constant)
     end
 
     def self.infer_shape(context_caller, tensor)
@@ -150,6 +160,11 @@ module TensorStream
 
     def define_gradient(&block)
       @gradient = block
+    end
+
+    # Define a block if tensor can be evaluated without needing a session
+    def define_constant(&block)
+      @constant = block
     end
 
     def define_shape(&block)
