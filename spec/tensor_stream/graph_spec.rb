@@ -36,6 +36,16 @@ RSpec.describe TensorStream::Graph do
     end
   end
 
+  describe ".prevent_feeding" do
+    it "marks tensors as unfeedable" do
+      c = ts.constant(5.0)
+      sess = TensorStream.session
+      expect(sess.run(c)).to eq(0.0)
+      c.graph.prevent_feeding(c)
+      expect(sess.run(c)).to eq(0.0)
+    end
+  end
+
   xdescribe ".parse_from_string" do
     specify do
       pbtext = File.read(File.join("spec", "fixtures", "linear_regression.pbtxt"))

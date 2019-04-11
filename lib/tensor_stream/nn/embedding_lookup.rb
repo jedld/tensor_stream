@@ -1,6 +1,8 @@
 require 'tensor_stream/utils/py_ports'
 ##
-# ruby port of https://github.com/tensorflow/tensorflow/blob/r1.13/tensorflow/python/ops/embedding_ops.py
+# This is ruby port of https://github.com/tensorflow/tensorflow/blob/r1.13/tensorflow/python/ops/embedding_ops.py credited to TensorFlow Authors.
+#
+# This is a best effort translation and certain things need to be changed in order to work with ruby conventions
 #
 module TensorStream
   module EmbeddingLookup

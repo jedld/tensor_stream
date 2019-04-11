@@ -9,6 +9,7 @@ module TensorStream
     def initialize
       @eager_execution = false
       @nodes = {}
+      @unfeedable = Set.new
       @node_keys = []
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => [],
@@ -82,6 +83,10 @@ module TensorStream
     def add_to_collection(collection_name, val)
       @collections[collection_name.to_sym] ||= []
       @collections[collection_name.to_sym] << val
+    end
+
+    def prevent_feeding(tensor)
+      @unfeedable << tensor
     end
 
     def add_node(node, name = nil)
