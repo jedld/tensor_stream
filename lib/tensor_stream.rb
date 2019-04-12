@@ -26,6 +26,7 @@ require "tensor_stream/dynamic_stitch"
 require "tensor_stream/math/math_ops"
 require "tensor_stream/utils/tensor_utils"
 require "tensor_stream/nn/nn_ops"
+require "tensor_stream/layer/layer"
 require "tensor_stream/nn/rnn_cells"
 require "tensor_stream/evaluator/evaluator"
 require "tensor_stream/graph_serializers/packer"
@@ -43,7 +44,6 @@ require "tensor_stream/images"
 
 require "tensor_stream/profile/report_tool"
 
-# require 'tensor_stream/libraries/layers'
 require "tensor_stream/monkey_patches/patch"
 require "tensor_stream/monkey_patches/integer"
 require "tensor_stream/monkey_patches/float"
