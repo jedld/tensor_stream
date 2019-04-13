@@ -4,7 +4,7 @@ module TensorStream
     include TensorStream::StringHelper
 
     def initialize(options = {}, trainable: true, name: nil, dtype: nil, dynamic: false)
-      allowed_kwargs = %w[input_shape batch_input_shape batch_size weights activity_regularizer]
+      allowed_kwargs = %i[input_shape batch_input_shape batch_size weights activity_regularizer]
 
       options.keys.each do |kwarg|
         raise TensorStream::TypeError, "Keyword argument not understood:#{kwarg}" unless allowed_kwargs.include?(kwarg)
@@ -18,15 +18,25 @@ module TensorStream
       # Provides information about which inputs are compatible with the layer.
       @input_spec = nil
       @supports_masking = false
+      init_set_name(name)
+      @activity_regularizer = kwargs.dig(:activity_regularizer, nil)
+      @trainable_weights = []
+      @non_trainable_weights = []
+      @updates = []
+      @callable_losses = []
+      # A list of Tensors containing activity regularizers and losses manually
+      # added through `add_loss`.
+      @losses = []
+      @dtype = dtype.nil ? nil : dtypes.to_sym
+      @inbound_nodes = []
+      @outbound_nodes = []
     end
 
     protected
 
     def init_set_name(name, zero_based: true)
       @name = if name.nil?
-                unique_layer_name(
-                    underscore(self.class.to_s),
-                    zero_based: zero_based)
+                unique_layer_name(underscore(self.class.to_s), zero_based: zero_based)
               else
                 name
               end
