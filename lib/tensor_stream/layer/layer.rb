@@ -1,12 +1,13 @@
 module TensorStream
   class Layer
-    attr_accessor :trainable
+    attr_accessor :trainable, :name
+    include TensorStream::StringHelper
 
-    def initialize(trainable: true, name: nil, dtype: nil, dynamic: false, options = {})
+    def initialize(options = {}, trainable: true, name: nil, dtype: nil, dynamic: false)
       allowed_kwargs = %w[input_shape batch_input_shape batch_size weights activity_regularizer]
 
-      options.keys.each do  |kwargs|
-        raise TensorStream::TypeError, "Keyword argument not understood:#{kwarg}" if !allowed_kwargs.include?(kwards)
+      options.keys.each do |kwarg|
+        raise TensorStream::TypeError, "Keyword argument not understood:#{kwarg}" unless allowed_kwargs.include?(kwarg)
       end
 
       @trainable = trainable
@@ -22,13 +23,13 @@ module TensorStream
     protected
 
     def init_set_name(name, zero_based: true)
-      if not name:
-        @name = base_layer_utils.unique_layer_name(
-            generic_utils.to_snake_case(self.__class__.__name__),
-            zero_based=zero_based)
-      else
-        self._name = name
-      end
+      @name = if name.nil?
+                unique_layer_name(
+                    underscore(self.class.to_s),
+                    zero_based: zero_based)
+              else
+                name
+              end
     end
 
     ##
@@ -47,7 +48,7 @@ module TensorStream
     # Returns:
     # Unique string name.
     def unique_layer_name(name, name_uid_map: nil, avoid_names: nil, namespace: '', zero_based: false)
-      name_uid_map = get_default_graph_uid_map if name_uid_map.nil?
+      name_uid_map = default_graph_uid_map if name_uid_map.nil?
       avoid_names = Set.new if avoid_names.nil?
       proposed_name = nil
       while proposed_name.nil? || avoid_names.include?(proposed_name)
@@ -69,12 +70,12 @@ module TensorStream
       proposed_name
     end
 
-    def get_default_graph_uid_map
+    def default_graph_uid_map
       graph = TensorStream.get_default_graph
-      name_uid_map = PER_GRAPH_LAYER_NAME_UIDS.get(graph, nil)
+      name_uid_map = Graph.layer_name_uids.fetch(graph.object_id, nil)
       if name_uid_map.nil?
         name_uid_map = Hash.new(0)
-        PER_GRAPH_LAYER_NAME_UIDS[graph] = name_uid_map
+        Graph.layer_name_uids[graph.object_id] = name_uid_map
       end
       name_uid_map
     end

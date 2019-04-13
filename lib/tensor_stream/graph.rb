@@ -43,6 +43,10 @@ module TensorStream
       self
     end
 
+    def self.layer_name_uids
+      @layer_uids ||= {}
+    end
+
     def name_scope(name = nil)
       Thread.current["ts_graph_#{object_id}"] ||= {}
       Thread.current["ts_graph_#{object_id}"][:current_scope] ||= []
@@ -94,7 +98,7 @@ module TensorStream
 
       if name.nil?
         node.name = if @nodes[node.name]
-          uniqunify(node.name)
+          uniquenify(node.name)
         else
           node.name
         end
@@ -289,7 +293,7 @@ module TensorStream
       scope
     end
 
-    def uniqunify(name)
+    def uniquenify(name)
       counter = 0
       new_name = name
       Kernel.loop do
