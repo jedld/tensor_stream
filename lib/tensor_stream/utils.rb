@@ -118,8 +118,8 @@ module TensorStream
 
     ##
     # Essentially a no-op, Tensorflow compatibility function
-    def init_scope
-      yield
+    def init_scope(&block)
+      control_dependencies([], &block)
     end
 
     def get_variable_scope
