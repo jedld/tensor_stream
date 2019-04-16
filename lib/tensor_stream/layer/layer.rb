@@ -1,7 +1,12 @@
+require 'tensor_stream/layer/trackable'
+require 'tensor_stream/layer/base_module'
+require 'tensor_stream/layer/base_layer_utils'
+
 module TensorStream
-  class Layer
+  class Layer < BaseModule
     attr_accessor :trainable, :name
     include TensorStream::StringHelper
+    include TensorStream::BaseLayerUtils
 
     def initialize(options = {}, trainable: true, name: nil, dtype: nil, dynamic: false)
       allowed_kwargs = %i[input_shape batch_input_shape batch_size weights activity_regularizer]
@@ -30,6 +35,70 @@ module TensorStream
       @dtype = dtype.nil ? nil : dtypes.to_sym
       @inbound_nodes = []
       @outbound_nodes = []
+
+      if options.key?(:input_shape) || options.key?(:batch_input_shape)
+        if options.key?(:batch_input_shape)
+          @batch_input_shape = options[:batch_input_shape].freeze
+        elsif options.key?(:input_shape)
+          if options.key?(:batch_size)
+            @batch_size =  options[:batch_size]
+          else
+            @batch_size = nil
+          end
+          @batch_input_shape = [@batch_size] + options[:input_shape].freeze
+        end
+      end
+
+      if options.key?(:weights)
+        @initial_weights = options[:weights]
+      else
+        @initial_weights = nil
+      end
+    end
+
+    def build(input_shape)
+      @built = true
+    end
+
+    def call(inputs, *args)
+      inputs
+    end
+
+    ##
+    # Adds a new variable to the layer
+    def add_weight(options = {}, name: nil, shape: nil, dtype: :float, initializer: nil, regularizer: nil,
+      trainable: true,
+      constraint: nil,
+      partitioner: nil,
+      use_resource: nil)
+      @shape = [] if shape.nil?
+      options.each do |k,v|
+        raise TensorStream::TypeError, "Unkonwn keyword argument #{k}" if ![:getter, :collections, :experimental_autocast].include?(k)
+      end
+      getter = options.fetch(:getter, nil)
+      collections = options.fetch(:collections, nil)
+      autocast = options.fetch(:experimental_autocast, nil)
+
+      if initalizer.nil?
+        initializer = if fp_type?(@data_type)
+                        TensorStream.glorot_uniform_initializer
+                      elsif int_type?(@data_type)
+                        TensorStream.zeros_initializer
+                      else
+                      raise TensorStream::ValueError, "An initializer for variable #{name} of type #{@data_type} for layer #{@name}"
+                      end
+      end
+
+      variable = add_variable_with_custom_getter(name: name, shape: shape, getter: getter || make_variable, overwrite: true,
+        initializer: initializer, dtype: dtype, constraint: constraint, trainable: trainable && @trainable)
+      track_variable(variable)
+      if trainable
+        @trainable_weights << variable
+      else
+        @non_trainable_weights << variable
+      end
+
+      variable
     end
 
     protected
@@ -78,16 +147,6 @@ module TensorStream
       end
 
       proposed_name
-    end
-
-    def default_graph_uid_map
-      graph = TensorStream.get_default_graph
-      name_uid_map = Graph.layer_name_uids.fetch(graph.object_id, nil)
-      if name_uid_map.nil?
-        name_uid_map = Hash.new(0)
-        Graph.layer_name_uids[graph.object_id] = name_uid_map
-      end
-      name_uid_map
     end
   end
 end

@@ -44,8 +44,8 @@ module TensorStream
     ##
     # Creates a variable
     # A variable maintains state across sessions
-    def variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
-      op = Graph.get_default_graph.add_op(:assign, nil, value)
+    def variable(value = nil, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
+      op = Graph.get_default_graph.add_op(:assign, nil, value) if value
       common_options = {
         initializer: initializer || op,
         name: name,
@@ -114,6 +114,12 @@ module TensorStream
       get_default_graph.name_scope(name || default_name || default) do |scope|
         yield scope if block_given?
       end
+    end
+
+    ##
+    # Essentially a no-op, Tensorflow compatibility function
+    def init_scope
+      yield
     end
 
     def get_variable_scope
