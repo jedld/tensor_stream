@@ -5,6 +5,7 @@ module TensorStream
     extend TensorStream::OpHelper
     extend TensorStream::EmbeddingLookup
     extend TensorStream::Maths::MathFunctions
+    extend TensorStream::TensorUtils
 
     class << self
       def softmax(logits, axis: nil, name: nil)
@@ -152,6 +153,45 @@ module TensorStream
         raise TensorStreamError, "value must be at least rank 2" if value.shape.known? && value.shape.ndims < 2
 
         _op(:bias_add, value, bias, data_format: data_format, name: name)
+      end
+
+      ##
+      # Creates a recurrent neural network specified by RNNCell `cell`.
+      # Performs fully dynamic unrolling of `inputs`.
+      def dynamic_rnn(cell, inputs, sequence_length: nil, initial_state: nil,
+        dtype: nil, parallel_iterations: nil, swap_memory: false,
+        time_major: false, scope: nil)
+        TensorStream.variable_scope(scope || "rnn") do |varscope|
+          flat_input = _flatten(inputs)
+          unless time_major
+            flat_input = flat_input.map { |input| _transpose_batch_time(TensorStream.convert_to_tensor(input)) }.freeze
+          end
+
+          parallel_iterations = parallel_iterations || 32
+
+          unless sequence_length.nil?
+            sequence_length = TensorStream.cast(sequence_length, :int32)
+            raise TensorStream::ValueError, "sequence_length must be a vector of length batch_size, " +
+              "but saw shape: #{sequence_length.get_shape()}" unless [nil, 1].include?(sequence_length.shape.rank)
+            sequence_length = TensorStream.identity(  # Just to find it in the graph.
+                sequence_length, name="sequence_length")
+          end
+
+          batch_size = _best_effort_input_batch_size(flat_input)
+
+          state = if !initial_state.nil?
+                    initial_state
+                  else
+                    raise TensorStream::ValueError, "If there is no initial_state, you must give a dtype." if !dtype
+
+                    if cell.respond_to?(:get_initial_state)
+                      cell.get_initial_state(inputs: nil, batch_size: batch_size, dtype: dtype)
+                    else
+                      cell.zero_state(batch_size, dtype)
+                    end
+                  end
+
+        end
       end
     end
   end

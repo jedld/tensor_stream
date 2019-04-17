@@ -22,6 +22,14 @@ module TensorStream
       TensorShape.new(@shape[index])
     end
 
+    def concatenate(other_shape)
+      other = TensorShape.as_shape(other)
+      return TensorShape.new(nil) if ndims.nil? || other.ndims.nil?
+
+      new_shape = @shape + other_shape.shape
+      TensorShape.new(new_shape)
+    end
+
     def ndims
       shape ? shape.size : nil
     end
@@ -71,6 +79,13 @@ module TensorStream
     # Raises an exception if `other` is not compatible with this shape.
     def assert_compatible_with(other)
       raise TensorStream::ValueError, "Dimensions #{self} and #{other} are not compatible" unless compatible_with?(other)
+    end
+
+    ##
+    #  Converts the given object to a TensorShape.
+    def self.as_shape(shape)
+      return shape if shape.is_a?(TensorShape)
+      TensorShape.new(shape)
     end
 
     def self.infer_shape(shape_a, shape_b)

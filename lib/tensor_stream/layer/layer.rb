@@ -24,7 +24,7 @@ module TensorStream
       @input_spec = nil
       @supports_masking = false
       init_set_name(name)
-      @activity_regularizer = kwargs.dig(:activity_regularizer, nil)
+      @activity_regularizer = options.dig(:activity_regularizer, nil)
       @trainable_weights = []
       @non_trainable_weights = []
       @updates = []
@@ -32,7 +32,7 @@ module TensorStream
       # A list of Tensors containing activity regularizers and losses manually
       # added through `add_loss`.
       @losses = []
-      @dtype = dtype.nil ? nil : dtypes.to_sym
+      @dtype = dtype.nil? ? nil : dtypes.to_sym
       @inbound_nodes = []
       @outbound_nodes = []
 

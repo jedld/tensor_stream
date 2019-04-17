@@ -187,11 +187,11 @@ module TensorStream
 
     ##
     # Concatenates tensors along one dimension.
-    def concat(values, axis, name: "concat")
+    def concat(values, paxis = nil, axis: nil, name: "concat")
       if values.is_a?(Array)
-        _op(:concat, axis, *values, name: name)
+        _op(:concat, paxis || axis, *values, name: name)
       else
-        _op(:concat, axis, values, name: name)
+        _op(:concat, paxis || axis, values, name: name)
       end
     end
 

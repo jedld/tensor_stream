@@ -42,7 +42,7 @@ module TensorStream
         possible_shape
       when :index
         return nil unless tensor.inputs[0].is_a?(Tensor)
-        return nil unless tensor.inputs[0].const_value
+        # return nil unless tensor.inputs[0].const_value
 
         input_shape = tensor.inputs[0].shape
         return nil unless input_shape.known?
@@ -119,7 +119,7 @@ module TensorStream
         rotated_shape = Array.new(axis + 1) { new_shape.shift }
         rotated_shape.rotate! + new_shape
       when :concat
-        return nil if tensor.inputs[0].const_value.nil?
+        return nil if tensor.inputs[0] && tensor.inputs[0].const_value.nil?
 
         axis = tensor.inputs[0].const_value # get axis
 

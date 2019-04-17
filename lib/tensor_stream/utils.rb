@@ -213,8 +213,8 @@ module TensorStream
 
     ##
     # Inserts a placeholder for a tensor that will be always fed.
-    def placeholder(dtype, shape: nil, name: nil)
-      TensorStream::Placeholder.new(dtype, nil, shape, name: name)
+    def placeholder(dtype, placeholder_shape = nil, shape: nil, name: nil)
+      TensorStream::Placeholder.new(dtype, nil, placeholder_shape || shape, name: name)
     end
 
     def global_variables_initializer
