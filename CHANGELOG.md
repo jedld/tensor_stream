@@ -4,9 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2019-04-08
+- [NEW]    - Support for nn.embedding_lookup
+- [NEW]    - l2_normalize, dynamic_partition
+- [NEW OP] - New Ops: rsqrt, top_k, strided_slice
+- [NEW]    - Support for ranges in tensors (e.g. t[0...2] via strided slice)
+- [SAMPLES] - Add samples for handling word vectors
+
 ## [1.0.5] - 2019-03-20
 - [BUG FIX] - Fix not wrapping a stack op on some arrays. Should fix rnn sample
-
+ 
 ## [0.9.10] - 2019-01-02
 - [BUG FIX] - remove pry-byebug include (Thanks @samgooi4189)
 - Update Changelog for 0.9.9
@@ -22,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [NEW OP] Convolutional networks - conv2d, conv2d_backprop_filter, conv2d_backprop_input
 - [IMAGE] Exposed image resampling options
 - [BUG FIX] fix argmin, argmax handling of NaN values
-
+ 
 ## [0.9.5] - 2018-11-05
 - [NEW OP] assert_equal, relu6
 - [TRAINING] learning_rate_decay, dropout

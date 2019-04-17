@@ -5,7 +5,16 @@ module TensorStream
     end
 
     def [](index)
-      _op(:index, self, index)
+      if index.is_a?(Range)
+        last = if index.end.nil?
+                 [TensorStream.shape(self)[0]]
+               else
+                 [index.max + 1]
+               end
+        _op(:strided_slice, self, [index.min], last, [1])
+      else
+        _op(:index, self, index)
+      end
     end
 
     def *(other)

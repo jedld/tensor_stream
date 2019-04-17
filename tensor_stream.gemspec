@@ -17,6 +17,8 @@ Gem::Specification.new do |spec|
   # to allow pushing to a single host or delete this section to allow pushing to any host.
   if spec.respond_to?(:metadata)
     spec.metadata["allowed_push_host"] = "https://rubygems.org"
+    spec.metadata["source_code_uri"] = "https://github.com/jedld/tensor_stream"
+    spec.metadata["changelog_uri"] = "https://github.com/jedld/tensor_stream/blob/master/CHANGELOG.md"
   else
     raise "RubyGems 2.0 or newer is required to protect against " \
       "public gem pushes."
@@ -42,8 +44,10 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "colorize"
   spec.add_development_dependency "rspec_junit_formatter"
   spec.add_development_dependency "mnist-learn"
+  spec.add_development_dependency "chakin-rb"
   spec.add_development_dependency "simplecov"
   spec.add_development_dependency "standard"
+  spec.add_development_dependency "rubyzip"
   spec.add_dependency "deep_merge"
   spec.add_dependency "concurrent-ruby"
   spec.add_dependency "chunky_png"

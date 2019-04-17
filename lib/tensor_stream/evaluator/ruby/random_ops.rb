@@ -9,12 +9,12 @@ module TensorStream
 
           shape = tensor.options[:shape] || tensor.shape.shape
           fan_in, fan_out = if shape.size.zero?
-            [1, 1]
-          elsif shape.size == 1
-            [1, shape[0]]
-          else
-            [shape[0], shape.last]
-          end
+                              [1, 1]
+                            elsif shape.size == 1
+                              [1, shape[0]]
+                            else
+                              [shape[0], shape.last]
+                            end
 
           limit = Math.sqrt(6.0 / (fan_in + fan_out))
 
@@ -50,7 +50,7 @@ module TensorStream
           seed = tensor.options[:seed]
           random = _get_randomizer(tensor, seed)
           r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev), -> { random.rand })
-          random = _get_randomizer(tensor, seed)
+
           generator = -> { r.rand }
           shape = inputs[0] || tensor.shape.shape
           random_values = Array.new(shape.reduce(:*) || 1) {
@@ -75,9 +75,6 @@ module TensorStream
 
           norm_min = (minval - mean) / stddev
           norm_max = (maxval - mean) / stddev
-          sqrt_factor = Math.sqrt((norm_min * norm_min) + 4.0)
-          cutoff = 2.0 * Math.exp(0.5 + (norm_min * (norm_min - sqrt_factor)) / 4.0) / (norm_min + sqrt_factor)
-          diff = norm_max - norm_min
 
           val = random_values.map { |v|
             iterations = 0

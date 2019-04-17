@@ -383,12 +383,12 @@ RSpec.shared_examples "standard ops evaluator" do
       tf.set_random_seed(1000)
       a = tf.random_uniform([1])
       sess = tf.session
-      expect(sess.run(a)).to eq([0.6535895854646095])
-      expect(sess.run(a)).to eq([0.11500694312440574])
+      expect(tr(sess.run(a))).to eq([0.6536])
+      expect(tr(sess.run(a))).to eq([0.115])
 
       sess2 = tf.session
-      expect(sess2.run(a)).to eq([0.6535895854646095])
-      expect(sess2.run(a)).to eq([0.11500694312440574])
+      expect(tr(sess2.run(a))).to eq([0.6536])
+      expect(tr(sess2.run(a))).to eq([0.115])
     end
   end
 
@@ -482,6 +482,18 @@ RSpec.shared_examples "standard ops evaluator" do
       expect(sess.run(tf.expand_dims(t, 0))).to eq([1])
       t = tf.constant([[1, 1], [2, 2]])
       expect(sess.run(tf.expand_dims(t, 0))).to eq([[[1, 1], [2, 2]]])
+    end
+  end
+
+  supported_op ".dynamic_partition" do
+    specify do
+      partitions = [0, 0, 1, 1, 0]
+      num_partitions = 2
+      data = [10, 20, 30, 40, 50]
+
+      part1, part2 = tf.dynamic_partition(data, partitions, num_partitions)
+      expect(sess.run(part1)).to eq([10, 20, 50])
+      expect(sess.run(part2)).to eq([30, 40])
     end
   end
 
@@ -1044,12 +1056,12 @@ z = tf.constant([[8, 9],[10, 11]])
     it "is able to set an op level seed" do
       a = tf.random_uniform([1], seed: 1)
       sess = tf.session
-      expect(sess.run(a)).to eq([0.417022004702574])
-      expect(sess.run(a)).to eq([0.7203244934421581])
+      expect(tr(sess.run(a))).to eq([0.417])
+      expect(tr(sess.run(a))).to eq([0.7203])
 
       sess2 = tf.session
-      expect(sess2.run(a)).to eq([0.417022004702574])
-      expect(sess2.run(a)).to eq([0.7203244934421581])
+      expect(tr(sess2.run(a))).to eq([0.417])
+      expect(tr(sess2.run(a))).to eq([0.7203])
     end
   end
 
@@ -1172,9 +1184,17 @@ z = tf.constant([[8, 9],[10, 11]])
 
       specify "matrices" do
         param = tf.constant([[1, 2, 3], [ 4, 5, 6], [7, 8, 9]])
-        indexes = tf.constant([ [1, 2]])
+        indexes = tf.constant([[1, 2]])
         f = tf.gather(param, indexes)
       end
+    end
+
+    specify "gradients" do
+      param = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.1])
+      indexes = tf.constant([5, 4, 3, 2, 1, 2])
+      f = tf.gather(tf.sin(param), indexes)
+      g = tf.gradients(f, [param, indexes])
+      expect(tr(sess.run(g))).to eq([[0.0, -0.4161, -1.98, -0.6536, 0.2837, 0.9833], [0, 0, 0, 0, 0, 0]])
     end
   end
 
@@ -1539,6 +1559,16 @@ z = tf.constant([[8, 9],[10, 11]])
       expect(sess.run(d)).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
     end
 
+    specify "3-D tensors" do
+      a = tf.constant([[[ 1,  2,  3], [ 4,  5,  6]],[[ 7,  8,  9],[10, 11, 12]]])
+      b = tf.constant([[[13, 14], [15, 16],[17, 18]],[[19, 20], [21, 22], [23, 24]]])
+      c = tf.matmul(a, b)
+      expect(sess.run(c)).to eq([[[ 94, 100],
+        [229, 244]],
+       [[508, 532],
+        [697, 730]]])
+    end
+
     specify "gradients" do
       a = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
       b = tf.constant([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0], [10.0, 11.0, 12.0]])
@@ -1550,6 +1580,14 @@ z = tf.constant([[8, 9],[10, 11]])
       g = tf.gradients(y, [a, b])
 
       expect(tr(sess.run(g))).to eq([[[2.0585, -2.0806, -2.0806], [2.0585, -2.0806, -2.0806]], [[3.7695, -0.7275, -4.5557], [-5.8735, 0.031, 5.907], [-7.5516, 0.0398, 7.5947]]])
+    end
+
+    specify "gradients 3D tensors" do
+      a = tf.constant([[[ 1,  2,  3], [ 4,  5,  6]],[[ 7,  8,  9],[10, 11, 12]]])
+      b = tf.constant([[[13, 14], [15, 16],[17, 18]],[[19, 20], [21, 22], [23, 24]]])
+      c = tf.matmul(a, b)
+      g = tf.gradients(c, [a, b])
+      expect(sess.run(g)).to eq([[[[27, 31, 35], [27, 31, 35]], [[39, 43, 47], [39, 43, 47]]], [[[5, 5], [7, 7], [9, 9]], [[17, 17], [19, 19], [21, 21]]]])
     end
 
     specify "gradients2" do
@@ -1585,6 +1623,7 @@ z = tf.constant([[8, 9],[10, 11]])
       [:identity, 0.1, [[1.1, 2.1], [2.1, 3.0]],    [[[1.1, 2.1], [2.1, 3.0]], [[1.1, 2.1], [2.1, 3.0]]],            1.0, [[1, 1], [1, 1]]                                              ],
       [:abs, 0.1,      [[1.1, 2.1], [2.1, 3.0]],    [[[1.1, 2.1], [2.1, 3.0]], [[1.1, 2.1], [2.1, 3.0]]],            1.0, [[1, 1], [1, 1]]                                              ],
       [:sqrt, 0.3162,  [[1.0488, 1.4491], [1.4491, 1.7321]], [[[1.0488, 1.4491], [1.4491, 1.7321]], [[1.0488, 1.4491], [1.4491, 1.7321]]],    1.5811, [[0.4767,  0.345], [ 0.345, 0.2887]]                       ],
+      [:rsqrt, 3.1623,  [[0.9535, 0.6901], [0.6901, 0.5774]], [[[0.9535, 0.6901], [0.6901, 0.5774]], [[0.9535, 0.6901], [0.6901, 0.5774]]],    15.8114, [[0.4334, 0.1643], [0.1643, 0.0962]]                       ],
       [:reciprocal, 10.0, [[0.9091,  0.4762], [0.4762, 0.3333]], [[[0.9091, 0.4762], [0.4762, 0.3333]], [[0.9091, 0.4762], [0.4762, 0.3333]]],   -100,  [[-0.8264,  -0.2268], [-0.2268, -0.1111]]                         ],
       [:sigmoid, 0.525, [[0.7503, 0.8909], [0.8909, 0.9526]], [[[0.7503, 0.8909], [0.8909, 0.9526]], [[0.7503, 0.8909], [0.8909, 0.9526]]],   0.2494, [[0.1874, 0.0972], [0.0972, 0.0452]]],
       [:floor, 0, [[1, 2], [2, 3]],  [[[1, 2], [2, 3]], [[1, 2], [2, 3]]],       0, [[0.0, 0.0], [0.0, 0.0]]],
@@ -1755,7 +1794,7 @@ end
     end
 
     specify do
-      range = tf.range(3, 1, -0.5)
+      range = tf.range(3, 1, -0.5, output_type: :float32)
       expect(sess.run(range)).to eq([3, 2.5, 2, 1.5])
     end
   end
@@ -2202,6 +2241,37 @@ end
     end
   end
 
+  supported_op ".top_k" do
+    specify "rank 1 " do
+      a = tf.constant([
+        5, 4, 3, 2, 10, 11, 12, 0
+      ])
+
+      f, indices = tf.top_k(a, 3)
+      expect(sess.run(f)).to eq([12, 11, 10])
+      expect(sess.run(indices)).to eq([6, 5, 4])
+    end
+
+    specify "rank 2" do
+      a = tf.constant([[
+        5, 4, 3, 2, 10, 11, 12, 0
+      ], [15, 24, 30, 2, 10, 11, 12, 0]])
+      f, indices = tf.top_k(a, 4)
+      expect(sess.run(f)).to eq([[12, 11, 10, 5], [30, 24, 15, 12]])
+      expect(sess.run(indices)).to eq([[6, 5, 4, 0], [2, 1, 0, 6]])
+    end
+
+    xspecify "gradients" do
+      a = tf.constant([
+        5, 4, 3, 2, 10, 11, 12, 0
+      ])
+
+      f, indices = tf.top_k(a, 3)
+      g = tf.gradients(f, [a])
+      expect(sess.run(g)).to eq([])
+    end
+  end
+
   supported_op ".case" do
     specify do
       x = 2.t
@@ -2265,6 +2335,44 @@ end
       exp = tf.gradients(r, [z, u])
 
       expect(sess.run(exp)).to eq([1, 0])
+    end
+  end
+
+  supported_op ".strided_slice" do
+    let(:t) do
+      [[[1, 1, 1], [2, 2, 2]],
+       [[3, 3, 3], [4, 4, 4]],
+       [[5, 5, 5], [6, 6, 6]]].t
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1, 0, 0], [2, 1, 3], [1, 1, 1])
+      expect(sess.run(f)).to eq([[[3, 3, 3]]])
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1, 0, 0], [2, 2, 3], [1, 1, 1])
+      expect(sess.run(f)).to eq([[[3, 3, 3],[4, 4, 4]]])
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1, -1, 0], [2, -3, 3], [1, -1, 1])
+      expect(sess.run(f)).to eq([[[4, 4, 4], [3, 3, 3]]])
+    end
+
+    specify do
+      f = tf.strided_slice(t, [1], [2], [1])
+      expect(sess.run(f)).to eq([[[3, 3, 3],[4, 4, 4]]])
+    end
+
+    specify "gradients" do
+      f = tf.strided_slice(t, [1, 0, 0], [2, 1, 3], [1, 1, 1])
+      g = tf.gradients(f, [t])
+      expect(sess.run(g)).to eq([[[[0, 0, 0], [0, 0, 0]], [[1, 1, 1], [0, 0, 0]], [[0, 0, 0], [0, 0, 0]]]])
+
+      f = tf.strided_slice(t, [1, 0, 0], [2, 2, 3], [1, 1, 1])
+      g = tf.gradients(f, [t])
+      expect(sess.run(g)).to eq([[[[0, 0, 0], [0, 0, 0]], [[1, 1, 1], [1, 1, 1]], [[0, 0, 0], [0, 0, 0]]]])
     end
   end
 end
