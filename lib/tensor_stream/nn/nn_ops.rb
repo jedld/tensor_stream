@@ -1,4 +1,5 @@
 require 'tensor_stream/nn/embedding_lookup'
+require 'tensor_stream/utils/nn_utils'
 module TensorStream
   # High level machine learning functions
   class NN
@@ -6,6 +7,7 @@ module TensorStream
     extend TensorStream::EmbeddingLookup
     extend TensorStream::Maths::MathFunctions
     extend TensorStream::TensorUtils
+    extend TensorStream::NNUtils
 
     class << self
       def softmax(logits, axis: nil, name: nil)
