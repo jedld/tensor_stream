@@ -46,7 +46,7 @@ module TensorStream
         new_op = Operation.new(@graph, inputs: inputs, options: op_def[:attrs].merge(options))
         new_op.operation = op_def[:op].to_sym
         new_op.name = op_def[:name]
-        new_op.shape = TensorShape.new(TensorStream::InferShape.infer_shape(new_op))
+        new_op.set_shape(TensorShape.new(TensorStream::InferShape.infer_shape(new_op)))
         new_op.rank = new_op.shape.rank
         new_op.data_type = new_op.set_data_type(op_def.dig(:attrs, :data_type))
         new_op.is_const = new_op.infer_const

@@ -244,7 +244,7 @@ module TensorStream
 
       pieces.collect.with_index do |shape, i|
         op = index(res, i, name: "split/index:#{i}")
-        op.shape = TensorShape.new(shape) if shape
+        op.set_shape(shape) if shape
 
         op
       end

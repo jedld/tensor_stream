@@ -29,7 +29,7 @@ module TensorStream
             const_op.name = node.name
             const_op.operation = :const
             const_op.data_type = node.data_type
-            const_op.shape = TensorShape.new(shape_eval(value))
+            const_op.set_shape(shape_eval(value))
 
             const_op
           when :assign

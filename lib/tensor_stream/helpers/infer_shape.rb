@@ -22,6 +22,7 @@ module TensorStream
       when :variable_v2
         tensor.shape ? tensor.shape.shape : nil
       when :placeholder
+        return tensor.shape.shape if tensor.shape
         return nil if tensor.inputs[0].nil?
         return tensor.inputs[0].shape.shape if tensor.inputs.size == 1
 

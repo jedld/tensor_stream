@@ -1,10 +1,19 @@
 module TensorStream
+  class Dimension
+    def initialize(dim)
+      @dim = dim
+    end
+
+    def value
+      @dim
+    end
+  end
   # class that defines a shape for TensorFlow compatibility
   class TensorShape
     attr_accessor :rank, :shape
 
-    def initialize(shape, rank = nil)
-      @shape = shape
+    def initialize(new_shape, rank = nil)
+      @shape = new_shape.is_a?(Array) ? new_shape : (new_shape ? [new_shape] : nil)
       @rank = rank.nil? && shape ? shape.size : rank
     end
 
@@ -18,16 +27,28 @@ module TensorStream
     end
 
     def [](index)
-      new_shape = @shape[index]
-      TensorShape.new(@shape[index])
+      if index.is_a?(Range)
+        TensorShape.new(@shape[index])
+      else
+        new_shape = @shape[index]
+        Dimension.new(new_shape)
+      end
     end
 
     def concatenate(other_shape)
-      other = TensorShape.as_shape(other)
-      return TensorShape.new(nil) if ndims.nil? || other.ndims.nil?
+      other_shape = TensorShape.as_shape(other_shape)
+      return TensorShape.new(nil) if ndims.nil? || other_shape.ndims.nil?
 
       new_shape = @shape + other_shape.shape
       TensorShape.new(new_shape)
+    end
+
+    ##
+    # Returns a shape based on `self` with at least the given rank.
+    def with_rank_at_least(rank)
+      raise TensorStream::ValueError, "Shape #{self} must have rank at least #{rank}" if @rank && @rank < rank
+
+      self
     end
 
     def ndims

@@ -250,6 +250,7 @@ module TensorStream
     def convert_to_tensor(value, dtype: nil, name: nil)
       return value if value.is_a?(Tensor)
       return convert_to_tensor(value.call) if value.is_a?(Proc)
+
       # raise "Invalid tensor value" if value.nil?
 
       if value.is_a?(Array) && value.detect { |v| v.is_a?(Tensor) }
@@ -260,6 +261,8 @@ module TensorStream
 
       if value.is_a?(TensorShape)
         value = value.shape
+      elsif value.is_a?(Dimension)
+        value = value.value
       end
 
       check_if_dense(value)

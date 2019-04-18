@@ -18,6 +18,7 @@ RSpec.describe "Tests on RNN cells" do
       cells = num_layers.times.map  { TensorStream::RNN::GRUCell.new(num_units) }
       cell = TensorStream::RNN::MultiRNNCell.new(cells)
       data = TensorStream.placeholder(:float32, shape: [nil, nil, 4])
+
       output, state = TensorStream.nn.dynamic_rnn(cell, data, dtype: :float32)
       init = tf.global_variables_initializer
       sess.run(init)

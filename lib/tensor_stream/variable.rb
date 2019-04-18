@@ -32,7 +32,7 @@ module TensorStream
 
     def initializer
       init_op = @initalizer_tensor.op
-      init_op.shape = @shape || init_op.shape
+      init_op.set_shape(@shape || init_op.shape)
       init_op.data_type = @data_type || init_op.data_type
       assign(init_op)
     end

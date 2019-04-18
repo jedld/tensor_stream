@@ -148,7 +148,7 @@ module TensorStream
       new_op = Operation.new(self, inputs: inputs, options: options)
       new_op.source = format_source(caller_locations)
       new_op.operation = operation
-      new_op.shape = TensorShape.new(TensorStream::InferShape.infer_shape(new_op))
+      new_op.set_shape(TensorStream::InferShape.infer_shape(new_op))
       new_op.rank = new_op.shape.rank
       new_op.name = options[:internal_name] || [get_name_scope, options[:name] || set_operation_name(new_op)].compact.reject(&:empty?).join("/")
       new_op.internal = options[:internal]

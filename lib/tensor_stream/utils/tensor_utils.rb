@@ -22,11 +22,10 @@ module TensorStream
 
       x_rank = TensorStream.rank(x)
       x_t = TensorStream.transpose(
-          x, TensorStream.concat(
-              [[1, 0], TensorStream.range(2, x_rank)], axis: 0))
-      x_t.shape = TensorStream::TensorShape.new([
-              x_static_shape[1].value, x_static_shape[0].value
-          ]).concatenate(x_static_shape[2..x_static_shape.shape.size])
+          x, TensorStream.concat([[1, 0], TensorStream.range(2, x_rank)], axis: 0))
+
+      x_t.set_shape(TensorStream::TensorShape.new([x_static_shape[1].value, x_static_shape[0].value]).
+          concatenate(x_static_shape[2..x_static_shape.shape.size]))
       x_t
     end
 
@@ -72,7 +71,7 @@ module TensorStream
         assert_same_structure(structure[0], other, check_types: check_types)
       end
       flat_structure = structure.map { |s| _flatten(s) }
- 
+
       pack_sequence_as(structure[0], flat_structure.map { |x| func.call(x) })
     end
 
@@ -88,7 +87,7 @@ module TensorStream
             if p.shape.ndims == 0
               TensorStream.expand_dims(p, 0)
             elsif p.shape.ndims != 1
-              raise TensorStream::ValueError,"prefix tensor must be either a scalar or vector, " +
+               raise TensorStream::ValueError,"prefix tensor must be either a scalar or vector, " +
                     "but saw tensor: #{p}"
             end
           else
@@ -98,25 +97,25 @@ module TensorStream
           end
 
       s = if suffix.is_a?(Tensor)
-        s = suffix
-        s_static = constant_value(suffix)
-        if s.shape.ndims == 0
-          TensorStream.expand_dims(s, 0)
-        elsif s.shape.ndims != 1
-          raise TensorStream::ValueError , "suffix tensor must be either a scalar or vector, " +
-            "but saw tensor: #{s}"
-        end
-      else
-        s = TensorShape.as_shape(suffix)
-        s_static = !s.ndims.nil? ? s.shape : nil
-        s.fully_defined? ? TensorStream.constant(s.shape, dtype: :int32) : nil
-      end
+            s = suffix
+            s_static = constant_value(suffix)
+            if s.shape.ndims == 0
+              TensorStream.expand_dims(s, 0)
+            elsif s.shape.ndims != 1
+              raise TensorStream::ValueError, "suffix tensor must be either a scalar or vector, but saw tensor: #{s}"
+            end
+          else
+            s = TensorShape.as_shape(suffix)
+            s_static = !s.ndims.nil? ? s.shape : nil
+            s.fully_defined? ? TensorStream.constant(s.shape, dtype: :int32) : nil
+          end
 
       shape = if static
-                TensorShape.as_shape(p_static).concatenate(s_static)
-                !shape.ndims.nil?  ? shape.shape : nil
+                shape = TensorShape.as_shape(p_static).concatenate(s_static)
+                !shape.ndims.nil? ? shape.shape : nil
               else
                 raise "Provided a prefix or suffix of None: #{prefix} and #{suffix}" if p.nil? || s.nil?
+
                 TensorStream.concat([p, s], 0)
               end
       shape
@@ -129,7 +128,7 @@ module TensorStream
         c = _concat(batch_size, s)
         size = TensorStream.zeros(c, dtype: dtype)
         c_static = _concat(batch_size, s, static: true)
-        size.shape = c_static
+        size.set_shape(c_static)
         size
       }
 
