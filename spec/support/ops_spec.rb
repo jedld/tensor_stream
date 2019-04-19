@@ -2384,4 +2384,15 @@ end
       expect(sess.run(g)).to eq([[[[0, 0, 0], [0, 0, 0]], [[1, 1, 1], [1, 1, 1]], [[0, 0, 0], [0, 0, 0]]]])
     end
   end
+
+  supported_op ".while_loop" do
+    specify do
+      n = 10000
+      x = tf.constant((0..n).to_a)
+      c = ->(i) { i < n }
+      b = ->(i) { [tf.print(i + 1, [i]), tf.print(x + 1, [i], "x:")] }
+      i, out = tf.while_loop(c, b, [0, x])
+      sess.run(i)
+    end
+  end
 end

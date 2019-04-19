@@ -285,7 +285,7 @@ module TensorStream
 
           time_step_fn = -> (time, output_ta_t, state) {
             input_t = input_ta.map { |ta| ta.read(time) }.freeze
-            input_t.zip(inputs_got_shape).each { |inp, shp| inp.set_shape(shp[1..shp.ndims]]) }
+            input_t.zip(inputs_got_shape).each { |inp, shp| inp.set_shape(shp[1..shp.ndims]) }
             input_t = pack_sequence_as(inputs, input_t)
             call_cell = ->() { cell(input_t, state) }
 
@@ -302,7 +302,6 @@ module TensorStream
           }
 
           TensorStream.while_loop(->(time) { time < time_steps}, body: time_step_fn)
-
         end
       end
     end

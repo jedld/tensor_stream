@@ -570,6 +570,11 @@ module TensorStream
       _op(:case, predicates, default, *functions, exclusive: exclusive, strict: strict, name: name)
     end
 
+    ##
+    #  Repeat `body` while the condition `cond` is true.
+    def while_loop(cond, body_fn, loop_vars, body: nil, backprop: true, name: nil)
+    end
+
     def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)
       _op(:cumprod, x, axis: axis, exclusive: exclusive, reverse: reverse, name: name)
     end
