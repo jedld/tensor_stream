@@ -2385,7 +2385,7 @@ end
     end
   end
 
-  supported_op ".while_loop" do
+  context ".while_loop" do
     specify do
       n = 10000
       x = tf.constant((0..n).to_a)

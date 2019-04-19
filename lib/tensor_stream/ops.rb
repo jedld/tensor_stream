@@ -572,7 +572,23 @@ module TensorStream
 
     ##
     #  Repeat `body` while the condition `cond` is true.
-    def while_loop(cond, body_fn, loop_vars, body: nil, backprop: true, name: nil)
+    def while_loop(cond, body_fn, loop_vars, body: nil, backprop: true, name: nil, parallel_iterations: 10)
+      body_fn ||= body
+      TensorStream.name_scope(name, "while", values: loop_vars) do
+        raise TensorStream::ValueError, "No loop variables provided" unless loop_vars
+        raise TensorStream::TypeError, "cond must be callable." unless cond.is_a?(Proc)
+        raise TensorStream::TypeError, "body must be callable." unless body_fn.is_a?(Proc)
+        
+        loop_context = WhileContext.new(maximum_iterations, parallel_iterations, back_prop, swap_memory)
+        TensorStream.add_to_collection(GraphKeys::WHILE_CONTEXT, loop_context) if loop_context.outer_context.nil?
+
+        result = BuildLoop.new(cond, body, loop_vars, shape_invariants, return_same_structure)
+        if maximum_iterations
+          return result[1]
+        else
+          return result
+        end
+      end
     end
 
     def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)
