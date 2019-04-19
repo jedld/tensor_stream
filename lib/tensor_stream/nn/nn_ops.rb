@@ -270,7 +270,7 @@ module TensorStream
           base_name = TensorStream.name_scope("dynamic_rnn") { |scope| scope }
 
           ta_creator = ->(name, element_shape, dtype) {
-            TensorStream::TensorArray.new(dtype, time_steps: time_steps, element_shape: element_shape, tensor_array_name: base_name + name)
+            TensorStream::TensorArray.new(dtype, size: time_steps, tensor_array_name: base_name + name)
           }
 
           output_ta = flat_output_size.each_with_index.map do |out_size, i|
@@ -281,13 +281,28 @@ module TensorStream
             ta_creator.call("input_#{i}", flat_input_i.shape[1..flat_input_i.shape.shape.size], flat_input_i.dtype)
           end.freeze
 
-          input_ta = input_ta.zip(flat_inpute).map { |ta, inp| ta.unstack(inp) }.freeze
+          input_ta = input_ta.zip(flat_input).map { |ta, inp| ta.unstack(inp) }.freeze
 
           time_step_fn = -> (time, output_ta_t, state) {
             input_t = input_ta.map { |ta| ta.read(time) }.freeze
+            input_t.zip(inputs_got_shape).each { |inp, shp| inp.set_shape(shp[1..shp.ndims]]) }
+            input_t = pack_sequence_as(inputs, input_t)
+            call_cell = ->() { cell(input_t, state) }
+
+            output, new_state = if sequence_length
+                                  _rnn_step(time: time, sequence_length: sequence_length, min_sequence_length: min_sequence_length,
+                                    max_sequence_length: max_sequence_length, zero_output: zero_output, state: state, call_cell: call_cell,
+                                    state_size: state_size, skip_conditionals: true)
+                                else
+                                  call_cell.call()
+                                end
+            output = _flatten(output)
+            output_ta_t = output_ta_t.zip(output).map { |ta, out| ta.write(time, out) }.freeze
+            [time + 1, output_ta_t, new_state]
           }
 
-          input_t = pack_sequence_as(inputs, input_t)
+          TensorStream.while_loop(->(time) { time < time_steps}, body: time_step_fn)
+
         end
       end
     end

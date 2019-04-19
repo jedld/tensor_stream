@@ -4,10 +4,13 @@
 #
 # However it is not expected that translation is not perfect as there are changes needed in order to follow
 # ruby conventions
+
+require 'tensor_stream/layer/tensor_array'
 module TensorStream
   module RNN
     class RNNCell < TensorStream::Layer
       include TensorStream::TensorUtils
+      include TensorStream::NNUtils
 
       def initialize(options = {}, trainable: true, name: nil, dtype: nil)
         super(options, trainable: trainable, name: name, dtype: dtype)

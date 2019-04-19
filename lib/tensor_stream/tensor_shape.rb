@@ -84,7 +84,6 @@ module TensorStream
 
     def compatible_with?(other)
       other = as_dimension(other)
-
       shape.nil? || other.nil? || shape == other
     end
 
@@ -94,6 +93,10 @@ module TensorStream
 
     def value
       shape
+    end
+
+    def dims
+      shape.map { |s| Dimension.new(s) }
     end
 
     ##
@@ -107,6 +110,14 @@ module TensorStream
     def self.as_shape(shape)
       return shape if shape.is_a?(TensorShape)
       TensorShape.new(shape)
+    end
+
+    def self.unknown_shape(ndims: nil)
+      if ndims.nil?
+        TensorShape.new(nil)
+      else
+        TensorShape.new([nil] * ndims)
+      end
     end
 
     def self.infer_shape(shape_a, shape_b)
