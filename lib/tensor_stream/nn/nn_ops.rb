@@ -301,7 +301,7 @@ module TensorStream
             [time + 1, output_ta_t, new_state]
           }
 
-          TensorStream.while_loop(->(time) { time < time_steps}, body: time_step_fn)
+          TensorStream.while_loop(->(time) { time < time_steps}, time_step_fn, [time, output_ta, state], parallel_iterations: parallel_iterations, maximum_iterations: time_steps)
         end
       end
     end

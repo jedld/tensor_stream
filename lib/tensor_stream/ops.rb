@@ -61,6 +61,10 @@ module TensorStream
       gs
     end
 
+    def add_to_collection(name, value)
+      get_default_graph.add_to_collection(name, value)
+    end
+
     ##
     # Outputs random values from a normal distribution.
     def random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
@@ -572,23 +576,48 @@ module TensorStream
 
     ##
     #  Repeat `body` while the condition `cond` is true.
-    def while_loop(cond, body_fn, loop_vars, body: nil, backprop: true, name: nil, parallel_iterations: 10)
+    def while_loop(cond, body_fn, loop_vars, shape_invariants: nil, body: nil, backprop: true, name: nil, parallel_iterations: 10, maximum_iterations: nil, retain_same_structure: false)
       body_fn ||= body
       TensorStream.name_scope(name, "while", values: loop_vars) do
         raise TensorStream::ValueError, "No loop variables provided" unless loop_vars
         raise TensorStream::TypeError, "cond must be callable." unless cond.is_a?(Proc)
         raise TensorStream::TypeError, "body must be callable." unless body_fn.is_a?(Proc)
-        
-        loop_context = WhileContext.new(maximum_iterations, parallel_iterations, back_prop, swap_memory)
+
+        loop_context = WhileContext.new(parallel_iterations, maximum_iterations: maximum_iterations, back_prop: backprop)
         TensorStream.add_to_collection(GraphKeys::WHILE_CONTEXT, loop_context) if loop_context.outer_context.nil?
 
-        result = BuildLoop.new(cond, body, loop_vars, shape_invariants, return_same_structure)
+        result = loop_context.build_loop(cond, body_fn, loop_vars, shape_invariants, retain_same_structure)
         if maximum_iterations
           return result[1]
         else
           return result
         end
       end
+    end
+
+    def convert_n_to_tensor_or_indexed_slices(values, dtype: nil, name: nil, as_ref: false)
+      raise TensorStream::TypeError, "values must be a sequence" unless values.is_a?(Array)
+
+      ret = []
+      values.each_with_index do |value, i|
+        if value.nil?
+          ret << value
+        else
+          n = name.nil? ? nil : "#{name}_#{i}"
+          ret << internal_convert_to_tensor_or_indexed_slices(value, dtype: dtype, name: n, as_ref: as_ref)
+        end
+      end
+      ret
+    end
+
+    def internal_convert_to_tensor_or_indexed_slices(value, dtype: nil, name: nil, as_ref: false)
+      if value.is_a?(Tensor)
+        raise TensorStream::ValueError, "Tensor conversion requested dtype #{dtype} for Tensor with dtype #{value.dtype}: #{value}" if dtype && !is_compatible_with(dtype, value.data_type)
+
+        return value
+      end
+
+      convert_to_tensor(value, dtype: dtype, name: name)
     end
 
     def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)

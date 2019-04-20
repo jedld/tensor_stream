@@ -1,9 +1,16 @@
+require 'tensor_stream/utils/tensor_utils'
+require 'tensor_stream/utils/nn_utils'
+
 module TensorStream
   class ControlFlowContext
     attr_reader :outer_context
 
+    include TensorStream::TensorUtils
+    include TensorStream::NNUtils
+    extend TensorStream::OpHelper
+
     def initialize(values_def = nil, import_sope = nil)
-      @outer_context = TensorStream.get_default_graph.get_control_flow_context
+      @outer_context = TensorStream.get_default_graph.control_flow_context
       @context_stack = []
       if values_def
         init_values_from_proto(values_def, import_scope: import_scope)
@@ -85,6 +92,17 @@ module TensorStream
       internal_control_inputs
     end
 
+    def self._enter(data, frame_name, is_constant: false, parallel_iterations: 10, user_ref: true, use_input_shape: true, name: nil)
+      data = TensorStream.convert_to_tensor(data)
+      if data.is_a?(Tensor)
+        result = i_op(:enter, data, frame_name: frame_name, is_constant: is_constant, parallel_iterations: parallel_iterations, name: name)
+        result.set_shape(data.shape) if use_input_shape
+        return result
+      end
+
+      raise TensorStream::TypeError, "Type #{data} not supported"
+    end
+
     protected
 
     def get_output_context(op)
@@ -99,12 +117,12 @@ module TensorStream
   class WhileContext < ControlFlowContext
     attr_reader :name, :parallel_iterations, :backprop, :swap_memory, :pivot, :loop_exits, :grad_state
 
-    def initialize(parallel_iterations = 10, back_prop: true, swap_memory: false, name: 'while_context', grad_state = nil, context_def: nil, import_scope: nil)
+    def initialize(parallel_iterations = 10, maximum_iterations: nil, back_prop: true, swap_memory: false, name: 'while_context', grad_state: nil, context_def: nil, import_scope: nil)
       if context_def
         #TODO: does something that deserializes from protobuf?
       else
         super()
-        init_from_args(parallel_iterations, backprop, swap_memory, name)
+        init_from_args(maximum_iterations, parallel_iterations, backprop, swap_memory, name)
       end
       @grad_state = grad_state
     end
@@ -196,7 +214,64 @@ module TensorStream
       end
     end
 
+    def build_loop(pred, body, loop_vars, shape_invariants, return_same_structure)
+      original_loop_vars = loop_vars
+      loop_vars = map_structure(->(x) { convert_tensorarray_to_flow(x) }, _flatten(loop_vars))
+      loop_vars = TensorStream.convert_n_to_tensor_or_indexed_slices(loop_vars)
+      original_body_result, exit_vars = begin
+                                          enter
+                                          TensorStream.get_default_graph.mutation_lock do
+                                            _build_loop(pred, body, original_loop_vars, loop_vars, shape_invariants)
+                                          end
+                                        ensure
+                                          exit
+                                        end
+    end
+
     protected
+
+    def _build_loop(pred, body, original_loop_vars, loop_vars, shape_invariants)
+      flat_loop_vars = _flatten(original_loop_vars, expand_composites: true)
+      initialize_values(loop_vars)
+      real_vars = loop_vars
+      real_vars = loop_vars.map { |x| @outer_context.add_value(x) } if @outer_context
+      enter_vars = nil
+      TensorStream.control_dependencies(nil) do
+        enter_vars = real_vars.map { |x| ControlFlowContext._enter(x, @name, is_constant: false, parallel_iterations: @parallel_iterations, use_input_shape: shape_invariants.nil?)}
+
+        enter_vars.each do |x|
+          x.graph.prevent_feeding(x)
+          @outer_context.add_inner_op(x.op) if @outer_context
+        end
+      end
+
+      outer_context = @outer_context
+      control_pivot = nil
+      while outer_context && control_pivot.nil?
+        control_pivot = outer_context.control_pivot
+        outer_context = outer_context.outer_context
+      end
+
+      if control_pivot
+        enter_vars.each do |var|
+          var.op.control_input << control_pivot.op if is_loop_constant_enter(var.op.inputs[0].op)
+        end
+      end
+
+      set_shape_invariants(real_vars, enter_vars, shape_invariants)
+      fix_control_inputs_and_context(enter_vars)
+      initialize_values(enter_vars)
+      @loop_enters = enter_vars
+
+      merge_vars = enter_vars.map { |x| merge([x, x])[0] }
+      @pivot_for_pred = merge_vars[0]
+    end
+
+    def convert_tensorarray_to_flow(tensor_or_tensor_array)
+      return tensor_or_tensor_array.flow if tensor_or_tensor_array.is_a?(TensorArray)
+
+      tensor_or_tensor_array
+    end
 
     def maybe_add_control_dependency(op)
       is_op_free = ->(op) {
@@ -312,10 +387,12 @@ module TensorStream
       end
     end
 
-    def init_from_args(parallel_iterations, back_prop, swap_memory, name)
-      raise TensorStream:ValueError, "`parallel_iterations` must be a positive integer: #{parallel_iterations}" if !parallel_iterations.is_a?(Integer) || (parallel_iterations <= 0)
+    def init_from_args(maximum_iterations, parallel_iterations, back_prop, swap_memory, name)
+      raise TensorStream::ValueError, "`parallel_iterations` must be a positive integer: #{parallel_iterations}" if !parallel_iterations.is_a?(Integer) || (parallel_iterations <= 0)
+
       @name = TensorStream.get_default_graph.unique_name(name)
       @parallel_iterations = parallel_iterations
+      @maximum_iterations = maximum_iterations
       @back_prop = back_prop
       @swap_memory = swap_memory
       @pivot_for_pred = nil

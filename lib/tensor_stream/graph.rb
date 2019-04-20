@@ -175,6 +175,11 @@ module TensorStream
       uniquenify(name)
     end
 
+    def mutation_lock
+      # no op for now
+      yield
+    end
+
     def add_variable(node, options = {})
       scope = _variable_scope
 

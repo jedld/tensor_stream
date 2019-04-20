@@ -15,7 +15,7 @@ module TensorStream
       x_t
     end
 
-    def _flatten(inputs)
+    def _flatten(inputs, expand_composites: false)
       return inputs.flatten if inputs.is_a?(Array)
       return inputs.keys.sort.map { |k| inputs[k] } if inputs.is_a?(Hash)
       [inputs]
@@ -36,6 +36,37 @@ module TensorStream
       TensorStream.shape(flat_input[0])[1]
     end
 
+    def yield_value(iterable)
+      if iterable.is_a?(Hash)
+        iterable.keys.sort.each do |key|
+          yield iterable[key]
+        end
+      else
+        iterable.each do |x|
+          yield x
+        end
+      end
+    end
+
+    def packed_nest_with_indices(structure, flat, index)
+      packed = []
+      yield_value(structure) do |s|
+        if s.is_a?(Array)
+          new_index, child = packed_nest_with_indices(s, flat, index)
+          packed << sequence_like(s, child)
+          index = new_index
+        else
+          packed << flat[index]
+          index += 1
+        end
+      end
+      [index, packed]
+    end
+
+    def sequence_like(instance, args)
+      instance
+    end
+
     ##
     # Returns a given flattened sequence packed into a given structure.
     def pack_sequence_as(structure, flat_sequence)
@@ -45,8 +76,8 @@ module TensorStream
         return flat_sequence[0]
       end
 
-      final_index, packed = _packed_nest_with_indices(structure, flat_sequence, 0)
-      _sequence_like(structure, packed)
+      final_index, packed = packed_nest_with_indices(structure, flat_sequence, 0)
+      sequence_like(structure, packed)
     end
 
     def map_structure(func, *structure, check_types: true)
