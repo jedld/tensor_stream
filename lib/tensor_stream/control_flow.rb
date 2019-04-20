@@ -267,6 +267,23 @@ module TensorStream
       @pivot_for_pred = merge_vars[0]
     end
 
+    def set_shape_invariants(input_vars, enter_vars, shapes)
+      return if shapes.nil?
+
+      flat_shapes = _flatten(shapes)
+
+      raise TensorStream::ValueError, "shapes must be a (possibley nested) list of shapes." if flat_shapes.detect { |s| !s.is_a?(TensorShape) }
+
+      input_vars.zip(enter_vars, flat_shapes) do |inp, var, shape|
+        if var.is_a?(Tensor)
+          raise TensorStream::ValueError, "The shape invariant specified for #{inp.name} is not compatible with the initial shape of the loop variable" if !_shape_less_than_or_equal(inp.shape, shape)
+          var.set_shape(shape)
+        else
+          raise TensorStream::TypeError("Type #{var.class} is not supported")
+        end
+      end
+    end
+
     def convert_tensorarray_to_flow(tensor_or_tensor_array)
       return tensor_or_tensor_array.flow if tensor_or_tensor_array.is_a?(TensorArray)
 
