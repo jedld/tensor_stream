@@ -3,7 +3,8 @@ module TensorStream
   class Graph
     include OpHelper
 
-    attr_accessor :nodes, :collections, :eager_execution, :random_seed, :constants, :unfeedable
+    attr_accessor :nodes, :collections, :eager_execution, :random_seed,
+                  :constants, :unfeedable, :control_flow_context
     attr_reader :node_keys
 
     def initialize
@@ -16,6 +17,7 @@ module TensorStream
         :"#{GraphKeys::TRAINABLE_VARIABLES}" => [],
       }
       @constants = {}
+      @control_flow_context = nil
     end
 
     def reset
@@ -167,6 +169,10 @@ module TensorStream
 
     def set_operation_name(op)
       op.operation.to_s
+    end
+
+    def unique_name(name)
+      uniquenify(name)
     end
 
     def add_variable(node, options = {})

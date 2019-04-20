@@ -4,7 +4,7 @@ module TensorStream
   class Operation < Tensor
     include OpHelper
 
-    attr_accessor :name, :operation, :inputs, :rank, :device, :consumers, :breakpoint
+    attr_accessor :name, :operation, :inputs, :rank, :device, :control_inputs, :control_flow_context, :consumers, :breakpoint
     attr_reader :outputs, :options, :is_const, :data_type, :shape
 
     def initialize(graph, inputs:, options:)
@@ -14,6 +14,8 @@ module TensorStream
       @graph = graph
       @inputs = inputs
       @options = options
+      @control_flow_context = nil
+      @control_inputs = []
     end
 
     def inspect
@@ -56,6 +58,17 @@ module TensorStream
       @rank = @shape.rank
       @is_const = infer_const
       @data_type = set_data_type(@options[:data_type])
+    end
+
+    def add_control_inputs(ops)
+      if ops
+        ops.each do |op|
+          raise TensorStream::TypeError, "op must be an Operation: #{op}"
+          assert_same_graph(op)
+          @control_inputs << op
+        end
+        recompute_node_def
+      end
     end
 
     def infer_const
@@ -247,6 +260,16 @@ module TensorStream
 
     def op
       self
+    end
+
+    protected
+
+    def recompute_node_def
+      #TODO: does something related protobuf node definition
+    end
+
+    def assert_same_graph(original_item, item)
+      raise TensorStream::ValueError, "#{item} must be from the same graph as #{original_item}"
     end
 
     private
