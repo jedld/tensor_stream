@@ -8,6 +8,7 @@ require "tensor_stream/evaluator/ruby/array_ops"
 require "tensor_stream/evaluator/ruby/random_ops"
 require "tensor_stream/evaluator/ruby/images_ops"
 require "tensor_stream/evaluator/ruby/check_ops"
+require "tensor_stream/evaluator/ruby/control_flow_ops"
 
 module TensorStream
   module Evaluator
@@ -41,6 +42,7 @@ module TensorStream
       include TensorStream::RandomOps
       include TensorStream::ImagesOps
       include TensorStream::CheckOps
+      include TensorStream::ControlFlowOps
 
       def run(tensor, execution_context)
         return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)

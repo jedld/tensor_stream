@@ -2387,12 +2387,11 @@ end
 
   context ".while_loop" do
     specify do
-      n = 10000
-      x = tf.constant((0..n).to_a)
-      c = ->(i) { i < n }
-      b = ->(i) { [tf.print(i + 1, [i]), tf.print(x + 1, [i], "x:")] }
-      i, out = tf.while_loop(c, b, [0, x])
-      sess.run(i)
+      i = tf.constant(0)
+      c = ->(i) { tf.less(i, 10) }
+      b = ->(i) { tf.add(i, 1) }
+      r = tf.while_loop(c, b, [i])
+      expect(sess.run(r)).to eq([])
     end
   end
 end

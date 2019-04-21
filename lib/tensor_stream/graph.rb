@@ -1,4 +1,19 @@
 module TensorStream
+  class ControlDependenciesController
+    def initialize(graph, control_inputs)
+      @graph = graph
+      if control_inputs.nil?
+        @control_inputs_val = []
+        @new_stack = true
+      else
+        @control_inputs_val = control_inputs
+        @new_stack = false
+      end
+      @seen_nodes = Set.new
+      @old_stack = nil
+      @old_control_flow_context = nil
+    end
+  end
   # A class that defines a TensorStream graph
   class Graph
     include OpHelper
@@ -214,6 +229,15 @@ module TensorStream
       ensure
         Thread.current["ts_graph_#{object_id}"][:control_dependencies].pop
       end
+    end
+
+    def _control_dependencies_for_inputs(input_ops)
+      #TODO
+      []
+    end
+
+    def _record_op_seen_by_control_dependencies(op)
+      #TODO
     end
 
     def enable_eager_execution

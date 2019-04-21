@@ -8,6 +8,7 @@ module TensorStream
     include TensorStream::TensorUtils
     include TensorStream::NNUtils
     extend TensorStream::OpHelper
+    include TensorStream::OpHelper
 
     def initialize(values_def = nil, import_sope = nil)
       @outer_context = TensorStream.get_default_graph.control_flow_context
@@ -46,6 +47,19 @@ module TensorStream
       graph = TensorStream.get_default_graph
       last_context = @context_stack.pop
       graph.control_flow_context = last_context
+    end
+
+    def _exit(data, name: nil)
+      data = TensorStream.convert_to_tensor(data)
+      _op(:exit, data, name)
+    end
+
+    def switch(data, pred, dtype: nil, name: nil)
+      TensorStream.name_scope(name, "Switch", values: [data, pred]) do |name|
+        data = TensorStream.internal_convert_to_tensor_or_indexed_slices(data, dtype: dtype, name: 'data')
+        pred = TensorStream.convert_to_tensor(pred, name: 'pred')
+        _op(:switch, data, pred, name: name) if data.is_a?(Tensor)
+      end
     end
 
     def exit_result(result)
@@ -101,6 +115,18 @@ module TensorStream
       end
 
       raise TensorStream::TypeError, "Type #{data} not supported"
+    end
+
+
+    ##
+    # Returns the value of an available element of `inputs`.
+    def merge(inputs, name: nil)
+      raise TensorStream::ValueError, "At least one of the merge inputs is None: #{inputs}" if inputs.detect { |inp| inp.nil? }
+
+      TensorStream.name_scope(name, "Merge", values: inputs) do |name|
+        inputs = inputs.map { |inp| TensorStream.convert_to_tensor(inp) }
+        _op(:merge, inputs, name)
+      end
     end
 
     protected
@@ -265,6 +291,68 @@ module TensorStream
 
       merge_vars = enter_vars.map { |x| merge([x, x])[0] }
       @pivot_for_pred = merge_vars[0]
+
+      #build the graph for pred
+      merge_vars_with_tensor_arrays = convert_flows_to_tensorarrays(flat_loop_vars, merge_vars)
+      packed_vars = pack_sequence_as(original_loop_vars, merge_vars_with_tensor_arrays)
+      c = TensorStream.convert_to_tensor(pred.call(*packed_vars))
+      @pivot = _op(:loop_cond, c, name: "LoopCond")
+      switch_vars = merge_vars.map { |x| switch_ref_or_tensor(x, @pivot)}
+
+      #build the graph for body
+      vars_for_body = switch_vars.map { |x| TensorStream.identity(x[1]) }
+      @pivot_for_body = vars_for_body[0]
+      vars_for_body_with_tensor_arrays = convert_flows_to_tensorarrays(flat_loop_vars, vars_for_body)
+      packed_vars_for_body = pack_sequence_as(original_loop_vars, vars_for_body_with_tensor_arrays)
+      body_result = body.call(*packed_vars_for_body)
+      body_result = [body_result] unless body_result.is_a?(Array)
+      original_body_result = body_result
+      result = map_structure(->(x) { convert_tensorarray_to_flow(x)}, _flatten(body_result))
+      result = TensorStream.convert_n_to_tensor_or_indexed_slices(result)
+
+      raise TensorStream::ValueError, "Number of inputs and outputs of body must match loopo_vars: #{merge_vars.size}, #{result.size}" if merge_vars.size != result.size
+
+      next_vars = []
+      merge_vars.zip(result) do |m, v|
+        next_vars << add_next_and_back_edge(m, v)
+      end
+
+      exit_vars = switch_vars.map { |x| _exit(x[0]) }
+      @loop_exits = exit_vars
+      exit_result(exit_vars)
+      [original_body_result, exit_vars]
+    end
+
+    def fix_control_inputs_and_context(enters)
+      graph = TensorStream.get_default_graph
+      enters.each do |e|
+        if e.is_a?(Tensor)
+          xs = [e]
+        else
+          raise TensorStream::TypeError, "Type #{s.class} is not supported"
+        end
+        xs.each do |x|
+          inp_op = x.op.inputs[0].op
+          control_inputs = graph._control_dependencies_for_inputs([inp_op])
+          outer_control_inputs = control_inputs.select { is_in_outer_context(op) }
+          x.op.control_flow_context = self
+          x.op.add_control_inputs(outer_control_inputs)
+          graph._record_op_seen_by_control_dependencies(x.op)
+        end
+      end
+    end
+
+    def add_next_and_back_edge(m, v, enforce_shape_invariant: true)
+      raise TensorStream::TypeError, "Type #{m.class.name} not supported" unless m.is_a?(Tensor)
+
+      v = TensorStream.convert_to_tensor(v)
+      v = _next_iteration(v)
+      m.op.set_input(1, v)
+    end
+
+    def _next_iteration(data, name: nil)
+      data = TensorStream.convert_to_tensor(data)
+      _op(:next_iteration, data, name: name)
     end
 
     def set_shape_invariants(input_vars, enter_vars, shapes)
@@ -288,6 +376,19 @@ module TensorStream
       return tensor_or_tensor_array.flow if tensor_or_tensor_array.is_a?(TensorArray)
 
       tensor_or_tensor_array
+    end
+
+    def convert_flows_to_tensorarrays(tensors_or_tensorarrays, tensors_or_flows)
+      raise TensorStream::ValueError, "Lengths of original Tensor list and new list do not match: #{tensor_or_tensor_arrays.size} vs. #{tensors_or_flows.size}" if tensors_or_tensorarrays.size != tensors_or_flows.size
+
+      tensors_or_tensorarrays.zip(tensors_or_flows).map do |ta, t_or_flow|
+        ta.is_a?(TensorArray) ? _make_tensor_array(ta, t_or_flow) : t_or_flow
+      end
+    end
+
+    def switch_ref_or_tensor(data, pred, name: 'switch')
+      data = TensorStream.convert_to_tensor(data)
+      switch(data, pred, name: name)
     end
 
     def maybe_add_control_dependency(op)
