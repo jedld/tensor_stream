@@ -250,8 +250,13 @@ module TensorStream
                                             _build_loop(pred, body, original_loop_vars, loop_vars, shape_invariants)
                                           end
                                         ensure
-                                          exit
+                                          self.exit
                                         end
+      flat_result = _flatten(original_body_result, expand_composites: true)
+      exit_vars_with_tensor_arrays = convert_flows_to_tensorarrays(flat_result, exit_vars)
+      packed_exit_vars = pack_sequence_as(original_body_result, exit_vars_with_tensor_arrays)
+
+      return_same_structure ? packed_exit_vars : ( exit_vars.size == 1 ? packed_exit_vars[0] : packed_exit_vars)
     end
 
     protected

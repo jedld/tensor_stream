@@ -87,7 +87,7 @@ module TensorStream
       result = args.collect { |e|
         next e.value if e.is_a?(Tensor) && e.is_const && e.value
 
-        value = delegate_to_evaluator(e, context, {})
+        value = delegate_to_evaluator(e, context, { global: {}})
         recursive_eval(value)
       }
       args.size == 1 ? result.first : result
