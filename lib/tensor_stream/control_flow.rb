@@ -64,7 +64,8 @@ module TensorStream
 
     def exit_result(result)
       if @outer_context
-        result.each { |x| @outer_context.add_name(x.name) }
+        result.each { |x|
+          map_structure(->(x) { @outer_context.add_name(x.name)}, result) }
       end
     end
 
@@ -302,7 +303,7 @@ module TensorStream
       packed_vars = pack_sequence_as(original_loop_vars, merge_vars_with_tensor_arrays)
       c = TensorStream.convert_to_tensor(pred.call(*packed_vars))
       @pivot = _op(:loop_cond, c, name: "LoopCond")
-      switch_vars = merge_vars.map { |x| switch_ref_or_tensor(x, @pivot)}
+      switch_vars = merge_vars.map { |x| switch_ref_or_tensor(x, @pivot) }
 
       #build the graph for body
       vars_for_body = switch_vars.map { |x| TensorStream.identity(x[1]) }
@@ -312,7 +313,7 @@ module TensorStream
       body_result = body.call(*packed_vars_for_body)
       body_result = [body_result] unless body_result.is_a?(Array)
       original_body_result = body_result
-      result = map_structure(->(x) { convert_tensorarray_to_flow(x)}, _flatten(body_result))
+      result = map_structure(->(x) { convert_tensorarray_to_flow(x) }, _flatten(body_result))
       result = TensorStream.convert_n_to_tensor_or_indexed_slices(result)
 
       raise TensorStream::ValueError, "Number of inputs and outputs of body must match loopo_vars: #{merge_vars.size}, #{result.size}" if merge_vars.size != result.size

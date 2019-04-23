@@ -77,6 +77,11 @@ module TensorStream
       end
 
       final_index, packed = packed_nest_with_indices(structure, flat_sequence, 0)
+      raise TensorStream::IndexError if final_index < flat_sequence.size
+
+      flat_structure = _flatten(structure)
+      raise TensorStream::ValueError, "Could not pack sequence. Structure had #{flat_structure.size} elements, but flat_sequence had #{flat_sequence.size} elements. Structure: #{structure}, flat_sequence: #{flat_sequence}" if flat_structure.size != flat_sequence.size
+
       sequence_like(structure, packed)
     end
 
