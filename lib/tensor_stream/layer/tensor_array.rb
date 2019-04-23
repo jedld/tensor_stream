@@ -2,6 +2,7 @@ module TensorStream
   class TensorArray
     include TensorStream::OpHelper
 
+    attr_reader :flow
     attr_accessor :infer_shape, :element_shape
 
     def initialize(dtype, size: nil, dynamic_size: nil, clear_after_read: nil, tensor_array_name: nil, handle: nil, flow: nil, infer_shape: true, element_shape: nil, name: nil)
@@ -69,6 +70,32 @@ module TensorStream
       raise TensorStream::ValueError, "Inconsistent shapes: saw #{shape} but expected #{@element_shape[0]} (and infer_shape=True)" if @element_shape && !shape.compatible_with?(@element_shape[0])
 
       @element_shape << shape
+    end
+
+    def read(index, name: nil)
+      value = i_op(:tensor_array_read_v3, index, @flow, handle: @handle, name: @name)
+      value.set_shape(@element_shape[0].dims) if @element_shape
+      value
+    end
+
+    def write(index, value, name: nil)
+      TensorStream.name_scope(name, "TensorArrayWrite", values: [@handle, index, value]) do
+        value = TensorStream.convert_to_tensor(value, dtype: @dtype, name: "value")
+        merge_element_shape(value.shape) if @infer_shape
+        flow_out = i_op(:tensor_array_write_v3, @handle, index, value, @flow, name: name)
+        ta = TensorArray.new(@dtype, handle: @handle, flow: flow_out)
+        ta.infer_shape = @infer_shape
+        ta.element_shape = @element_shape
+        ta
+      end
+    end
+
+    def size(name: nil)
+      i_op(:tensor_array_size_v3, @handle, @flow, name: name)
+    end
+
+    def close(name: nil)
+      i_op(:tensor_array_close_v3, @handle, name: name)
     end
   end
 end
