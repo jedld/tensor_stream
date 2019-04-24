@@ -2391,7 +2391,6 @@ end
       c = ->(i) { tf.less(i, 10) }
       b = ->(i) { tf.add(i, 1) }
       r = tf.while_loop(c, b, [i])
-      # binding.pry
       expect(sess.run(r)).to eq(10)
     end
   end

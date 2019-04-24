@@ -126,7 +126,7 @@ module TensorStream
 
       TensorStream.name_scope(name, "Merge", values: inputs) do |name|
         inputs = inputs.map { |inp| TensorStream.convert_to_tensor(inp) }
-        _op(:merge, inputs, name)
+        _op(:merge, inputs, name: name)
       end
     end
 

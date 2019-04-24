@@ -64,7 +64,7 @@ module TensorStream
     end
 
     def sequence_like(instance, args)
-      instance
+      args
     end
 
     ##

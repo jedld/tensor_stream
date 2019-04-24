@@ -5,26 +5,23 @@ module TensorStream
         register_op :enter do |context, tensor, inputs|
           context[:global][:while_context] ||= []
           context[:global][:while_context] << { start: inputs }
-          binding.pry
           inputs[0]
         end
 
         register_op :merge do |context, tensor, inputs|
           result = nil
-          inputs.each_with_index do |val, index|
+          inputs[0].each_with_index do |val, index|
             if val
               result = [val, index]
               break
             end
           end
-          binding.pry
           result
         end
 
         register_op :loop_cond do |context, tensor, inputs|
           while_context = context[:global][:while_context].last
           while_context[:cond] = tensor.inputs[0]
-          binding.pry
           inputs[0]
         end
 
@@ -32,18 +29,16 @@ module TensorStream
           inputs.map do |x, cond|
             cond ? x : nil
           end
-          binding.pry
         end
 
         register_op :next_iteration do |context, tensor, inputs|
           while_context = context[:global][:while_context].last
           while_context[:next_iteration] = tensor.inputs[0]
-          binding.pry
+
           inputs[0]
         end
 
         register_op :exit do |context, tensor, inputs|
-          binding.pry
           inputs[0]
         end
       end
