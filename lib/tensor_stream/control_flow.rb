@@ -125,8 +125,12 @@ module TensorStream
       raise TensorStream::ValueError, "At least one of the merge inputs is None: #{inputs}" if inputs.detect { |inp| inp.nil? }
 
       TensorStream.name_scope(name, "Merge", values: inputs) do |name|
-        inputs = inputs.map { |inp| TensorStream.convert_to_tensor(inp) }
-        _op(:merge, inputs, name: name)
+        inputs = inputs.map { |inp| TensorStream.internal_convert_to_tensor(inp, as_ref: true) }
+        if inputs.all?(&:ref_dtype?)
+          _op(:ref_merge, inputs, name: name)
+        else
+          _op(:merge, inputs, name: name)
+        end
       end
     end
 
