@@ -617,7 +617,7 @@ module TensorStream
         return value
       end
 
-      convert_to_tensor(value, dtype: dtype, name: name)
+      internal_convert_to_tensor(value, dtype: dtype, name: name, as_ref: as_ref)
     end
 
     def cumprod(x, axis: 0, exclusive: false, reverse: false, name: nil)

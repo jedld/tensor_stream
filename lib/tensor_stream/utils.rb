@@ -248,8 +248,13 @@ module TensorStream
     end
 
     def convert_to_tensor(value, dtype: nil, name: nil)
+      internal_convert_to_tensor(value, dtype: dtype, name: name)
+    end
+
+    def internal_convert_to_tensor(value, dtype: nil, name: nil, as_ref: false)
+      raise "as_ref is true" if as_ref
       return value if value.is_a?(Tensor)
-      return convert_to_tensor(value.call) if value.is_a?(Proc)
+      return internal_convert_to_tensor(value.call) if value.is_a?(Proc)
 
       # raise "Invalid tensor value" if value.nil?
 
