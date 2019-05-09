@@ -126,11 +126,7 @@ module TensorStream
 
       TensorStream.name_scope(name, "Merge", values: inputs) do |name|
         inputs = inputs.map { |inp| TensorStream.internal_convert_to_tensor(inp, as_ref: true) }
-        if inputs.all?(&:ref_dtype?)
-          _op(:ref_merge, inputs, name: name)
-        else
-          _op(:merge, inputs, name: name)
-        end
+        _op(:merge, *inputs, name: name)
       end
     end
 
@@ -320,7 +316,7 @@ module TensorStream
       result = map_structure(->(x) { convert_tensorarray_to_flow(x) }, _flatten(body_result))
       result = TensorStream.convert_n_to_tensor_or_indexed_slices(result)
 
-      raise TensorStream::ValueError, "Number of inputs and outputs of body must match loopo_vars: #{merge_vars.size}, #{result.size}" if merge_vars.size != result.size
+      raise TensorStream::ValueError, "Number of inputs and outputs of body must match loop_vars: #{merge_vars.size}, #{result.size}" if merge_vars.size != result.size
 
       next_vars = []
       merge_vars.zip(result) do |m, v|

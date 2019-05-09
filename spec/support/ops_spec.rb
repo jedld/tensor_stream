@@ -2388,10 +2388,10 @@ end
   context ".while_loop" do
     specify do
       i = tf.constant(0)
-      c = ->(i) { tf.less(i, 10) }
+      c = ->(i) { tf.less(i, 2) }
       b = ->(i) { tf.add(i, 1) }
       r = tf.while_loop(c, b, [i])
-      expect(sess.run(r)).to eq(10)
+      expect(sess.run(r)).to eq(2)
     end
   end
 end

@@ -72,7 +72,7 @@ module TensorStream
     def pack_sequence_as(structure, flat_sequence)
       raise TensorStream::TypeError, "flat_sequence must be a sequence" unless flat_sequence.is_a?(Array)
       if !structure.is_a?(Array)
-        raise TensorStream::ValueError, "Structure is a scalar but lflat_sequence.size == #{flat_sequence.size} > 1" if flat_sequence.size != 1
+        raise TensorStream::ValueError, "Structure is a scalar but flat_sequence.size == #{flat_sequence.size} > 1" if flat_sequence.size != 1
         return flat_sequence[0]
       end
 

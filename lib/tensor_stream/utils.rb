@@ -166,7 +166,7 @@ module TensorStream
       TensorStream::Layers
     end
 
-    def constant(value, dtype: nil, shape: nil, internal: false, name: "Const")
+    def constant(value, dtype: nil, shape: nil, internal: false, name: "Const", as_ref: false)
       shared_options = {const: true, value: value, name: name, internal: internal}
 
       if value.is_a?(Float)
@@ -252,9 +252,10 @@ module TensorStream
     end
 
     def internal_convert_to_tensor(value, dtype: nil, name: nil, as_ref: false)
-      raise "as_ref is true" if as_ref
-      return value if value.is_a?(Tensor)
-      return internal_convert_to_tensor(value.call) if value.is_a?(Proc)
+      puts "REF: #{value}" if as_ref
+      return value if value.is_a?(Tensor) && !as_ref
+
+      return internal_convert_to_tensor(value.call, as_ref: as_ref) if value.is_a?(Proc)
 
       # raise "Invalid tensor value" if value.nil?
 
@@ -271,7 +272,7 @@ module TensorStream
       end
 
       check_if_dense(value)
-      i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name)
+      i_cons(value, dtype: dtype || Tensor.detect_type(value), name: name, as_ref: as_ref)
     end
 
     ##
