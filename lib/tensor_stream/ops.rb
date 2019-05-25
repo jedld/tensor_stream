@@ -586,7 +586,7 @@ module TensorStream
         loop_context = WhileContext.new(parallel_iterations, maximum_iterations: maximum_iterations, back_prop: backprop)
         TensorStream.add_to_collection(GraphKeys::WHILE_CONTEXT, loop_context) if loop_context.outer_context.nil?
 
-        result = loop_context.build_loop(cond, body_fn, loop_vars, shape_invariants, retain_same_structure)
+        result = loop_context.build_loop2(cond, body_fn, loop_vars, shape_invariants, retain_same_structure)
         if maximum_iterations
           return result[1]
         else

@@ -286,7 +286,7 @@ module TensorStream
       end
 
       def eval_operation(tensor, child_context)
-        return @context[tensor.name] if @context.key?(tensor.name)
+        return @context[tensor.name] if !tensor.skip_cache && @context.key?(tensor.name)
 
         puts "ruby eval #{tensor.operation} -> #{object_id}: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
@@ -313,7 +313,7 @@ module TensorStream
               value: result,
             }
           end
-          @context[tensor.name] = result
+          @context[tensor.name] = result unless tensor.skip_cache
         end
       rescue EvaluatorExcecutionException => e
         raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"

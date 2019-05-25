@@ -4,7 +4,7 @@ module TensorStream
   class Operation < Tensor
     include OpHelper
 
-    attr_accessor :name, :operation, :inputs, :rank, :device, :control_inputs, :control_flow_context, :consumers, :breakpoint
+    attr_accessor :name, :operation, :inputs, :rank, :device, :control_inputs, :control_flow_context, :consumers, :breakpoint, :skip_cache
     attr_reader :outputs, :options, :is_const, :data_type, :shape
 
     def initialize(graph, inputs:, options:)
@@ -16,6 +16,7 @@ module TensorStream
       @options = options
       @control_flow_context = nil
       @control_inputs = []
+      @skip_cache = false
     end
 
     def inspect
