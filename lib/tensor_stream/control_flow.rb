@@ -260,7 +260,7 @@ module TensorStream
       return_same_structure ? packed_exit_vars : ( exit_vars.size == 1 ? packed_exit_vars[0] : packed_exit_vars)
     end
 
-    def build_loop2(pred, body, loop_vars)
+    def build_loop2(pred, body, loop_vars, shape_invariants, return_same_structure)
       loop_vars = loop_vars.map do |v|
         TensorRef.new(v)
       end

@@ -164,7 +164,7 @@ module TensorStream
 
       new_op = Operation.new(self, inputs: inputs, options: options)
       new_op.source = format_source(caller_locations)
-      new_op.skip_cache = inputs.detect(&:skip_cache)
+      new_op.skip_cache = !!inputs.compact.detect(&:skip_cache)
       new_op.operation = operation
       new_op.set_shape(TensorStream::InferShape.infer_shape(new_op))
       new_op.rank = new_op.shape.rank
