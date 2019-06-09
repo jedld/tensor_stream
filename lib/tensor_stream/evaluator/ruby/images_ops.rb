@@ -1,5 +1,6 @@
 require "chunky_png"
 
+
 module TensorStream
   module ImagesOps
     def self.included(klass)
@@ -46,6 +47,23 @@ module TensorStream
 
             color_values
           }
+          TensorShape.reshape(image_data, [image.height, image.width, channels])
+        end
+
+        register_op :decode_jpg do |_context, tensor, inputs|
+          require "jpeg"
+
+          content = inputs[0]
+          channels = tensor.options[:channels]
+          channels = 3 if channels.zero?
+
+          image = Jpeg::Image.open_buffer(content)
+          image_data = image.raw_data.map do |pixel|
+            pixel.map!(&:to_f) if fp_type?(tensor.data_type)
+
+            pixel
+          end
+
           TensorShape.reshape(image_data, [image.height, image.width, channels])
         end
 
