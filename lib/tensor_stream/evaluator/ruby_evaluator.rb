@@ -286,7 +286,7 @@ module TensorStream
       def eval_operation(tensor, child_context)
         return @context[tensor.name] if @context.key?(tensor.name)
 
-        # puts "ruby eval #{object_id}: #{tensor.name}"
+        # puts "ruby eval #{tensor.operation} -> #{object_id}: #{tensor.name}"
         invoke(tensor, child_context).tap do |result|
           # puts "result done ruby #{object_id}: #{tensor.name}"
           # assertions to make sure inferred shapes == actual evaluated shapes
@@ -314,10 +314,10 @@ module TensorStream
           @context[tensor.name] = result
         end
       rescue EvaluatorExcecutionException => e
-        raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
+        raise e, "error #{e.message} while evaluating #{tensor.name} defined at #{tensor.source}"
       rescue TensorStreamError => e
-        raise e, "error #{e.message} while evaluating #{tensor.name}  defined at #{tensor.source}"
-      rescue => e
+        raise e, "error #{e.message} while evaluating #{tensor.name} defined at #{tensor.source}"
+      rescue StandardError => e
         puts e.message
         puts e.backtrace.join("\n")
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math(true, 1)} defined at #{tensor.source}"

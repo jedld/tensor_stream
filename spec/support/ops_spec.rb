@@ -1464,7 +1464,9 @@ z = tf.constant([[8, 9],[10, 11]])
     supported_op ".truncated_normal" do
       specify do
         tf.set_random_seed(0)
-        f = tf.truncated_normal([4,4])
+
+        # pre gen table size is used so that the test returns consistent results for evaluators that use pregenerated random tables (e.g. opencl)
+        f = tf.truncated_normal([4,4], pre_gen_table_size: 16)
         expect(tr(sess.run(f))).to eq([
           [-1.5109, -0.4785, -1.0022, -0.755],
           [-1.2783, 0.665, 0.2395, 0.8059],

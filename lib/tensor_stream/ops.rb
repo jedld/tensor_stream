@@ -70,9 +70,8 @@ module TensorStream
 
     ##
     # Outputs random values from a truncated normal distribution.
-    def truncated_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
-      options = {dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name}
-      _op(:truncated_normal, shape, options)
+    def truncated_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil, pre_gen_table_size: nil)
+      _op(:truncated_normal, shape, dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name, pre_gen_table_size: pre_gen_table_size)
     end
 
     ##

@@ -90,7 +90,6 @@ module TensorStream
 
             pick
           }
-
           TensorShape.reshape(val, shape)
         end
       end

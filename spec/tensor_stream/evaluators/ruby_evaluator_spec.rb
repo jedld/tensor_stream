@@ -19,10 +19,11 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
   it_behaves_like "optimizer evaluator"
   it_behaves_like "standard nn ops evaluator"
   it_behaves_like "freezer ops"
+  it_behaves_like "supported variable behaviors"
 
   context "supported ops" do
     specify do
-      expect(described_class.ops.keys.size).to eq(138)
+      expect(described_class.ops.keys.size).to eq(139)
     end
 
     specify do
@@ -65,6 +66,7 @@ RSpec.describe TensorStream::Evaluator::RubyEvaluator do
         conv2d_backprop_input
         cos
         cumprod
+        decode_jpg
         decode_png
         div
         dynamic_partition

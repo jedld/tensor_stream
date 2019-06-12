@@ -40,6 +40,7 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "pry-byebug"
     spec.add_development_dependency "byepry"
     spec.add_development_dependency "tensor_stream-opencl"
+    spec.add_dependency "jpeg"
   end
   spec.add_development_dependency "colorize"
   spec.add_development_dependency "rspec_junit_formatter"
