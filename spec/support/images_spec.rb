@@ -861,5 +861,11 @@ RSpec.shared_examples "images ops" do
       decoded_image = tf.image.decode_jpeg(image_1)
       expect(sess.run(tf.shape(decoded_image))).to eq([400, 600, 3])
     end
+
+    it "converts b&w jpg file to a tensor" do
+      image_1 = File.open( File.join("spec", "fixtures", "sample_jpeg_bw.jpg"), 'rb') { |io| io.read }
+      decoded_image = tf.image.decode_jpeg(image_1)
+      expect(sess.run(tf.shape(decoded_image))).to eq([225, 450, 3])
+    end
   end
 end

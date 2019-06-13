@@ -58,11 +58,19 @@ module TensorStream
           channels = 3 if channels.zero?
 
           image = Jpeg::Image.open_buffer(content)
-          image_data = image.raw_data.map do |pixel|
-            pixel.map!(&:to_f) if fp_type?(tensor.data_type)
+          source_channels = image.color_info == :gray ? 1 : 3
 
-            pixel
-          end
+          image_data = image.raw_data.map do |pixel|
+            if source_channels == channels
+              pixel
+            elsif source_channels = 1 && channels == 3
+              [pixel, pixel, pixel]
+            elsif source_channels = 3 && channels == 1
+              raise TensorStream::ValueError, "color to grayscale not supported for jpg"
+            end
+          end.flatten
+
+          image_data.map!(&:to_f) if fp_type?(tensor.data_type)
 
           TensorShape.reshape(image_data, [image.height, image.width, channels])
         end
