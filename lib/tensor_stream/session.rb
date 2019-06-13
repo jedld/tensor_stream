@@ -58,7 +58,8 @@ module TensorStream
       # scan for placeholders and assign value
       options[:feed_dict]&.each_key do |k|
         if k.is_a?(Placeholder)
-          context[k.name.to_sym] = options[:feed_dict][k]
+          ph = options[:feed_dict][k]
+          context[k.name.to_sym] = ph.is_a?(Tensor) ? ph.op : ph
         elsif k.is_a?(String)
           target_graph = args[0].graph
           node = target_graph.get_node(k)
