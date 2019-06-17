@@ -46,7 +46,7 @@ module TensorStream
 
     def assign(value, name: nil, use_locking: false)
       TensorStream.check_data_types(self, value)
-      _op(:assign, self, value, name: name)
+      _op(:assign, value, name: name, var_name: @name)
     end
 
     def read_value
@@ -56,7 +56,7 @@ module TensorStream
 
     def assign_add(value, name: nil)
       TensorStream.check_data_types(self, value)
-      _op(:assign_add, self, value, data_type: data_type, name: name)
+      _op(:assign_add, value, data_type: data_type, name: name, var_name: @name)
     end
 
     def to_math(_tensor, _name_only = false, _max_depth = 99, _unused = 0)
@@ -65,11 +65,15 @@ module TensorStream
 
     def assign_sub(value)
       TensorStream.check_data_types(self, value)
-      _op(:assign_sub, self, value)
+      _op(:assign_sub, value, data_type: data_type, name: name, var_name: @name)
     end
 
     def self.variables_initializer(collection)
-      TensorStream.group(TensorStream.get_default_graph.get_collection(collection).map(&:initializer))
+      global_variables_ops = TensorStream.get_default_graph.get_collection(collection).map do |variable|
+        _op(:assign, variable.initializer, var_name: variable.name)
+      end
+
+      TensorStream.group(global_variables_ops)
     end
 
     def self.global_variables_initializer

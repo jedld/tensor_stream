@@ -30,6 +30,7 @@ module TensorStream
         :"#{GraphKeys::TRAINABLE_VARIABLES}" => [],
       }
       @constants = {}
+
     end
 
     def as_default
@@ -129,7 +130,7 @@ module TensorStream
 
     def add_op(operation, *args)
       options = if args.last.is_a?(Hash)
-        args.pop
+        args.pop || {}
       else
         {}
       end
@@ -180,7 +181,7 @@ module TensorStream
 
     def add_variable!(node, options = {})
       node = add_variable(node, options)
-      op = Graph.get_default_graph.add_op!(:variable_v2, container: node, internal_name: node.name, shape: options[:shape], data_type: options[:data_type])
+      op = Graph.get_default_graph.add_op!(:variable_v2, var_name: node.name, shape: options[:shape], data_type: options[:data_type])
       node.name = op.name
       op
     end

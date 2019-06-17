@@ -7,7 +7,7 @@ module TensorStream
     attr_accessor :name, :operation, :inputs, :rank, :device, :consumers, :breakpoint
     attr_reader :outputs, :options, :is_const, :data_type, :shape
 
-    def initialize(graph, inputs:, options:)
+    def initialize(graph, inputs: [], options: {})
       @consumers = Set.new
       @outputs = []
       @op = self
@@ -56,6 +56,10 @@ module TensorStream
       @rank = @shape.rank
       @is_const = infer_const
       @data_type = set_data_type(@options[:data_type])
+    end
+
+    def set_option(key, value)
+      @options.merge!(key.to_sym => value)
     end
 
     def infer_const

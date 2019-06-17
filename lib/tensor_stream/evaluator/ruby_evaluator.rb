@@ -2,6 +2,7 @@ require "tensor_stream/evaluator/operation_helpers/random_gaussian"
 require "tensor_stream/evaluator/operation_helpers/array_ops_helper"
 require "tensor_stream/evaluator/operation_helpers/math_helper"
 require "tensor_stream/evaluator/base_evaluator"
+require "tensor_stream/evaluator/ruby/storage_manager"
 require "tensor_stream/evaluator/ruby/math_ops"
 require "tensor_stream/evaluator/ruby/nn_ops"
 require "tensor_stream/evaluator/ruby/array_ops"
@@ -154,10 +155,11 @@ module TensorStream
         end
       end
 
-      register_op :variable_v2, no_eval: true do |_context, tensor, _inputs|
-        value = tensor.options[:container].read_value
-        raise "variable #{tensor.options[:container].name} not initalized" if value.nil?
-
+      register_op :variable_v2 do |_context, tensor, _inputs|
+        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
+        value = storage_manager.read_value(tensor.graph, tensor.options[:var_name])
+        binding.pry
+        raise "variable #{tensor.options[:var_name]} not initalized" if value.nil?
         value
       end
 
@@ -165,24 +167,28 @@ module TensorStream
         inputs[0]
       end
 
-      register_op :assign, noop: true do |context, tensor, _inputs|
-        assign = tensor.inputs[0] || tensor
-        assign.container = global_eval(tensor, tensor.inputs[1], context)
-        assign.container
+      register_op :assign do |context, tensor, inputs|
+        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
+        binding.pry
+        storage_manager.assign_value(tensor.graph, tensor.options[:var_name], inputs[0])
       end
 
-      register_op :assign_add, noop: true do |context, tensor, _inputs|
-        assign = tensor.inputs[0] || tensor
+      register_op :assign_add do |_context, tensor, inputs|
+        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
+        current_val = storage_manager.read_value(tensor.graph, tensor.options[:var_name])
+        raise "variable #{tensor.options[:var_name]} not initialized" if current_val.nil?
 
-        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context) { |t, u| t + u }
-        assign.container
+        result = multi_array_op(->(var, val) { var + val }, current_val, inputs[0])
+        storage_manager.assign_value(tensor.graph, tensor.options[:var_name], result)
       end
 
-      register_op :assign_sub, noop: true do |context, tensor, _inputs|
-        assign = tensor.inputs[0] || tensor
+      register_op :assign_sub do |context, tensor, _inputs|
+        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
+        current_val = storage_manager.read_value(tensor.graph, tensor.options[:var_name])
+        raise "variable #{tensor.options[:var_name]} not initialized" if current_val.nil?
 
-        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context) { |t, u| t - u }
-        assign.container
+        result = multi_array_op(->(var, val) { var - val }, current_val, inputs[0])
+        storage_manager.assign_value(tensor.graph, tensor.options[:var_name], result)
       end
 
       register_op :less do |context, tensor, inputs|

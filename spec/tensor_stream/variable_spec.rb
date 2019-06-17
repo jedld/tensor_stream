@@ -52,6 +52,7 @@ RSpec.describe TensorStream::Variable do
 
     it "can access after initialized" do
       sess.run(TensorStream.global_variables_initializer)
+      binding.pry
       expect(variable.eval).to eq([23, 42])
     end
 
