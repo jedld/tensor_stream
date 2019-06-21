@@ -9,6 +9,7 @@ require "tensor_stream/evaluator/ruby/array_ops"
 require "tensor_stream/evaluator/ruby/random_ops"
 require "tensor_stream/evaluator/ruby/images_ops"
 require "tensor_stream/evaluator/ruby/check_ops"
+require "tensor_stream/evaluator/ruby/variable_ops"
 
 module TensorStream
   module Evaluator
@@ -42,6 +43,11 @@ module TensorStream
       include TensorStream::RandomOps
       include TensorStream::ImagesOps
       include TensorStream::CheckOps
+      include TensorStream::VariableOps
+
+      def self.get_storage_manager
+        RubyStorageManager.current_storage_manager
+      end
 
       def run(tensor, execution_context)
         return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
@@ -82,6 +88,18 @@ module TensorStream
       end
 
       protected
+
+      def var_read_value(tensor)
+        @storage_manager ||= TensorStream::RubyStorageManager.current_storage_manager
+        @storage_manager.read_value(tensor.graph, tensor.options[:var_name])
+      end
+
+      def var_assign_value(tensor, value)
+        @storage_manager ||= TensorStream::RubyStorageManager.current_storage_manager
+        @storage_manager.assign_value(tensor.graph, tensor.options[:var_name], value)
+
+        value
+      end
 
       def prepare_input(tensor, context, options = {})
         return nil unless tensor
@@ -155,40 +173,8 @@ module TensorStream
         end
       end
 
-      register_op :variable_v2 do |_context, tensor, _inputs|
-        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
-        value = storage_manager.read_value(tensor.graph, tensor.options[:var_name])
-        binding.pry
-        raise "variable #{tensor.options[:var_name]} not initalized" if value.nil?
-        value
-      end
-
       register_op :stop_gradient, no_eval: true do |_context, _tensor, inputs|
         inputs[0]
-      end
-
-      register_op :assign do |context, tensor, inputs|
-        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
-        binding.pry
-        storage_manager.assign_value(tensor.graph, tensor.options[:var_name], inputs[0])
-      end
-
-      register_op :assign_add do |_context, tensor, inputs|
-        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
-        current_val = storage_manager.read_value(tensor.graph, tensor.options[:var_name])
-        raise "variable #{tensor.options[:var_name]} not initialized" if current_val.nil?
-
-        result = multi_array_op(->(var, val) { var + val }, current_val, inputs[0])
-        storage_manager.assign_value(tensor.graph, tensor.options[:var_name], result)
-      end
-
-      register_op :assign_sub do |context, tensor, _inputs|
-        storage_manager = TensorStream::RubyStorageManager.current_storage_manager
-        current_val = storage_manager.read_value(tensor.graph, tensor.options[:var_name])
-        raise "variable #{tensor.options[:var_name]} not initialized" if current_val.nil?
-
-        result = multi_array_op(->(var, val) { var - val }, current_val, inputs[0])
-        storage_manager.assign_value(tensor.graph, tensor.options[:var_name], result)
       end
 
       register_op :less do |context, tensor, inputs|
@@ -258,25 +244,6 @@ module TensorStream
         end
 
         File.write(outputfile, {"variables" => variables}.to_yaml)
-        nil
-      end
-
-      register_op :restore_ts do |_context, tensor, inputs|
-        inputs = inputs.dup
-        filename = inputs.shift
-        tensor_names = inputs
-
-        input_dump = YAML.safe_load(File.read(filename), [Symbol])
-        vars = tensor.graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
-
-        vars.select! { |v| input_dump["variables"].key?(v.name) && tensor_names.include?(v.name) }
-        vars.each do |variable|
-          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump["variables"][variable.name]["data"])), variable.data_type)
-          shape = input_dump["variables"][variable.name]["shape"]
-          variable.buffer = nil
-          variable.value = TensorShape.reshape(data, shape)
-        end
-
         nil
       end
 
@@ -385,7 +352,7 @@ module TensorStream
         elem = args[0]
         if elem.is_a?(Array)
           elem.each_with_index.collect do |_item, index|
-            indexed_args = args.collect { |a| a[index] }
+            indexed_args = args.collect { |a| a = a.is_a?(Array) ? a : [a]; a[index] }
             multi_array_op(func, *indexed_args)
           end
         else

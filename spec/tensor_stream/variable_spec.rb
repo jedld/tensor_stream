@@ -26,6 +26,7 @@ RSpec.describe TensorStream::Variable do
 
     it "can access after initialized" do
       mammal = TensorStream.variable("Elephant", dtype: :string)
+      expect(TensorStream.get_collection(TensorStream::GraphKeys::TRAINABLE_VARIABLES)).to include(mammal)
       sess.run(TensorStream.global_variables_initializer)
       expect(sess.run(mammal)).to eq("Elephant")
     end
@@ -52,7 +53,6 @@ RSpec.describe TensorStream::Variable do
 
     it "can access after initialized" do
       sess.run(TensorStream.global_variables_initializer)
-      binding.pry
       expect(variable.eval).to eq([23, 42])
     end
 

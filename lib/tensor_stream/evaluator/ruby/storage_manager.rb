@@ -8,6 +8,12 @@ module TensorStream
       @variables = {}
     end
 
+    def exists?(graph, name)
+      return false if !@variables.key?(graph.object_id)
+
+      @variables[graph.object_id].key?(name.to_sym)
+    end
+
     def create_variable(graph, name, value)
       raise "no name specified" if name.nil?
 

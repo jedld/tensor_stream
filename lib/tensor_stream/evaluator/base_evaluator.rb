@@ -228,11 +228,25 @@ module TensorStream
 
     def self.register_evaluator(klass, name, index = 0)
       @evaluators ||= {}
+      @storage_managers ||= {}
       @evaluators[name] = {name: name, class: klass, index: index}
+      @storage_managers[klass] = klass.get_storage_manager
     end
 
     def self.default_evaluators
       evaluators.values.sort { |v| v[:index] }.reverse.map { |v| v[:class] }
+    end
+
+    def self.clear_storages(graph)
+      @storage_managers.values.each { |manager| manager.clear_variables(graph) }
+    end
+
+    def self.read_variable(graph, name)
+      @storage_managers.values.each do |manager|
+        return manager.read_value(graph, name) if manager.exists?(graph, name)
+      end
+
+      nil
     end
   end
 end

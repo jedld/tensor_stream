@@ -50,8 +50,7 @@ module TensorStream
     end
 
     def read_value
-      @value = buffer.to_ruby if buffer
-      @value
+      Evaluator.read_variable(@graph, @name)
     end
 
     def assign_add(value, name: nil)

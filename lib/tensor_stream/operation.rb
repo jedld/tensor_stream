@@ -42,14 +42,6 @@ module TensorStream
       @options[:container] ? @options[:container].buffer : nil
     end
 
-    def container
-      @options[:container].read_value
-    end
-
-    def container=(value)
-      @options[:container].value = value
-    end
-
     def set_input(index, value)
       @inputs[index] = value
       @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))

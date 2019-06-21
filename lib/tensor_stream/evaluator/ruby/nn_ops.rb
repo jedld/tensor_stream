@@ -7,22 +7,20 @@ module TensorStream
           target_var, learning_rate, delta = inputs
           assign = tensor.inputs[0] || tensor
 
-          assign.container = process_vector_math_op(tensor, target_var, delta, context) { |t, u| t - u * learning_rate }
-          assign.container
+          var_assign_value(assign, process_vector_math_op(tensor, target_var, delta, context) { |t, u| t - u * learning_rate })
         end
 
         register_op :apply_momentum do |_context, tensor, inputs|
           target_var, momentum_var, learning_rate, grad, momentum = inputs
           assign = tensor.inputs[0] || tensor
           assign_acc = tensor.inputs[1]
-          assign_acc.container = multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad)
-          assign.container = if tensor.options[:use_nesterov]
-            multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
-          else
-            multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
-          end
-
-          assign.container
+          var_assign_value(assign_acc, multi_array_op(->(t, u) { t * momentum + u }, momentum_var, grad))
+          var = if tensor.options[:use_nesterov]
+                  multi_array_op(->(v, g, acc) { v - (g * learning_rate + acc * momentum * learning_rate) }, target_var, grad, momentum_var)
+                else
+                  multi_array_op(->(v, acc) { v - acc * learning_rate }, target_var, momentum_var)
+                end
+          var_assign_value(assign, var)
         end
 
         register_op :apply_adadelta do |_context, tensor, inputs|
@@ -30,19 +28,18 @@ module TensorStream
           assign = tensor.inputs[0] || tensor
           assign_acc = tensor.inputs[1]
           assign_acc_update = tensor.inputs[2]
-          assign_acc.container = multi_array_op(->(acc_t, grad_t) { acc_t * rho + (grad_t * grad_t) * (1.0 - rho) }, accum, grad)
-          update = multi_array_op(->(acc_update_t, acc_t, grad_t) { Math.sqrt(acc_update_t + epsilon) * (1.0 / Math.sqrt(acc_t + epsilon)) * grad_t }, accum_update, assign_acc.container, grad)
-          assign.container = multi_array_op(->(v, u) { v - (u * lr) }, target_var, update)
-          assign_acc_update.container = multi_array_op(->(acc_update_t, u) { acc_update_t * rho + (u * u) * (1.0 - rho) }, accum_update, update)
+          acc_val = var_assign_value(assign_acc, multi_array_op(->(acc_t, grad_t) { acc_t * rho + (grad_t * grad_t) * (1.0 - rho) }, accum, grad))
+          update = multi_array_op(->(acc_update_t, acc_t, grad_t) { Math.sqrt(acc_update_t + epsilon) * (1.0 / Math.sqrt(acc_t + epsilon)) * grad_t }, accum_update, acc_val, grad)
+          result = var_assign_value(assign, multi_array_op(->(v, u) { v - (u * lr) }, target_var, update))
+          var_assign_value(assign_acc_update,multi_array_op(->(acc_update_t, u) { acc_update_t * rho + (u * u) * (1.0 - rho) }, accum_update, update))
 
-          assign.container
+          result
         end
 
         register_op :apply_adagrad do |_context, tensor, inputs|
           target_var, accum, lr, grad = inputs
           assign = tensor.inputs[0] || tensor
-          assign.container = multi_array_op(->(v, a, g) { v - (g * lr * (1.0 / Math.sqrt(a))) }, target_var, accum, grad)
-          assign.container
+          var_assign_value(assign, multi_array_op(->(v, a, g) { v - (g * lr * (1.0 / Math.sqrt(a))) }, target_var, accum, grad))
         end
 
         register_op :apply_adam do |_context, tensor, inputs|
@@ -52,10 +49,9 @@ module TensorStream
           assign_m = tensor.inputs[1]
           assign_v = tensor.inputs[2]
 
-          assign_m.container = multi_array_op(->(u_d, g) { u_d + (g - u_d) * (1.0 - beta1_t) }, m, grad)
-          assign_v.container = multi_array_op(->(u_d, v_d) { u_d + (v_d**2 - u_d) * (1.0 - beta2_t)}, v, grad)
-          assign.container = multi_array_op(->(t, m_d, v_d) { t - ((m_d * alpha) / (Math.sqrt(v_d) + epsilon_t)) }, target_var, assign_m.container, assign_v.container)
-          assign.container
+          m_val = var_assign_value(assign_m, multi_array_op(->(u_d, g) { u_d + (g - u_d) * (1.0 - beta1_t) }, m, grad))
+          v_val = var_assign_value(assign_v, multi_array_op(->(u_d, v_d) { u_d + (v_d**2 - u_d) * (1.0 - beta2_t)}, v, grad))
+          var_assign_value(assign, multi_array_op(->(t, m_d, v_d) { t - ((m_d * alpha) / (Math.sqrt(v_d) + epsilon_t)) }, target_var, m_val, v_val))
         end
 
         register_op :apply_rms_prop do |_context, tensor, inputs|
@@ -63,9 +59,9 @@ module TensorStream
           assign = tensor.inputs[0]
           assign_ms = tensor.inputs[1]
           assign_mom = tensor.inputs[2]
-          assign_ms.container = multi_array_op(->(g, m) { m + (g * g - m) * (1.0 - rho)}, grad, ms)
-          assign_mom.container = multi_array_op(->(mom_t, g, m) { mom_t * momentum + (g * lr) / Math.sqrt(m + epsilon)}, mom, grad, assign_ms.container)
-          assign.container = multi_array_op(->(v, m) { v - m }, var, assign_mom.container)
+          ms_val = var_assign_value(assign_ms, multi_array_op(->(g, m) { m + (g * g - m) * (1.0 - rho)}, grad, ms))
+          mom_val = var_assign_value(assign_mom, multi_array_op(->(mom_t, g, m) { mom_t * momentum + (g * lr) / Math.sqrt(m + epsilon)}, mom, grad, ms_val))
+          var_assign_value(assign, multi_array_op(->(v, m) { v - m }, var, mom_val))
         end
 
         register_op :apply_centered_rms_prop do |_context, tensor, inputs|
@@ -75,11 +71,11 @@ module TensorStream
           assign_ms = tensor.inputs[2]
           assign_mom = tensor.inputs[3]
 
-          assign_ms.container = multi_array_op(->(g, m) { m + (g * g - m) * (1.0 - rho) }, grad, ms)
-          assign_mg.container = multi_array_op(->(g, mg_t) {  (g - mg_t) * (1.0 - rho) }, grad, mg)
-          denom =  multi_array_op(->(s, mg_t) { (s - mg_t * mg_t) + epsilon }, assign_ms.container, mg)
-          assign_mom.container = multi_array_op(->(mom_t, g, d) { mom_t * momentum + (g * lr) / Math.sqrt(d)}, mom, grad, denom)
-          assign.container = multi_array_op(->(v, m) { v - m }, var, assign_mom.container)
+          val_ms = var_assign_value(assign_ms, multi_array_op(->(g, m) { m + (g * g - m) * (1.0 - rho) }, grad, ms))
+          var_assign_value(assign_mg, multi_array_op(->(g, mg_t) {  (g - mg_t) * (1.0 - rho) }, grad, mg))
+          denom =  multi_array_op(->(s, mg_t) { (s - mg_t * mg_t) + epsilon }, val_ms, mg)
+          val_mom = var_assign_value(assign_mom, multi_array_op(->(mom_t, g, d) { mom_t * momentum + (g * lr) / Math.sqrt(d)}, mom, grad, denom))
+          var_assign_value(assign, multi_array_op(->(v, m) { v - m }, var, val_mom))
         end
 
         register_op %i[softmax_cross_entropy_with_logits_v2 softmax_cross_entropy_with_logits] do |_context, tensor, inputs|

@@ -1,5 +1,7 @@
 module TensorStream
   class EvaluatorUtils
+    extend TensorStream::StringHelper
+
     def self.get_evaluator_classes(evaluators)
       @evaluator_classes ||= if evaluators.is_a?(Array)
         if evaluators.empty?
