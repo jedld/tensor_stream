@@ -28,7 +28,8 @@ RSpec.shared_examples "freezer ops" do
 
     # check if model works
     target_graph = TensorStream::YamlLoader.new.load_from_file(output_file_location)
-    X = target_graph["Placeholder"]
+
+    X = target_graph["X"]
     pred = target_graph["add"]
     expect(tr(sess.run(pred, feed_dict: {X => 0.2}))).to eq(0.8514)
   end

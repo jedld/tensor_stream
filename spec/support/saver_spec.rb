@@ -47,6 +47,7 @@ RSpec.shared_examples "TensorStream::Train::Saver" do
 
     # Restore variables from disk.
     saver.restore(sess, "/tmp/model")
+
     print("Model restored.")
     # Check the values of the variables
 

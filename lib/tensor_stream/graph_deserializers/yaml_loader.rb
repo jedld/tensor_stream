@@ -31,15 +31,13 @@ module TensorStream
         options = {}
 
         new_var = nil
-        if op_def.dig(:attrs, :container)
+        if op_def[:op].to_sym == :variable_v2
           new_var = Variable.new(op_def.dig(:attrs, :data_type))
-          var_shape = op_def.dig(:attrs, :container, :shape)
-          var_options = op_def.dig(:attrs, :container, :options)
-          var_options[:name] = op_def[:name]
 
-          new_var.prepare(var_shape.size, var_shape, TensorStream.get_variable_scope, var_options)
-          options[:container] = new_var
+          var_options = {}
+          var_options[:name] = op_def.dig(:attrs, :var_name)
 
+          new_var.prepare(nil, nil, TensorStream.get_variable_scope, var_options)
           @graph.add_variable(new_var, var_options)
         end
 

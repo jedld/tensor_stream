@@ -1,100 +1,80 @@
 ---
 - :op: placeholder
-  :name: Placeholder
-  :data_type: :float
+  :name: X
+  :data_type: :float32
   :inputs: []
   :attrs:
-    :data_type: :float
-    :shape: 
+    :data_type: :float32
+    :shape:
 - :op: placeholder
-  :name: Placeholder_2
-  :data_type: :float
+  :name: Y
+  :data_type: :float32
   :inputs: []
   :attrs:
-    :data_type: :float
-    :shape: 
+    :data_type: :float32
+    :shape:
 - :op: const
   :name: Const
   :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0.6516750957755529
+    :value: 0.1915194503788923
     :data_type: :float32
     :shape: []
 - :op: variable_v2
-  :name: weight
+  :name: variable_v2
   :data_type: :float32
   :inputs: []
   :attrs:
-    :container:
-      :name: weight
-      :options: {}
-      :shape: []
+    :var_name: weight
     :data_type: :float32
-- :op: assign
-  :name: assign
-  :data_type: :float32
-  :inputs:
-  - weight
-  - Const
-  :attrs: {}
 - :op: const
   :name: Const_1
   :data_type: :float32
   :inputs: []
   :attrs:
-    :value: 0.47068974180401046
+    :value: 0.6221087710398319
     :data_type: :float32
     :shape: []
 - :op: variable_v2
-  :name: bias
+  :name: variable_v2_1
   :data_type: :float32
   :inputs: []
   :attrs:
-    :container:
-      :name: bias
-      :options: {}
-      :shape: []
+    :var_name: bias
     :data_type: :float32
-- :op: assign
-  :name: assign_1
-  :data_type: :float32
-  :inputs:
-  - bias
-  - Const_1
-  :attrs: {}
 - :op: mul
   :name: mul
-  :data_type: :float
+  :data_type: :float32
   :inputs:
-  - Placeholder
-  - weight
+  - X
+  - variable_v2
   :attrs: {}
 - :op: add
   :name: add
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - mul
-  - bias
+  - variable_v2_1
   :attrs: {}
 - :op: sub
   :name: sub
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - add
-  - Placeholder_2
+  - Y
   :attrs: {}
 - :op: const
   :name: Const_2
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 2.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: pow
   :name: pow
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sub
   - Const_2
@@ -130,9 +110,10 @@
   - Const_4
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: sum
   :name: sum
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - pow
   - range
@@ -140,28 +121,28 @@
     :keepdims: false
 - :op: const
   :name: Const_5
-  :data_type: :float
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 34.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: div
   :name: div
-  :data_type: :float
+  :data_type: :float32
   :inputs:
   - sum
   - Const_5
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_weight/shape
+  :name: gradient_wrt_variable_v2/shape
   :data_type: :int32
   :inputs:
   - div
   :attrs:
     :out_type: :int32
 - :op: const
-  :name: gradient_wrt_weight/Const
+  :name: gradient_wrt_variable_v2/Const
   :data_type: :float32
   :inputs: []
   :attrs:
@@ -169,36 +150,36 @@
     :data_type: :float32
     :shape: []
 - :op: fill
-  :name: gradient_wrt_weight/fill
+  :name: gradient_wrt_variable_v2/fill
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/shape
-  - gradient_wrt_weight/Const
+  - gradient_wrt_variable_v2/shape
+  - gradient_wrt_variable_v2/Const
   :attrs:
     :internal: true
 - :op: shape
-  :name: gradient_wrt_weight/div_grad/shape
+  :name: gradient_wrt_variable_v2/div_grad/shape
   :data_type: :int32
   :inputs:
   - sum
   :attrs:
     :internal: true
 - :op: shape
-  :name: gradient_wrt_weight/div_grad/shape_1
+  :name: gradient_wrt_variable_v2/div_grad/shape_1
   :data_type: :int32
   :inputs:
   - Const_5
   :attrs:
     :internal: true
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_weight/div_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2/div_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/div_grad/shape
-  - gradient_wrt_weight/div_grad/shape_1
+  - gradient_wrt_variable_v2/div_grad/shape
+  - gradient_wrt_variable_v2/div_grad/shape_1
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/div_grad/Const
+  :name: gradient_wrt_variable_v2/div_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -206,14 +187,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/div_grad/index
+  :name: gradient_wrt_variable_v2/div_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/div_grad/broadcast_gradient_args
-  - gradient_wrt_weight/div_grad/Const
+  - gradient_wrt_variable_v2/div_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/div_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/div_grad/Const_1
+  :name: gradient_wrt_variable_v2/div_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -221,112 +202,112 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/div_grad/index_1
+  :name: gradient_wrt_variable_v2/div_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/div_grad/broadcast_gradient_args
-  - gradient_wrt_weight/div_grad/Const_1
+  - gradient_wrt_variable_v2/div_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/div_grad/Const_1
   :attrs: {}
 - :op: div
-  :name: gradient_wrt_weight/div_grad/div
+  :name: gradient_wrt_variable_v2/div_grad/div
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/fill
+  - gradient_wrt_variable_v2/fill
   - Const_5
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/div_grad/sum
+  :name: gradient_wrt_variable_v2/div_grad/sum
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/div_grad/div
-  - gradient_wrt_weight/div_grad/index
+  - gradient_wrt_variable_v2/div_grad/div
+  - gradient_wrt_variable_v2/div_grad/index
   :attrs:
     :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/div_grad/reshape
+  :name: gradient_wrt_variable_v2/div_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/div_grad/sum
-  - gradient_wrt_weight/div_grad/shape
+  - gradient_wrt_variable_v2/div_grad/sum
+  - gradient_wrt_variable_v2/div_grad/shape
   :attrs: {}
 - :op: negate
-  :name: gradient_wrt_weight/div_grad/negate
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/div_grad/negate
+  :data_type: :float32
   :inputs:
   - sum
   :attrs: {}
 - :op: div
-  :name: gradient_wrt_weight/div_grad/div_1
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/div_grad/div_1
+  :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/div_grad/negate
+  - gradient_wrt_variable_v2/div_grad/negate
   - Const_5
   :attrs: {}
 - :op: div
-  :name: gradient_wrt_weight/div_grad/div_2
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/div_grad/div_2
+  :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/div_grad/div_1
+  - gradient_wrt_variable_v2/div_grad/div_1
   - Const_5
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_weight/div_grad/mul
+  :name: gradient_wrt_variable_v2/div_grad/mul
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/fill
-  - gradient_wrt_weight/div_grad/div_2
+  - gradient_wrt_variable_v2/fill
+  - gradient_wrt_variable_v2/div_grad/div_2
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/div_grad/sum_1
+  :name: gradient_wrt_variable_v2/div_grad/sum_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/div_grad/mul
-  - gradient_wrt_weight/div_grad/index_1
+  - gradient_wrt_variable_v2/div_grad/mul
+  - gradient_wrt_variable_v2/div_grad/index_1
   :attrs:
     :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/div_grad/reshape_1
+  :name: gradient_wrt_variable_v2/div_grad/reshape_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/div_grad/sum_1
-  - gradient_wrt_weight/div_grad/shape_1
+  - gradient_wrt_variable_v2/div_grad/sum_1
+  - gradient_wrt_variable_v2/div_grad/shape_1
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_weight/sum_grad/shape
+  :name: gradient_wrt_variable_v2/sum_grad/shape
   :data_type: :int32
   :inputs:
   - pow
   :attrs: {}
 - :op: size
-  :name: gradient_wrt_weight/sum_grad/size
+  :name: gradient_wrt_variable_v2/sum_grad/size
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/shape
+  - gradient_wrt_variable_v2/sum_grad/shape
   :attrs:
     :internal: true
 - :op: add
-  :name: gradient_wrt_weight/sum_grad/add
+  :name: gradient_wrt_variable_v2/sum_grad/add
   :data_type: :int32
   :inputs:
   - range
-  - gradient_wrt_weight/sum_grad/size
+  - gradient_wrt_variable_v2/sum_grad/size
   :attrs: {}
 - :op: mod
-  :name: gradient_wrt_weight/sum_grad/mod
+  :name: gradient_wrt_variable_v2/sum_grad/mod
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/add
-  - gradient_wrt_weight/sum_grad/size
+  - gradient_wrt_variable_v2/sum_grad/add
+  - gradient_wrt_variable_v2/sum_grad/size
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_weight/sum_grad/shape_1
+  :name: gradient_wrt_variable_v2/sum_grad/shape_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/mod
+  - gradient_wrt_variable_v2/sum_grad/mod
   :attrs:
     :internal: true
 - :op: const
-  :name: gradient_wrt_weight/sum_grad/Const
+  :name: gradient_wrt_variable_v2/sum_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -334,7 +315,7 @@
     :data_type: :int32
     :shape: []
 - :op: const
-  :name: gradient_wrt_weight/sum_grad/Const_1
+  :name: gradient_wrt_variable_v2/sum_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -342,16 +323,17 @@
     :data_type: :int32
     :shape: []
 - :op: range
-  :name: gradient_wrt_weight/sum_grad/range
+  :name: gradient_wrt_variable_v2/sum_grad/range
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/Const
-  - gradient_wrt_weight/sum_grad/size
-  - gradient_wrt_weight/sum_grad/Const_1
+  - gradient_wrt_variable_v2/sum_grad/Const
+  - gradient_wrt_variable_v2/sum_grad/size
+  - gradient_wrt_variable_v2/sum_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
-  :name: gradient_wrt_weight/sum_grad/Const_2
+  :name: gradient_wrt_variable_v2/sum_grad/Const_2
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -359,25 +341,25 @@
     :data_type: :int32
     :shape: []
 - :op: fill
-  :name: gradient_wrt_weight/sum_grad/fill
+  :name: gradient_wrt_variable_v2/sum_grad/fill
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/shape_1
-  - gradient_wrt_weight/sum_grad/Const_2
+  - gradient_wrt_variable_v2/sum_grad/shape_1
+  - gradient_wrt_variable_v2/sum_grad/Const_2
   :attrs:
     :internal: true
 - :op: flow_dynamic_stitch
-  :name: gradient_wrt_weight/sum_grad/flow_dynamic_stitch
+  :name: gradient_wrt_variable_v2/sum_grad/flow_dynamic_stitch
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/range
-  - gradient_wrt_weight/sum_grad/mod
-  - gradient_wrt_weight/sum_grad/shape
-  - gradient_wrt_weight/sum_grad/fill
+  - gradient_wrt_variable_v2/sum_grad/range
+  - gradient_wrt_variable_v2/sum_grad/mod
+  - gradient_wrt_variable_v2/sum_grad/shape
+  - gradient_wrt_variable_v2/sum_grad/fill
   :attrs:
     :n: 2
 - :op: const
-  :name: gradient_wrt_weight/sum_grad/Const_3
+  :name: gradient_wrt_variable_v2/sum_grad/Const_3
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -385,34 +367,34 @@
     :data_type: :int32
     :shape: []
 - :op: max
-  :name: gradient_wrt_weight/sum_grad/max
+  :name: gradient_wrt_variable_v2/sum_grad/max
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/flow_dynamic_stitch
-  - gradient_wrt_weight/sum_grad/Const_3
+  - gradient_wrt_variable_v2/sum_grad/flow_dynamic_stitch
+  - gradient_wrt_variable_v2/sum_grad/Const_3
   :attrs: {}
 - :op: floor_div
-  :name: gradient_wrt_weight/sum_grad/floor_div
+  :name: gradient_wrt_variable_v2/sum_grad/floor_div
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sum_grad/shape
-  - gradient_wrt_weight/sum_grad/max
+  - gradient_wrt_variable_v2/sum_grad/shape
+  - gradient_wrt_variable_v2/sum_grad/max
   :attrs: {}
 - :op: reshape
-  :name: gradient_wrt_weight/sum_grad/reshape
+  :name: gradient_wrt_variable_v2/sum_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/div_grad/reshape
-  - gradient_wrt_weight/sum_grad/flow_dynamic_stitch
+  - gradient_wrt_variable_v2/div_grad/reshape
+  - gradient_wrt_variable_v2/sum_grad/flow_dynamic_stitch
   :attrs: {}
 - :op: rank
-  :name: gradient_wrt_weight/sum_grad/rank
+  :name: gradient_wrt_variable_v2/sum_grad/rank
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/div_grad/reshape
+  - gradient_wrt_variable_v2/div_grad/reshape
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/sum_grad/equal/is_zero?
+  :name: gradient_wrt_variable_v2/sum_grad/equal/is_zero?
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -420,28 +402,28 @@
     :data_type: :int32
     :shape: []
 - :op: equal
-  :name: gradient_wrt_weight/sum_grad/equal
+  :name: gradient_wrt_variable_v2/sum_grad/equal
   :data_type: :boolean
   :inputs:
-  - gradient_wrt_weight/sum_grad/rank
-  - gradient_wrt_weight/sum_grad/equal/is_zero?
+  - gradient_wrt_variable_v2/sum_grad/rank
+  - gradient_wrt_variable_v2/sum_grad/equal/is_zero?
   :attrs: {}
 - :op: tile
-  :name: gradient_wrt_weight/sum_grad/tile
+  :name: gradient_wrt_variable_v2/sum_grad/tile
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sum_grad/reshape
-  - gradient_wrt_weight/sum_grad/floor_div
+  - gradient_wrt_variable_v2/sum_grad/reshape
+  - gradient_wrt_variable_v2/sum_grad/floor_div
   :attrs: {}
 - :op: fill
-  :name: gradient_wrt_weight/sum_grad/fill_1
+  :name: gradient_wrt_variable_v2/sum_grad/fill_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sum_grad/shape
-  - gradient_wrt_weight/div_grad/reshape
+  - gradient_wrt_variable_v2/sum_grad/shape
+  - gradient_wrt_variable_v2/div_grad/reshape
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/sum_grad/Const_4
+  :name: gradient_wrt_variable_v2/sum_grad/Const_4
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -449,29 +431,29 @@
     :data_type: :int32
     :shape: []
 - :op: expand_dims
-  :name: gradient_wrt_weight/sum_grad/expand_dims
+  :name: gradient_wrt_variable_v2/sum_grad/expand_dims
   :data_type: :boolean
   :inputs:
-  - gradient_wrt_weight/sum_grad/equal
-  - gradient_wrt_weight/sum_grad/Const_4
+  - gradient_wrt_variable_v2/sum_grad/equal
+  - gradient_wrt_variable_v2/sum_grad/Const_4
   :attrs: {}
 - :op: case
-  :name: gradient_wrt_weight/sum_grad/case
+  :name: gradient_wrt_variable_v2/sum_grad/case
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sum_grad/expand_dims
-  - gradient_wrt_weight/sum_grad/tile
-  - gradient_wrt_weight/sum_grad/fill_1
+  - gradient_wrt_variable_v2/sum_grad/expand_dims
+  - gradient_wrt_variable_v2/sum_grad/tile
+  - gradient_wrt_variable_v2/sum_grad/fill_1
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_weight/pow_grad/shape
+  :name: gradient_wrt_variable_v2/pow_grad/shape
   :data_type: :int32
   :inputs:
   - sub
   :attrs:
     :out_type: :int32
 - :op: const
-  :name: gradient_wrt_weight/pow_grad/Shape/Const_2_c
+  :name: gradient_wrt_variable_v2/pow_grad/Shape/Const_2_c
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -480,14 +462,14 @@
     :shape:
     - 0
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_weight/pow_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2/pow_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/pow_grad/shape
-  - gradient_wrt_weight/pow_grad/Shape/Const_2_c
+  - gradient_wrt_variable_v2/pow_grad/shape
+  - gradient_wrt_variable_v2/pow_grad/Shape/Const_2_c
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/pow_grad/Const
+  :name: gradient_wrt_variable_v2/pow_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -495,14 +477,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/pow_grad/index
+  :name: gradient_wrt_variable_v2/pow_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/pow_grad/broadcast_gradient_args
-  - gradient_wrt_weight/pow_grad/Const
+  - gradient_wrt_variable_v2/pow_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/pow_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/pow_grad/Const_1
+  :name: gradient_wrt_variable_v2/pow_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -510,115 +492,115 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/pow_grad/index_1
+  :name: gradient_wrt_variable_v2/pow_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/pow_grad/broadcast_gradient_args
-  - gradient_wrt_weight/pow_grad/Const_1
+  - gradient_wrt_variable_v2/pow_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/pow_grad/Const_1
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_weight/pow_grad/mul
+  :name: gradient_wrt_variable_v2/pow_grad/mul
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sum_grad/case
+  - gradient_wrt_variable_v2/sum_grad/case
   - Const_2
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/pow_grad/Const_2
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/pow_grad/Const_2
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 1.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: sub
-  :name: gradient_wrt_weight/pow_grad/sub
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/pow_grad/sub
+  :data_type: :float32
   :inputs:
   - Const_2
-  - gradient_wrt_weight/pow_grad/Const_2
+  - gradient_wrt_variable_v2/pow_grad/Const_2
   :attrs: {}
 - :op: pow
-  :name: gradient_wrt_weight/pow_grad/pow
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/pow_grad/pow
+  :data_type: :float32
   :inputs:
   - sub
-  - gradient_wrt_weight/pow_grad/sub
+  - gradient_wrt_variable_v2/pow_grad/sub
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_weight/pow_grad/mul_1
+  :name: gradient_wrt_variable_v2/pow_grad/mul_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/pow_grad/mul
-  - gradient_wrt_weight/pow_grad/pow
+  - gradient_wrt_variable_v2/pow_grad/mul
+  - gradient_wrt_variable_v2/pow_grad/pow
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/pow_grad/sum
+  :name: gradient_wrt_variable_v2/pow_grad/sum
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/pow_grad/mul_1
-  - gradient_wrt_weight/pow_grad/index
+  - gradient_wrt_variable_v2/pow_grad/mul_1
+  - gradient_wrt_variable_v2/pow_grad/index
   :attrs:
     :keepdims: false
 - :op: const
-  :name: gradient_wrt_weight/pow_grad/Const_3
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/pow_grad/Const_3
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 0.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: greater
-  :name: gradient_wrt_weight/pow_grad/greater
+  :name: gradient_wrt_variable_v2/pow_grad/greater
   :data_type: :boolean
   :inputs:
   - sub
-  - gradient_wrt_weight/pow_grad/Const_3
+  - gradient_wrt_variable_v2/pow_grad/Const_3
   :attrs: {}
 - :op: log
-  :name: gradient_wrt_weight/pow_grad/log
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/pow_grad/log
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: zeros_like
-  :name: gradient_wrt_weight/pow_grad/zeros_like
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/pow_grad/zeros_like
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: where
-  :name: gradient_wrt_weight/pow_grad/where
-  :data_type: :float
-  :inputs:
-  - gradient_wrt_weight/pow_grad/greater
-  - gradient_wrt_weight/pow_grad/log
-  - gradient_wrt_weight/pow_grad/zeros_like
-  :attrs: {}
-- :op: mul
-  :name: gradient_wrt_weight/pow_grad/mul_2
+  :name: gradient_wrt_variable_v2/pow_grad/where
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sum_grad/case
+  - gradient_wrt_variable_v2/pow_grad/greater
+  - gradient_wrt_variable_v2/pow_grad/log
+  - gradient_wrt_variable_v2/pow_grad/zeros_like
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_variable_v2/pow_grad/mul_2
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_variable_v2/sum_grad/case
   - pow
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_weight/pow_grad/mul_3
+  :name: gradient_wrt_variable_v2/pow_grad/mul_3
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/pow_grad/mul_2
-  - gradient_wrt_weight/pow_grad/where
+  - gradient_wrt_variable_v2/pow_grad/mul_2
+  - gradient_wrt_variable_v2/pow_grad/where
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/pow_grad/sum_1
+  :name: gradient_wrt_variable_v2/pow_grad/sum_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/pow_grad/mul_3
-  - gradient_wrt_weight/pow_grad/index_1
+  - gradient_wrt_variable_v2/pow_grad/mul_3
+  - gradient_wrt_variable_v2/pow_grad/index_1
   :attrs:
     :keepdims: false
 - :op: shape
-  :name: gradient_wrt_weight/sub_grad/sub/shape_x
+  :name: gradient_wrt_variable_v2/sub_grad/sub/shape_x
   :data_type: :int32
   :inputs:
   - add
@@ -626,22 +608,22 @@
     :name: sub/shape_x
     :out_type: :int32
 - :op: shape
-  :name: gradient_wrt_weight/sub_grad/sub/shape_y
+  :name: gradient_wrt_variable_v2/sub_grad/sub/shape_y
   :data_type: :int32
   :inputs:
-  - Placeholder_2
+  - Y
   :attrs:
     :name: sub/shape_y
     :out_type: :int32
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_weight/sub_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2/sub_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sub_grad/sub/shape_x
-  - gradient_wrt_weight/sub_grad/sub/shape_y
+  - gradient_wrt_variable_v2/sub_grad/sub/shape_x
+  - gradient_wrt_variable_v2/sub_grad/sub/shape_y
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/sub_grad/Const
+  :name: gradient_wrt_variable_v2/sub_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -649,14 +631,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/sub_grad/index
+  :name: gradient_wrt_variable_v2/sub_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sub_grad/broadcast_gradient_args
-  - gradient_wrt_weight/sub_grad/Const
+  - gradient_wrt_variable_v2/sub_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/sub_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/sub_grad/Const_1
+  :name: gradient_wrt_variable_v2/sub_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -664,52 +646,52 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/sub_grad/index_1
+  :name: gradient_wrt_variable_v2/sub_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/sub_grad/broadcast_gradient_args
-  - gradient_wrt_weight/sub_grad/Const_1
+  - gradient_wrt_variable_v2/sub_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/sub_grad/Const_1
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/sub_grad/add/reduce_sub_x
+  :name: gradient_wrt_variable_v2/sub_grad/add/reduce_sub_x
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/pow_grad/sum
-  - gradient_wrt_weight/sub_grad/index
+  - gradient_wrt_variable_v2/pow_grad/sum
+  - gradient_wrt_variable_v2/sub_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_x
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/sub_grad/reshape
+  :name: gradient_wrt_variable_v2/sub_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sub_grad/add/reduce_sub_x
-  - gradient_wrt_weight/sub_grad/sub/shape_x
+  - gradient_wrt_variable_v2/sub_grad/add/reduce_sub_x
+  - gradient_wrt_variable_v2/sub_grad/sub/shape_x
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/sub_grad/add/reduce_sub_y
+  :name: gradient_wrt_variable_v2/sub_grad/add/reduce_sub_y
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/pow_grad/sum
-  - gradient_wrt_weight/sub_grad/index_1
+  - gradient_wrt_variable_v2/pow_grad/sum
+  - gradient_wrt_variable_v2/sub_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_y
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/sub_grad/reshape_1
+  :name: gradient_wrt_variable_v2/sub_grad/reshape_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sub_grad/add/reduce_sub_y
-  - gradient_wrt_weight/sub_grad/sub/shape_y
+  - gradient_wrt_variable_v2/sub_grad/add/reduce_sub_y
+  - gradient_wrt_variable_v2/sub_grad/sub/shape_y
   :attrs: {}
 - :op: negate
-  :name: gradient_wrt_weight/sub_grad/negate
+  :name: gradient_wrt_variable_v2/sub_grad/negate
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sub_grad/reshape_1
+  - gradient_wrt_variable_v2/sub_grad/reshape_1
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_weight/add_grad/add/shape_x
+  :name: gradient_wrt_variable_v2/add_grad/add/shape_x
   :data_type: :int32
   :inputs:
   - mul
@@ -717,22 +699,22 @@
     :name: add/shape_x
     :out_type: :int32
 - :op: shape
-  :name: gradient_wrt_weight/add_grad/add/shape_y
+  :name: gradient_wrt_variable_v2/add_grad/add/shape_y
   :data_type: :int32
   :inputs:
-  - bias
+  - variable_v2_1
   :attrs:
     :name: add/shape_y
     :out_type: :int32
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_weight/add_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2/add_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/add_grad/add/shape_x
-  - gradient_wrt_weight/add_grad/add/shape_y
+  - gradient_wrt_variable_v2/add_grad/add/shape_x
+  - gradient_wrt_variable_v2/add_grad/add/shape_y
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/add_grad/Const
+  :name: gradient_wrt_variable_v2/add_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -740,14 +722,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/add_grad/index
+  :name: gradient_wrt_variable_v2/add_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/add_grad/broadcast_gradient_args
-  - gradient_wrt_weight/add_grad/Const
+  - gradient_wrt_variable_v2/add_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/add_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/add_grad/Const_1
+  :name: gradient_wrt_variable_v2/add_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -755,67 +737,67 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/add_grad/index_1
+  :name: gradient_wrt_variable_v2/add_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/add_grad/broadcast_gradient_args
-  - gradient_wrt_weight/add_grad/Const_1
+  - gradient_wrt_variable_v2/add_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/add_grad/Const_1
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/add_grad/add/reduce_sum_x
+  :name: gradient_wrt_variable_v2/add_grad/add/reduce_sum_x
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sub_grad/reshape
-  - gradient_wrt_weight/add_grad/index
+  - gradient_wrt_variable_v2/sub_grad/reshape
+  - gradient_wrt_variable_v2/add_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/add_grad/reshape
+  :name: gradient_wrt_variable_v2/add_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/add_grad/add/reduce_sum_x
-  - gradient_wrt_weight/add_grad/add/shape_x
+  - gradient_wrt_variable_v2/add_grad/add/reduce_sum_x
+  - gradient_wrt_variable_v2/add_grad/add/shape_x
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/add_grad/add/reduce_sum_y
+  :name: gradient_wrt_variable_v2/add_grad/add/reduce_sum_y
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/sub_grad/reshape
-  - gradient_wrt_weight/add_grad/index_1
+  - gradient_wrt_variable_v2/sub_grad/reshape
+  - gradient_wrt_variable_v2/add_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/add_grad/reshape_1
+  :name: gradient_wrt_variable_v2/add_grad/reshape_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/add_grad/add/reduce_sum_y
-  - gradient_wrt_weight/add_grad/add/shape_y
+  - gradient_wrt_variable_v2/add_grad/add/reduce_sum_y
+  - gradient_wrt_variable_v2/add_grad/add/shape_y
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_weight/mul_grad/shape
+  :name: gradient_wrt_variable_v2/mul_grad/shape
   :data_type: :int32
   :inputs:
-  - Placeholder
+  - X
   :attrs:
     :out_type: :int32
 - :op: shape
-  :name: gradient_wrt_weight/mul_grad/shape_1
+  :name: gradient_wrt_variable_v2/mul_grad/shape_1
   :data_type: :int32
   :inputs:
-  - weight
+  - variable_v2
   :attrs:
     :out_type: :int32
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_weight/mul_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2/mul_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/mul_grad/shape
-  - gradient_wrt_weight/mul_grad/shape_1
+  - gradient_wrt_variable_v2/mul_grad/shape
+  - gradient_wrt_variable_v2/mul_grad/shape_1
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/mul_grad/Const
+  :name: gradient_wrt_variable_v2/mul_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -823,14 +805,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/mul_grad/index
+  :name: gradient_wrt_variable_v2/mul_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/mul_grad/broadcast_gradient_args
-  - gradient_wrt_weight/mul_grad/Const
+  - gradient_wrt_variable_v2/mul_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/mul_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_weight/mul_grad/Const_1
+  :name: gradient_wrt_variable_v2/mul_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -838,65 +820,65 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_weight/mul_grad/index_1
+  :name: gradient_wrt_variable_v2/mul_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_weight/mul_grad/broadcast_gradient_args
-  - gradient_wrt_weight/mul_grad/Const_1
+  - gradient_wrt_variable_v2/mul_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2/mul_grad/Const_1
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_weight/mul_grad/mul
+  :name: gradient_wrt_variable_v2/mul_grad/mul
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/add_grad/reshape
-  - weight
+  - gradient_wrt_variable_v2/add_grad/reshape
+  - variable_v2
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/mul_grad/sum
+  :name: gradient_wrt_variable_v2/mul_grad/sum
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/mul_grad/mul
-  - gradient_wrt_weight/mul_grad/index
+  - gradient_wrt_variable_v2/mul_grad/mul
+  - gradient_wrt_variable_v2/mul_grad/index
   :attrs:
     :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/mul_grad/reshape
+  :name: gradient_wrt_variable_v2/mul_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/mul_grad/sum
-  - gradient_wrt_weight/mul_grad/shape
+  - gradient_wrt_variable_v2/mul_grad/sum
+  - gradient_wrt_variable_v2/mul_grad/shape
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_weight/mul_grad/mul_1
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/mul_grad/mul_1
+  :data_type: :float32
   :inputs:
-  - Placeholder
-  - gradient_wrt_weight/add_grad/reshape
+  - X
+  - gradient_wrt_variable_v2/add_grad/reshape
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_weight/mul_grad/sum_1
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/mul_grad/sum_1
+  :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/mul_grad/mul_1
-  - gradient_wrt_weight/mul_grad/index_1
+  - gradient_wrt_variable_v2/mul_grad/mul_1
+  - gradient_wrt_variable_v2/mul_grad/index_1
   :attrs:
     :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_weight/mul_grad/reshape_1
-  :data_type: :float
+  :name: gradient_wrt_variable_v2/mul_grad/reshape_1
+  :data_type: :float32
   :inputs:
-  - gradient_wrt_weight/mul_grad/sum_1
-  - gradient_wrt_weight/mul_grad/shape_1
+  - gradient_wrt_variable_v2/mul_grad/sum_1
+  - gradient_wrt_variable_v2/mul_grad/shape_1
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_bias/shape
+  :name: gradient_wrt_variable_v2_1/shape
   :data_type: :int32
   :inputs:
   - div
   :attrs:
     :out_type: :int32
 - :op: const
-  :name: gradient_wrt_bias/Const
+  :name: gradient_wrt_variable_v2_1/Const
   :data_type: :float32
   :inputs: []
   :attrs:
@@ -904,36 +886,36 @@
     :data_type: :float32
     :shape: []
 - :op: fill
-  :name: gradient_wrt_bias/fill
+  :name: gradient_wrt_variable_v2_1/fill
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/shape
-  - gradient_wrt_bias/Const
+  - gradient_wrt_variable_v2_1/shape
+  - gradient_wrt_variable_v2_1/Const
   :attrs:
     :internal: true
 - :op: shape
-  :name: gradient_wrt_bias/div_grad/shape
+  :name: gradient_wrt_variable_v2_1/div_grad/shape
   :data_type: :int32
   :inputs:
   - sum
   :attrs:
     :internal: true
 - :op: shape
-  :name: gradient_wrt_bias/div_grad/shape_1
+  :name: gradient_wrt_variable_v2_1/div_grad/shape_1
   :data_type: :int32
   :inputs:
   - Const_5
   :attrs:
     :internal: true
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_bias/div_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2_1/div_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/div_grad/shape
-  - gradient_wrt_bias/div_grad/shape_1
+  - gradient_wrt_variable_v2_1/div_grad/shape
+  - gradient_wrt_variable_v2_1/div_grad/shape_1
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/div_grad/Const
+  :name: gradient_wrt_variable_v2_1/div_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -941,14 +923,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/div_grad/index
+  :name: gradient_wrt_variable_v2_1/div_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/div_grad/broadcast_gradient_args
-  - gradient_wrt_bias/div_grad/Const
+  - gradient_wrt_variable_v2_1/div_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/div_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/div_grad/Const_1
+  :name: gradient_wrt_variable_v2_1/div_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -956,112 +938,112 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/div_grad/index_1
+  :name: gradient_wrt_variable_v2_1/div_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/div_grad/broadcast_gradient_args
-  - gradient_wrt_bias/div_grad/Const_1
+  - gradient_wrt_variable_v2_1/div_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/div_grad/Const_1
   :attrs: {}
 - :op: div
-  :name: gradient_wrt_bias/div_grad/div
+  :name: gradient_wrt_variable_v2_1/div_grad/div
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/fill
+  - gradient_wrt_variable_v2_1/fill
   - Const_5
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/div_grad/sum
+  :name: gradient_wrt_variable_v2_1/div_grad/sum
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/div_grad/div
-  - gradient_wrt_bias/div_grad/index
+  - gradient_wrt_variable_v2_1/div_grad/div
+  - gradient_wrt_variable_v2_1/div_grad/index
   :attrs:
     :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_bias/div_grad/reshape
+  :name: gradient_wrt_variable_v2_1/div_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/div_grad/sum
-  - gradient_wrt_bias/div_grad/shape
+  - gradient_wrt_variable_v2_1/div_grad/sum
+  - gradient_wrt_variable_v2_1/div_grad/shape
   :attrs: {}
 - :op: negate
-  :name: gradient_wrt_bias/div_grad/negate
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/div_grad/negate
+  :data_type: :float32
   :inputs:
   - sum
   :attrs: {}
 - :op: div
-  :name: gradient_wrt_bias/div_grad/div_1
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/div_grad/div_1
+  :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/div_grad/negate
+  - gradient_wrt_variable_v2_1/div_grad/negate
   - Const_5
   :attrs: {}
 - :op: div
-  :name: gradient_wrt_bias/div_grad/div_2
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/div_grad/div_2
+  :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/div_grad/div_1
+  - gradient_wrt_variable_v2_1/div_grad/div_1
   - Const_5
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_bias/div_grad/mul
+  :name: gradient_wrt_variable_v2_1/div_grad/mul
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/fill
-  - gradient_wrt_bias/div_grad/div_2
+  - gradient_wrt_variable_v2_1/fill
+  - gradient_wrt_variable_v2_1/div_grad/div_2
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/div_grad/sum_1
+  :name: gradient_wrt_variable_v2_1/div_grad/sum_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/div_grad/mul
-  - gradient_wrt_bias/div_grad/index_1
+  - gradient_wrt_variable_v2_1/div_grad/mul
+  - gradient_wrt_variable_v2_1/div_grad/index_1
   :attrs:
     :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_bias/div_grad/reshape_1
+  :name: gradient_wrt_variable_v2_1/div_grad/reshape_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/div_grad/sum_1
-  - gradient_wrt_bias/div_grad/shape_1
+  - gradient_wrt_variable_v2_1/div_grad/sum_1
+  - gradient_wrt_variable_v2_1/div_grad/shape_1
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_bias/sum_grad/shape
+  :name: gradient_wrt_variable_v2_1/sum_grad/shape
   :data_type: :int32
   :inputs:
   - pow
   :attrs: {}
 - :op: size
-  :name: gradient_wrt_bias/sum_grad/size
+  :name: gradient_wrt_variable_v2_1/sum_grad/size
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/shape
+  - gradient_wrt_variable_v2_1/sum_grad/shape
   :attrs:
     :internal: true
 - :op: add
-  :name: gradient_wrt_bias/sum_grad/add
+  :name: gradient_wrt_variable_v2_1/sum_grad/add
   :data_type: :int32
   :inputs:
   - range
-  - gradient_wrt_bias/sum_grad/size
+  - gradient_wrt_variable_v2_1/sum_grad/size
   :attrs: {}
 - :op: mod
-  :name: gradient_wrt_bias/sum_grad/mod
+  :name: gradient_wrt_variable_v2_1/sum_grad/mod
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/add
-  - gradient_wrt_bias/sum_grad/size
+  - gradient_wrt_variable_v2_1/sum_grad/add
+  - gradient_wrt_variable_v2_1/sum_grad/size
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_bias/sum_grad/shape_1
+  :name: gradient_wrt_variable_v2_1/sum_grad/shape_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/mod
+  - gradient_wrt_variable_v2_1/sum_grad/mod
   :attrs:
     :internal: true
 - :op: const
-  :name: gradient_wrt_bias/sum_grad/Const
+  :name: gradient_wrt_variable_v2_1/sum_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1069,7 +1051,7 @@
     :data_type: :int32
     :shape: []
 - :op: const
-  :name: gradient_wrt_bias/sum_grad/Const_1
+  :name: gradient_wrt_variable_v2_1/sum_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1077,16 +1059,17 @@
     :data_type: :int32
     :shape: []
 - :op: range
-  :name: gradient_wrt_bias/sum_grad/range
+  :name: gradient_wrt_variable_v2_1/sum_grad/range
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/Const
-  - gradient_wrt_bias/sum_grad/size
-  - gradient_wrt_bias/sum_grad/Const_1
+  - gradient_wrt_variable_v2_1/sum_grad/Const
+  - gradient_wrt_variable_v2_1/sum_grad/size
+  - gradient_wrt_variable_v2_1/sum_grad/Const_1
   :attrs:
     :name: range
+    :output_type: :int32
 - :op: const
-  :name: gradient_wrt_bias/sum_grad/Const_2
+  :name: gradient_wrt_variable_v2_1/sum_grad/Const_2
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1094,25 +1077,25 @@
     :data_type: :int32
     :shape: []
 - :op: fill
-  :name: gradient_wrt_bias/sum_grad/fill
+  :name: gradient_wrt_variable_v2_1/sum_grad/fill
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/shape_1
-  - gradient_wrt_bias/sum_grad/Const_2
+  - gradient_wrt_variable_v2_1/sum_grad/shape_1
+  - gradient_wrt_variable_v2_1/sum_grad/Const_2
   :attrs:
     :internal: true
 - :op: flow_dynamic_stitch
-  :name: gradient_wrt_bias/sum_grad/flow_dynamic_stitch
+  :name: gradient_wrt_variable_v2_1/sum_grad/flow_dynamic_stitch
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/range
-  - gradient_wrt_bias/sum_grad/mod
-  - gradient_wrt_bias/sum_grad/shape
-  - gradient_wrt_bias/sum_grad/fill
+  - gradient_wrt_variable_v2_1/sum_grad/range
+  - gradient_wrt_variable_v2_1/sum_grad/mod
+  - gradient_wrt_variable_v2_1/sum_grad/shape
+  - gradient_wrt_variable_v2_1/sum_grad/fill
   :attrs:
     :n: 2
 - :op: const
-  :name: gradient_wrt_bias/sum_grad/Const_3
+  :name: gradient_wrt_variable_v2_1/sum_grad/Const_3
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1120,34 +1103,34 @@
     :data_type: :int32
     :shape: []
 - :op: max
-  :name: gradient_wrt_bias/sum_grad/max
+  :name: gradient_wrt_variable_v2_1/sum_grad/max
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/flow_dynamic_stitch
-  - gradient_wrt_bias/sum_grad/Const_3
+  - gradient_wrt_variable_v2_1/sum_grad/flow_dynamic_stitch
+  - gradient_wrt_variable_v2_1/sum_grad/Const_3
   :attrs: {}
 - :op: floor_div
-  :name: gradient_wrt_bias/sum_grad/floor_div
+  :name: gradient_wrt_variable_v2_1/sum_grad/floor_div
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sum_grad/shape
-  - gradient_wrt_bias/sum_grad/max
+  - gradient_wrt_variable_v2_1/sum_grad/shape
+  - gradient_wrt_variable_v2_1/sum_grad/max
   :attrs: {}
 - :op: reshape
-  :name: gradient_wrt_bias/sum_grad/reshape
+  :name: gradient_wrt_variable_v2_1/sum_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/div_grad/reshape
-  - gradient_wrt_bias/sum_grad/flow_dynamic_stitch
+  - gradient_wrt_variable_v2_1/div_grad/reshape
+  - gradient_wrt_variable_v2_1/sum_grad/flow_dynamic_stitch
   :attrs: {}
 - :op: rank
-  :name: gradient_wrt_bias/sum_grad/rank
+  :name: gradient_wrt_variable_v2_1/sum_grad/rank
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/div_grad/reshape
+  - gradient_wrt_variable_v2_1/div_grad/reshape
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/sum_grad/equal/is_zero?
+  :name: gradient_wrt_variable_v2_1/sum_grad/equal/is_zero?
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1155,28 +1138,28 @@
     :data_type: :int32
     :shape: []
 - :op: equal
-  :name: gradient_wrt_bias/sum_grad/equal
+  :name: gradient_wrt_variable_v2_1/sum_grad/equal
   :data_type: :boolean
   :inputs:
-  - gradient_wrt_bias/sum_grad/rank
-  - gradient_wrt_bias/sum_grad/equal/is_zero?
+  - gradient_wrt_variable_v2_1/sum_grad/rank
+  - gradient_wrt_variable_v2_1/sum_grad/equal/is_zero?
   :attrs: {}
 - :op: tile
-  :name: gradient_wrt_bias/sum_grad/tile
+  :name: gradient_wrt_variable_v2_1/sum_grad/tile
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sum_grad/reshape
-  - gradient_wrt_bias/sum_grad/floor_div
+  - gradient_wrt_variable_v2_1/sum_grad/reshape
+  - gradient_wrt_variable_v2_1/sum_grad/floor_div
   :attrs: {}
 - :op: fill
-  :name: gradient_wrt_bias/sum_grad/fill_1
+  :name: gradient_wrt_variable_v2_1/sum_grad/fill_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sum_grad/shape
-  - gradient_wrt_bias/div_grad/reshape
+  - gradient_wrt_variable_v2_1/sum_grad/shape
+  - gradient_wrt_variable_v2_1/div_grad/reshape
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/sum_grad/Const_4
+  :name: gradient_wrt_variable_v2_1/sum_grad/Const_4
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1184,29 +1167,29 @@
     :data_type: :int32
     :shape: []
 - :op: expand_dims
-  :name: gradient_wrt_bias/sum_grad/expand_dims
+  :name: gradient_wrt_variable_v2_1/sum_grad/expand_dims
   :data_type: :boolean
   :inputs:
-  - gradient_wrt_bias/sum_grad/equal
-  - gradient_wrt_bias/sum_grad/Const_4
+  - gradient_wrt_variable_v2_1/sum_grad/equal
+  - gradient_wrt_variable_v2_1/sum_grad/Const_4
   :attrs: {}
 - :op: case
-  :name: gradient_wrt_bias/sum_grad/case
+  :name: gradient_wrt_variable_v2_1/sum_grad/case
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sum_grad/expand_dims
-  - gradient_wrt_bias/sum_grad/tile
-  - gradient_wrt_bias/sum_grad/fill_1
+  - gradient_wrt_variable_v2_1/sum_grad/expand_dims
+  - gradient_wrt_variable_v2_1/sum_grad/tile
+  - gradient_wrt_variable_v2_1/sum_grad/fill_1
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_bias/pow_grad/shape
+  :name: gradient_wrt_variable_v2_1/pow_grad/shape
   :data_type: :int32
   :inputs:
   - sub
   :attrs:
     :out_type: :int32
 - :op: const
-  :name: gradient_wrt_bias/pow_grad/Shape/Const_2_c
+  :name: gradient_wrt_variable_v2_1/pow_grad/Shape/Const_2_c
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1215,14 +1198,14 @@
     :shape:
     - 0
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_bias/pow_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2_1/pow_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/pow_grad/shape
-  - gradient_wrt_bias/pow_grad/Shape/Const_2_c
+  - gradient_wrt_variable_v2_1/pow_grad/shape
+  - gradient_wrt_variable_v2_1/pow_grad/Shape/Const_2_c
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/pow_grad/Const
+  :name: gradient_wrt_variable_v2_1/pow_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1230,14 +1213,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/pow_grad/index
+  :name: gradient_wrt_variable_v2_1/pow_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/pow_grad/broadcast_gradient_args
-  - gradient_wrt_bias/pow_grad/Const
+  - gradient_wrt_variable_v2_1/pow_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/pow_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/pow_grad/Const_1
+  :name: gradient_wrt_variable_v2_1/pow_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1245,115 +1228,115 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/pow_grad/index_1
+  :name: gradient_wrt_variable_v2_1/pow_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/pow_grad/broadcast_gradient_args
-  - gradient_wrt_bias/pow_grad/Const_1
+  - gradient_wrt_variable_v2_1/pow_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/pow_grad/Const_1
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_bias/pow_grad/mul
+  :name: gradient_wrt_variable_v2_1/pow_grad/mul
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sum_grad/case
+  - gradient_wrt_variable_v2_1/sum_grad/case
   - Const_2
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/pow_grad/Const_2
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/pow_grad/Const_2
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 1.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: sub
-  :name: gradient_wrt_bias/pow_grad/sub
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/pow_grad/sub
+  :data_type: :float32
   :inputs:
   - Const_2
-  - gradient_wrt_bias/pow_grad/Const_2
+  - gradient_wrt_variable_v2_1/pow_grad/Const_2
   :attrs: {}
 - :op: pow
-  :name: gradient_wrt_bias/pow_grad/pow
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/pow_grad/pow
+  :data_type: :float32
   :inputs:
   - sub
-  - gradient_wrt_bias/pow_grad/sub
+  - gradient_wrt_variable_v2_1/pow_grad/sub
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_bias/pow_grad/mul_1
+  :name: gradient_wrt_variable_v2_1/pow_grad/mul_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/pow_grad/mul
-  - gradient_wrt_bias/pow_grad/pow
+  - gradient_wrt_variable_v2_1/pow_grad/mul
+  - gradient_wrt_variable_v2_1/pow_grad/pow
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/pow_grad/sum
+  :name: gradient_wrt_variable_v2_1/pow_grad/sum
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/pow_grad/mul_1
-  - gradient_wrt_bias/pow_grad/index
+  - gradient_wrt_variable_v2_1/pow_grad/mul_1
+  - gradient_wrt_variable_v2_1/pow_grad/index
   :attrs:
     :keepdims: false
 - :op: const
-  :name: gradient_wrt_bias/pow_grad/Const_3
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/pow_grad/Const_3
+  :data_type: :float32
   :inputs: []
   :attrs:
     :value: 0.0
-    :data_type: :float
+    :data_type: :float32
     :shape: []
 - :op: greater
-  :name: gradient_wrt_bias/pow_grad/greater
+  :name: gradient_wrt_variable_v2_1/pow_grad/greater
   :data_type: :boolean
   :inputs:
   - sub
-  - gradient_wrt_bias/pow_grad/Const_3
+  - gradient_wrt_variable_v2_1/pow_grad/Const_3
   :attrs: {}
 - :op: log
-  :name: gradient_wrt_bias/pow_grad/log
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/pow_grad/log
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: zeros_like
-  :name: gradient_wrt_bias/pow_grad/zeros_like
-  :data_type: :float
+  :name: gradient_wrt_variable_v2_1/pow_grad/zeros_like
+  :data_type: :float32
   :inputs:
   - sub
   :attrs: {}
 - :op: where
-  :name: gradient_wrt_bias/pow_grad/where
-  :data_type: :float
-  :inputs:
-  - gradient_wrt_bias/pow_grad/greater
-  - gradient_wrt_bias/pow_grad/log
-  - gradient_wrt_bias/pow_grad/zeros_like
-  :attrs: {}
-- :op: mul
-  :name: gradient_wrt_bias/pow_grad/mul_2
+  :name: gradient_wrt_variable_v2_1/pow_grad/where
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sum_grad/case
+  - gradient_wrt_variable_v2_1/pow_grad/greater
+  - gradient_wrt_variable_v2_1/pow_grad/log
+  - gradient_wrt_variable_v2_1/pow_grad/zeros_like
+  :attrs: {}
+- :op: mul
+  :name: gradient_wrt_variable_v2_1/pow_grad/mul_2
+  :data_type: :float32
+  :inputs:
+  - gradient_wrt_variable_v2_1/sum_grad/case
   - pow
   :attrs: {}
 - :op: mul
-  :name: gradient_wrt_bias/pow_grad/mul_3
+  :name: gradient_wrt_variable_v2_1/pow_grad/mul_3
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/pow_grad/mul_2
-  - gradient_wrt_bias/pow_grad/where
+  - gradient_wrt_variable_v2_1/pow_grad/mul_2
+  - gradient_wrt_variable_v2_1/pow_grad/where
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/pow_grad/sum_1
+  :name: gradient_wrt_variable_v2_1/pow_grad/sum_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/pow_grad/mul_3
-  - gradient_wrt_bias/pow_grad/index_1
+  - gradient_wrt_variable_v2_1/pow_grad/mul_3
+  - gradient_wrt_variable_v2_1/pow_grad/index_1
   :attrs:
     :keepdims: false
 - :op: shape
-  :name: gradient_wrt_bias/sub_grad/sub/shape_x
+  :name: gradient_wrt_variable_v2_1/sub_grad/sub/shape_x
   :data_type: :int32
   :inputs:
   - add
@@ -1361,22 +1344,22 @@
     :name: sub/shape_x
     :out_type: :int32
 - :op: shape
-  :name: gradient_wrt_bias/sub_grad/sub/shape_y
+  :name: gradient_wrt_variable_v2_1/sub_grad/sub/shape_y
   :data_type: :int32
   :inputs:
-  - Placeholder_2
+  - Y
   :attrs:
     :name: sub/shape_y
     :out_type: :int32
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_bias/sub_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2_1/sub_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sub_grad/sub/shape_x
-  - gradient_wrt_bias/sub_grad/sub/shape_y
+  - gradient_wrt_variable_v2_1/sub_grad/sub/shape_x
+  - gradient_wrt_variable_v2_1/sub_grad/sub/shape_y
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/sub_grad/Const
+  :name: gradient_wrt_variable_v2_1/sub_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1384,14 +1367,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/sub_grad/index
+  :name: gradient_wrt_variable_v2_1/sub_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sub_grad/broadcast_gradient_args
-  - gradient_wrt_bias/sub_grad/Const
+  - gradient_wrt_variable_v2_1/sub_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/sub_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/sub_grad/Const_1
+  :name: gradient_wrt_variable_v2_1/sub_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1399,52 +1382,52 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/sub_grad/index_1
+  :name: gradient_wrt_variable_v2_1/sub_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/sub_grad/broadcast_gradient_args
-  - gradient_wrt_bias/sub_grad/Const_1
+  - gradient_wrt_variable_v2_1/sub_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/sub_grad/Const_1
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/sub_grad/add/reduce_sub_x
+  :name: gradient_wrt_variable_v2_1/sub_grad/add/reduce_sub_x
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/pow_grad/sum
-  - gradient_wrt_bias/sub_grad/index
+  - gradient_wrt_variable_v2_1/pow_grad/sum
+  - gradient_wrt_variable_v2_1/sub_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_x
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_bias/sub_grad/reshape
+  :name: gradient_wrt_variable_v2_1/sub_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sub_grad/add/reduce_sub_x
-  - gradient_wrt_bias/sub_grad/sub/shape_x
+  - gradient_wrt_variable_v2_1/sub_grad/add/reduce_sub_x
+  - gradient_wrt_variable_v2_1/sub_grad/sub/shape_x
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/sub_grad/add/reduce_sub_y
+  :name: gradient_wrt_variable_v2_1/sub_grad/add/reduce_sub_y
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/pow_grad/sum
-  - gradient_wrt_bias/sub_grad/index_1
+  - gradient_wrt_variable_v2_1/pow_grad/sum
+  - gradient_wrt_variable_v2_1/sub_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sub_y
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_bias/sub_grad/reshape_1
+  :name: gradient_wrt_variable_v2_1/sub_grad/reshape_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sub_grad/add/reduce_sub_y
-  - gradient_wrt_bias/sub_grad/sub/shape_y
+  - gradient_wrt_variable_v2_1/sub_grad/add/reduce_sub_y
+  - gradient_wrt_variable_v2_1/sub_grad/sub/shape_y
   :attrs: {}
 - :op: negate
-  :name: gradient_wrt_bias/sub_grad/negate
+  :name: gradient_wrt_variable_v2_1/sub_grad/negate
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sub_grad/reshape_1
+  - gradient_wrt_variable_v2_1/sub_grad/reshape_1
   :attrs: {}
 - :op: shape
-  :name: gradient_wrt_bias/add_grad/add/shape_x
+  :name: gradient_wrt_variable_v2_1/add_grad/add/shape_x
   :data_type: :int32
   :inputs:
   - mul
@@ -1452,22 +1435,22 @@
     :name: add/shape_x
     :out_type: :int32
 - :op: shape
-  :name: gradient_wrt_bias/add_grad/add/shape_y
+  :name: gradient_wrt_variable_v2_1/add_grad/add/shape_y
   :data_type: :int32
   :inputs:
-  - bias
+  - variable_v2_1
   :attrs:
     :name: add/shape_y
     :out_type: :int32
 - :op: broadcast_gradient_args
-  :name: gradient_wrt_bias/add_grad/broadcast_gradient_args
+  :name: gradient_wrt_variable_v2_1/add_grad/broadcast_gradient_args
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/add_grad/add/shape_x
-  - gradient_wrt_bias/add_grad/add/shape_y
+  - gradient_wrt_variable_v2_1/add_grad/add/shape_x
+  - gradient_wrt_variable_v2_1/add_grad/add/shape_y
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/add_grad/Const
+  :name: gradient_wrt_variable_v2_1/add_grad/Const
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1475,14 +1458,14 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/add_grad/index
+  :name: gradient_wrt_variable_v2_1/add_grad/index
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/add_grad/broadcast_gradient_args
-  - gradient_wrt_bias/add_grad/Const
+  - gradient_wrt_variable_v2_1/add_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/add_grad/Const
   :attrs: {}
 - :op: const
-  :name: gradient_wrt_bias/add_grad/Const_1
+  :name: gradient_wrt_variable_v2_1/add_grad/Const_1
   :data_type: :int32
   :inputs: []
   :attrs:
@@ -1490,43 +1473,43 @@
     :data_type: :int32
     :shape: []
 - :op: index
-  :name: gradient_wrt_bias/add_grad/index_1
+  :name: gradient_wrt_variable_v2_1/add_grad/index_1
   :data_type: :int32
   :inputs:
-  - gradient_wrt_bias/add_grad/broadcast_gradient_args
-  - gradient_wrt_bias/add_grad/Const_1
+  - gradient_wrt_variable_v2_1/add_grad/broadcast_gradient_args
+  - gradient_wrt_variable_v2_1/add_grad/Const_1
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/add_grad/add/reduce_sum_x
+  :name: gradient_wrt_variable_v2_1/add_grad/add/reduce_sum_x
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sub_grad/reshape
-  - gradient_wrt_bias/add_grad/index
+  - gradient_wrt_variable_v2_1/sub_grad/reshape
+  - gradient_wrt_variable_v2_1/add_grad/index
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_x
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_bias/add_grad/reshape
+  :name: gradient_wrt_variable_v2_1/add_grad/reshape
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/add_grad/add/reduce_sum_x
-  - gradient_wrt_bias/add_grad/add/shape_x
+  - gradient_wrt_variable_v2_1/add_grad/add/reduce_sum_x
+  - gradient_wrt_variable_v2_1/add_grad/add/shape_x
   :attrs: {}
 - :op: sum
-  :name: gradient_wrt_bias/add_grad/add/reduce_sum_y
+  :name: gradient_wrt_variable_v2_1/add_grad/add/reduce_sum_y
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/sub_grad/reshape
-  - gradient_wrt_bias/add_grad/index_1
+  - gradient_wrt_variable_v2_1/sub_grad/reshape
+  - gradient_wrt_variable_v2_1/add_grad/index_1
   :attrs:
-    :keepdims: false
     :name: add/reduce_sum_y
+    :keepdims: false
 - :op: reshape
-  :name: gradient_wrt_bias/add_grad/reshape_1
+  :name: gradient_wrt_variable_v2_1/add_grad/reshape_1
   :data_type: :float32
   :inputs:
-  - gradient_wrt_bias/add_grad/add/reduce_sum_y
-  - gradient_wrt_bias/add_grad/add/shape_y
+  - gradient_wrt_variable_v2_1/add_grad/add/reduce_sum_y
+  - gradient_wrt_variable_v2_1/add_grad/add/shape_y
   :attrs: {}
 - :op: const
   :name: GradientDescent/learning_rate
@@ -1536,56 +1519,63 @@
     :value: 0.01
     :data_type: :float32
     :shape: []
-- :op: cast
-  :name: GradientDescent/update_weight/cast
-  :data_type: :float
-  :inputs:
-  - GradientDescent/learning_rate
-  :attrs:
-    :data_type: :float
 - :op: apply_gradient_descent
-  :name: GradientDescent/update_weight/apply_gradient_descent
+  :name: GradientDescent/update_variable_v2/apply_gradient_descent
   :data_type: :float32
   :inputs:
-  - weight
-  - GradientDescent/update_weight/cast
-  - gradient_wrt_weight/mul_grad/reshape_1
+  - variable_v2
+  - GradientDescent/learning_rate
+  - gradient_wrt_variable_v2/mul_grad/reshape_1
   :attrs:
     :internal: true
 - :op: apply_gradient_descent
-  :name: GradientDescent/update_bias/apply_gradient_descent
+  :name: GradientDescent/update_variable_v2_1/apply_gradient_descent
   :data_type: :float32
   :inputs:
-  - bias
+  - variable_v2_1
   - GradientDescent/learning_rate
-  - gradient_wrt_bias/add_grad/reshape_1
+  - gradient_wrt_variable_v2_1/add_grad/reshape_1
   :attrs:
     :internal: true
 - :op: flow_group
   :name: GradientDescent/flow_group
-  :data_type: 
+  :data_type:
   :inputs:
-  - GradientDescent/update_weight/apply_gradient_descent
-  - GradientDescent/update_bias/apply_gradient_descent
+  - GradientDescent/update_variable_v2/apply_gradient_descent
+  - GradientDescent/update_variable_v2_1/apply_gradient_descent
   :attrs: {}
+- :op: assign
+  :name: assign
+  :data_type: :float32
+  :inputs:
+  - Const
+  :attrs:
+    :var_name: weight
+- :op: assign
+  :name: assign_1
+  :data_type: :float32
+  :inputs:
+  - assign
+  :attrs:
+    :var_name: weight
 - :op: assign
   :name: assign_2
   :data_type: :float32
   :inputs:
-  - weight
-  - assign
-  :attrs: {}
+  - Const_1
+  :attrs:
+    :var_name: bias
 - :op: assign
   :name: assign_3
   :data_type: :float32
   :inputs:
-  - bias
-  - assign_1
-  :attrs: {}
+  - assign_2
+  :attrs:
+    :var_name: bias
 - :op: flow_group
   :name: "/flow_group"
-  :data_type: 
+  :data_type:
   :inputs:
-  - assign_2
+  - assign_1
   - assign_3
   :attrs: {}

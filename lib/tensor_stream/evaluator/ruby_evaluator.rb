@@ -96,7 +96,7 @@ module TensorStream
 
       def var_assign_value(tensor, value)
         @storage_manager ||= TensorStream::RubyStorageManager.current_storage_manager
-        @storage_manager.assign_value(tensor.graph, tensor.options[:var_name], value)
+        @storage_manager.assign_value(tensor.graph, tensor.options[:var_name] || tensor.name, value)
 
         value
       end
@@ -226,25 +226,6 @@ module TensorStream
 
       register_op :softmax do |_context, _tensor, inputs|
         softmax(inputs[0])
-      end
-
-      register_op :save_ts do |_context, tensor, inputs|
-        outputfile = inputs[0]
-        inputs = tensor.inputs.dup
-
-        inputs.shift
-        variables = {}
-        inputs.each do |savable|
-          val = savable.container
-          packed_data = Zlib::Deflate.deflate(TensorStream::Packer.pack(val, savable.data_type))
-          variables[savable.name] = {
-            "shape" => shape_eval(val),
-            "data" => Base64.strict_encode64(packed_data),
-          }
-        end
-
-        File.write(outputfile, {"variables" => variables}.to_yaml)
-        nil
       end
 
       register_op :check_numerics do |context, tensor, inputs|
