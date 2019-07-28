@@ -23,7 +23,7 @@ module TensorStream
           var_assign_value(tensor, result)
         end
 
-        register_op :assign_sub do |context, tensor, _inputs|
+        register_op :assign_sub do |context, tensor, inputs|
           current_val = var_read_value(tensor)
           raise "variable #{tensor.options[:var_name]} not initialized" if current_val.nil?
           eval_a, eval_b = broadcast(current_val, inputs[0])

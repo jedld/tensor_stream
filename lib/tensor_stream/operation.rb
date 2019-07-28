@@ -64,7 +64,7 @@ module TensorStream
         true
       when :placeholder
         false
-      when :variable_v2
+      when :variable_v2, :assign, :assign_add, :assign_sub
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }
