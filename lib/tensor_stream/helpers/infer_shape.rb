@@ -10,13 +10,7 @@ module TensorStream
     def self.infer_shape(tensor)
       case tensor.operation
       when :assign
-        possible_shape = if tensor.inputs[0]&.shape&.shape
-          tensor.inputs[0].shape.shape
-        else
-          tensor.inputs[1].shape.shape
-        end
-
-        possible_shape
+        tensor.inputs[0]&.shape&.shape
       when :const
         shape_eval(tensor.options[:value])
       when :variable_v2

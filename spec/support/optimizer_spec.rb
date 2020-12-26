@@ -14,7 +14,7 @@ RSpec.shared_examples "optimizer evaluator" do
 
         m = ts.variable(0.0, dtype: :float32)
         b = ts.variable(0.0, dtype: :float32)
-        global_step = ts.variable(0, trainable: false)
+        global_step = ts.variable(0, trainable: false, name: 'global_step')
         x = ts.placeholder(:float32)
         y = ts.placeholder(:float32)
 

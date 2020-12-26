@@ -18,17 +18,7 @@ module TensorStream
     end
 
     def get_evaluator_classes(evaluators)
-      @evaluator_classes = if evaluators.is_a?(Array)
-        if evaluators.empty?
-          TensorStream::Evaluator.default_evaluators
-        else
-          evaluators.collect { |name| Object.const_get("TensorStream::Evaluator::#{camelize(name.to_s)}") }
-        end
-      elsif evaluators.nil?
-        TensorStream::Evaluator.default_evaluators
-      else
-        [Object.const_get("TensorStream::Evaluator::#{camelize(evaluators.to_s)}")]
-      end
+      @evaluator_classes = TensorStream::EvaluatorUtils.get_evaluator_classes(evaluators)
     end
 
     def clear_session_cache
@@ -58,7 +48,8 @@ module TensorStream
       # scan for placeholders and assign value
       options[:feed_dict]&.each_key do |k|
         if k.is_a?(Placeholder)
-          context[k.name.to_sym] = options[:feed_dict][k]
+          ph = options[:feed_dict][k]
+          context[k.name.to_sym] = ph.is_a?(Tensor) ? ph.op : ph
         elsif k.is_a?(String)
           target_graph = args[0].graph
           node = target_graph.get_node(k)

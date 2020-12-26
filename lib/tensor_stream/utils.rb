@@ -45,25 +45,22 @@ module TensorStream
     # Creates a variable
     # A variable maintains state across sessions
     def variable(value, name: nil, initializer: nil, graph: nil, dtype: nil, trainable: true)
-      op = Graph.get_default_graph.add_op(:assign, nil, value)
       common_options = {
-        initializer: initializer || op,
+        initializer: TensorStream.convert_to_tensor(initializer || value),
         name: name,
         graph: graph,
         dtype: dtype,
         trainable: trainable,
       }
       tensor = if value.is_a?(String)
-        i_var(dtype || :string, 0, [], get_variable_scope, common_options)
-      elsif value.is_a?(Integer)
-        i_var(dtype || :int32, 0, [], get_variable_scope, common_options)
-      elsif value.is_a?(Float)
-        i_var(dtype || :float32, 0, [], get_variable_scope, common_options)
-      else
-        i_var(dtype || :float32, 0, nil, get_variable_scope, common_options)
-      end
-      op.set_input(0, tensor.op)
-      Graph.get_default_graph.add_node(op)
+                 i_var(dtype || :string, 0, [], get_variable_scope, common_options)
+               elsif value.is_a?(Integer)
+                 i_var(dtype || :int32, 0, [], get_variable_scope, common_options)
+               elsif value.is_a?(Float)
+                 i_var(dtype || :float32, 0, [], get_variable_scope, common_options)
+               else
+                 i_var(dtype || :float32, 0, nil, get_variable_scope, common_options)
+               end
       tensor
     end
 

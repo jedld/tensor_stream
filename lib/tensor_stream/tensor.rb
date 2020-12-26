@@ -4,6 +4,7 @@ module TensorStream
   # Base class that defines a tensor like interface
   class Tensor
     include OpHelper
+    extend OpHelper
     include TensorMixins
 
     attr_reader :graph, :value

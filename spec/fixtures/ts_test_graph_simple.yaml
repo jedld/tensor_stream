@@ -34,22 +34,12 @@
     :data_type: :float32
     :shape: []
 - :op: variable_v2
-  :name: v1
+  :name: variable_v2
   :data_type: :float32
   :inputs: []
   :attrs:
-    :container:
-      :name: v1
-      :options: {}
-      :shape: []
+    :var_name: v1
     :data_type: :float32
-- :op: assign
-  :name: assign
-  :data_type: :float32
-  :inputs:
-  - v1
-  - Const_2
-  :attrs: {}
 - :op: const
   :name: Const_3
   :data_type: :int32
@@ -104,7 +94,7 @@
   :data_type: :float32
   :inputs:
   - mul
-  - v1
+  - variable_v2
   :attrs: {}
 - :op: const
   :name: Const_6

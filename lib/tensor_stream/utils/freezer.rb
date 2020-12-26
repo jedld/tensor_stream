@@ -19,7 +19,11 @@ module TensorStream
           node = graph.get_tensor_by_name(node_key)
           case node.operation
           when :variable_v2
-            value = node.container
+            value = Evaluator.read_variable(node.graph, node.options[:var_name])
+           if value.nil?
+             raise "#{node.options[:var_name]} has no value"
+           end
+
             options = {
               value: value,
               data_type: node.data_type,

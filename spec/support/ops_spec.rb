@@ -1116,6 +1116,23 @@ z = tf.constant([[8, 9],[10, 11]])
     end
   end
 
+  supported_op ".assign_sub" do
+    [ [[],    -1.0                      ],
+      [[1],   [-1.0]                     ],
+      [[2],   [-1.0, -1.0]                ],
+      [[2,2], [[-1.0, -1.0], [-1.0, -1.0]]  ]
+    ].each do |shape, expected|
+      context "shape #{shape}" do
+        it "adds a value to the current variable" do
+          v = TensorStream.get_variable("v", shape: shape, initializer: TensorStream.zeros_initializer)
+          assignment = v.assign_sub(1.0)
+          sess.run(TensorStream.global_variables_initializer)
+          expect(sess.run(assignment)).to eq(expected)
+        end
+      end
+    end
+  end
+
   supported_op ".assign" do
     specify "assign should set value" do
       w = TensorStream.variable(rand, name: "weight", initializer: TensorStream.zeros_initializer)

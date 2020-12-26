@@ -7,7 +7,7 @@ module TensorStream
     attr_accessor :name, :operation, :inputs, :rank, :device, :consumers, :breakpoint
     attr_reader :outputs, :options, :is_const, :data_type, :shape
 
-    def initialize(graph, inputs:, options:)
+    def initialize(graph, inputs: [], options: {})
       @consumers = Set.new
       @outputs = []
       @op = self
@@ -42,20 +42,16 @@ module TensorStream
       @options[:container] ? @options[:container].buffer : nil
     end
 
-    def container
-      @options[:container].read_value
-    end
-
-    def container=(value)
-      @options[:container].value = value
-    end
-
     def set_input(index, value)
       @inputs[index] = value
       @shape = TensorShape.new(TensorStream::InferShape.infer_shape(self))
       @rank = @shape.rank
       @is_const = infer_const
       @data_type = set_data_type(@options[:data_type])
+    end
+
+    def set_option(key, value)
+      @options.merge!(key.to_sym => value)
     end
 
     def infer_const
@@ -68,7 +64,7 @@ module TensorStream
         true
       when :placeholder
         false
-      when :variable_v2
+      when :variable_v2, :assign, :assign_add, :assign_sub
         false
       else
         non_const = @inputs.compact.find { |input| !input.is_const }

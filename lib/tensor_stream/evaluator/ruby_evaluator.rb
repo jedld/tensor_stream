@@ -2,12 +2,14 @@ require "tensor_stream/evaluator/operation_helpers/random_gaussian"
 require "tensor_stream/evaluator/operation_helpers/array_ops_helper"
 require "tensor_stream/evaluator/operation_helpers/math_helper"
 require "tensor_stream/evaluator/base_evaluator"
+require "tensor_stream/evaluator/ruby/storage_manager"
 require "tensor_stream/evaluator/ruby/math_ops"
 require "tensor_stream/evaluator/ruby/nn_ops"
 require "tensor_stream/evaluator/ruby/array_ops"
 require "tensor_stream/evaluator/ruby/random_ops"
 require "tensor_stream/evaluator/ruby/images_ops"
 require "tensor_stream/evaluator/ruby/check_ops"
+require "tensor_stream/evaluator/ruby/variable_ops"
 
 module TensorStream
   module Evaluator
@@ -41,6 +43,11 @@ module TensorStream
       include TensorStream::RandomOps
       include TensorStream::ImagesOps
       include TensorStream::CheckOps
+      include TensorStream::VariableOps
+
+      def self.get_storage_manager
+        RubyStorageManager.current_storage_manager
+      end
 
       def run(tensor, execution_context)
         return tensor.map { |t| run(t, execution_context) } if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
@@ -81,6 +88,18 @@ module TensorStream
       end
 
       protected
+
+      def var_read_value(tensor)
+        @storage_manager ||= TensorStream::RubyStorageManager.current_storage_manager
+        @storage_manager.read_value(tensor.graph, tensor.options[:var_name])
+      end
+
+      def var_assign_value(tensor, value)
+        @storage_manager ||= TensorStream::RubyStorageManager.current_storage_manager
+        @storage_manager.assign_value(tensor.graph, tensor.options[:var_name] || tensor.name, value)
+
+        value
+      end
 
       def prepare_input(tensor, context, options = {})
         return nil unless tensor
@@ -154,35 +173,8 @@ module TensorStream
         end
       end
 
-      register_op :variable_v2, no_eval: true do |_context, tensor, _inputs|
-        value = tensor.options[:container].read_value
-        raise "variable #{tensor.options[:container].name} not initalized" if value.nil?
-
-        value
-      end
-
       register_op :stop_gradient, no_eval: true do |_context, _tensor, inputs|
         inputs[0]
-      end
-
-      register_op :assign, noop: true do |context, tensor, _inputs|
-        assign = tensor.inputs[0] || tensor
-        assign.container = global_eval(tensor, tensor.inputs[1], context)
-        assign.container
-      end
-
-      register_op :assign_add, noop: true do |context, tensor, _inputs|
-        assign = tensor.inputs[0] || tensor
-
-        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context) { |t, u| t + u }
-        assign.container
-      end
-
-      register_op :assign_sub, noop: true do |context, tensor, _inputs|
-        assign = tensor.inputs[0] || tensor
-
-        assign.container = process_vector_math_op(tensor, tensor.inputs[0], tensor.inputs[1], context) { |t, u| t - u }
-        assign.container
       end
 
       register_op :less do |context, tensor, inputs|
@@ -234,44 +226,6 @@ module TensorStream
 
       register_op :softmax do |_context, _tensor, inputs|
         softmax(inputs[0])
-      end
-
-      register_op :save_ts do |_context, tensor, inputs|
-        outputfile = inputs[0]
-        inputs = tensor.inputs.dup
-
-        inputs.shift
-        variables = {}
-        inputs.each do |savable|
-          val = savable.container
-          packed_data = Zlib::Deflate.deflate(TensorStream::Packer.pack(val, savable.data_type))
-          variables[savable.name] = {
-            "shape" => shape_eval(val),
-            "data" => Base64.strict_encode64(packed_data),
-          }
-        end
-
-        File.write(outputfile, {"variables" => variables}.to_yaml)
-        nil
-      end
-
-      register_op :restore_ts do |_context, tensor, inputs|
-        inputs = inputs.dup
-        filename = inputs.shift
-        tensor_names = inputs
-
-        input_dump = YAML.safe_load(File.read(filename), [Symbol])
-        vars = tensor.graph.get_collection(GraphKeys::GLOBAL_VARIABLES)
-
-        vars.select! { |v| input_dump["variables"].key?(v.name) && tensor_names.include?(v.name) }
-        vars.each do |variable|
-          data = TensorStream::Packer.unpack(Zlib::Inflate.inflate(Base64.decode64(input_dump["variables"][variable.name]["data"])), variable.data_type)
-          shape = input_dump["variables"][variable.name]["shape"]
-          variable.buffer = nil
-          variable.value = TensorShape.reshape(data, shape)
-        end
-
-        nil
       end
 
       register_op :check_numerics do |context, tensor, inputs|
@@ -379,7 +333,7 @@ module TensorStream
         elem = args[0]
         if elem.is_a?(Array)
           elem.each_with_index.collect do |_item, index|
-            indexed_args = args.collect { |a| a[index] }
+            indexed_args = args.collect { |a| a = a.is_a?(Array) ? a : [a]; a[index] }
             multi_array_op(func, *indexed_args)
           end
         else
